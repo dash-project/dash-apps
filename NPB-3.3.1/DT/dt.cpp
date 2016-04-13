@@ -443,20 +443,19 @@ DGraph *buildBH(char cls) {
 
 typedef struct Arr_s {
   int len;
-  double *val = nullptr;
+  double* val = nullptr;
 
   Arr_s(int len_):
     len(len_)
   {
-    if (len > 0) {
-      val = new double[len];
-    }
+    val = new double[len];
   }
 
   ~Arr_s()
   {
     delete[] val;
   }
+
 } Arr;
 
 /*
@@ -532,7 +531,7 @@ void RandomFeatures(char const* bmname, int fdim, double * const feat, DGNodeInf
 void Resample(Arr *a,int blen) {
   long long int i=0,j=0,jlo=0,jhi=0;
   double avval=0.0;
-  double *nval=(double *)malloc(blen*sizeof(double));
+  double* nval= new double[blen];
   for(i=0; i<blen; i++) nval[i]=0.0;
   for(i=1; i<a->len-1; i++) {
     jlo=(int)(0.5*(2*i-1)*(blen/a->len));
@@ -545,9 +544,9 @@ void Resample(Arr *a,int blen) {
   }
   nval[0]=a->val[0];
   nval[blen-1]=a->val[a->len-1];
-  memcpy(a->val, nval, blen*sizeof(double));
+  delete[] a->val;
+  a->val = nval;
   a->len=blen;
-  free(nval);
 }
 void WindowFilter(Arr *a, Arr *b,int w) {
   int i=0,j=0,k=0;
@@ -622,49 +621,45 @@ void CombineStreams(Graph<dash::Array<double>> &graph, DGNodeInfo & nd) {
 
   int len, i, predRank;
 
-
   auto &array = graph.getData();
   const std::array<dash::default_index_t, 1> coords { {0} };
 
-  Arr *pred_feat = nullptr;
-  Arr *resfeat = new Arr(0);
-  resfeat->val = array.lbegin();
-  resfeat->len = NUM_SAMPLES * fielddim;
+  Arr *pred_feat;
+  Arr *resfeat = new Arr(NUM_SAMPLES * fielddim);
 
   for(i = 0; i < nd.inDegree; ++i) {
     predRank = nd.inArc[i];
     if(predRank != nd.id) {
       MPI_Recv(&len, 1 , MPI_INT, predRank , 10 , MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-      if (!pred_feat || pred_feat->len != len) {
-        delete pred_feat;
-        pred_feat = new Arr(len);
-      }
+      pred_feat = new Arr(len);
+
       //Copy Array
       auto gindex = array.pattern().global(predRank, coords);
       auto copy_start_idx = gindex[0];
       auto copy_end_idx = copy_start_idx + len;
 
-      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, pred_feat->val);
+      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, &(pred_feat->val[0]));
 
       WindowFilter(resfeat, pred_feat, nd.id);
 
-      nd.feature_len = resfeat->len;
+      delete pred_feat;
     } else {
       pred_feat = new Arr(nd.feature_len);
       memcpy(pred_feat->val, array.lbegin(), nd.feature_len*sizeof(double));
       WindowFilter(resfeat, pred_feat, nd.id);
-      nd.feature_len = resfeat->len;
+      delete pred_feat;
     }
   }
-
-  delete pred_feat;
 
   const int inD = nd.inDegree;
 
   for(i = 0; i < resfeat->len; ++i) {
     resfeat->val[i]=((int)resfeat->val[i])/inD;
   }
+
+  std::copy(&(resfeat->val[0]), &(resfeat->val[resfeat->len]), array.lbegin());
+  nd.feature_len = resfeat->len;
 }
 
 double Reduce(Arr const& a,int w) {
@@ -706,6 +701,7 @@ double ReduceStreams(Graph<dash::Array<double>> & graph, DGNodeInfo const& nd) {
 
       //Calculate Checksum
       csum+=Reduce(*feat,(nd.id+1));
+
       delete feat;
     } else {
       csum+=Reduce(*feat,(nd.id+1));
@@ -726,7 +722,7 @@ int ProcessNodes(Graph<dash::Array<double>> & graph) {
 
   auto &nodes = graph.getNodes();
   auto const numNodes = nodes.size();
-  DGNodeInfo me = nodes.local[0];
+  DGNodeInfo &me = nodes.local[0];
 
   if (strlen(me.name) == 0) return 0;
 
@@ -900,6 +896,7 @@ int main(int argc,char **argv ) {
     while(wait);
   }
   */
+  dash::barrier();
   dash::finalize();
   return 0;
 }
