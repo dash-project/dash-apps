@@ -16,7 +16,7 @@ void arcShow(DGArc *ar) {
   fprintf(stderr,"%d. |%s ->%s\n",ar->id,tl->name,hd->name);
 }
 
-DGNode *newNode(const char nm[BLOCK_SIZE]) {
+DGNode *newNode(const char *nm) {
   DGNode *nd=(DGNode *)malloc(sizeof(DGNode));
   nd->attribute=0;
   nd->color=0;
@@ -26,8 +26,8 @@ DGNode *newNode(const char nm[BLOCK_SIZE]) {
   nd->maxOutDegree=SMALL_BLOCK_SIZE;
   nd->inArc=(DGArc **)malloc(nd->maxInDegree*sizeof(DGArc*));
   nd->outArc=(DGArc **)malloc(nd->maxOutDegree*sizeof(DGArc*));
-  //nd->feat=NULL;
-  strcpy(nd->name, nm);
+  nd->feat=NULL;
+  nd->name = strdup(nm);
   return nd;
 }
 void nodeShow(DGNode* nd) {

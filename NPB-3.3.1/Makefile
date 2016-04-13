@@ -20,6 +20,9 @@ dtW: clean
 
 dtA: clean
 	cd DT; $(MAKE) NPROCS=10 CLASS=A
+
+dtB: clean
+	cd DT; $(MAKE) NPROCS=10 CLASS=B
 # Awk script courtesy cmg@cray.com, modified by Haoqiang Jin
 suite:
 	@ awk -f sys/suite.awk SMAKE=$(MAKE) $(SFILE) | $(SHELL)

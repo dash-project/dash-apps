@@ -48,6 +48,52 @@ using namespace std;
 #include "npbparams.h"
 #include "DGraph.h"
 
+
+/* Added For Dash */
+//static int maxInDegree = 0;
+#define fielddim 4
+#define MAX_FEATURE_LEN ((NUM_SAMPLES) * (fielddim) * (2))
+
+typedef struct DGNodeInfo_s {
+  int id = -1;
+  int feature_len = 0;
+  int inDegree = 0;
+  int outDegree = 0;
+  int inArc[SMALL_BLOCK_SIZE] = {0};
+  int outArc[SMALL_BLOCK_SIZE] = {0};
+  char name[SMALL_BLOCK_SIZE];
+
+} DGNodeInfo;
+
+template <typename GraphData>
+class Graph
+{
+public:
+  Graph(
+    string const name_, size_t numNodes, GraphData &data_):
+    m_name(name_),
+    m_nodes(numNodes, dash::BLOCKED),
+    m_data(data_)
+  {}
+
+  dash::Array<DGNodeInfo> & getNodes() {
+    return m_nodes;
+  }
+
+  GraphData & getData() {
+    return m_data;
+  }
+
+  string const getName() const {
+    return m_name;
+  }
+private:
+  string const m_name;
+  dash::Array<DGNodeInfo> m_nodes;
+  GraphData &m_data;
+};
+/* End of this section */
+
 #ifndef CLASS
 #define CLASS 'S'
 #define NUM_PROCS            1
@@ -86,7 +132,7 @@ extern "C" {
 }
 int timer_on=0,timers_tot=64;
 
-int verify(char *bmname,double rnm2) {
+int verify(char const* bmname,double rnm2) {
   double verify_value=0.0;
   double epsilon=1.0E-8;
   char cls=CLASS;
@@ -266,6 +312,14 @@ DGraph *buildSH(char cls) {
     AttachArc(dg,ar);
   }
   return dg;
+
+  /*
+  for (int idx = 0; idx < dg->numNodes; ++idx) {
+    if (dg->node[idx]->inDegree > maxInDegree) {
+      maxInDegree = dg->node[idx]->inDegree;
+    }
+  }
+  */
 }
 DGraph *buildWH(char cls) {
   /*
@@ -282,6 +336,8 @@ DGraph *buildWH(char cls) {
   DGNode *nd=NULL,*source=NULL,*tmp=NULL,*snd=NULL;
   DGArc *ar=NULL;
   char nm[BLOCK_SIZE];
+  //global maxInDegree for creation of Dash Array
+  //maxInDegree = maxInDeg;
 
   sprintf(nm,"DT_WH.%c",cls);
   dg=newDGraph(nm);
@@ -345,13 +401,15 @@ DGraph *buildBH(char cls) {
   int id=0, sid=0;
   char nm[BLOCK_SIZE];
 
+  //global maxInDegree for creation of Dash Array
+  //maxInDegree = maxInDeg;
+
   sprintf(nm,"DT_BH.%c",cls);
   dg=newDGraph(nm);
 
   for(i=0; i<numSources; i++) {
     sprintf(nm,"Source.%d",i);
     nd=newNode(nm);
-
     AttachNode(dg,nd);
   }
   while(numLayerNodes>maxInDeg) {
@@ -383,18 +441,38 @@ DGraph *buildBH(char cls) {
   return dg;
 }
 
-DGNode_Feat *newFeat(int len) {
-  DGNode_Feat *arr=(DGNode_Feat *)malloc(sizeof(DGNode_Feat));
-  arr->len=len;
+typedef struct Arr_s {
+  int len;
+  double *val = nullptr;
+
+  Arr_s(int len_):
+    len(len_)
+  {
+    if (len > 0) {
+      val = new double[len];
+    }
+  }
+
+  ~Arr_s()
+  {
+    delete[] val;
+  }
+} Arr;
+
+/*
+Arr *newArr(int len) {
+  Arr *arr = new Arr(len);
   return arr;
 }
+
 void arrShow(DGNode_Feat* a) {
   if(!a) fprintf(stderr,"-- NULL array\n");
   else {
     fprintf(stderr,"-- length=%d\n",a->len);
   }
 }
-double CheckVal(DGNode_Feat const& feat) {
+*/
+double CheckVal(Arr const& feat) {
   double csum=0.0;
   int i=0;
   for(i=0; i<feat.len; i++) {
@@ -408,7 +486,7 @@ int GetFNumDPar(int* mean, int* stdev) {
   *stdev=STD_DEVIATION;
   return 0;
 }
-int GetFeatureNum(char *mbname,int id) {
+int GetFeatureNum(char const*mbname,int id) {
   double tran=314159265.0;
   double A=2*id+1;
   double denom=randlc(&tran,&A);
@@ -421,10 +499,9 @@ int GetFeatureNum(char *mbname,int id) {
   len=mean-stdev+rtfs;
   return len;
 }
-void RandomFeatures(char *bmname,int fdim, DGNode& nd) {
+void RandomFeatures(char const* bmname, int fdim, double * const feat, DGNodeInfo& nd ) {
   int len=GetFeatureNum(bmname,nd.id)*fdim;
-  nd.feat.len=len;
-  //cout << "Feature length:  " << nd.feat.len << ", calculated length: " << len << ", Address: " << nd.address << endl;
+  nd.feature_len=len;
   int nxg=2,nyg=2,nzg=2,nfg=5;
   int nx=421,ny=419,nz=1427,nf=3527;
   long long int expon=(len*(nd.id+1))%3141592;
@@ -442,17 +519,17 @@ void RandomFeatures(char *bmname,int fdim, DGNode& nd) {
     seedy=(seedy*nyg)%ny;
     seedz=(seedz*nzg)%nz;
     seedf=(seedf*nfg)%nf;
-    nd.feat.val[i]=seedx;
-    nd.feat.val[i+1]=seedy;
-    nd.feat.val[i+2]=seedz;
-    nd.feat.val[i+3]=seedf;
+    feat[i]=seedx;
+    feat[i+1]=seedy;
+    feat[i+2]=seedz;
+    feat[i+3]=seedf;
   }
   if(timer_on) {
     timer_stop(nd.id+1);
     fprintf(stderr,"** RandomFeatures time in node %d = %f\n",nd.id,timer_read(nd.id+1));
   }
 }
-void Resample(DGNode_Feat *a,int blen) {
+void Resample(Arr *a,int blen) {
   long long int i=0,j=0,jlo=0,jhi=0;
   double avval=0.0;
   double *nval=(double *)malloc(blen*sizeof(double));
@@ -468,11 +545,11 @@ void Resample(DGNode_Feat *a,int blen) {
   }
   nval[0]=a->val[0];
   nval[blen-1]=a->val[a->len-1];
-  memcpy(&(a->val[0]), nval, blen*sizeof(double));
+  memcpy(a->val, nval, blen*sizeof(double));
   a->len=blen;
   free(nval);
 }
-void WindowFilter(DGNode_Feat *a, DGNode_Feat *b,int w) {
+void WindowFilter(Arr *a, Arr *b,int w) {
   int i=0,j=0,k=0;
   double rms0=0.0,rms1=0.0,rmsm1=0.0;
   double weight=((double) (w+1))/(w+2);
@@ -531,65 +608,66 @@ void WindowFilter(DGNode_Feat *a, DGNode_Feat *b,int w) {
   }
 }
 
-int SendResults(DGraph *dg, dash::Array<DGNode> & nodes, DGNode const& nd) {
-  int i=0;
+int SendResults(DGNodeInfo const& nd) {
+  int i;
   for(i=0; i < nd.outDegree; ++i) {
-    MPI_Send(&nd.address, 1, MPI_INT, nd.out[i], 10, MPI_COMM_WORLD);
+    MPI_Send(&nd.feature_len, 1, MPI_INT, nd.outArc[i], 10, MPI_COMM_WORLD);
   }
   return 1;
 }
 
-void CombineStreams(DGraph *dg, dash::Array<DGNode> const& nodes, DGNode & nd) {
-
-  DGNode_Feat *resfeat = newFeat(NUM_SAMPLES * fielddim);
-  int i=0;
-  int pred;
+void CombineStreams(Graph<dash::Array<double>> &graph, DGNodeInfo & nd) {
 
   if (nd.inDegree == 0) return;
 
-  DGNode_Feat *feat=NULL;
-  MPI_Request *reqs = new MPI_Request[nd.inDegree];
-  MPI_Status  *status= new MPI_Status[nd.inDegree];
-  //int *indices = new int[nd.inDegree];
-  int *results = new int[nd.inDegree];
-  //int ncompleted = MPI_UNDEFINED;
+  int len, i, predRank;
 
 
-  for(i=0; i<nd.inDegree; i++) {
-    pred=nd.in[i];
-    if(pred != nd.address) {
-      MPI_Irecv(&results[i], 1 , MPI_INT, pred , 10 , MPI_COMM_WORLD, &reqs[i]);
+  auto &array = graph.getData();
+  const std::array<dash::default_index_t, 1> coords { {0} };
+
+  Arr *pred_feat = nullptr;
+  Arr *resfeat = new Arr(0);
+  resfeat->val = array.lbegin();
+  resfeat->len = NUM_SAMPLES * fielddim;
+
+  for(i = 0; i < nd.inDegree; ++i) {
+    predRank = nd.inArc[i];
+    if(predRank != nd.id) {
+      MPI_Recv(&len, 1 , MPI_INT, predRank , 10 , MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+      if (!pred_feat || pred_feat->len != len) {
+        delete pred_feat;
+        pred_feat = new Arr(len);
+      }
+      //Copy Array
+      auto gindex = array.pattern().global(predRank, coords);
+      auto copy_start_idx = gindex[0];
+      auto copy_end_idx = copy_start_idx + len;
+
+      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, pred_feat->val);
+
+      WindowFilter(resfeat, pred_feat, nd.id);
+
+      nd.feature_len = resfeat->len;
     } else {
-      feat=newFeat(nd.feat.len);
-      memcpy(&(feat->val), &(nd.feat.val), nd.feat.len*sizeof(double));
-      WindowFilter(resfeat, feat, nd.id);
-      free(feat);
+      pred_feat = new Arr(nd.feature_len);
+      memcpy(pred_feat->val, array.lbegin(), nd.feature_len*sizeof(double));
+      WindowFilter(resfeat, pred_feat, nd.id);
+      nd.feature_len = resfeat->len;
     }
   }
 
-  MPI_Waitall(nd.inDegree, reqs, status);
-
-  for (i = 0; i < nd.inDegree; ++i) {
-    DGNode_Feat featp = nodes[results[i]].member(&DGNode_s::feat);
-    WindowFilter(resfeat, &featp, nd.id);
-  }
+  delete pred_feat;
 
   const int inD = nd.inDegree;
 
-  for(i=0; i<resfeat->len; i++) {
+  for(i = 0; i < resfeat->len; ++i) {
     resfeat->val[i]=((int)resfeat->val[i])/inD;
   }
-
-
-  nd.feat = *resfeat;
-
-  delete[] reqs;
-  delete[] status;
-  //delete[] indices;
-  delete[] results;
 }
 
-double Reduce(DGNode_Feat const& a,int w) {
+double Reduce(Arr const& a,int w) {
   double retv=0.0;
   if(timer_on) {
     timer_clear(w);
@@ -604,87 +682,79 @@ double Reduce(DGNode_Feat const& a,int w) {
   return retv;
 }
 
-double ReduceStreams(DGraph *dg, dash::Array<DGNode> const& nodes, DGNode const& nd) {
+double ReduceStreams(Graph<dash::Array<double>> & graph, DGNodeInfo const& nd) {
   double csum=0.0;
   int i=0;
-  int pred;
+  int len;
   double retv=0.0;
-  MPI_Request *reqs = new MPI_Request[nd.inDegree];
-  MPI_Status  *status= new MPI_Status[nd.inDegree];
-  //int *indices = new int[nd.inDegree];
-  int *results = new int[nd.inDegree];
+  auto &array = graph.getData();
+  Arr* feat = nullptr;
+  const std::array<dash::default_index_t, 1> coords { {0} };
+  
 
-  for(i=0; i<nd.inDegree; i++) {
-    pred=nd.in[i];
-    if(pred != nd.address) {
-      MPI_Irecv(&results[i], 1 , MPI_INT, pred , 10 , MPI_COMM_WORLD, &reqs[i]);
+  for(i=0; i<nd.inDegree; ++i) {
+    auto predRank = nd.inArc[i];
+    if(predRank != nd.id) {
+      MPI_Recv(&len, 1 , MPI_INT, predRank , 10 , MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      feat = new Arr(len);
+
+      //Copy Array
+      auto gindex = array.pattern().global(predRank, coords);
+      auto copy_start_idx = gindex[0];
+      auto copy_end_idx = copy_start_idx + len;
+      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, feat->val);
+
+      //Calculate Checksum
+      csum+=Reduce(*feat,(nd.id+1));
+      delete feat;
     } else {
-      csum+=Reduce(nd.feat,(nd.id+1));
+      csum+=Reduce(*feat,(nd.id+1));
     }
   }
 
-  MPI_Waitall(nd.inDegree, reqs, status);
-
-  for (i = 0; i < nd.inDegree; ++i) {
-    const DGNode_Feat feat = nodes[results[i]].member(&DGNode_s::feat);
-    csum+=Reduce(feat,(nd.id+1));
-  }
-  /*
-  if (outstandingRequests) {
-  while(1) {
-  MPI_Waitsome(nd.inDegree, reqs, &ncompleted, indices, status);
-
-  if (ncompleted == MPI_UNDEFINED) break;
-
-  }
-  }
-  */
   if(nd.inDegree > 0) csum=(((long long int)csum)/nd.inDegree);
   retv=(nd.id+1)*csum;
-  delete[] reqs;
-  delete[] status;
-  //delete[] indices;
-  delete[] results;
+
   return retv;
 }
 
-int ProcessNodes(DGraph *dg, dash::Array<DGNode> (&nodes), int me) {
+int ProcessNodes(Graph<dash::Array<double>> & graph) {
   double chksum=0.0;
   int verified=0,tag;
   double rchksum=0.0;
   MPI_Status status;
-  auto const numNodes = nodes.local.size();
-  DGNode &nd = nodes.local[0];
 
-  if (strlen(nd.name) == 0) return 0;
+  auto &nodes = graph.getNodes();
+  auto const numNodes = nodes.size();
+  DGNodeInfo me = nodes.local[0];
 
-  if(strstr(nd.name,"Source")) {
-    RandomFeatures(dg->name,fielddim, nd);
-    SendResults(dg, nodes, nd);
+  if (strlen(me.name) == 0) return 0;
+
+  if(strstr(me.name,"Source")) {
+    double * lfeat = graph.getData().lbegin();
+    RandomFeatures(graph.getName().c_str(), fielddim, lfeat, me);
+    SendResults(me);
   }
-  else if(strstr(nd.name,"Sink")) {
-    chksum=ReduceStreams(dg, nodes, nd);
-    tag = numNodes + nd.id;
+  else if(strstr(me.name, "Sink")) {
+    chksum=ReduceStreams(graph, me);
+    tag = numNodes + me.id;
     MPI_Send(&chksum,1,MPI_DOUBLE,0,tag,MPI_COMM_WORLD);
   }
   else {
-    CombineStreams(dg, nodes, nd);
-    SendResults(dg, nodes, nd);
+    CombineStreams(graph, me);
+    SendResults(me);
   }
 
-  if(me==0) { // Report node
+  if(me.id == 0) { // Report node
     rchksum=0.0;
-    chksum=0.0;
-    DGNode *nd = new DGNode();
-    for(size_t idx = 0; idx < nodes.size(); ++idx) {
-      nodes[idx].get(nd);
-      if(!strstr(nd->name,"Sink")) continue;
-      tag=numNodes+nd->id; // make these to avoid clash with arc tags
-      MPI_Recv(&rchksum,1,MPI_DOUBLE,nd->address,tag,MPI_COMM_WORLD,&status);
+    for(size_t idx = 0; idx < numNodes; ++idx) {
+      DGNodeInfo nd = nodes[idx];
+      if(!(strstr(nd.name, "Sink"))) continue;
+      tag=numNodes+nd.id; // make these to avoid clash with arc tags
+      MPI_Recv(&rchksum,1,MPI_DOUBLE,nd.id,tag,MPI_COMM_WORLD,&status);
       chksum+=rchksum;
     }
-    delete nd;
-    verified=verify(dg->name,chksum);
+    verified=verify(graph.getName().c_str(),chksum);
   }
 
   return verified;
@@ -725,7 +795,7 @@ int main(int argc,char **argv ) {
   } else if(strncmp(argv[1],"SH",2)==0) {
     dg=buildSH(CLASS);
   }
-  
+
   if(dg->numNodes>comm_size) {
     if(my_rank==0) {
       fprintf(stderr,"**  The number of MPI processes should not be less than \n");
@@ -748,27 +818,42 @@ int main(int argc,char **argv ) {
   }
 
   //Create Dash Array
-  dash::Array<DGNode> nodes(dash::size());
+  //Each process represents 1 node
+  //Each node has maxInDegree predecessors
+  //We need one feature array for each predecessor
+  dash::Array<double> features(dash::size() * MAX_FEATURE_LEN);
+  //dash::Array<DGNodeInfo> nodes(dash::size());
+  Graph<dash::Array<double>> graph(dg->name, dash::size(), features);
 
-  if (my_rank == 0) {
-    for(i=0; i<dg->numNodes; i++) {
+
+  for(i = 0; i < dg->numNodes; i++) {
+    if (my_rank == i) {
       int j;
-      for (j = 0; j < dg->node[i]->inDegree; ++j)
+      DGNode *nd = dg->node[i];
+      //copy required info
+      DGNodeInfo ndInfo;
+      string nodeName(nd->name);
+      ndInfo.id = nd->address;
+      strcpy(ndInfo.name, nd->name);;
+      ndInfo.inDegree = nd->inDegree;
+      ndInfo.outDegree = nd->outDegree;
+
+      for (j = 0; j < nd->inDegree; ++j)
       {
-        dg->node[i]->in[j] = dg->node[i]->inArc[j]->tail->address;
+        ndInfo.inArc[j] = nd->inArc[j]->tail->address;
       }
-      for (j = 0; j < dg->node[i]->outDegree; ++j)
+      for (j = 0; j < nd->outDegree; ++j)
       {
-        dg->node[i]->out[j] = dg->node[i]->outArc[j]->head->address;
+        ndInfo.outArc[j] = nd->outArc[j]->head->address;
       }
 
-      //nodes[i] = *(dg->node[i]);
-      nodes[i].put(dg->node[i]);
+      graph.getNodes().local[0] = ndInfo;
     }
   }
 
-  nodes.barrier();
-  //cout << "Before Graph Show in ID: " << my_rank << endl;
+
+
+  dash::barrier();
 
   if( my_rank == 0 ) {
     printf( "\n\n NAS Parallel Benchmarks 3.3 -- DT Benchmark\n\n" );
@@ -777,13 +862,7 @@ int main(int argc,char **argv ) {
     timer_start(0);
   }
 
-  //cout << "After Graph Show" << endl;
-  //cout << "After Graph Show in ID: " << my_rank << endl;
-  //printf("Starting ProcessNodes %d with dg: %p, nodes size = %d\n", my_rank, (void*) dg, dg->numNodes);
-
-  verified=ProcessNodes(dg, nodes, my_rank);
-
-  nodes.barrier();
+  verified=ProcessNodes(graph);
 
   featnum=NUM_SAMPLES*fielddim;
   bytes_sent=featnum*dg->numArcs;
@@ -791,6 +870,7 @@ int main(int argc,char **argv ) {
   if(my_rank==0) {
     timer_stop(0);
     tot_time=timer_read(0);
+
     c_print_results( dg->name,
                      CLASS,
                      featnum,
@@ -812,6 +892,14 @@ int main(int argc,char **argv ) {
                      CFLAGS,
                      CLINKFLAGS );
   }
+  /*
+  printf("Before finalize, rank: %d\n", my_rank);
+  if (my_rank == 9 || my_rank == 8) {
+    int wait = 0;
+    printf("Comparator processId is: %d\n", getpid());
+    while(wait);
+  }
+  */
   dash::finalize();
   return 0;
 }
