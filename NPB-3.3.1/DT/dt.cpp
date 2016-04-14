@@ -47,6 +47,7 @@ using namespace std;
 #include "mpi.h"
 #include "npbparams.h"
 #include "DGraph.h"
+#include "dt.h"
 
 
 /* Added For Dash */
@@ -54,44 +55,6 @@ using namespace std;
 #define fielddim 4
 #define MAX_FEATURE_LEN ((NUM_SAMPLES) * (fielddim) * (2))
 
-typedef struct DGNodeInfo_s {
-  int id = -1;
-  int feature_len = 0;
-  int inDegree = 0;
-  int outDegree = 0;
-  int inArc[SMALL_BLOCK_SIZE] = {0};
-  int outArc[SMALL_BLOCK_SIZE] = {0};
-  char name[SMALL_BLOCK_SIZE];
-
-} DGNodeInfo;
-
-template <typename GraphData>
-class Graph
-{
-public:
-  Graph(
-    string const name_, size_t numNodes, GraphData &data_):
-    m_name(name_),
-    m_nodes(numNodes, dash::BLOCKED),
-    m_data(data_)
-  {}
-
-  dash::Array<DGNodeInfo> & getNodes() {
-    return m_nodes;
-  }
-
-  GraphData & getData() {
-    return m_data;
-  }
-
-  string const getName() const {
-    return m_name;
-  }
-private:
-  string const m_name;
-  dash::Array<DGNodeInfo> m_nodes;
-  GraphData &m_data;
-};
 /* End of this section */
 
 #ifndef CLASS
@@ -621,7 +584,7 @@ void CombineStreams(Graph<dash::Array<double>> &graph, DGNodeInfo & nd) {
 
   int len, i, predRank;
 
-  auto &array = graph.getData();
+  auto &array = graph.data();
   const std::array<dash::default_index_t, 1> coords { {0} };
 
   Arr *pred_feat;
@@ -682,7 +645,7 @@ double ReduceStreams(Graph<dash::Array<double>> & graph, DGNodeInfo const& nd) {
   int i=0;
   int len;
   double retv=0.0;
-  auto &array = graph.getData();
+  auto &array = graph.data();
   Arr* feat = nullptr;
   const std::array<dash::default_index_t, 1> coords { {0} };
   
@@ -716,42 +679,47 @@ double ReduceStreams(Graph<dash::Array<double>> & graph, DGNodeInfo const& nd) {
 
 int ProcessNodes(Graph<dash::Array<double>> & graph) {
   double chksum=0.0;
-  int verified=0,tag;
+  int verified=0;
   double rchksum=0.0;
-  MPI_Status status;
 
-  auto &nodes = graph.getNodes();
+  auto &nodes = graph.nodes();
   auto const numNodes = nodes.size();
   DGNodeInfo &me = nodes.local[0];
 
-  if (strlen(me.name) == 0) return 0;
+  auto chksumArr = dash::Array<double>(numNodes);
 
   if(strstr(me.name,"Source")) {
-    double * lfeat = graph.getData().lbegin();
-    RandomFeatures(graph.getName().c_str(), fielddim, lfeat, me);
+    double * lfeat = graph.data().lbegin();
+    RandomFeatures(graph.name().c_str(), fielddim, lfeat, me);
     SendResults(me);
   }
   else if(strstr(me.name, "Sink")) {
     chksum=ReduceStreams(graph, me);
-    tag = numNodes + me.id;
-    MPI_Send(&chksum,1,MPI_DOUBLE,0,tag,MPI_COMM_WORLD);
+    chksumArr.local[0] = chksum;
   }
   else {
     CombineStreams(graph, me);
     SendResults(me);
   }
 
+  //chksumArr.barrier();
+
+//TODO: replace with proper dash::reduce
+  MPI_Reduce(chksumArr.lbegin(), &rchksum, chksumArr.lsize(), MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  if (me.id == 0) {
+    verified=verify(graph.name().c_str(),rchksum);
+  }
+
+  /*
   if(me.id == 0) { // Report node
     rchksum=0.0;
     for(size_t idx = 0; idx < numNodes; ++idx) {
-      DGNodeInfo nd = nodes[idx];
-      if(!(strstr(nd.name, "Sink"))) continue;
-      tag=numNodes+nd.id; // make these to avoid clash with arc tags
-      MPI_Recv(&rchksum,1,MPI_DOUBLE,nd.id,tag,MPI_COMM_WORLD,&status);
-      chksum+=rchksum;
+      rchksum += chksumArr[idx];
     }
-    verified=verify(graph.getName().c_str(),chksum);
+    verified=verify(graph.name().c_str(),rchksum);
   }
+  */
 
   return verified;
 }
@@ -821,7 +789,6 @@ int main(int argc,char **argv ) {
   //dash::Array<DGNodeInfo> nodes(dash::size());
   Graph<dash::Array<double>> graph(dg->name, dash::size(), features);
 
-
   for(i = 0; i < dg->numNodes; i++) {
     if (my_rank == i) {
       int j;
@@ -843,11 +810,9 @@ int main(int argc,char **argv ) {
         ndInfo.outArc[j] = nd->outArc[j]->head->address;
       }
 
-      graph.getNodes().local[0] = ndInfo;
+      graph.nodes().local[0] = ndInfo;
     }
   }
-
-
 
   dash::barrier();
 
