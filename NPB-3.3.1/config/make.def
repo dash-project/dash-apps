@@ -95,7 +95,7 @@ CXXLINK	= $(MPICXX)
 # Global *compile time* flags for C programs
 #---------------------------------------------------------------------------
 CFLAGS	= -I/home/kowalewski/opt/include
-CXXFLAGS	= -std=c++11 -g $(CFLAGS)
+CXXFLAGS	= -std=c++11 $(CFLAGS)
 
 #---------------------------------------------------------------------------
 # Global *link time* flags. Flags for increasing maximum executable 
