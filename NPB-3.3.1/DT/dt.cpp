@@ -421,19 +421,6 @@ typedef struct Arr_s {
 
 } Arr;
 
-/*
-Arr *newArr(int len) {
-  Arr *arr = new Arr(len);
-  return arr;
-}
-
-void arrShow(DGNode_Feat* a) {
-  if(!a) fprintf(stderr,"-- NULL array\n");
-  else {
-    fprintf(stderr,"-- length=%d\n",a->len);
-  }
-}
-*/
 double CheckVal(Arr const& feat) {
   double csum=0.0;
   int i=0;
@@ -702,24 +689,12 @@ int ProcessNodes(Graph<dash::Array<double>> & graph) {
     SendResults(me);
   }
 
-  //chksumArr.barrier();
-
-//TODO: replace with proper dash::reduce
+  //TODO: replace with proper dash::reduce
   MPI_Reduce(chksumArr.lbegin(), &rchksum, chksumArr.lsize(), MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
   if (me.id == 0) {
     verified=verify(graph.name().c_str(),rchksum);
   }
-
-  /*
-  if(me.id == 0) { // Report node
-    rchksum=0.0;
-    for(size_t idx = 0; idx < numNodes; ++idx) {
-      rchksum += chksumArr[idx];
-    }
-    verified=verify(graph.name().c_str(),rchksum);
-  }
-  */
 
   return verified;
 }
@@ -833,6 +808,7 @@ int main(int argc,char **argv ) {
   featnum=NUM_SAMPLES*fielddim;
   bytes_sent=featnum*dg->numArcs;
   bytes_sent/=1048576;
+
   if(my_rank==0) {
     timer_stop(0);
     tot_time=timer_read(0);
@@ -858,15 +834,7 @@ int main(int argc,char **argv ) {
                      CFLAGS,
                      CLINKFLAGS );
   }
-  /*
-  printf("Before finalize, rank: %d\n", my_rank);
-  if (my_rank == 9 || my_rank == 8) {
-    int wait = 0;
-    printf("Comparator processId is: %d\n", getpid());
-    while(wait);
-  }
-  */
-  dash::barrier();
+
   dash::finalize();
   return 0;
 }
