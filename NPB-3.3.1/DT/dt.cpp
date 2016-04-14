@@ -781,6 +781,11 @@ int main(int argc,char **argv ) {
     dg->node[i]->address=i;
   }
 
+  dash::util::BenchmarkParams bench_params("NPB-3.3.1.DT");
+  bench_params.set_output_width(72);
+  bench_params.print_header();
+  bench_params.print_pinning();
+
   //Create Dash Array
   //Each process represents 1 node
   //Each node has maxInDegree predecessors
