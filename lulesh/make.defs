@@ -1,0 +1,15 @@
+
+DART_IMPL = mpi
+DART_VER  = v3.2
+DASH_ROOT = /home/fuerling/code/dash
+
+LIBDASH   = $(DASH_ROOT)/dash/src/libdash.a
+LIBDART   = $(DASH_ROOT)/dart-impl/$(DART_IMPL)/src/libdart.a
+
+DASH_INC    = $(DASH_ROOT)/dash/include/
+DART_INC    = $(DASH_ROOT)/dart-impl/$(DART_IMPL)/include/
+DARTIF_INC  = $(DASH_ROOT)/dart-if/$(DART_VER)/include
+
+CXX       = mpicxx -std=c++11
+CFLAGS    = -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
+
