@@ -60,7 +60,11 @@ public:
   Int_t px()       const { return m_px; }
   Int_t py()       const { return m_py; }
   Int_t pz()       const { return m_pz; }
+  Int_t showProg() const { return m_showProg; }
+  Int_t numReg()   const { return m_numReg; }
+  Int_t balance()  const { return m_balance; }
 
+  Int_t its()      const { return m_its; }
   bool valid()     const { return m_valid; }
 };
 

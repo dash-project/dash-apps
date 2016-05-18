@@ -3,7 +3,8 @@ include make.defs
 
 CFLAGS += -DUSE_MPI
 
-lulesh : lulesh.o lulesh-util.o lulesh-dash.o lulesh-calc.o lulesh-mpi.o
+lulesh : lulesh.o lulesh-util.o lulesh-dash.o \
+	lulesh-calc.o lulesh-mpi.o lulesh-mpi-comm.o
 	$(CXX) $(LFLAGS) -o $@ $+ $(LIBDASH) $(LIBDART) $(LIBDART_EXTRA)
 
 %.o 	: %.cc

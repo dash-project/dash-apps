@@ -4,9 +4,6 @@
 #include "lulesh.h"
 #include "lulesh-util.h"
 #include "lulesh-dash.h"
-#ifdef USE_MPI
-#include "lulesh-mpi.h"
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -25,7 +22,6 @@ int main(int argc, char *argv[])
     dash::finalize();
     return 0;
   }
-
   if( (myRank == 0) && (opts.quiet()==0) ) {
     opts.printBanner(std::cout);
   }
@@ -35,40 +31,37 @@ int main(int argc, char *argv[])
   if( dash::myid()==0 ) {
     dom.print_config(std::cout);
   }
-  /*
-  for( int i=0; i<dom.numNode(); ++i  ) {
-    dom.nodalMass(i)=100;
-  }
 
+  /*
+    for( int i=0; i<dom.numNode(); ++i  ) {
+    dom.nodalMass(i)=100;
+    }
+    if( dash::myid()==0 ) {
+    peek<double>(&(dom.nodalMass(0)), dom.numElem() );
+    }
+    */
+  dom.InitialBoundaryExchange();
+
+  /*
   if( dash::myid()==0 ) {
     peek<double>(&(dom.nodalMass(0)), dom.numElem() );
   }
   */
 
-  dash::barrier();
-#ifdef USE_MPI
-  Comm comm(dom);
+  //
+  // --- main simulation loop ---
+  //
+  while( (dom.time() < dom.stoptime()) && (dom.cycle() < opts.its()) )
+    {
+      dom.TimeIncrement();
+      dom.LagrangeLeapFrog();
 
-  Domain_member fieldData;
-  fieldData = &Domain::nodalMass;
-
-  Domain *locDom = &dom;
-  // Initial domain boundary communication
-  CommRecv(*locDom, comm, MSG_COMM_SBN, 1,
-	   locDom->sizeX() + 1, locDom->sizeY() + 1, locDom->sizeZ() + 1,
-	   true, false) ;
-  CommSend(*locDom, comm, MSG_COMM_SBN, 1, &fieldData,
-	   locDom->sizeX() + 1, locDom->sizeY() + 1, locDom->sizeZ() +  1,
-	   true, false) ;
-  CommSBN(dom, comm, 1, &fieldData) ;
-
-  // End initialization
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-  if( dash::myid()==0 ) {
-    peek<double>(&(dom.nodalMass(0)), dom.numElem() );
-  }
+      if( (opts.showProg()!=0) && (opts.quiet()==0) && (myRank==0) ) {
+	std::cout << "cycle = " << dom.cycle() << ", ";
+	std::cout << "time = " << dom.time() << ", ";
+	std::cout << "dt = " << dom.deltatime() << std::endl;
+      }
+    }
 
   dash::finalize();
 }

@@ -63,6 +63,7 @@ void CmdLineOpts::printBanner(std::ostream& os)
 #endif
   os << "Total elements : " <<
     (long long int)(opts.numRanks()*opts.nx()*opts.nx()*opts.nx()) << endl;
+  os << "Iterations     : " << opts.its() << endl;
   os << endl;
 }
 

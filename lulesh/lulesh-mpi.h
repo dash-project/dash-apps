@@ -2,7 +2,9 @@
 #define LULESH_MPI_H_INCLUDED
 
 #include <mpi.h>
-#include "lulesh-dash.h"
+
+// forward declaration
+class Domain;
 
 #define MAX_FIELDS_PER_MPI_COMM 6
 
@@ -20,58 +22,32 @@ typedef Real_t &(Domain::* Domain_member )(Index_t) ;
 #define MSG_SYNC_POS_VEL  2048
 #define MSG_MONOQ         3072
 
+//
 // additional communication helper structures that contain the stuff
 // not included in the DASH version of the Domain data structure
-class Comm
+//
+class MPIComm
 {
 private:
   Domain& m_dom;
 
 public:
-  Comm(Domain& dom) : m_dom(dom)
-  {
-    // allocate a buffer large enough for nodal ghost data
-    Index_t maxPlaneSize = CACHE_ALIGN_REAL(m_dom.maxPlaneSize());
-    Index_t maxEdgeSize = CACHE_ALIGN_REAL(m_dom.maxEdgeSize());
+  MPIComm(Domain& dom);
+  ~MPIComm();
 
-    // assume communication to 6 neighbors by default
-    Index_t rowMin   = (m_dom.rowLoc() == 0)               ? 0 : 1;
-    Index_t rowMax   = (m_dom.rowLoc() == m_dom.tp(1)-1)   ? 0 : 1;
-    Index_t colMin   = (m_dom.colLoc() == 0)               ? 0 : 1;
-    Index_t colMax   = (m_dom.colLoc() == m_dom.tp(2)-1)   ? 0 : 1;
-    Index_t planeMin = (m_dom.planeLoc() == 0)             ? 0 : 1;
-    Index_t planeMax = (m_dom.planeLoc() == m_dom.tp(0)-1) ? 0 : 1;
+  void ExchangeNodalMass(); // 1 field: nodalMass
 
-    // account for face communication
-    Index_t comBufSize =
-      (rowMin + rowMax + colMin + colMax + planeMin + planeMax) *
-      maxPlaneSize * MAX_FIELDS_PER_MPI_COMM ;
+  void Recv_PosVel();       // 6 fields: (x,y,z), (dx,dy,dz)
+  void Send_PosVel();
+  void Sync_PosVel();
 
-    // account for edge communication
-    comBufSize +=
-      ((rowMin & colMin) + (rowMin & planeMin) + (colMin & planeMin) +
-       (rowMax & colMax) + (rowMax & planeMax) + (colMax & planeMax) +
-       (rowMax & colMin) + (rowMin & planeMax) + (colMin & planeMax) +
-       (rowMin & colMax) + (rowMax & planeMin) + (colMax & planeMin)) *
-      maxEdgeSize * MAX_FIELDS_PER_MPI_COMM ;
+  void Recv_Force();        // 3 fields: (fx,fy,fz)
+  void Send_Force();
+  void Sync_Force();
 
-    // account for corner communication
-    // factor of 16 is so each buffer has its own cache line
-    comBufSize += ((rowMin & colMin & planeMin) +
-		   (rowMin & colMin & planeMax) +
-		   (rowMin & colMax & planeMin) +
-		   (rowMin & colMax & planeMax) +
-		   (rowMax & colMin & planeMin) +
-		   (rowMax & colMin & planeMax) +
-		   (rowMax & colMax & planeMin) +
-		   (rowMax & colMax & planeMax)) * CACHE_COHERENCE_PAD_REAL ;
-
-    this->commDataSend = new Real_t[comBufSize] ;
-    this->commDataRecv = new Real_t[comBufSize] ;
-    // prevent floating point exceptions
-    memset(this->commDataSend, 0, comBufSize*sizeof(Real_t)) ;
-    memset(this->commDataRecv, 0, comBufSize*sizeof(Real_t)) ;
-  }
+  void Recv_MonoQ();        // 3 fields: delv_xi, delv_eta, delv_zeta
+  void Send_MonoQ();
+  void Sync_MonoQ();
 
 public:
   // Communication Work space
@@ -83,14 +59,23 @@ public:
   MPI_Request sendRequest[26]; // 6 faces + 12 edges + 8 corners
 };
 
-/* doRecv flag only works with regular block structure */
-void CommRecv(Domain& domain, Comm& comm, int msgType, Index_t xferFields,
-              Index_t dx, Index_t dy, Index_t dz, bool doRecv, bool planeOnly);
 
-void CommSend(Domain& domain, Comm& comm, int msgType,
+// doRecv flag only works with regular block structure
+void CommRecv(Domain& domain, MPIComm& comm, int msgType,
+	      Index_t xferFields, Index_t dx, Index_t dy, Index_t dz,
+	      bool doRecv, bool planeOnly);
+
+void CommSend(Domain& domain, MPIComm& comm, int msgType,
               Index_t xferFields, Domain_member *fieldData,
-              Index_t dx, Index_t dy, Index_t dz, bool doSend, bool planeOnly);
+              Index_t dx, Index_t dy, Index_t dz,
+	      bool doSend, bool planeOnly);
 
-void CommSBN(Domain& domain, Comm& comm, int xferFields, Domain_member *fieldData);
+void CommSBN(Domain& domain, MPIComm& comm, int xferFields,
+	     Domain_member *fieldData);
+
+void CommSyncPosVel(Domain& domain, MPIComm& comm);
+
+void CommMonoQ(Domain& domain, MPIComm& comm);
+
 
 #endif /* LULESH_MPI_H_INCLUDED */
