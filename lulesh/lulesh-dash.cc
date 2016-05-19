@@ -224,11 +224,9 @@ Domain::Domain(const CmdLineOpts& opts) :
   m_volo.allocate(m_ElemPat);
   m_delv.allocate(m_ElemPat);
   m_vdov.allocate(m_ElemPat);
-
-#if 0
-  m_nodelist.allocate(m_ElemPat);
-  m_volo.allocate(m_ElemPat);
   m_elemMass.allocate(m_ElemPat);
+
+  m_nodelist.allocate(m_ElemPat);
 
   m_dxx.resize(numElem());
   m_dyy.resize(numElem());
@@ -242,21 +240,20 @@ Domain::Domain(const CmdLineOpts& opts) :
   m_delx_eta.resize(numElem());
   m_delx_zeta.resize(numElem());
 
-  m_v.resize(numElem());
-  m_vnew.resize(numElem());
-  m_delv.resize(numElem());
-  m_vdov.resize(numElem());
-
   m_arealg.resize(numElem());
   m_ss.resize(numElem());
-#endif
 
+  Index_t edgeElems = opts.nx();
   Index_t edgeNodes = m_nodelist.local.extent(0);
 
   BuildMesh();
-  // XXX SetupThreadSupportStructures();
+  SetupThreadSupportStructures();
 
-  // XXX CreateRegionIndexSets();
+  // Setup region index sets. For now, these are constant sized
+  // throughout the run, but could be changed every cycle to 
+  // simulate effects of ALE on the lagrange solver
+  CreateRegionIndexSets(opts.numReg(),
+			opts.balance());
 
   // Setup symmetry nodesets
   SetupSymmetryPlanes(edgeNodes);
@@ -267,36 +264,11 @@ Domain::Domain(const CmdLineOpts& opts) :
   // Setup symmetry planes and free surface boundary arrays
   SetupBoundaryConditions(edgeElems);
 
+  // Initialize field data
   InitializeFieldData();
 
-  DepositInitialEnergy();
-
-  /*
-  // initialize field data
-  for (Index_t i=0; i<m_ElemPat.local_size(); ++i) {
-    Real_t x_local[8], y_local[8], z_local[8] ;
-
-    Index_t *elemToNode = nodelist(i) ;
-    for( Index_t lnode=0 ; lnode<8 ; ++lnode ) {
-      Index_t gnode = elemToNode[lnode];
-
-      x_local[lnode] = x(gnode);
-      y_local[lnode] = y(gnode);
-      z_local[lnode] = z(gnode);
-    }
-
-    // volume calculations
-    Real_t volume = CalcElemVolume(x_local, y_local, z_local);
-
-    volo(i)     = volume;
-    elemMass(i) = volume;
-
-    for (Index_t j=0; j<8; ++j) {
-      Index_t idx = elemToNode[j] ;
-      nodalMass(idx) += volume / Real_t(8.0) ;
-    }
-  }
-  */
+  // Deposit initial energy
+  DepositInitialEnergy(opts.nx());
 }
 
 
@@ -328,8 +300,8 @@ void Domain::BuildMesh()
     {
       Real_t tz = Real_t(1.125)*Real_t(gc[0]+plane)/Real_t(elem0);
       for( Index_t row=0; row<m_x.local.extent(1); ++row )
-	{
-	  Real_t ty = Real_t(1.125)*Real_t(gc[1]+row)/Real_t(elem1);
+    	{
+	      Real_t ty = Real_t(1.125)*Real_t(gc[1]+row)/Real_t(elem1);
 	  for( Index_t col=0; col<m_x.local.extent(2); ++col )
 	    {
 	      Real_t tx = Real_t(1.125)*Real_t(gc[2]+col)/Real_t(elem2);
@@ -386,46 +358,6 @@ void Domain::BuildMesh()
     nidx += (ncols+1);
   }
 }
-
-
-Real_t computeChksum(Real_t* ptr, size_t nval)
-{
-  Real_t sum = 0.0;
-
-  for( size_t i=0; i<nval; ++i, ++ptr ) {
-    sum += (*ptr) * Real_t(i+1)/Real_t(nval);
-  }
-
-  return sum;
-}
-
-
-void Domain::print_config(std::ostream& os)
-{
-  auto myid = dash::myid();
-  os << "[ " << myid << "] colLoc()          : " << colLoc()       << std::endl;
-  os << "[ " << myid << "] rowLoc()          : " << rowLoc()       << std::endl;
-  os << "[ " << myid << "] planeLoc()        : " << planeLoc()     << std::endl;
-  os << "[ " << myid << "] numElem()         : " << numElem()      << std::endl;
-  os << "[ " << myid << "] numElem(0)        : " << numElem(0)     << std::endl;
-  os << "[ " << myid << "] numElem(1)        : " << numElem(1)     << std::endl;
-  os << "[ " << myid << "] numElem(2)        : " << numElem(2)     << std::endl;
-  os << "[ " << myid << "] numNode()         : " << numNode()      << std::endl;
-  os << "[ " << myid << "] numNode(0)        : " << numNode(0)     << std::endl;
-  os << "[ " << myid << "] numNode(1)        : " << numNode(1)     << std::endl;
-  os << "[ " << myid << "] numNode(2)        : " << numNode(2)     << std::endl;
-  os << "[ " << myid << "] sizeX()           : " << sizeX()        << std::endl;
-  os << "[ " << myid << "] sizeY()           : " << sizeY()        << std::endl;
-  os << "[ " << myid << "] sizeZ()           : " << sizeZ()        << std::endl;
-  os << "[ " << myid << "] maxEdgeSize()     : " << maxEdgeSize()  << std::endl;
-  os << "[ " << myid << "] maxPlaneSize()    : " << maxPlaneSize() << std::endl;
-
-  os << "[ " << myid << "] time()            : " << time()            << std::endl;
-  os << "[ " << myid << "] deltatime()       : " << deltatime()       << std::endl;
-  os << "[ " << myid << "] deltatimemultlb() : " << deltatimemultlb() << std::endl;
-  os << "[ " << myid << "] deltatimemultub() : " << deltatimemultub() << std::endl;
-}
-
 
 void Domain::InitialBoundaryExchange()
 {
@@ -539,19 +471,15 @@ void Domain::LagrangeElements()
 {
   // new relative vol -- temp
   Real_t *vnew = Allocate<Real_t>(numElem());
-  Domain &domain = (*this);
 
-  /*
-  CalcLagrangeElements(domain, vnew);
+  CalcLagrangeElements(vnew);
 
   // Calculate Q.  (Monotonic q option requires communication)
-  CalcQForElems(domain, vnew);
+  CalcQForElems(vnew);
 
-  ApplyMaterialPropertiesForElems(domain, vnew);
+  ApplyMaterialPropertiesForElems(vnew);
 
-  UpdateVolumesForElems(domain, vnew,
-                        domain.v_cut(), numElem);
-  */
+  UpdateVolumesForElems(vnew, v_cut(), numElem());
 
   Release(&vnew);
 }
@@ -730,3 +658,399 @@ void Domain::SetupSymmetryPlanes(Int_t edgeNodes)
     }
   }
 }
+
+
+void Domain::SetupThreadSupportStructures()
+{
+  // XXX
+}
+
+
+void Domain::CreateRegionIndexSets(Int_t nreg, Int_t balance)
+{
+  // XXX
+}
+
+
+
+
+
+void Domain::InitializeFieldData()
+{
+  // initialize field data
+  for (Index_t i=0; i<m_ElemPat.local_size(); ++i) {
+    Real_t x_local[8], y_local[8], z_local[8] ;
+
+    Index_t *elemToNode = nodelist(i) ;
+    for( Index_t lnode=0 ; lnode<8 ; ++lnode ) {
+      Index_t gnode = elemToNode[lnode];
+
+      x_local[lnode] = x(gnode);
+      y_local[lnode] = y(gnode);
+      z_local[lnode] = z(gnode);
+    }
+
+    // volume calculations
+    Real_t volume = CalcElemVolume(x_local, y_local, z_local);
+
+    volo(i)     = volume;
+    elemMass(i) = volume;
+
+    for (Index_t j=0; j<8; ++j) {
+      Index_t idx = elemToNode[j] ;
+      nodalMass(idx) += volume / Real_t(8.0) ;
+    }
+  }
+}
+
+
+void Domain::SetupElementConnectivities(Int_t edgeElems)
+{
+  m_lxim.resize(numElem());
+  m_lxip.resize(numElem());
+  m_letam.resize(numElem());
+  m_letap.resize(numElem());
+  m_lzetam.resize(numElem());
+  m_lzetap.resize(numElem());
+
+  lxim(0) = 0 ;
+  for (Index_t i=1; i<numElem(); ++i) {
+    lxim(i)   = i-1 ;
+    lxip(i-1) = i ;
+  }
+  lxip(numElem()-1) = numElem()-1 ;
+
+  for (Index_t i=0; i<edgeElems; ++i) {
+    letam(i) = i ;
+    letap(numElem()-edgeElems+i) = numElem()-edgeElems+i ;
+  }
+  for (Index_t i=edgeElems; i<numElem(); ++i) {
+    letam(i) = i-edgeElems ;
+    letap(i-edgeElems) = i ;
+  }
+  for (Index_t i=0; i<edgeElems*edgeElems; ++i) {
+    lzetam(i) = i ;
+    lzetap(numElem()-edgeElems*edgeElems+i) = numElem()-edgeElems*edgeElems+i ;
+  }
+  for (Index_t i=edgeElems*edgeElems; i<numElem(); ++i) {
+    lzetam(i) = i - edgeElems*edgeElems ;
+    lzetap(i-edgeElems*edgeElems) = i ;
+  }
+}
+
+
+void Domain::SetupBoundaryConditions(Int_t edgeElems)
+{
+  Index_t ghostIdx[6] ;  // offsets to ghost locations
+
+  Index_t rowMin   = (rowLoc()   == 0)       ? 0 : 1;
+  Index_t rowMax   = (rowLoc()   == tp()-1)  ? 0 : 1;
+  Index_t colMin   = (colLoc()   == 0)       ? 0 : 1;
+  Index_t colMax   = (colLoc()   == tp()-1)  ? 0 : 1;
+  Index_t planeMin = (planeLoc() == 0)       ? 0 : 1;
+  Index_t planeMax = (planeLoc() == tp()-1)  ? 0 : 1;
+
+  m_elemBC.resize(numElem());
+
+  // set up boundary condition information
+  for (Index_t i=0; i<numElem(); ++i) {
+    elemBC(i) = Int_t(0) ;
+  }
+
+  for (Index_t i=0; i<6; ++i) {
+    ghostIdx[i] = INT_MIN ;
+  }
+
+  Int_t pidx = numElem() ;
+  if (planeMin != 0) {
+    ghostIdx[0] = pidx ;
+    pidx += sizeX()*sizeY() ;
+  }
+
+  if (planeMax != 0) {
+    ghostIdx[1] = pidx ;
+    pidx += sizeX()*sizeY() ;
+  }
+
+  if (rowMin != 0) {
+    ghostIdx[2] = pidx ;
+    pidx += sizeX()*sizeZ() ;
+  }
+
+  if (rowMax != 0) {
+    ghostIdx[3] = pidx ;
+    pidx += sizeX()*sizeZ() ;
+  }
+
+  if (colMin != 0) {
+    ghostIdx[4] = pidx ;
+    pidx += sizeY()*sizeZ() ;
+  }
+
+  if (colMax != 0) {
+    ghostIdx[5] = pidx ;
+  }
+
+  // symmetry plane or free surface BCs
+  for (Index_t i=0; i<edgeElems; ++i) {
+    Index_t planeInc = i*edgeElems*edgeElems ;
+    Index_t rowInc   = i*edgeElems ;
+    for (Index_t j=0; j<edgeElems; ++j) {
+      if (planeLoc() == 0) {
+	elemBC(rowInc+j) |= ZETA_M_SYMM ;
+      }
+      else {
+	elemBC(rowInc+j) |= ZETA_M_COMM ;
+	lzetam(rowInc+j) = ghostIdx[0] + rowInc + j ;
+      }
+
+      if (planeLoc() == tp()-1) {
+	elemBC(rowInc+j+numElem()-edgeElems*edgeElems) |=
+	  ZETA_P_FREE;
+      }
+      else {
+	elemBC(rowInc+j+numElem()-edgeElems*edgeElems) |=
+	  ZETA_P_COMM ;
+	lzetap(rowInc+j+numElem()-edgeElems*edgeElems) =
+	  ghostIdx[1] + rowInc + j ;
+      }
+
+      if (rowLoc() == 0) {
+	elemBC(planeInc+j) |= ETA_M_SYMM ;
+      }
+      else {
+	elemBC(planeInc+j) |= ETA_M_COMM ;
+	letam(planeInc+j) = ghostIdx[2] + rowInc + j ;
+      }
+
+      if (rowLoc() == tp()-1) {
+	elemBC(planeInc+j+edgeElems*edgeElems-edgeElems) |=
+	  ETA_P_FREE ;
+      }
+      else {
+	elemBC(planeInc+j+edgeElems*edgeElems-edgeElems) |=
+	  ETA_P_COMM ;
+	letap(planeInc+j+edgeElems*edgeElems-edgeElems) =
+	  ghostIdx[3] +  rowInc + j ;
+      }
+
+      if (colLoc() == 0) {
+	elemBC(planeInc+j*edgeElems) |= XI_M_SYMM ;
+      }
+      else {
+	elemBC(planeInc+j*edgeElems) |= XI_M_COMM ;
+	lxim(planeInc+j*edgeElems) = ghostIdx[4] + rowInc + j ;
+      }
+
+      if (colLoc() == tp()-1) {
+	elemBC(planeInc+j*edgeElems+edgeElems-1) |= XI_P_FREE ;
+      }
+      else {
+	elemBC(planeInc+j*edgeElems+edgeElems-1) |= XI_P_COMM ;
+	lxip(planeInc+j*edgeElems+edgeElems-1) =
+	  ghostIdx[5] + rowInc + j ;
+      }
+    }
+  }
+}
+
+
+void Domain::DepositInitialEnergy(Int_t nx)
+{
+  // deposit initial energy
+  // An energy of 3.948746e+7 is correct for a problem with
+  // 45 zones along a side - we need to scale it
+  const Real_t ebase = Real_t(3.948746e+7);
+  Real_t scale = (nx*tp())/Real_t(45.0);
+  Real_t einit = ebase*scale*scale*scale;
+
+  if (rowLoc() + colLoc() + planeLoc() == 0) {
+    // Dump into the first zone (which we know is in the corner)
+    // of the domain that sits at the origin
+    e(0) = einit;
+  }
+
+  //set initial deltatime base on analytic CFL calculation
+  deltatime() = (Real_t(.5)*cbrt(volo(0)))/sqrt(Real_t(2.0)*einit);
+}
+
+
+void Domain::CalcLagrangeElements(Real_t* vnew)
+{
+  Domain& domain = (*this);
+
+  Index_t numElem = domain.numElem() ;
+  if (numElem > 0) {
+    const Real_t deltatime = domain.deltatime() ;
+
+    domain.AllocateStrains(numElem);
+
+    CalcKinematicsForElems(domain, vnew, deltatime, numElem) ;
+
+    // element loop to do some stuff not included in the elemlib function.
+#pragma omp parallel for firstprivate(numElem)
+    for ( Index_t k=0 ; k<numElem ; ++k )
+      {
+	// calc strain rate and apply as constraint (only done in FB element)
+	Real_t vdov = domain.dxx(k) + domain.dyy(k) + domain.dzz(k) ;
+	Real_t vdovthird = vdov/Real_t(3.0) ;
+
+	// make the rate of deformation tensor deviatoric
+	domain.vdov(k) = vdov ;
+	domain.dxx(k) -= vdovthird ;
+	domain.dyy(k) -= vdovthird ;
+	domain.dzz(k) -= vdovthird ;
+
+        // See if any volumes are negative, and take appropriate action.
+	if (vnew[k] <= Real_t(0.0))
+	  {
+#if USE_MPI
+	    MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#else
+	    exit(VolumeError);
+#endif
+	  }
+      }
+    domain.DeallocateStrains();
+  }
+}
+
+void Domain::CalcQForElems(Real_t vnew[])
+{
+  //
+  // MONOTONIC Q option
+  //
+
+  Domain& domain = (*this);
+  Index_t numElem = domain.numElem() ;
+
+  if (numElem != 0) {
+    Int_t allElem = numElem +           /* local elem */
+      2*domain.sizeX()*domain.sizeY() + /* plane ghosts */
+      2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
+      2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
+
+    domain.AllocateGradients(numElem, allElem);
+
+    m_comm.Recv_MonoQ();
+
+    /* Calculate velocity gradients */
+    CalcMonotonicQGradientsForElems(domain, vnew);
+
+    m_comm.Send_MonoQ();
+    m_comm.Sync_MonoQ();
+
+    CalcMonotonicQForElems(domain, vnew) ;
+
+    // Free up memory
+    domain.DeallocateGradients();
+
+    /* Don't allow excessive artificial viscosity */
+      Index_t idx = -1;
+      for (Index_t i=0; i<numElem; ++i) {
+	if ( domain.q(i) > domain.qstop() ) {
+	  idx = i ;
+	  break ;
+	}
+      }
+
+      if(idx >= 0) {
+#if USE_MPI
+	MPI_Abort(MPI_COMM_WORLD, QStopError) ;
+#else
+	exit(QStopError);
+#endif
+      }
+  }
+}
+
+void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
+{
+  Domain& domain = (*this);
+  Index_t numElem = domain.numElem() ;
+
+  if (numElem != 0) {
+    /* Expose all of the variables needed for material evaluation */
+    Real_t eosvmin = domain.eosvmin() ;
+    Real_t eosvmax = domain.eosvmax() ;
+
+#pragma omp parallel
+    {
+      // Bound the updated relative volumes with eosvmin/max
+      if (eosvmin != Real_t(0.)) {
+#pragma omp for firstprivate(numElem)
+	for(Index_t i=0 ; i<numElem ; ++i) {
+	  if (vnew[i] < eosvmin)
+	    vnew[i] = eosvmin ;
+	}
+      }
+
+      if (eosvmax != Real_t(0.)) {
+#pragma omp for nowait firstprivate(numElem)
+	for(Index_t i=0 ; i<numElem ; ++i) {
+	  if (vnew[i] > eosvmax)
+	    vnew[i] = eosvmax ;
+	}
+      }
+
+      // This check may not make perfect sense in LULESH, but
+      // it's representative of something in the full code -
+      // just leave it in, please
+#pragma omp for nowait firstprivate(numElem)
+      for (Index_t i=0; i<numElem; ++i) {
+	Real_t vc = domain.v(i) ;
+	if (eosvmin != Real_t(0.)) {
+	  if (vc < eosvmin)
+	    vc = eosvmin ;
+	}
+	if (eosvmax != Real_t(0.)) {
+	  if (vc > eosvmax)
+	    vc = eosvmax ;
+	}
+	if (vc <= 0.) {
+#if USE_MPI
+	  MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#else
+	  exit(VolumeError);
+#endif
+	}
+      }
+    }
+
+    for (Int_t r=0 ; r<domain.numReg() ; r++) {
+      Index_t numElemReg = domain.regElemSize(r);
+      Index_t *regElemList = domain.regElemlist(r);
+      Int_t rep;
+      //Determine load imbalance for this region
+      //round down the number with lowest cost
+      if(r < domain.numReg()/2)
+	rep = 1;
+      //you don't get an expensive region unless you at least have 5 regions
+      else if(r < (domain.numReg() - (domain.numReg()+15)/20))
+	rep = 1 + domain.cost();
+      //very expensive regions
+      else
+	rep = 10 * (1+ domain.cost());
+      EvalEOSForElems(domain, vnew, numElemReg, regElemList, rep);
+    }
+  }
+}
+
+void Domain::UpdateVolumesForElems(Real_t *vnew,
+			   Real_t v_cut, Index_t length)
+{
+  Domain& domain = (*this);
+
+  if (length != 0) {
+#pragma omp parallel for firstprivate(length, v_cut)
+    for(Index_t i=0 ; i<length ; ++i) {
+      Real_t tmpV = vnew[i] ;
+
+      if ( FABS(tmpV - Real_t(1.0)) < v_cut )
+	tmpV = Real_t(1.0) ;
+
+      domain.v(i) = tmpV ;
+    }
+  }
+}
+

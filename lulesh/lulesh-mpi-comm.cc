@@ -14,7 +14,6 @@
 // - Add an additional parameter "MPIComm& comm" to all routines
 // - All data and receive request buffers are members of MPIComm and
 //   not of Domain.
-//
 
 #include <mpi.h>
 #include "lulesh.h"

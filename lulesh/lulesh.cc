@@ -2,7 +2,7 @@
 #include <libdash.h>
 
 #include "lulesh.h"
-#include "lulesh-util.h"
+#include "lulesh-opts.h"
 #include "lulesh-dash.h"
 
 int main(int argc, char *argv[])
@@ -28,9 +28,9 @@ int main(int argc, char *argv[])
 
   Domain dom(opts);
 
-  if( dash::myid()==0 ) {
-    dom.print_config(std::cout);
-  }
+  /*  if( dash::myid()==0 ) {
+      print_config(dom, std::cout);
+    }*/
 
   /*
     for( int i=0; i<dom.numNode(); ++i  ) {
@@ -64,15 +64,5 @@ int main(int argc, char *argv[])
     }
 
   dash::finalize();
-}
-
-template<typename T>
-void peek(T *ptr, int len, std::ostream& os)
-{
-  for( int i=0; i<len; ++i ) {
-    os << (*ptr++) << " ";
-  }
-  os << std::endl;
-
 }
 

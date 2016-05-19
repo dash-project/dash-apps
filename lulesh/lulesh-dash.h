@@ -3,7 +3,7 @@
 
 #include <libdash.h>
 #include "lulesh.h"
-#include "lulesh-util.h"
+#include "lulesh-opts.h"
 #include "lulesh-dash-params.h"
 #include "lulesh-dash-regions.h"
 #ifdef USE_MPI
@@ -77,10 +77,24 @@ private:
 
   ElemMatrixT<Real_t> m_v;         // relative volume
   ElemMatrixT<Real_t> m_volo;      // reference volume
-  ElemMatrixT<Real_t> m_vnew;      // new relative volume -- temporary
-  ElemMatrixT<Real_t> m_delv;      // m_vnew - m_v
+  ElemMatrixT<Real_t> m_delv;      // vnew - m_v (vnew is temp. allocated)
   ElemMatrixT<Real_t> m_vdov;      // volume derivative over volume
   ElemMatrixT<Real_t> m_elemMass;  // mass
+
+  // elemToNode connectivity
+  using NodeVecT = std::array<Index_t, 8>;
+  ElemMatrixT<NodeVecT>  m_nodelist;
+
+  // element connectivity across each face
+  std::vector<Index_t>  m_lxim;
+  std::vector<Index_t>  m_lxip;
+  std::vector<Index_t>  m_letam;
+  std::vector<Index_t>  m_letap;
+  std::vector<Index_t>  m_lzetam;
+  std::vector<Index_t>  m_lzetap;
+
+  // symmetry/free-surface flags for each elem face
+  std::vector<Int_t>    m_elemBC;
 
   //
   // XXX Switch these to a dash::Matrix?
@@ -96,10 +110,6 @@ private:
   std::vector<Real_t> m_delx_xi;   // coordinate gradient -- temporary
   std::vector<Real_t> m_delx_eta;
   std::vector<Real_t> m_delx_zeta;
-
-  // elemToNode connectivity
-  using NodeVecT = std::array<Index_t, 8>;
-  ElemMatrixT<NodeVecT>  m_nodelist;
 
   //
   // XXX - not really necessary for DASH
@@ -118,21 +128,23 @@ private:
 #endif
 
 private:
+  // helper routines used in constructor
   void BuildMesh();
-  void SetupSymmetryPlanes(Int_t edgeNodes);
-  void InitializeFieldData();
 
-  //void SetupThreadSupportStructures();
-  //void CreateRegionIndexSets(Int_t nreg, Int_t balance);
-  //void SetupCommBuffers(Int_t edgeNodes);
-  //  void SetupElementConnectivities(Int_t edgeElems);
-  //void SetupBoundaryConditions(Int_t edgeElems);
+  void SetupThreadSupportStructures();
+  void SetupSymmetryPlanes(Int_t edgeNodes);
+  void SetupElementConnectivities(Int_t edgeElems);
+  void SetupBoundaryConditions(Int_t edgeElems);
+
+  void CreateRegionIndexSets(Int_t nreg, Int_t balance);
+  void InitializeFieldData();
+  void DepositInitialEnergy(Int_t nx);
 
   void AllocateStrains(Int_t numElem);
   void DeallocateStrains();
   void AllocateGradients(Int_t numElem, Int_t allElem);
   void DeallocateGradients();
-  
+
 public:
   Domain(const CmdLineOpts& opts);
   ~Domain();
@@ -192,6 +204,17 @@ public:
 
   // elemToNode connectivity
   Index_t* nodelist(Index_t idx)  { return &m_nodelist.lbegin()[idx][0]; }
+
+  // elem connectivities through face
+  Index_t& lxim(  Index_t idx) { return m_lxim[idx]; }
+  Index_t& lxip(  Index_t idx) { return m_lxip[idx]; }
+  Index_t& letam( Index_t idx) { return m_letam[idx]; }
+  Index_t& letap( Index_t idx) { return m_letap[idx]; }
+  Index_t& lzetam(Index_t idx) { return m_lzetam[idx]; }
+  Index_t& lzetap(Index_t idx) { return m_lzetap[idx]; }
+
+  // elem face symm/free-surface flag
+  Int_t&  elemBC(Index_t idx)  { return m_elemBC[idx]; }
 
   // nodes on symmetry planes
   Index_t symmX(Index_t idx) { return m_symmX[idx] ; }
@@ -275,11 +298,6 @@ public:
   Index_t*  regElemlist(Int_t r)     { return m_region.regElemlist(r); }
   Index_t&  regElemlist(Int_t r, Index_t idx) { return m_region.regElemlist(r,idx); }
 
-
-
-
-  void print_config(std::ostream& os);
-
   void InitialBoundaryExchange();
 
   void TimeIncrement();
@@ -294,13 +312,14 @@ public:
   void CalcVelocityForNodes(const Real_t dt,
 			    const Real_t u_cut, Index_t numNode);
   void CalcPositionForNodes(const Real_t dt, Index_t numNode);
+
+  void CalcLagrangeElements(Real_t* vnew);
+  void CalcQForElems(Real_t vnew[]);
+  void ApplyMaterialPropertiesForElems(Real_t vnew[]);
+  void UpdateVolumesForElems(Real_t *vnew,
+			     Real_t v_cut, Index_t length);
 };
 
-
-
-
-
-Real_t computeChksum(Real_t* ptr, size_t nval);
 
 
 #endif /* LULESH_DASH_H_INCLUDED */

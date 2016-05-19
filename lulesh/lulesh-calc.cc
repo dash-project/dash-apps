@@ -1372,208 +1372,667 @@ void CalcVolumeForceForElems(Domain& domain)
 }
 
 
+/* ================================================================
+   Caller/callee relationship for CalcMonotonicQForElems()
+
+   CalcMonotonicQForElems()
+    +-- CalcMonotonicQRegionForElems()
+  ================================================================= */
+
+static inline
+void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
+                                  Real_t vnew[], Real_t ptiny)
+{
+   Real_t monoq_limiter_mult = domain.monoq_limiter_mult();
+   Real_t monoq_max_slope = domain.monoq_max_slope();
+   Real_t qlc_monoq = domain.qlc_monoq();
+   Real_t qqc_monoq = domain.qqc_monoq();
+
+#pragma omp parallel for firstprivate(qlc_monoq, qqc_monoq, monoq_limiter_mult, monoq_max_slope, ptiny)
+   for ( Index_t ielem = 0 ; ielem < domain.regElemSize(r); ++ielem ) {
+      Index_t i = domain.regElemlist(r,ielem);
+      Real_t qlin, qquad ;
+      Real_t phixi, phieta, phizeta ;
+      Int_t bcMask = domain.elemBC(i) ;
+      Real_t delvm = 0.0, delvp =0.0;
+
+      /*  phixi     */
+      Real_t norm = Real_t(1.) / (domain.delv_xi(i)+ ptiny ) ;
+
+      switch (bcMask & XI_M) {
+         case XI_M_COMM: /* needs comm data */
+         case 0:         delvm = domain.delv_xi(domain.lxim(i)); break ;
+         case XI_M_SYMM: delvm = domain.delv_xi(i) ;       break ;
+         case XI_M_FREE: delvm = Real_t(0.0) ;      break ;
+         default:          fprintf(stderr, "Error in switch at %s line %d\n",
+                                   __FILE__, __LINE__);
+            delvm = 0; /* ERROR - but quiets the compiler */
+            break;
+      }
+      switch (bcMask & XI_P) {
+         case XI_P_COMM: /* needs comm data */
+         case 0:         delvp = domain.delv_xi(domain.lxip(i)) ; break ;
+         case XI_P_SYMM: delvp = domain.delv_xi(i) ;       break ;
+         case XI_P_FREE: delvp = Real_t(0.0) ;      break ;
+         default:          fprintf(stderr, "Error in switch at %s line %d\n",
+                                   __FILE__, __LINE__);
+            delvp = 0; /* ERROR - but quiets the compiler */
+            break;
+      }
+
+      delvm = delvm * norm ;
+      delvp = delvp * norm ;
+
+      phixi = Real_t(.5) * ( delvm + delvp ) ;
+
+      delvm *= monoq_limiter_mult ;
+      delvp *= monoq_limiter_mult ;
+
+      if ( delvm < phixi ) phixi = delvm ;
+      if ( delvp < phixi ) phixi = delvp ;
+      if ( phixi < Real_t(0.)) phixi = Real_t(0.) ;
+      if ( phixi > monoq_max_slope) phixi = monoq_max_slope;
 
 
+      /*  phieta     */
+      norm = Real_t(1.) / ( domain.delv_eta(i) + ptiny ) ;
+
+      switch (bcMask & ETA_M) {
+         case ETA_M_COMM: /* needs comm data */
+         case 0:          delvm = domain.delv_eta(domain.letam(i)) ; break ;
+         case ETA_M_SYMM: delvm = domain.delv_eta(i) ;        break ;
+         case ETA_M_FREE: delvm = Real_t(0.0) ;        break ;
+         default:          fprintf(stderr, "Error in switch at %s line %d\n",
+                                   __FILE__, __LINE__);
+            delvm = 0; /* ERROR - but quiets the compiler */
+            break;
+      }
+      switch (bcMask & ETA_P) {
+         case ETA_P_COMM: /* needs comm data */
+         case 0:          delvp = domain.delv_eta(domain.letap(i)) ; break ;
+         case ETA_P_SYMM: delvp = domain.delv_eta(i) ;        break ;
+         case ETA_P_FREE: delvp = Real_t(0.0) ;        break ;
+         default:          fprintf(stderr, "Error in switch at %s line %d\n",
+                                   __FILE__, __LINE__);
+            delvp = 0; /* ERROR - but quiets the compiler */
+            break;
+      }
+
+      delvm = delvm * norm ;
+      delvp = delvp * norm ;
+
+      phieta = Real_t(.5) * ( delvm + delvp ) ;
+
+      delvm *= monoq_limiter_mult ;
+      delvp *= monoq_limiter_mult ;
+
+      if ( delvm  < phieta ) phieta = delvm ;
+      if ( delvp  < phieta ) phieta = delvp ;
+      if ( phieta < Real_t(0.)) phieta = Real_t(0.) ;
+      if ( phieta > monoq_max_slope)  phieta = monoq_max_slope;
+
+      /*  phizeta     */
+      norm = Real_t(1.) / ( domain.delv_zeta(i) + ptiny ) ;
+
+      switch (bcMask & ZETA_M) {
+         case ZETA_M_COMM: /* needs comm data */
+         case 0:           delvm = domain.delv_zeta(domain.lzetam(i)) ; break ;
+         case ZETA_M_SYMM: delvm = domain.delv_zeta(i) ;         break ;
+         case ZETA_M_FREE: delvm = Real_t(0.0) ;          break ;
+         default:          fprintf(stderr, "Error in switch at %s line %d\n",
+                                   __FILE__, __LINE__);
+            delvm = 0; /* ERROR - but quiets the compiler */
+            break;
+      }
+      switch (bcMask & ZETA_P) {
+         case ZETA_P_COMM: /* needs comm data */
+         case 0:           delvp = domain.delv_zeta(domain.lzetap(i)) ; break ;
+         case ZETA_P_SYMM: delvp = domain.delv_zeta(i) ;         break ;
+         case ZETA_P_FREE: delvp = Real_t(0.0) ;          break ;
+         default:          fprintf(stderr, "Error in switch at %s line %d\n",
+                                   __FILE__, __LINE__);
+            delvp = 0; /* ERROR - but quiets the compiler */
+            break;
+      }
+
+      delvm = delvm * norm ;
+      delvp = delvp * norm ;
+
+      phizeta = Real_t(.5) * ( delvm + delvp ) ;
+
+      delvm *= monoq_limiter_mult ;
+      delvp *= monoq_limiter_mult ;
+
+      if ( delvm   < phizeta ) phizeta = delvm ;
+      if ( delvp   < phizeta ) phizeta = delvp ;
+      if ( phizeta < Real_t(0.)) phizeta = Real_t(0.);
+      if ( phizeta > monoq_max_slope  ) phizeta = monoq_max_slope;
+
+      /* Remove length scale */
+
+      if ( domain.vdov(i) > Real_t(0.) )  {
+         qlin  = Real_t(0.) ;
+         qquad = Real_t(0.) ;
+      }
+      else {
+         Real_t delvxxi   = domain.delv_xi(i)   * domain.delx_xi(i)   ;
+         Real_t delvxeta  = domain.delv_eta(i)  * domain.delx_eta(i)  ;
+         Real_t delvxzeta = domain.delv_zeta(i) * domain.delx_zeta(i) ;
+
+         if ( delvxxi   > Real_t(0.) ) delvxxi   = Real_t(0.) ;
+         if ( delvxeta  > Real_t(0.) ) delvxeta  = Real_t(0.) ;
+         if ( delvxzeta > Real_t(0.) ) delvxzeta = Real_t(0.) ;
+
+         Real_t rho = domain.elemMass(i) / (domain.volo(i) * vnew[i]) ;
+
+         qlin = -qlc_monoq * rho *
+            (  delvxxi   * (Real_t(1.) - phixi) +
+               delvxeta  * (Real_t(1.) - phieta) +
+               delvxzeta * (Real_t(1.) - phizeta)  ) ;
+
+         qquad = qqc_monoq * rho *
+            (  delvxxi*delvxxi     * (Real_t(1.) - phixi*phixi) +
+               delvxeta*delvxeta   * (Real_t(1.) - phieta*phieta) +
+               delvxzeta*delvxzeta * (Real_t(1.) - phizeta*phizeta)  ) ;
+      }
+
+      domain.qq(i) = qquad ;
+      domain.ql(i) = qlin  ;
+   }
+}
 
 
+void CalcMonotonicQForElems(Domain& domain, Real_t vnew[])
+{
+   //
+   // initialize parameters
+   //
+   const Real_t ptiny = Real_t(1.e-36) ;
+
+   //
+   // calculate the monotonic q for all regions
+   //
+   for (Index_t r=0 ; r<domain.numReg() ; ++r) {
+
+      if (domain.regElemSize(r) > 0) {
+         CalcMonotonicQRegionForElems(domain, r, vnew, ptiny) ;
+      }
+   }
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*****************************************************************/
-
-
-
-/******************************************/
-
-
-
-/******************************************/
-
-
-
-/******************************************/
-
-
-
-/******************************************/
-
-
+/* ================================================================
+   Caller/callee relationship for CalcMonotonicQGradientsForElems()
+   ================================================================
+ */
 
 void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
 {
-  Index_t numElem = domain.numElem();
+   Index_t numElem = domain.numElem();
 
 #pragma omp parallel for firstprivate(numElem)
-  for (Index_t i = 0 ; i < numElem ; ++i ) {
-    const Real_t ptiny = Real_t(1.e-36) ;
-    Real_t ax,ay,az ;
-    Real_t dxv,dyv,dzv ;
+   for (Index_t i = 0 ; i < numElem ; ++i ) {
+      const Real_t ptiny = Real_t(1.e-36) ;
+      Real_t ax,ay,az ;
+      Real_t dxv,dyv,dzv ;
 
-    const Index_t *elemToNode = domain.nodelist(i);
-    Index_t n0 = elemToNode[0] ;
-    Index_t n1 = elemToNode[1] ;
-    Index_t n2 = elemToNode[2] ;
-    Index_t n3 = elemToNode[3] ;
-    Index_t n4 = elemToNode[4] ;
-    Index_t n5 = elemToNode[5] ;
-    Index_t n6 = elemToNode[6] ;
-    Index_t n7 = elemToNode[7] ;
+      const Index_t *elemToNode = domain.nodelist(i);
+      Index_t n0 = elemToNode[0] ;
+      Index_t n1 = elemToNode[1] ;
+      Index_t n2 = elemToNode[2] ;
+      Index_t n3 = elemToNode[3] ;
+      Index_t n4 = elemToNode[4] ;
+      Index_t n5 = elemToNode[5] ;
+      Index_t n6 = elemToNode[6] ;
+      Index_t n7 = elemToNode[7] ;
 
-    Real_t x0 = domain.x(n0) ;
-    Real_t x1 = domain.x(n1) ;
-    Real_t x2 = domain.x(n2) ;
-    Real_t x3 = domain.x(n3) ;
-    Real_t x4 = domain.x(n4) ;
-    Real_t x5 = domain.x(n5) ;
-    Real_t x6 = domain.x(n6) ;
-    Real_t x7 = domain.x(n7) ;
+      Real_t x0 = domain.x(n0) ;
+      Real_t x1 = domain.x(n1) ;
+      Real_t x2 = domain.x(n2) ;
+      Real_t x3 = domain.x(n3) ;
+      Real_t x4 = domain.x(n4) ;
+      Real_t x5 = domain.x(n5) ;
+      Real_t x6 = domain.x(n6) ;
+      Real_t x7 = domain.x(n7) ;
 
-    Real_t y0 = domain.y(n0) ;
-    Real_t y1 = domain.y(n1) ;
-    Real_t y2 = domain.y(n2) ;
-    Real_t y3 = domain.y(n3) ;
-    Real_t y4 = domain.y(n4) ;
-    Real_t y5 = domain.y(n5) ;
-    Real_t y6 = domain.y(n6) ;
-    Real_t y7 = domain.y(n7) ;
+      Real_t y0 = domain.y(n0) ;
+      Real_t y1 = domain.y(n1) ;
+      Real_t y2 = domain.y(n2) ;
+      Real_t y3 = domain.y(n3) ;
+      Real_t y4 = domain.y(n4) ;
+      Real_t y5 = domain.y(n5) ;
+      Real_t y6 = domain.y(n6) ;
+      Real_t y7 = domain.y(n7) ;
 
-    Real_t z0 = domain.z(n0) ;
-    Real_t z1 = domain.z(n1) ;
-    Real_t z2 = domain.z(n2) ;
-    Real_t z3 = domain.z(n3) ;
-    Real_t z4 = domain.z(n4) ;
-    Real_t z5 = domain.z(n5) ;
-    Real_t z6 = domain.z(n6) ;
-    Real_t z7 = domain.z(n7) ;
+      Real_t z0 = domain.z(n0) ;
+      Real_t z1 = domain.z(n1) ;
+      Real_t z2 = domain.z(n2) ;
+      Real_t z3 = domain.z(n3) ;
+      Real_t z4 = domain.z(n4) ;
+      Real_t z5 = domain.z(n5) ;
+      Real_t z6 = domain.z(n6) ;
+      Real_t z7 = domain.z(n7) ;
 
-    Real_t xv0 = domain.xd(n0) ;
-    Real_t xv1 = domain.xd(n1) ;
-    Real_t xv2 = domain.xd(n2) ;
-    Real_t xv3 = domain.xd(n3) ;
-    Real_t xv4 = domain.xd(n4) ;
-    Real_t xv5 = domain.xd(n5) ;
-    Real_t xv6 = domain.xd(n6) ;
-    Real_t xv7 = domain.xd(n7) ;
+      Real_t xv0 = domain.xd(n0) ;
+      Real_t xv1 = domain.xd(n1) ;
+      Real_t xv2 = domain.xd(n2) ;
+      Real_t xv3 = domain.xd(n3) ;
+      Real_t xv4 = domain.xd(n4) ;
+      Real_t xv5 = domain.xd(n5) ;
+      Real_t xv6 = domain.xd(n6) ;
+      Real_t xv7 = domain.xd(n7) ;
 
-    Real_t yv0 = domain.yd(n0) ;
-    Real_t yv1 = domain.yd(n1) ;
-    Real_t yv2 = domain.yd(n2) ;
-    Real_t yv3 = domain.yd(n3) ;
-    Real_t yv4 = domain.yd(n4) ;
-    Real_t yv5 = domain.yd(n5) ;
-    Real_t yv6 = domain.yd(n6) ;
-    Real_t yv7 = domain.yd(n7) ;
+      Real_t yv0 = domain.yd(n0) ;
+      Real_t yv1 = domain.yd(n1) ;
+      Real_t yv2 = domain.yd(n2) ;
+      Real_t yv3 = domain.yd(n3) ;
+      Real_t yv4 = domain.yd(n4) ;
+      Real_t yv5 = domain.yd(n5) ;
+      Real_t yv6 = domain.yd(n6) ;
+      Real_t yv7 = domain.yd(n7) ;
 
-    Real_t zv0 = domain.zd(n0) ;
-    Real_t zv1 = domain.zd(n1) ;
-    Real_t zv2 = domain.zd(n2) ;
-    Real_t zv3 = domain.zd(n3) ;
-    Real_t zv4 = domain.zd(n4) ;
-    Real_t zv5 = domain.zd(n5) ;
-    Real_t zv6 = domain.zd(n6) ;
-    Real_t zv7 = domain.zd(n7) ;
+      Real_t zv0 = domain.zd(n0) ;
+      Real_t zv1 = domain.zd(n1) ;
+      Real_t zv2 = domain.zd(n2) ;
+      Real_t zv3 = domain.zd(n3) ;
+      Real_t zv4 = domain.zd(n4) ;
+      Real_t zv5 = domain.zd(n5) ;
+      Real_t zv6 = domain.zd(n6) ;
+      Real_t zv7 = domain.zd(n7) ;
 
-    Real_t vol = domain.volo(i)*vnew[i] ;
-    Real_t norm = Real_t(1.0) / ( vol + ptiny ) ;
+      Real_t vol = domain.volo(i)*vnew[i] ;
+      Real_t norm = Real_t(1.0) / ( vol + ptiny ) ;
 
-    Real_t dxj = Real_t(-0.25)*((x0+x1+x5+x4) - (x3+x2+x6+x7)) ;
-    Real_t dyj = Real_t(-0.25)*((y0+y1+y5+y4) - (y3+y2+y6+y7)) ;
-    Real_t dzj = Real_t(-0.25)*((z0+z1+z5+z4) - (z3+z2+z6+z7)) ;
+      Real_t dxj = Real_t(-0.25)*((x0+x1+x5+x4) - (x3+x2+x6+x7)) ;
+      Real_t dyj = Real_t(-0.25)*((y0+y1+y5+y4) - (y3+y2+y6+y7)) ;
+      Real_t dzj = Real_t(-0.25)*((z0+z1+z5+z4) - (z3+z2+z6+z7)) ;
 
-    Real_t dxi = Real_t( 0.25)*((x1+x2+x6+x5) - (x0+x3+x7+x4)) ;
-    Real_t dyi = Real_t( 0.25)*((y1+y2+y6+y5) - (y0+y3+y7+y4)) ;
-    Real_t dzi = Real_t( 0.25)*((z1+z2+z6+z5) - (z0+z3+z7+z4)) ;
+      Real_t dxi = Real_t( 0.25)*((x1+x2+x6+x5) - (x0+x3+x7+x4)) ;
+      Real_t dyi = Real_t( 0.25)*((y1+y2+y6+y5) - (y0+y3+y7+y4)) ;
+      Real_t dzi = Real_t( 0.25)*((z1+z2+z6+z5) - (z0+z3+z7+z4)) ;
 
-    Real_t dxk = Real_t( 0.25)*((x4+x5+x6+x7) - (x0+x1+x2+x3)) ;
-    Real_t dyk = Real_t( 0.25)*((y4+y5+y6+y7) - (y0+y1+y2+y3)) ;
-    Real_t dzk = Real_t( 0.25)*((z4+z5+z6+z7) - (z0+z1+z2+z3)) ;
+      Real_t dxk = Real_t( 0.25)*((x4+x5+x6+x7) - (x0+x1+x2+x3)) ;
+      Real_t dyk = Real_t( 0.25)*((y4+y5+y6+y7) - (y0+y1+y2+y3)) ;
+      Real_t dzk = Real_t( 0.25)*((z4+z5+z6+z7) - (z0+z1+z2+z3)) ;
 
-    /* find delvk and delxk ( i cross j ) */
+      /* find delvk and delxk ( i cross j ) */
 
-    ax = dyi*dzj - dzi*dyj ;
-    ay = dzi*dxj - dxi*dzj ;
-    az = dxi*dyj - dyi*dxj ;
+      ax = dyi*dzj - dzi*dyj ;
+      ay = dzi*dxj - dxi*dzj ;
+      az = dxi*dyj - dyi*dxj ;
 
-    domain.delx_zeta(i) = vol / SQRT(ax*ax + ay*ay + az*az + ptiny) ;
+      domain.delx_zeta(i) = vol / SQRT(ax*ax + ay*ay + az*az + ptiny) ;
 
-    ax *= norm ;
-    ay *= norm ;
-    az *= norm ;
+      ax *= norm ;
+      ay *= norm ;
+      az *= norm ;
 
-    dxv = Real_t(0.25)*((xv4+xv5+xv6+xv7) - (xv0+xv1+xv2+xv3)) ;
-    dyv = Real_t(0.25)*((yv4+yv5+yv6+yv7) - (yv0+yv1+yv2+yv3)) ;
-    dzv = Real_t(0.25)*((zv4+zv5+zv6+zv7) - (zv0+zv1+zv2+zv3)) ;
+      dxv = Real_t(0.25)*((xv4+xv5+xv6+xv7) - (xv0+xv1+xv2+xv3)) ;
+      dyv = Real_t(0.25)*((yv4+yv5+yv6+yv7) - (yv0+yv1+yv2+yv3)) ;
+      dzv = Real_t(0.25)*((zv4+zv5+zv6+zv7) - (zv0+zv1+zv2+zv3)) ;
 
-    domain.delv_zeta(i) = ax*dxv + ay*dyv + az*dzv ;
+      domain.delv_zeta(i) = ax*dxv + ay*dyv + az*dzv ;
 
-    /* find delxi and delvi ( j cross k ) */
+      /* find delxi and delvi ( j cross k ) */
 
-    ax = dyj*dzk - dzj*dyk ;
-    ay = dzj*dxk - dxj*dzk ;
-    az = dxj*dyk - dyj*dxk ;
+      ax = dyj*dzk - dzj*dyk ;
+      ay = dzj*dxk - dxj*dzk ;
+      az = dxj*dyk - dyj*dxk ;
 
-    domain.delx_xi(i) = vol / SQRT(ax*ax + ay*ay + az*az + ptiny) ;
+      domain.delx_xi(i) = vol / SQRT(ax*ax + ay*ay + az*az + ptiny) ;
 
-    ax *= norm ;
-    ay *= norm ;
-    az *= norm ;
+      ax *= norm ;
+      ay *= norm ;
+      az *= norm ;
 
-    dxv = Real_t(0.25)*((xv1+xv2+xv6+xv5) - (xv0+xv3+xv7+xv4)) ;
-    dyv = Real_t(0.25)*((yv1+yv2+yv6+yv5) - (yv0+yv3+yv7+yv4)) ;
-    dzv = Real_t(0.25)*((zv1+zv2+zv6+zv5) - (zv0+zv3+zv7+zv4)) ;
+      dxv = Real_t(0.25)*((xv1+xv2+xv6+xv5) - (xv0+xv3+xv7+xv4)) ;
+      dyv = Real_t(0.25)*((yv1+yv2+yv6+yv5) - (yv0+yv3+yv7+yv4)) ;
+      dzv = Real_t(0.25)*((zv1+zv2+zv6+zv5) - (zv0+zv3+zv7+zv4)) ;
 
-    domain.delv_xi(i) = ax*dxv + ay*dyv + az*dzv ;
+      domain.delv_xi(i) = ax*dxv + ay*dyv + az*dzv ;
 
-    /* find delxj and delvj ( k cross i ) */
+      /* find delxj and delvj ( k cross i ) */
 
-    ax = dyk*dzi - dzk*dyi ;
-    ay = dzk*dxi - dxk*dzi ;
-    az = dxk*dyi - dyk*dxi ;
+      ax = dyk*dzi - dzk*dyi ;
+      ay = dzk*dxi - dxk*dzi ;
+      az = dxk*dyi - dyk*dxi ;
 
-    domain.delx_eta(i) = vol / SQRT(ax*ax + ay*ay + az*az + ptiny) ;
+      domain.delx_eta(i) = vol / SQRT(ax*ax + ay*ay + az*az + ptiny) ;
 
-    ax *= norm ;
-    ay *= norm ;
-    az *= norm ;
+      ax *= norm ;
+      ay *= norm ;
+      az *= norm ;
 
-    dxv = Real_t(-0.25)*((xv0+xv1+xv5+xv4) - (xv3+xv2+xv6+xv7)) ;
-    dyv = Real_t(-0.25)*((yv0+yv1+yv5+yv4) - (yv3+yv2+yv6+yv7)) ;
-    dzv = Real_t(-0.25)*((zv0+zv1+zv5+zv4) - (zv3+zv2+zv6+zv7)) ;
+      dxv = Real_t(-0.25)*((xv0+xv1+xv5+xv4) - (xv3+xv2+xv6+xv7)) ;
+      dyv = Real_t(-0.25)*((yv0+yv1+yv5+yv4) - (yv3+yv2+yv6+yv7)) ;
+      dzv = Real_t(-0.25)*((zv0+zv1+zv5+zv4) - (zv3+zv2+zv6+zv7)) ;
 
-    domain.delv_eta(i) = ax*dxv + ay*dyv + az*dzv ;
-  }
+      domain.delv_eta(i) = ax*dxv + ay*dyv + az*dzv ;
+   }
 }
 
+
+
+/* ================================================================
+   Caller/callee relationship for EvalEOSForElems()
+
+   EvalEOSForElems()
+    |-- 14x Allocate<Real_t>(numElemReg)
+    |-- CalcEnergyForElems()
+    |    |-- Allocate()
+    |    |-- CalcPressureForElems()
+    |    |-- CalcPressureForElems()
+    |    |-- CalcPressureForElems()
+    |    |-- Release()
+    |-- CalcSoundSpeedForElems()
+    +-- 14x Release<Real_t>(numElemReg)
+  ================================================================= */
+
+static inline
+void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
+                          Real_t* pbvc, Real_t* e_old,
+                          Real_t* compression, Real_t *vnewc,
+                          Real_t pmin,
+                          Real_t p_cut, Real_t eosvmax,
+                          Index_t length, Index_t *regElemList)
+{
+#pragma omp parallel for firstprivate(length)
+   for (Index_t i = 0; i < length ; ++i) {
+      Real_t c1s = Real_t(2.0)/Real_t(3.0) ;
+      bvc[i] = c1s * (compression[i] + Real_t(1.));
+      pbvc[i] = c1s;
+   }
+
+#pragma omp parallel for firstprivate(length, pmin, p_cut, eosvmax)
+   for (Index_t i = 0 ; i < length ; ++i){
+      Index_t elem = regElemList[i];
+
+      p_new[i] = bvc[i] * e_old[i] ;
+
+      if    (FABS(p_new[i]) <  p_cut   )
+         p_new[i] = Real_t(0.0) ;
+
+      if    ( vnewc[elem] >= eosvmax ) /* impossible condition here? */
+         p_new[i] = Real_t(0.0) ;
+
+      if    (p_new[i]       <  pmin)
+         p_new[i]   = pmin ;
+   }
+}
+
+
+static inline
+void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
+                        Real_t* bvc, Real_t* pbvc,
+                        Real_t* p_old, Real_t* e_old, Real_t* q_old,
+                        Real_t* compression, Real_t* compHalfStep,
+                        Real_t* vnewc, Real_t* work, Real_t* delvc, Real_t pmin,
+                        Real_t p_cut, Real_t  e_cut, Real_t q_cut, Real_t emin,
+                        Real_t* qq_old, Real_t* ql_old,
+                        Real_t rho0,
+                        Real_t eosvmax,
+                        Index_t length, Index_t *regElemList)
+{
+   Real_t *pHalfStep = Allocate<Real_t>(length) ;
+
+#pragma omp parallel for firstprivate(length, emin)
+   for (Index_t i = 0 ; i < length ; ++i) {
+      e_new[i] = e_old[i] - Real_t(0.5) * delvc[i] * (p_old[i] + q_old[i])
+         + Real_t(0.5) * work[i];
+
+      if (e_new[i]  < emin ) {
+         e_new[i] = emin ;
+      }
+   }
+
+   CalcPressureForElems(pHalfStep, bvc, pbvc, e_new, compHalfStep, vnewc,
+                        pmin, p_cut, eosvmax, length, regElemList);
+
+#pragma omp parallel for firstprivate(length, rho0)
+   for (Index_t i = 0 ; i < length ; ++i) {
+      Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep[i]) ;
+
+      if ( delvc[i] > Real_t(0.) ) {
+         q_new[i] /* = qq_old[i] = ql_old[i] */ = Real_t(0.) ;
+      }
+      else {
+         Real_t ssc = ( pbvc[i] * e_new[i]
+                 + vhalf * vhalf * bvc[i] * pHalfStep[i] ) / rho0 ;
+
+         if ( ssc <= Real_t(.1111111e-36) ) {
+            ssc = Real_t(.3333333e-18) ;
+         } else {
+            ssc = SQRT(ssc) ;
+         }
+
+         q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
+      }
+
+      e_new[i] = e_new[i] + Real_t(0.5) * delvc[i]
+         * (  Real_t(3.0)*(p_old[i]     + q_old[i])
+              - Real_t(4.0)*(pHalfStep[i] + q_new[i])) ;
+   }
+
+#pragma omp parallel for firstprivate(length, emin, e_cut)
+   for (Index_t i = 0 ; i < length ; ++i) {
+
+      e_new[i] += Real_t(0.5) * work[i];
+
+      if (FABS(e_new[i]) < e_cut) {
+         e_new[i] = Real_t(0.)  ;
+      }
+      if (     e_new[i]  < emin ) {
+         e_new[i] = emin ;
+      }
+   }
+
+   CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
+                        pmin, p_cut, eosvmax, length, regElemList);
+
+#pragma omp parallel for firstprivate(length, rho0, emin, e_cut)
+   for (Index_t i = 0 ; i < length ; ++i){
+      const Real_t sixth = Real_t(1.0) / Real_t(6.0) ;
+      Index_t elem = regElemList[i];
+      Real_t q_tilde ;
+
+      if (delvc[i] > Real_t(0.)) {
+         q_tilde = Real_t(0.) ;
+      }
+      else {
+         Real_t ssc = ( pbvc[i] * e_new[i]
+                 + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
+
+         if ( ssc <= Real_t(.1111111e-36) ) {
+            ssc = Real_t(.3333333e-18) ;
+         } else {
+            ssc = SQRT(ssc) ;
+         }
+
+         q_tilde = (ssc*ql_old[i] + qq_old[i]) ;
+      }
+
+      e_new[i] = e_new[i] - (  Real_t(7.0)*(p_old[i]     + q_old[i])
+                               - Real_t(8.0)*(pHalfStep[i] + q_new[i])
+                               + (p_new[i] + q_tilde)) * delvc[i]*sixth ;
+
+      if (FABS(e_new[i]) < e_cut) {
+         e_new[i] = Real_t(0.)  ;
+      }
+      if (     e_new[i]  < emin ) {
+         e_new[i] = emin ;
+      }
+   }
+
+   CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
+                        pmin, p_cut, eosvmax, length, regElemList);
+
+#pragma omp parallel for firstprivate(length, rho0, q_cut)
+   for (Index_t i = 0 ; i < length ; ++i){
+      Index_t elem = regElemList[i];
+
+      if ( delvc[i] <= Real_t(0.) ) {
+         Real_t ssc = ( pbvc[i] * e_new[i]
+                 + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
+
+         if ( ssc <= Real_t(.1111111e-36) ) {
+            ssc = Real_t(.3333333e-18) ;
+         } else {
+            ssc = SQRT(ssc) ;
+         }
+
+         q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
+
+         if (FABS(q_new[i]) < q_cut) q_new[i] = Real_t(0.) ;
+      }
+   }
+
+   Release(&pHalfStep) ;
+
+   return ;
+}
+
+
+static inline
+void CalcSoundSpeedForElems(Domain &domain,
+                            Real_t *vnewc, Real_t rho0, Real_t *enewc,
+                            Real_t *pnewc, Real_t *pbvc,
+                            Real_t *bvc, Real_t ss4o3,
+                            Index_t len, Index_t *regElemList)
+{
+#pragma omp parallel for firstprivate(rho0, ss4o3)
+   for (Index_t i = 0; i < len ; ++i) {
+      Index_t elem = regElemList[i];
+      Real_t ssTmp = (pbvc[i] * enewc[i] + vnewc[elem] * vnewc[elem] *
+                 bvc[i] * pnewc[i]) / rho0;
+      if (ssTmp <= Real_t(.1111111e-36)) {
+         ssTmp = Real_t(.3333333e-18);
+      }
+      else {
+         ssTmp = SQRT(ssTmp);
+      }
+      domain.ss(elem) = ssTmp ;
+   }
+}
+
+
+void EvalEOSForElems(Domain& domain, Real_t *vnewc,
+                     Int_t numElemReg, Index_t *regElemList,
+		     Int_t rep)
+{
+   Real_t  e_cut = domain.e_cut() ;
+   Real_t  p_cut = domain.p_cut() ;
+   Real_t  ss4o3 = domain.ss4o3() ;
+   Real_t  q_cut = domain.q_cut() ;
+
+   Real_t eosvmax = domain.eosvmax() ;
+   Real_t eosvmin = domain.eosvmin() ;
+   Real_t pmin    = domain.pmin() ;
+   Real_t emin    = domain.emin() ;
+   Real_t rho0    = domain.refdens() ;
+
+   // These temporaries will be of different size for 
+   // each call (due to different sized region element
+   // lists)
+   Real_t *e_old = Allocate<Real_t>(numElemReg) ;
+   Real_t *delvc = Allocate<Real_t>(numElemReg) ;
+   Real_t *p_old = Allocate<Real_t>(numElemReg) ;
+   Real_t *q_old = Allocate<Real_t>(numElemReg) ;
+   Real_t *compression = Allocate<Real_t>(numElemReg) ;
+   Real_t *compHalfStep = Allocate<Real_t>(numElemReg) ;
+   Real_t *qq_old = Allocate<Real_t>(numElemReg) ;
+   Real_t *ql_old = Allocate<Real_t>(numElemReg) ;
+   Real_t *work = Allocate<Real_t>(numElemReg) ;
+   Real_t *p_new = Allocate<Real_t>(numElemReg) ;
+   Real_t *e_new = Allocate<Real_t>(numElemReg) ;
+   Real_t *q_new = Allocate<Real_t>(numElemReg) ;
+   Real_t *bvc = Allocate<Real_t>(numElemReg) ;
+   Real_t *pbvc = Allocate<Real_t>(numElemReg) ;
+ 
+   //loop to add load imbalance based on region number 
+   for(Int_t j = 0; j < rep; j++) {
+      /* compress data, minimal set */
+#pragma omp parallel
+      {
+#pragma omp for nowait firstprivate(numElemReg)
+         for (Index_t i=0; i<numElemReg; ++i) {
+            Index_t elem = regElemList[i];
+            e_old[i] = domain.e(elem) ;
+            delvc[i] = domain.delv(elem) ;
+            p_old[i] = domain.p(elem) ;
+            q_old[i] = domain.q(elem) ;
+            qq_old[i] = domain.qq(elem) ;
+            ql_old[i] = domain.ql(elem) ;
+         }
+
+#pragma omp for firstprivate(numElemReg)
+         for (Index_t i = 0; i < numElemReg ; ++i) {
+            Index_t elem = regElemList[i];
+            Real_t vchalf ;
+            compression[i] = Real_t(1.) / vnewc[elem] - Real_t(1.);
+            vchalf = vnewc[elem] - delvc[i] * Real_t(.5);
+            compHalfStep[i] = Real_t(1.) / vchalf - Real_t(1.);
+         }
+
+      /* Check for v > eosvmax or v < eosvmin */
+         if ( eosvmin != Real_t(0.) ) {
+#pragma omp for nowait firstprivate(numElemReg, eosvmin)
+            for(Index_t i=0 ; i<numElemReg ; ++i) {
+               Index_t elem = regElemList[i];
+               if (vnewc[elem] <= eosvmin) { /* impossible due to calling func? */
+                  compHalfStep[i] = compression[i] ;
+               }
+            }
+         }
+         if ( eosvmax != Real_t(0.) ) {
+#pragma omp for nowait firstprivate(numElemReg, eosvmax)
+            for(Index_t i=0 ; i<numElemReg ; ++i) {
+               Index_t elem = regElemList[i];
+               if (vnewc[elem] >= eosvmax) { /* impossible due to calling func? */
+                  p_old[i]        = Real_t(0.) ;
+                  compression[i]  = Real_t(0.) ;
+                  compHalfStep[i] = Real_t(0.) ;
+               }
+            }
+         }
+
+#pragma omp for nowait firstprivate(numElemReg)
+         for (Index_t i = 0 ; i < numElemReg ; ++i) {
+            work[i] = Real_t(0.) ; 
+         }
+      }
+      CalcEnergyForElems(p_new, e_new, q_new, bvc, pbvc,
+                         p_old, e_old,  q_old, compression, compHalfStep,
+                         vnewc, work,  delvc, pmin,
+                         p_cut, e_cut, q_cut, emin,
+                         qq_old, ql_old, rho0, eosvmax,
+                         numElemReg, regElemList);
+   }
+
+#pragma omp parallel for firstprivate(numElemReg)
+   for (Index_t i=0; i<numElemReg; ++i) {
+      Index_t elem = regElemList[i];
+      domain.p(elem) = p_new[i] ;
+      domain.e(elem) = e_new[i] ;
+      domain.q(elem) = q_new[i] ;
+   }
+
+   CalcSoundSpeedForElems(domain,
+                          vnewc, rho0, e_new, p_new,
+                          pbvc, bvc, ss4o3,
+                          numElemReg, regElemList) ;
+
+   Release(&pbvc) ;
+   Release(&bvc) ;
+   Release(&q_new) ;
+   Release(&e_new) ;
+   Release(&p_new) ;
+   Release(&work) ;
+   Release(&ql_old) ;
+   Release(&qq_old) ;
+   Release(&compHalfStep) ;
+   Release(&compression) ;
+   Release(&q_old) ;
+   Release(&p_old) ;
+   Release(&delvc) ;
+   Release(&e_old) ;
+}

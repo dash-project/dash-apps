@@ -1,6 +1,7 @@
 #ifndef LULESH_CALC_H_INCLUDED
 #define LULESH_CALC_H_INCLUDED
 
+#include "lulesh.h"
 #include "lulesh-dash.h"
 
 //
@@ -19,6 +20,14 @@ Real_t CalcElemVolume(const Real_t x[8],
 
 void CalcVolumeForceForElems(Domain& domain);
 
+void CalcMonotonicQForElems(Domain& domain,
+			    Real_t vnew[]);
 
+void CalcMonotonicQGradientsForElems(Domain& domain,
+				     Real_t vnew[]);
+
+void EvalEOSForElems(Domain& domain, Real_t *vnewc,
+                     Int_t numElemReg,
+		     Index_t *regElemList, Int_t rep);
 
 #endif /* LULESH_CALC_H_INCLUDED */
