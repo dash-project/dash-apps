@@ -17,6 +17,7 @@ public:
 
   Index_t&  numReg()             { return m_numReg ; }
   Int_t&    cost()               { return m_cost ; }
+
   //
   // Element-centered
   //

@@ -123,6 +123,10 @@ private:
   std::vector<Real_t> m_arealg ;  // characteristic length of an element
   std::vector<Real_t> m_ss ;      // "sound speed"
 
+  // OMP hack
+  Index_t *m_nodeElemStart ;
+  Index_t *m_nodeElemCornerList ;
+
 #ifdef USE_MPI
   MPIComm m_comm;
 #endif
@@ -224,12 +228,14 @@ public:
   bool symmYempty()          { return m_symmY.empty(); }
   bool symmZempty()          { return m_symmZ.empty(); }
 
-  /// XXX
   Real_t& arealg(Index_t idx)     { return m_arealg[idx] ; }
   Real_t& ss(Index_t idx)         { return m_ss[idx] ; }
-  Index_t  nodeElemCount(Index_t idx)      { return 1; }
-  Index_t* nodeElemCornerList(Index_t idx) { return nodelist(idx); }
 
+  Index_t nodeElemCount(Index_t idx)
+  { return m_nodeElemStart[idx+1] - m_nodeElemStart[idx] ; }
+
+  Index_t *nodeElemCornerList(Index_t idx)
+  { return &m_nodeElemCornerList[m_nodeElemStart[idx]] ; }
 
   Index_t numElem() const           { return m_nElem[0]*m_nElem[1]*m_nElem[2]; }
   Index_t numElem(size_t dim) const { return m_nElem[dim]; }

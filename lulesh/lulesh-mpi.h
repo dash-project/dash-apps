@@ -1,6 +1,7 @@
 #ifndef LULESH_MPI_H_INCLUDED
 #define LULESH_MPI_H_INCLUDED
 
+#include "lulesh.h"
 #include <mpi.h>
 
 // forward declaration

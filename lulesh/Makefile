@@ -3,12 +3,13 @@ include make.defs
 
 CFLAGS += -DUSE_MPI
 
-lulesh : lulesh.o lulesh-opts.o lulesh-dash.o \
-	lulesh-calc.o lulesh-mpi.o lulesh-mpi-comm.o
+lulesh : lulesh.o lulesh-opts.o lulesh-dash.o lulesh-util.o 	\
+	lulesh-calc.o lulesh-mpi.o lulesh-mpi-comm.o      	\
+	lulesh-dash-regions.o
 	$(CXX) $(LFLAGS) -o $@ $+ $(LIBDASH) $(LIBDART) $(LIBDART_EXTRA)
 
-%.o 	: %.cc
-	$(CXX) -c $(CFLAGS) -I$(DARTIF_INC) -I$(DART_INC) -I$(DASH_INC) $+
+%.o 	: %.cc %.h
+	$(CXX) -c $(CFLAGS) -I$(DARTIF_INC) -I$(DART_INC) -I$(DASH_INC) $<
 
 
 printenv :
@@ -28,5 +29,6 @@ printenv :
 clean :
 	rm -f *~
 	rm -f *.o
+	rm -f *.gch
 	rm -f ./lulesh
 

@@ -1,28 +1,9 @@
 
+#include <iostream>
 #include "lulesh-util.h"
 
-template<typename T>
-void peek(T *ptr, size_t nval, std::ostream& os=std::cout)
-{
-  size_t i;
-  for( i=0; i<nval; ++i ) {
-    os << (*ptr++) << " ";
-  }
-  os << std::endl;
-}
-
-template<typename T>
-T chksum(T *ptr, size_t nval)
-{
-  T res = 0.0;
-  size_t i;
-  for( i=0; i<nval; ++i ) {
-    T += (i+1) * (*ptr++);
-  }
-  return res;
-}
-
-void print_config(const Domain& d)
+void print_config(Domain& d,
+		  std::ostream& os)
 {
   auto myid = dash::myid();
   os << "[ " << myid << "] colLoc()             : " << d.colLoc()       << std::endl;

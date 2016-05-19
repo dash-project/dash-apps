@@ -1,8 +1,11 @@
 
 #include <libdash.h>
 #include <iostream>
+
 #include "lulesh-dash.h"
 #include "lulesh-calc.h"
+#include "lulesh-util.h"
+
 #ifdef USE_MPI
 #include "lulesh-mpi.h"
 #endif
@@ -26,141 +29,6 @@ void Release(T **ptr)
    }
 }
 
-
-RegionIndexSet::RegionIndexSet(Int_t nr, Int_t balance, Index_t numElem)
-{
-#if USE_MPI
-  Index_t myRank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
-  srand(myRank);
-#else
-  srand(0);
-  Index_t myRank = 0;
-#endif
-
-  this->numReg() = nr;
-  m_regElemSize = new Index_t[numReg()];
-  m_regElemlist = new Index_t*[numReg()];
-  m_regNumList  = new Index_t[numElem] ;  // material indexset
-
-  Index_t nextIndex = 0;
-
-  //if we only have one region just fill it
-  // Fill out the regNumList with material numbers, which are always
-  // the region index plus one
-  if(numReg() == 1) {
-    while (nextIndex < numElem) {
-      this->regNumList(nextIndex) = 1;
-      nextIndex++;
-    }
-    regElemSize(0) = 0;
-  }
-  //If we have more than one region distribute the elements.
-  else {
-    Int_t regionNum;
-    Int_t regionVar;
-    Int_t lastReg = -1;
-    Int_t binSize;
-    Index_t elements;
-    Index_t runto = 0;
-    Int_t costDenominator = 0;
-    Int_t* regBinEnd = new Int_t[numReg()];
-    //Determine the relative weights of all the regions.  This is
-    //based off the -b flag.  Balance is the value passed into b.
-    for (Index_t i=0 ; i<numReg() ; ++i) {
-      regElemSize(i) = 0;
-      costDenominator += pow((i+1), balance);  //Total sum of all
-					       //regions weights
-      regBinEnd[i] = costDenominator;  //Chance of hitting a given
-				       //region is (regBinEnd[i] -
-				       //regBinEdn[i-1])/costDenominator
-    }
-
-    //Until all elements are assigned
-    while (nextIndex < numElem) {
-      //pick the region
-      regionVar = rand() % costDenominator;
-      Index_t i = 0;
-      while(regionVar >= regBinEnd[i])
-	i++;
-
-      //rotate the regions based on MPI rank.  Rotation is Rank %
-      //NumRegions this makes each domain have a different region with
-      //the highest representation
-      regionNum = ((i + myRank) % numReg()) + 1;
-      // make sure we don't pick the same region twice in a row
-      while(regionNum == lastReg) {
-	regionVar = rand() % costDenominator;
-	i = 0;
-	while(regionVar >= regBinEnd[i])
-	  i++;
-	regionNum = ((i + myRank) % numReg()) + 1;
-      }
-      //Pick the bin size of the region and determine the number of
-      //elements.
-      binSize = rand() % 1000;
-      if(binSize < 773) {
-	elements = rand() % 15 + 1;
-      }
-      else if(binSize < 937) {
-	elements = rand() % 16 + 16;
-      }
-      else if(binSize < 970) {
-	elements = rand() % 32 + 32;
-      }
-      else if(binSize < 974) {
-	elements = rand() % 64 + 64;
-      }
-      else if(binSize < 978) {
-	elements = rand() % 128 + 128;
-      }
-      else if(binSize < 981) {
-	elements = rand() % 256 + 256;
-      }
-      else
-	elements = rand() % 1537 + 512;
-      runto = elements + nextIndex;
-
-      //Store the elements.  If we hit the end before we run out of elements then just stop.
-      while (nextIndex < runto && nextIndex < numElem) {
-	this->regNumList(nextIndex) = regionNum;
-	nextIndex++;
-      }
-      lastReg = regionNum;
-    }
-  }
-
-  // Convert regNumList to region index sets
-  // First, count size of each region
-  for (Index_t i=0 ; i<numElem ; ++i) {
-    int r = this->regNumList(i)-1; // region index == regnum-1
-    regElemSize(r)++;
-  }
-
-  // Second, allocate each region index set
-  for (Index_t i=0 ; i<numReg() ; ++i) {
-    m_regElemlist[i] = new Index_t[regElemSize(i)];
-    regElemSize(i) = 0;
-  }
-
-  // Third, fill index sets
-  for (Index_t i=0 ; i<numElem ; ++i) {
-    Index_t r = regNumList(i)-1;       // region index == regnum-1
-    Index_t regndx = regElemSize(r)++; // Note increment
-    regElemlist(r,regndx) = i;
-  }
-}
-
-RegionIndexSet::~RegionIndexSet()
-{
-#if 0
-  for (Index_t i=0 ; i<numReg() ; ++i) {
-    delete[](m_regElemlist[i]);
-  }
-  delete[](m_regElemSize);
-  delete[](m_regElemlist);
-#endif
-}
 
 Domain::Domain(const CmdLineOpts& opts) :
   // number of elements in each dim. per process
@@ -252,8 +120,7 @@ Domain::Domain(const CmdLineOpts& opts) :
   // Setup region index sets. For now, these are constant sized
   // throughout the run, but could be changed every cycle to 
   // simulate effects of ALE on the lagrange solver
-  CreateRegionIndexSets(opts.numReg(),
-			opts.balance());
+
 
   // Setup symmetry nodesets
   SetupSymmetryPlanes(edgeNodes);
@@ -662,18 +529,74 @@ void Domain::SetupSymmetryPlanes(Int_t edgeNodes)
 
 void Domain::SetupThreadSupportStructures()
 {
-  // XXX
+#if _OPENMP
+  Index_t numthreads = omp_get_max_threads();
+#else
+  Index_t numthreads = 1;
+#endif
+
+  if (numthreads > 1) {
+    // set up node-centered indexing of elements
+    Index_t *nodeElemCount = new Index_t[numNode()] ;
+
+    for (Index_t i=0; i<numNode(); ++i) {
+      nodeElemCount[i] = 0 ;
+    }
+
+    for (Index_t i=0; i<numElem(); ++i) {
+      Index_t *nl = nodelist(i) ;
+      for (Index_t j=0; j < 8; ++j) {
+	++(nodeElemCount[nl[j]] );
+      }
+    }
+
+    m_nodeElemStart = new Index_t[numNode()+1] ;
+
+    m_nodeElemStart[0] = 0;
+    for (Index_t i=1; i <= numNode(); ++i) {
+      m_nodeElemStart[i] =
+	m_nodeElemStart[i-1] + nodeElemCount[i-1] ;
+    }
+
+    m_nodeElemCornerList = new Index_t[m_nodeElemStart[numNode()]];
+
+    for (Index_t i=0; i < numNode(); ++i) {
+      nodeElemCount[i] = 0;
+    }
+
+    for (Index_t i=0; i < numElem(); ++i) {
+      Index_t *nl = nodelist(i) ;
+      for (Index_t j=0; j < 8; ++j) {
+	Index_t m = nl[j];
+	Index_t k = i*8 + j ;
+	Index_t offset = m_nodeElemStart[m] + nodeElemCount[m] ;
+	m_nodeElemCornerList[offset] = k;
+	++(nodeElemCount[m]) ;
+      }
+    }
+
+    Index_t clSize = m_nodeElemStart[numNode()] ;
+    for (Index_t i=0; i < clSize; ++i) {
+      Index_t clv = m_nodeElemCornerList[i] ;
+      if ((clv < 0) || (clv > numElem()*8)) {
+	fprintf(stderr,
+		"AllocateNodeElemIndexes(): nodeElemCornerList entry out of range!\n");
+#if USE_MPI
+	MPI_Abort(MPI_COMM_WORLD, -1);
+#else
+	exit(-1);
+#endif
+      }
+    }
+
+    delete [] nodeElemCount ;
+  }
+  else {
+    // These arrays are not used if we're not threaded
+    m_nodeElemStart = NULL;
+    m_nodeElemCornerList = NULL;
+  }
 }
-
-
-void Domain::CreateRegionIndexSets(Int_t nreg, Int_t balance)
-{
-  // XXX
-}
-
-
-
-
 
 void Domain::InitializeFieldData()
 {

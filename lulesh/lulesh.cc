@@ -4,6 +4,7 @@
 #include "lulesh.h"
 #include "lulesh-opts.h"
 #include "lulesh-dash.h"
+#include "lulesh-util.h"
 
 int main(int argc, char *argv[])
 {
@@ -22,31 +23,16 @@ int main(int argc, char *argv[])
     dash::finalize();
     return 0;
   }
-  if( (myRank == 0) && (opts.quiet()==0) ) {
+  if( (myRank == 0) && (!opts.quiet()) ) {
     opts.printBanner(std::cout);
   }
 
   Domain dom(opts);
 
-  /*  if( dash::myid()==0 ) {
-      print_config(dom, std::cout);
-    }*/
+  // if(dash::myid()==0) print_config(dom, std::cout);
+  // if( dash::myid()==0 ) peek( &(dom.nodalMass(0)), (size_t)20 );
 
-  /*
-    for( int i=0; i<dom.numNode(); ++i  ) {
-    dom.nodalMass(i)=100;
-    }
-    if( dash::myid()==0 ) {
-    peek<double>(&(dom.nodalMass(0)), dom.numElem() );
-    }
-    */
   dom.InitialBoundaryExchange();
-
-  /*
-  if( dash::myid()==0 ) {
-    peek<double>(&(dom.nodalMass(0)), dom.numElem() );
-  }
-  */
 
   //
   // --- main simulation loop ---

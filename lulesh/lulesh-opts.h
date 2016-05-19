@@ -1,5 +1,5 @@
-#ifndef LULESH_UTIL_H_INCLUDED
-#define LULESH_UTIL_H_INCLUDED
+#ifndef LULESH_OPTS_H_INCLUDED
+#define LULESH_OPTS_H_INCLUDED
 
 #include <iostream>
 #include "lulesh.h"
@@ -71,4 +71,4 @@ public:
 
 static void PrintCommandLineOptions(char *execname, int myRank);
 
-#endif /* LULESH_UTIL_H_INCLUDED */
+#endif /* LULESH_OPTS_H_INCLUDED */

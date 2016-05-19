@@ -4,6 +4,16 @@
 #include <cmath>
 #include <iostream>
 
+//
+//   define one of these three symbols:
+//
+//   SEDOV_SYNC_POS_VEL_NONE
+//   SEDOV_SYNC_POS_VEL_EARLY
+//   SEDOV_SYNC_POS_VEL_LATE
+//
+#define SEDOV_SYNC_POS_VEL_EARLY 1
+
+
 // Precision specification
 typedef float        real4;
 typedef double       real8;
@@ -61,4 +71,3 @@ inline real10 FABS(real10 arg) { return fabsl(arg) ; }
 #define ZETA_P_COMM 0x20000
 
 #endif // LULESH_H_INCLUDED
-
