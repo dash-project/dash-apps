@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
   //
   // --- main simulation loop ---
   //
+  double start = MPI_Wtime();
   while( (dom.time() < dom.stoptime()) && (dom.cycle() < opts.its()) )
     {
       dom.TimeIncrement();
@@ -48,7 +49,14 @@ int main(int argc, char *argv[])
 	std::cout << "dt = " << dom.deltatime() << std::endl;
       }
     }
+  double end = MPI_Wtime()-start;
+  double elapsed;
+  MPI_Reduce(&end, &elapsed, 1, MPI_DOUBLE,
+	     MPI_MAX, 0, MPI_COMM_WORLD);
 
+  if( (myRank == 0) && (!opts.quiet()) ) {
+    dom.VerifyAndWriteFinalOutput(elapsed, opts.nx(), numRanks);
+  }
   dash::finalize();
 }
 

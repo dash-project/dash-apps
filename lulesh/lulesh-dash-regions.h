@@ -12,15 +12,15 @@ private:
   Index_t  **m_regElemlist;   // region indexset
 
 public:
-  RegionIndexSet(Int_t nr, Int_t balance, Index_t numElem);
+  RegionIndexSet(Int_t nr, Int_t cost, Int_t balance, Index_t numElem);
   ~RegionIndexSet();
 
   Index_t&  numReg()             { return m_numReg ; }
-  Int_t&    cost()               { return m_cost ; }
 
   //
   // Element-centered
   //
+  Int_t&    cost()                   { return m_cost; }
   Index_t&  regElemSize(Index_t idx) { return m_regElemSize[idx] ; }
   Index_t&  regNumList(Index_t idx)  { return m_regNumList[idx] ; }
   Index_t*  regNumList()             { return &m_regNumList[0] ; }

@@ -54,7 +54,8 @@ Domain::Domain(const CmdLineOpts& opts) :
 	    dash::BLOCKED, dash::BLOCKED, dash::BLOCKED,
 	    m_ts),
 
-  m_region(opts.numReg(), opts.balance(), numElem() ),
+  m_region(opts.numReg(), opts.cost(),
+	   opts.balance(), numElem() ),
 
   m_comm(*this)
 {
@@ -112,7 +113,7 @@ Domain::Domain(const CmdLineOpts& opts) :
   m_ss.resize(numElem());
 
   Index_t edgeElems = opts.nx();
-  Index_t edgeNodes = m_nodelist.local.extent(0);
+  Index_t edgeNodes = edgeElems+1;
 
   BuildMesh();
   SetupThreadSupportStructures();
@@ -293,9 +294,11 @@ void Domain::TimeIncrement()
 
 void Domain::LagrangeLeapFrog()
 {
+  dash::barrier();
   LagrangeNodal();
   LagrangeElements();
 
+  //  if( dash::myid()==0 ) cout << chksum(&x(0), 20) << endl;
 #if SEDOV_SYNC_POS_VEL_LATE
   // initiate communication
   m_comm.Recv_PosVel();
@@ -364,8 +367,8 @@ void Domain::CalcAccelerationForNodes(Index_t numNode)
 
 void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 {
-  Domain& domain    = (*this);
-  Index_t size      = domain.sizeX();
+  Domain &domain = (*this);
+  Index_t size = domain.sizeX();
   Index_t numNodeBC = (size+1)*(size+1) ;
 
 #pragma omp parallel
@@ -388,7 +391,6 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 	domain.zdd(domain.symmZ(i)) = Real_t(0.0) ;
     }
   }
-
 }
 
 void Domain::CalcVelocityForNodes(const Real_t dt,
@@ -600,6 +602,35 @@ void Domain::SetupThreadSupportStructures()
 
 void Domain::InitializeFieldData()
 {
+  // Basic Field Initialization
+  for (Index_t i=0; i<numElem(); ++i) {
+    e(i) =  Real_t(0.0) ;
+    p(i) =  Real_t(0.0) ;
+    q(i) =  Real_t(0.0) ;
+    ss(i) = Real_t(0.0) ;
+  }
+
+  // Note - v initializes to 1.0, not 0.0!
+  for (Index_t i=0; i<numElem(); ++i) {
+    v(i) = Real_t(1.0) ;
+  }
+
+  for (Index_t i=0; i<numNode(); ++i) {
+    xd(i) = Real_t(0.0) ;
+    yd(i) = Real_t(0.0) ;
+    zd(i) = Real_t(0.0) ;
+  }
+
+  for (Index_t i=0; i<numNode(); ++i) {
+    xdd(i) = Real_t(0.0) ;
+    ydd(i) = Real_t(0.0) ;
+    zdd(i) = Real_t(0.0) ;
+  }
+
+  for (Index_t i=0; i<numNode(); ++i) {
+    nodalMass(i) = Real_t(0.0) ;
+  }
+
   // initialize field data
   for (Index_t i=0; i<m_ElemPat.local_size(); ++i) {
     Real_t x_local[8], y_local[8], z_local[8] ;
@@ -977,3 +1008,56 @@ void Domain::UpdateVolumesForElems(Real_t *vnew,
   }
 }
 
+
+
+void Domain::VerifyAndWriteFinalOutput(Real_t elapsed,
+				       Int_t  nx,
+				       Int_t  numRanks)
+{
+  // GrindTime1 only takes a single domain into account, and is thus a
+  // good way to measure processor speed indepdendent of MPI
+  // parallelism.
+  //
+  // GrindTime2 takes into account speedups from MPI parallelism
+  Real_t grindTime1 = ((elapsed*1.0e6)/cycle())/(nx*nx*nx);
+  Real_t grindTime2 = ((elapsed*1.0e6)/cycle())/(nx*nx*nx*numRanks);
+
+  Index_t ElemId = 0;
+
+  cout << "Run completed:" << endl;
+  cout << "   Problem size        = " << nx << endl;
+  cout << "   MPI tasks           = " << numRanks << endl;
+  cout << "   Iteration count     = " << cycle() << endl;
+  cout << "   Final Origin Energy = " << e(ElemId) << endl;
+
+  Real_t   MaxAbsDiff = Real_t(0.0);
+  Real_t TotalAbsDiff = Real_t(0.0);
+  Real_t   MaxRelDiff = Real_t(0.0);
+
+  for (Index_t j=0; j<nx; ++j) {
+    for (Index_t k=j+1; k<nx; ++k) {
+      Real_t AbsDiff = FABS(e(j*nx+k)-e(k*nx+j));
+      TotalAbsDiff  += AbsDiff;
+
+      if (MaxAbsDiff <AbsDiff) MaxAbsDiff = AbsDiff;
+
+      Real_t RelDiff = AbsDiff / e(k*nx+j);
+
+      if (MaxRelDiff <RelDiff)  MaxRelDiff = RelDiff;
+    }
+  }
+
+  cout << std::scientific;
+  // Quick symmetry check
+  cout << "   Testing Plane 0 of Energy Array on rank 0: "<< endl;
+  cout << "        MaxAbsDiff   = " << MaxAbsDiff   << endl;
+  cout << "        TotalAbsDiff = " << TotalAbsDiff << endl;
+  cout << "        MaxRelDiff   = " << MaxRelDiff   << endl;
+
+  // Timing information
+  cout << endl;
+  cout << "Elapsed time         = " << elapsed << endl;
+  cout << "Grind time (us/z/c)  = " << grindTime1 << " (per dom) " << endl;
+  cout << "Grind time (us/z/c)  = " << grindTime2 << " (overall) " << endl;
+  cout << "FOM                  = " << 1000.0/grindTime2 << endl;
+}

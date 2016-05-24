@@ -17,7 +17,7 @@
  * here we use DASH Matrix. In the MPI version the domain is purely
  * local. Using DASH we have a global view of data from all processes,
  * but of course can also emulate the local view using the .local
- * accessor object
+ * accessor object.
  */
 class Domain
 {
@@ -35,20 +35,23 @@ private:
 				   ElemPatternT::index_type,
 				   ElemPatternT>;
 
-  // simulation parameters packed into a separate struct
+  // all simulation constanst and parameters packed into a separate
+  // struct for clarity
   Parameters m_param;
 
   // number of local elements and nodes in each dimension
   std::array<Index_t, 3> m_nElem;
   std::array<Index_t, 3> m_nNode;
 
-  // the original code uses the terms 'col', 'row', and 'plane' to
-  // refer to the 3D position of a process in the process grid. To get
-  // the same ordering, the following equvalencies can be used:
   //
-  // m_ts.x() <=> plane
-  // m_ts.y() <=> row
+  // LULESH uses the terms 'col', 'row', and 'plane' to refer to the
+  // 3D position of a process in the process grid. To get the same
+  // ordering in DASH, a TeamSpec and the following equvalencies can
+  // be used:
+  //
   // m_ts.z() <=> col
+  // m_ts.y() <=> row
+  // m_ts.x() <=> plane
   dash::TeamSpec<3> m_ts;
 
   // pattern for element-centered data
@@ -175,8 +178,9 @@ public:
 
   // nodal mass
   Real_t& nodalMass(Index_t idx)  { return m_nodalMass.lbegin()[idx]; }
+
   // element mass
-  Real_t& elemMass(Index_t idx)   { return  m_elemMass.lbegin()[idx]; }
+  Real_t& elemMass(Index_t idx)   { return m_elemMass.lbegin()[idx]; }
 
   // energy, pressure, viscosity
   Real_t& e(Index_t idx)     { return m_e.lbegin()[idx]; }
@@ -191,17 +195,17 @@ public:
   Real_t& delv(Index_t idx)  { return m_delv.lbegin()[idx]; }
   Real_t& vdov(Index_t idx)  { return m_vdov.lbegin()[idx]; }
 
-  // Principal strains - temporary
+  // principal strains -- temporary
   Real_t& dxx(Index_t idx)  { return m_dxx[idx] ; }
   Real_t& dyy(Index_t idx)  { return m_dyy[idx] ; }
   Real_t& dzz(Index_t idx)  { return m_dzz[idx] ; }
 
-  // Velocity gradient - temporary
+  // velocity gradient -- temporary
   Real_t& delv_xi(Index_t idx)    { return m_delv_xi[idx] ; }
   Real_t& delv_eta(Index_t idx)   { return m_delv_eta[idx] ; }
   Real_t& delv_zeta(Index_t idx)  { return m_delv_zeta[idx] ; }
 
-  // Position gradient - temporary
+  // position gradient -- temporary
   Real_t& delx_xi(Index_t idx)    { return m_delx_xi[idx] ; }
   Real_t& delx_eta(Index_t idx)   { return m_delx_eta[idx] ; }
   Real_t& delx_zeta(Index_t idx)  { return m_delx_zeta[idx] ; }
@@ -324,6 +328,10 @@ public:
   void ApplyMaterialPropertiesForElems(Real_t vnew[]);
   void UpdateVolumesForElems(Real_t *vnew,
 			     Real_t v_cut, Index_t length);
+
+  void VerifyAndWriteFinalOutput(Real_t elapsed,
+				 Int_t  nx,
+				 Int_t  numRanks);
 };
 
 

@@ -243,8 +243,8 @@ void CmdLineOpts::parseCommandLineOptions(int argc, char *argv[])
 
       /* -h */
       else if (strcmp(argv[i], "-h") == 0) {
-	printHelp(std::cerr);
 	m_valid=false;
+	i++;
 #if USE_MPI
 	//MPI_Abort(MPI_COMM_WORLD, 0);
 #else

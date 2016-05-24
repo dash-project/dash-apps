@@ -162,7 +162,6 @@ Real_t CalcElemVolume(const Real_t x0, const Real_t x1,
   return volume ;
 }
 
-inline
 Real_t CalcElemVolume(const Real_t x[8], const Real_t y[8], const Real_t z[8])
 {
   return CalcElemVolume(x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7],
@@ -1198,8 +1197,9 @@ void CalcHourglassControlForElems(Domain& domain,
 
       /* Do a check for negative volumes */
       if ( domain.v(i) <= Real_t(0.0) ) {
+	std::cerr << dash::myid() << " domain.v "<< domain.v(i) << std::endl;
 #if USE_MPI
-         MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+	MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #else
          exit(VolumeError);
 #endif
@@ -1354,6 +1354,7 @@ void CalcVolumeForceForElems(Domain& domain)
 #pragma omp parallel for firstprivate(numElem)
     for ( Index_t k=0 ; k<numElem ; ++k ) {
       if (determ[k] <= Real_t(0.0)) {
+	std::cerr << dash::myid() << " determ "<< determ[k] << std::endl;
 #if USE_MPI
 	MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #else

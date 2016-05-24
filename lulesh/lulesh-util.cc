@@ -55,4 +55,7 @@ void print_config(Domain& d,
   os << "[ " << myid << "] dtmax()              : " << d.dtmax()           << std::endl;
   os << "[ " << myid << "] dtfixed()            : " << d.dtfixed()         << std::endl;
   os << "[ " << myid << "] cycle()              : " << d.cycle()           << std::endl;
+
+  os << "[ " << myid << "] numReg()             : " << d.numReg()          << std::endl;
+  os << "[ " << myid << "] cost()               : " << d.cost()            << std::endl;
 }

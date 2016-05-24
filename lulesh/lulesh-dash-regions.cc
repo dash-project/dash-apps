@@ -3,7 +3,7 @@
 #include "lulesh.h"
 #include "lulesh-dash-regions.h"
 
-RegionIndexSet::RegionIndexSet(Int_t numReg,
+RegionIndexSet::RegionIndexSet(Int_t numReg, Int_t cost,
 			       Int_t balance, Index_t numElem)
 {
   Index_t myRank = 0;
@@ -14,6 +14,7 @@ RegionIndexSet::RegionIndexSet(Int_t numReg,
   srand(myRank);
 
   m_numReg      = numReg;
+  m_cost        = cost;
   m_regElemSize = new Index_t[numReg];
   m_regElemlist = new Index_t*[numReg];
   m_regNumList  = new Index_t[numElem] ; // material indexset
