@@ -1,5 +1,5 @@
-#ifndef LULESH_MPI_H_INCLUDED
-#define LULESH_MPI_H_INCLUDED
+#ifndef LULESH_COMM_MPI_H_INCLUDED
+#define LULESH_COMM_MPI_H_INCLUDED
 
 #include "lulesh.h"
 #include <mpi.h>
@@ -27,14 +27,14 @@ typedef Real_t &(Domain::* Domain_member )(Index_t) ;
 // additional communication helper structures that contain the stuff
 // not included in the DASH version of the Domain data structure
 //
-class MPIComm
+class Comm
 {
 private:
   Domain& m_dom;
 
 public:
-  MPIComm(Domain& dom);
-  ~MPIComm();
+  Comm(Domain& dom);
+  ~Comm();
 
   void ExchangeNodalMass(); // 1 field: nodalMass
 
@@ -58,25 +58,29 @@ public:
   // Maximum number of block neighbors
   MPI_Request recvRequest[26]; // 6 faces + 12 edges + 8 corners
   MPI_Request sendRequest[26]; // 6 faces + 12 edges + 8 corners
+
+  double wtime();
+  template<typename T> T allreduce_min(T val);
+  template<typename T> T reduce_max(T val);
 };
 
 
 // doRecv flag only works with regular block structure
-void CommRecv(Domain& domain, MPIComm& comm, int msgType,
+void CommRecv(Domain& domain, Comm& comm, int msgType,
 	      Index_t xferFields, Index_t dx, Index_t dy, Index_t dz,
 	      bool doRecv, bool planeOnly);
 
-void CommSend(Domain& domain, MPIComm& comm, int msgType,
+void CommSend(Domain& domain, Comm& comm, int msgType,
               Index_t xferFields, Domain_member *fieldData,
               Index_t dx, Index_t dy, Index_t dz,
 	      bool doSend, bool planeOnly);
 
-void CommSBN(Domain& domain, MPIComm& comm, int xferFields,
+void CommSBN(Domain& domain, Comm& comm, int xferFields,
 	     Domain_member *fieldData);
 
-void CommSyncPosVel(Domain& domain, MPIComm& comm);
+void CommSyncPosVel(Domain& domain, Comm& comm);
 
-void CommMonoQ(Domain& domain, MPIComm& comm);
+void CommMonoQ(Domain& domain, Comm& comm);
 
 
-#endif /* LULESH_MPI_H_INCLUDED */
+#endif /* LULESH_COMM_MPI_H_INCLUDED */

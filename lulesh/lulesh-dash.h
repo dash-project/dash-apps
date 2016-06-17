@@ -7,7 +7,10 @@
 #include "lulesh-dash-params.h"
 #include "lulesh-dash-regions.h"
 #ifdef USE_MPI
-#include "lulesh-mpi.h"
+#include "lulesh-comm-mpi.h"
+#endif
+#ifdef USE_DASH
+#include "lulesh-comm-dash.h"
 #endif
 
 /*
@@ -131,7 +134,10 @@ private:
   Index_t *m_nodeElemCornerList ;
 
 #ifdef USE_MPI
-  MPIComm m_comm;
+  Comm m_comm;
+#endif
+#ifdef USE_DASH
+  DASHComm m_comm;
 #endif
 
 private:
@@ -155,6 +161,10 @@ private:
 public:
   Domain(const CmdLineOpts& opts);
   ~Domain();
+
+  double wtime() { return m_comm.wtime(); }
+  template<typename T> T allreduce_min(T val);
+  template<typename T> T reduce_max(T val);
 
   // nodal coordinates
   Real_t& x(Index_t idx)     { return m_x.lbegin()[idx]; }

@@ -1,10 +1,18 @@
 
 include make.defs
 
-CFLAGS += -DUSE_MPI
+#CFLAGS += -DUSE_MPI
+CFLAGS += -DUSE_DASH
 
-lulesh : lulesh.o lulesh-opts.o lulesh-dash.o lulesh-util.o 	\
-	lulesh-calc.o lulesh-mpi.o lulesh-mpi-comm.o      	\
+
+lulesh: lulesh.o lulesh-opts.o lulesh-dash.o lulesh-util.o	\
+	lulesh-calc.o lulesh-dash-regions.o lulesh-comm-mpi.o	\
+	lulesh-comm-mpi-sendrecv.o lulesh-comm-dash.o		\
+	lulesh-comm-dash-onesided.o
+	$(CXX) $(LFLAGS) -o $@ $+ $(LIBDASH) $(LIBDART) $(LIBDART_EXTRA)
+
+lulesh-dash : lulesh.o lulesh-opts.o lulesh-dash.o lulesh-util.o	\
+	lulesh-calc.o lulesh-comm-mpi.o lulesh-comm-mpi-sendrecv.o	\
 	lulesh-dash-regions.o
 	$(CXX) $(LFLAGS) -o $@ $+ $(LIBDASH) $(LIBDART) $(LIBDART_EXTRA)
 

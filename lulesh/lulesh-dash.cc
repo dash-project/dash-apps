@@ -7,7 +7,12 @@
 #include "lulesh-util.h"
 
 #ifdef USE_MPI
-#include "lulesh-mpi.h"
+#include <mpi.h>
+#include "lulesh-comm-mpi.h"
+#endif
+
+#ifdef USE_DASH
+#include "lulesh-comm-dash.h"
 #endif
 
 using std::cout; using std::cerr; using std::endl;
@@ -27,6 +32,18 @@ void Release(T **ptr)
       free(*ptr) ;
       *ptr = NULL ;
    }
+}
+
+template<>
+double Domain::allreduce_min<double>(double val)
+{
+  return m_comm.allreduce_min(val);
+}
+
+template<>
+double Domain::reduce_max<double>(double val)
+{
+  return m_comm.reduce_max(val);
 }
 
 
@@ -252,13 +269,7 @@ void Domain::TimeIncrement()
       gnewdt = domain.dthydro() * Real_t(2.0) / Real_t(3.0) ;
     }
 
-#if USE_MPI
-    MPI_Allreduce(&gnewdt, &newdt, 1,
-		  ((sizeof(Real_t) == 4) ? MPI_FLOAT : MPI_DOUBLE),
-		  MPI_MIN, MPI_COMM_WORLD) ;
-#else
-    newdt = gnewdt;
-#endif
+    newdt = m_comm.allreduce_min(gnewdt);
 
     ratio = newdt / olddt ;
     if (ratio >= Real_t(1.0)) {
@@ -294,11 +305,9 @@ void Domain::TimeIncrement()
 
 void Domain::LagrangeLeapFrog()
 {
-  dash::barrier();
   LagrangeNodal();
   LagrangeElements();
 
-  //  if( dash::myid()==0 ) cout << chksum(&x(0), 20) << endl;
 #if SEDOV_SYNC_POS_VEL_LATE
   // initiate communication
   m_comm.Recv_PosVel();
@@ -413,7 +422,7 @@ void Domain::CalcVelocityForNodes(const Real_t dt,
       zdtmp = zd(i) + zdd(i) * dt ;
       if( FABS(zdtmp) < u_cut ) zdtmp = Real_t(0.0);
       zd(i) = zdtmp ;
-   }
+    }
 }
 
 

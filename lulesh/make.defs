@@ -10,6 +10,6 @@ DASH_INC    = $(DASH_ROOT)/dash/include/
 DART_INC    = $(DASH_ROOT)/dart-impl/$(DART_IMPL)/include/
 DARTIF_INC  = $(DASH_ROOT)/dart-if/$(DART_VER)/include
 
-CXX       = mpicxx -std=c++11 #-pg #-O3
+CXX       = mpicxx -std=c++11 -O3 #-pg 
 CFLAGS    = -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 

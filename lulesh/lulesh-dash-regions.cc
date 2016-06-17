@@ -1,6 +1,7 @@
 
 #include <mpi.h>
 #include "lulesh.h"
+#include "lulesh-dash.h"
 #include "lulesh-dash-regions.h"
 
 RegionIndexSet::RegionIndexSet(Int_t numReg, Int_t cost,
@@ -10,6 +11,11 @@ RegionIndexSet::RegionIndexSet(Int_t numReg, Int_t cost,
 #if USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
 #endif
+
+#if USE_DASH
+  myRank = dash::myid();
+#endif
+
 
   srand(myRank);
 

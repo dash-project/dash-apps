@@ -11,14 +11,14 @@
 //  - void CommMonoQ()
 //
 // Changes:
-// - Add an additional parameter "MPIComm& comm" to all routines
-// - All data and receive request buffers are members of MPIComm and
+// - Add an additional parameter "Comm& comm" to all routines
+// - All data and receive request buffers are members of Comm and
 //   not of Domain.
 
 #include <mpi.h>
 #include "lulesh.h"
 #include "lulesh-dash.h"
-#include "lulesh-mpi.h"
+#include "lulesh-comm-mpi.h"
 
 
 /* Comm Routines */
@@ -70,7 +70,7 @@
 /******************************************/
 
 /* doRecv flag only works with regular block structure */
-void CommRecv(Domain& domain, MPIComm& comm, int msgType, Index_t xferFields,
+void CommRecv(Domain& domain, Comm& comm, int msgType, Index_t xferFields,
               Index_t dx, Index_t dy, Index_t dz, bool doRecv, bool planeOnly) {
 
    if (domain.numRanks() == 1)
@@ -368,7 +368,7 @@ void CommRecv(Domain& domain, MPIComm& comm, int msgType, Index_t xferFields,
 
 /******************************************/
 
-void CommSend(Domain& domain, MPIComm& comm, int msgType,
+void CommSend(Domain& domain, Comm& comm, int msgType,
               Index_t xferFields, Domain_member *fieldData,
               Index_t dx, Index_t dy, Index_t dz, bool doSend, bool planeOnly)
 {
@@ -859,7 +859,7 @@ void CommSend(Domain& domain, MPIComm& comm, int msgType,
 
 /******************************************/
 
-void CommSBN(Domain& domain, MPIComm& comm,
+void CommSBN(Domain& domain, Comm& comm,
 	     int xferFields, Domain_member *fieldData) {
 
    if (domain.numRanks() == 1)
@@ -1273,7 +1273,7 @@ void CommSBN(Domain& domain, MPIComm& comm,
 
 /******************************************/
 
-void CommSyncPosVel(Domain& domain, MPIComm& comm) {
+void CommSyncPosVel(Domain& domain, Comm& comm) {
 
    if (domain.numRanks() == 1)
       return ;
@@ -1696,7 +1696,7 @@ void CommSyncPosVel(Domain& domain, MPIComm& comm) {
 
 /******************************************/
 
-void CommMonoQ(Domain& domain, MPIComm& comm)
+void CommMonoQ(Domain& domain, Comm& comm)
 {
    if (domain.numRanks() == 1)
       return ;

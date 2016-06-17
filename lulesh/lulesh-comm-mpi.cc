@@ -1,9 +1,9 @@
 
 #include "lulesh.h"
 #include "lulesh-dash.h"
-#include "lulesh-mpi.h"
+#include "lulesh-comm-mpi.h"
 
-MPIComm::MPIComm(Domain& dom) : m_dom(dom)
+Comm::Comm(Domain& dom) : m_dom(dom)
 {
   // allocate a buffer large enough for nodal ghost data
   Index_t maxPlaneSize = CACHE_ALIGN_REAL( dom.maxPlaneSize() );
@@ -49,18 +49,18 @@ MPIComm::MPIComm(Domain& dom) : m_dom(dom)
   memset(this->commDataRecv, 0, comBufSize*sizeof(Real_t));
 }
 
-MPIComm::~MPIComm()
+Comm::~Comm()
 {
   delete[](commDataSend);
   delete[](commDataRecv);
 }
 
-void MPIComm::ExchangeNodalMass()
+void Comm::ExchangeNodalMass()
 {
   Domain_member fieldData;
   fieldData = &Domain::nodalMass;
 
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   // Initial domain boundary communication
@@ -76,9 +76,9 @@ void MPIComm::ExchangeNodalMass()
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void MPIComm::Recv_PosVel()
+void Comm::Recv_PosVel()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   CommRecv(dom, comm, MSG_SYNC_POS_VEL, 6,
@@ -86,7 +86,7 @@ void MPIComm::Recv_PosVel()
 	   false, false);
 }
 
-void MPIComm::Send_PosVel()
+void Comm::Send_PosVel()
 {
   Domain_member fieldData[6];
 
@@ -97,7 +97,7 @@ void MPIComm::Send_PosVel()
   fieldData[4] = &Domain::yd;
   fieldData[5] = &Domain::zd;
 
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   CommSend(dom, comm, MSG_SYNC_POS_VEL, 6, fieldData,
@@ -105,17 +105,17 @@ void MPIComm::Send_PosVel()
 	   false, false);
 }
 
-void MPIComm::Sync_PosVel()
+void Comm::Sync_PosVel()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   CommSyncPosVel(dom, comm);
 }
 
-void MPIComm::Recv_Force()
+void Comm::Recv_Force()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   CommRecv(dom, comm, MSG_COMM_SBN, 3,
@@ -124,9 +124,9 @@ void MPIComm::Recv_Force()
 
 }
 
-void MPIComm::Send_Force()
+void Comm::Send_Force()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
   Domain_member fieldData[3];
   fieldData[0] = &Domain::fx;
@@ -138,22 +138,22 @@ void MPIComm::Send_Force()
            true, false);
 }
 
-void MPIComm::Sync_Force()
+void Comm::Sync_Force()
 {
   Domain_member fieldData[3];
   fieldData[0] = &Domain::fx;
   fieldData[1] = &Domain::fy;
   fieldData[2] = &Domain::fz;
 
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
   CommSBN(dom, comm, 3, fieldData);
 }
 
 
-void MPIComm::Recv_MonoQ()
+void Comm::Recv_MonoQ()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   CommRecv(dom, comm, MSG_MONOQ, 3,
@@ -162,9 +162,9 @@ void MPIComm::Recv_MonoQ()
 }
 
 
-void MPIComm::Send_MonoQ()
+void Comm::Send_MonoQ()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
   Domain_member fieldData[3];
 
@@ -179,11 +179,33 @@ void MPIComm::Send_MonoQ()
 	   true, true);
 }
 
-void MPIComm::Sync_MonoQ()
+void Comm::Sync_MonoQ()
 {
-  MPIComm& comm = *this;
+  Comm& comm = *this;
   Domain&  dom  = m_dom;
 
   CommMonoQ(dom,comm);
 }
 
+double Comm::wtime()
+{
+  return MPI_Wtime();
+}
+
+template<>
+double Comm::allreduce_min<double>(double val)
+{
+  double res;
+  MPI_Allreduce(&val, &res, 1, MPI_DOUBLE, MPI_MIN,
+		MPI_COMM_WORLD);
+  return res;
+}
+
+template<>
+double Comm::reduce_max<double>(double val)
+{
+  double res;
+  MPI_Reduce(&val, &res, 1, MPI_DOUBLE, MPI_MAX, 0,
+	     MPI_COMM_WORLD);
+  return res;
+}

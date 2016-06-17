@@ -520,6 +520,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
     courant_elem_per_thread[thread_num] = courant_elem ;
   }
 
+
   for (Index_t i = 1; i < threads; ++i) {
     if (dtcourant_per_thread[i] < dtcourant_per_thread[0] ) {
       dtcourant_per_thread[0]    = dtcourant_per_thread[i];
@@ -610,7 +611,6 @@ void CalcTimeConstraintsForElems(Domain& domain)
 				  domain.regElemlist(r),
 				  domain.qqc(),
 				  domain.dtcourant()) ;
-
     /* check hydro constraint */
     CalcHydroConstraintForElems(domain, domain.regElemSize(r),
 				domain.regElemlist(r),

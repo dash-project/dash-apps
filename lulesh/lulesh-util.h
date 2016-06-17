@@ -16,6 +16,15 @@ void peek(T *ptr, size_t nval, std::ostream& os=std::cout)
 }
 
 template<typename T>
+void fill(T *ptr, size_t nval, T val)
+{
+  size_t i;
+  for( i=0; i<nval; ++i ) {
+    (*ptr++) = val;
+  }
+}
+
+template<typename T>
 T chksum(T *ptr, size_t nval)
 {
   T res = 0.0;
