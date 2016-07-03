@@ -94,14 +94,14 @@ CXXLINK	= $(MPICXX)
 #---------------------------------------------------------------------------
 # Global *compile time* flags for C programs
 #---------------------------------------------------------------------------
-CFLAGS	= -I/home/kowalewski/opt/include
+CFLAGS	= -I ~/opt/dash-0.3.0/include
 CXXFLAGS	= -std=c++11 $(CFLAGS)
 
 #---------------------------------------------------------------------------
 # Global *link time* flags. Flags for increasing maximum executable 
 # size usually go here. 
 #---------------------------------------------------------------------------
-CLINKFLAGS = -L/home/kowalewski/opt/lib -ldash-mpi -ldart-mpi -ldart-base -lpapi -lnuma -lhwloc
+CLINKFLAGS = -L ~/opt/dash-0.3.0/lib -ldash-mpi -ldart-mpi -ldart-base -lpapi -lnuma -lhwloc
 
 
 #---------------------------------------------------------------------------
