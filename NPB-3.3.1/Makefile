@@ -8,6 +8,23 @@ SFILE=config/suite.def
 default: header
 	@ sys/print_instructions
 
+FT: ft
+ft: header
+	cd FT; $(MAKE) CLASS=$(CLASS)
+
+ftS: clean
+	cd FT; $(MAKE) NPROCS=10 CLASS=S
+
+ftW: clean
+	cd FT; $(MAKE) NPROCS=10 CLASS=W
+
+ftA: clean
+	cd FT; $(MAKE) NPROCS=10 CLASS=A
+
+ftB: clean
+	cd FT; $(MAKE) NPROCS=10 CLASS=B
+
+
 DT: dt
 dt: header
 	cd DT; $(MAKE) CLASS=$(CLASS)
