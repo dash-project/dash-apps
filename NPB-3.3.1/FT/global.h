@@ -1,6 +1,7 @@
 #include "npbparams.h"
 #include <complex>
 #include <string>
+#include <libdash.h>
 
 // If processor array is 1x1 -> 0D grid decomposition
 
@@ -17,9 +18,6 @@
 
 #define FFTBLOCK_DEFAULT      32
 #define FFTBLOCKPAD_DEFAULT   33
-
-// TODO: Check if that is really correct
-#define NXP NX
 
 using dcomplex = std::complex<double>;
 using std::string;
@@ -84,7 +82,7 @@ static bool debug;
 // roots of unity array
 // relies on x being largest dimension?
 /* common /ucomm/ */
-static dash::Array<dcomplex> u(NXP);
+dash::Array<dcomplex> u;
 
 // for checksum data
 /* common /sumcomm/ */

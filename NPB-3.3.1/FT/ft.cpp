@@ -9,6 +9,7 @@
 
 // TODO: check if that is really correct
 #define NTOTAL NUM_PROCS
+#define NXP NX
 
 static void init_ui(dash::Matrix<dcomplex, 3> u0,
 		    dash::Matrix<dcomplex, 3> u1,
@@ -62,10 +63,11 @@ static void checksum(int i,
 static void verify(int d1, int d2, int d3, int nt, 
                    bool *verified, char * Class);
 
-dash::SizeSpec<2>tyss (MAXDIM, FFTBLOCKPAD_DEFAULT);
-dash::DistributionSpec<2>tyds (dash::TILE(2), dash::TILE(2));
-dash::Matrix<dcomplex, 2> ty1 (tyss, tyds);
-dash::Matrix<dcomplex, 2> ty2 (tyss, tyds);
+typedef dash::Pattern<2>                            pattern_t;
+typedef dash::Matrix<dcomplex, 2>                   matrix_t;
+
+matrix_t ty1; // (tyss, tyds);
+matrix_t ty2; // (tyss, tyds);
 
 void timer_clear(int n) {
 }
@@ -107,8 +109,17 @@ int main(int argc, char** argv) {
   size_t tilesize_z  = 2;
   dash::init(&argc, &argv);
  
-  dash::SizeSpec<3>uss(NXP, NY, NZ);
-  dash::DistributionSpec<3> uds(
+  // has to be done here as dash has to be initialized
+  const dash::SizeSpec<2>tyss (MAXDIM, FFTBLOCKPAD_DEFAULT);
+  const dash::DistributionSpec<2>tyds (dash::TILE(2), dash::TILE(2));
+  const dash::TeamSpec<2> tspec(NXP, 1);
+
+  u.allocate(NXP);
+  ty1.allocate(tyss, tyds, tspec);
+  ty2.allocate(tyss, tyds, tspec);
+
+  const dash::SizeSpec<3>uss(NXP, NY, NZ);
+  const dash::DistributionSpec<3> uds(
 				dash::TILE(tilesize_x),
 				dash::TILE(tilesize_y),
 				dash::TILE(tilesize_z));
