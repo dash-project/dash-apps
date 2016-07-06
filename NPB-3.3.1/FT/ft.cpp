@@ -5,7 +5,7 @@
 
 #include "global.h"
 
-#include "print_results.h"
+#include "../common/c_print_results.c"
 
 static void init_ui(dash::Matrix<dcomplex, 3> u0,
 		    dash::Matrix<dcomplex, 3> u1,

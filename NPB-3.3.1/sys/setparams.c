@@ -419,7 +419,6 @@ c  \n");
           break;
 	
       case SP:
-      case FT:
       case MG:
       case LU:
       case EP:
@@ -437,6 +436,7 @@ c  \n");
 
           break;
       case IS:
+      case FT:
       case DT:
           fprintf(fp, DEF_CLASS_LINE, class);
           fprintf(fp, DEF_NUM_PROCS_LINE, nprocs);
@@ -801,14 +801,12 @@ void write_ft_info(FILE *fp, int nprocs, char class)
   maxdim = nx;
   if (ny > maxdim) maxdim = ny;
   if (nz > maxdim) maxdim = nz;
-  fprintf(fp, "%sinteger nx, ny, nz, maxdim, niter_default, ntdivnp, np_min\n", FINDENT);
-  fprintf(fp, "%sparameter (nx=%d, ny=%d, nz=%d, maxdim=%d)\n", 
+  fprintf(fp, "%sint nx=%d; int ny=%d; int nz=%d; int maxdim=%d;\n", 
           FINDENT, nx, ny, nz, maxdim);
-  fprintf(fp, "%sparameter (niter_default=%d)\n", FINDENT, niter);
-  fprintf(fp, "%sparameter (np_min = %d)\n", FINDENT, nprocs);
-  fprintf(fp, "%sparameter (ntdivnp=((nx*ny)/np_min)*nz)\n", FINDENT);
-  fprintf(fp, "%sdouble precision ntotal_f\n", FINDENT);
-  fprintf(fp, "%sparameter (ntotal_f=1.d0*nx*ny*nz)\n", FINDENT);
+  fprintf(fp, "%sint niter_default=%d;\n", FINDENT, niter);
+  fprintf(fp, "%sint np_min = %d;\n", FINDENT, nprocs);
+  fprintf(fp, "%sint ntdivnp=((nx*ny)/np_min)*nz;\n", FINDENT);
+  fprintf(fp, "%sdouble ntotal_f=1.0f*nx*ny*nz;\n", FINDENT);
 }
 
 /*
@@ -928,7 +926,6 @@ setparams: File %s doesn't exist. To build the NAS benchmarks\n\
 
 
   switch(type) {
-      case FT:
       case SP:
       case BT:
       case MG:
@@ -946,6 +943,7 @@ setparams: File %s doesn't exist. To build the NAS benchmarks\n\
 	  put_string(fp, "cs7", randfile);
           break;
       case IS:
+      case FT:
       case DT:
           put_def_string(fp, "COMPILETIME", compiletime);
           put_def_string(fp, "NPBVERSION", VERSION);
@@ -1209,7 +1207,6 @@ void write_convertdouble_info(int type, FILE *fp)
   case SP:
   case BT:
   case LU:
-  case FT:
   case MG:
   case EP:
   case CG:
@@ -1220,5 +1217,12 @@ void write_convertdouble_info(int type, FILE *fp)
     fprintf(fp, "%sparameter (convertdouble = .false.)\n", FINDENT);
 #endif
     break;
+  case FT:
+#ifdef CONVERTDOUBLE
+    fprintf(fp, "%sbool convertdouble = true;\n", FINDENT);
+#else
+    fprintf(fp, "%sbool convertdouble = false;\n", FINDENT);
+#endif
+    
   }
 }

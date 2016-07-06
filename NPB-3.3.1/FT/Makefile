@@ -27,4 +27,4 @@ ft.o:             ft.cpp  npbparams.h
 
 clean:
 	- rm -f *.o *~ mputil*
-	- rm -f dt npbparams.h core
+	- rm -f ft npbparams.h core
