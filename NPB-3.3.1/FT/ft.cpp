@@ -79,7 +79,7 @@ void timer_stop(int n) {
 double timer_read(int n) {
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
   size_t nx = NXP;
   size_t ny = NY;
   size_t nz = NZ;
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
   size_t tilesize_y  = 2;
   size_t tilesize_z  = 2;
   dash::init(&argc, &argv);
-  
+ 
   dash::SizeSpec<3>uss(NXP, NY, NZ);
   dash::DistributionSpec<3> uds(
 				dash::TILE(tilesize_x),
@@ -193,6 +193,8 @@ int main(int argc, char* argv[]) {
   if (timers_enabled) print_timers();
 
   return 0;
+
+  dash::finalize();
 }
 
 //---------------------------------------------------------------------
