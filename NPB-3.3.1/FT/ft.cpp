@@ -7,6 +7,9 @@
 
 #include "../common/c_print_results.c"
 
+// TODO: check if that is really correct
+#define NTOTAL NUM_PROCS
+
 static void init_ui(dash::Matrix<dcomplex, 3> u0,
 		    dash::Matrix<dcomplex, 3> u1,
 		    dash::Matrix<double, 3>   twiddle,
@@ -307,7 +310,7 @@ static void setup() {
   printf("\n\n NAS Parallel Benchmarks (NPB3.3-OMP-C) - FT Benchmark\n\n");
   printf(" Size                : %4dx%4dx%4d\n", NX, NY, NZ);
   printf(" Iterations                  :%7d\n", niter);
-  printf(" Number of available threads :%7d\n", dash::size());
+  printf(" Number of available threads :%7d\n", static_cast<int>(dash::size()));
   printf("\n");
 
   dims[0] = NX;
@@ -387,7 +390,7 @@ static void print_timers() {
   for (i = 1; i <= T_max; i++) {
     t = timer_read(i);
     printf(" timer %2d(%16s) :%9.4f (%6.2f%%)\n",
-        i, tstrings[i], t, t*100.0/t_m);
+        i, (tstrings[i]).c_str(), t, t*100.0/t_m);
   }
 }
 
@@ -644,7 +647,8 @@ static void checksum(int i, dash::Matrix<dcomplex, 3> u1, int d1, int d2, int d3
   int j, q, r, s;
   dcomplex chk = dcomplex(0.0, 0.0);
 
-  #pragma omp parallel default(shared) private(i,q,r,s) {
+  #pragma omp parallel default(shared) private(i,q,r,s)
+  {
     dcomplex my_chk = dcomplex(0.0, 0.0);
 
     #pragma omp for nowait
@@ -662,7 +666,7 @@ static void checksum(int i, dash::Matrix<dcomplex, 3> u1, int d1, int d2, int d3
     }
   }
 
-  chk = chk / (double)(NTOTAL);
+  chk = (chk / static_cast<double>(NTOTAL));
 
   printf(" T =%5d     Checksum =%22.12E%22.12E\n", i, chk.real(), chk.imag());
   sums[i] = chk;

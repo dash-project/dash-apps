@@ -18,6 +18,9 @@
 #define FFTBLOCK_DEFAULT      32
 #define FFTBLOCKPAD_DEFAULT   33
 
+// TODO: Check if that is really correct
+#define NXP NX
+
 using dcomplex = std::complex<double>;
 using std::string;
 
