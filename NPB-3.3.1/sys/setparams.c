@@ -801,12 +801,15 @@ void write_ft_info(FILE *fp, int nprocs, char class)
   maxdim = nx;
   if (ny > maxdim) maxdim = ny;
   if (nz > maxdim) maxdim = nz;
-  fprintf(fp, "%sint nx=%d; int ny=%d; int nz=%d; int maxdim=%d;\n", 
-          FINDENT, nx, ny, nz, maxdim);
-  fprintf(fp, "%sint niter_default=%d;\n", FINDENT, niter);
-  fprintf(fp, "%sint np_min = %d;\n", FINDENT, nprocs);
-  fprintf(fp, "%sint ntdivnp=((nx*ny)/np_min)*nz;\n", FINDENT);
-  fprintf(fp, "%sdouble ntotal_f=1.0f*nx*ny*nz;\n", FINDENT);
+  fprintf(fp , "#define NX %d\n", nx);
+  fprintf(fp , "#define NY %d\n", ny);
+  fprintf(fp , "#define NZ %d\n", nz);
+  fprintf(fp , "#define MAXDIM %d\n", maxdim);
+  fprintf(fp , "#define NITER_DEFAULT %d\n", niter);
+  fprintf(fp , "#define NP_MIN %d\n", nprocs);
+  fprintf(fp , "#define NTDIVNP ((NX*NY/NP_MIN)*NZ)\n");
+
+  fprintf(fp, "#define NTOTAL_F 1.0f*NX*NY*NZ\n");
 }
 
 /*
@@ -1219,9 +1222,9 @@ void write_convertdouble_info(int type, FILE *fp)
     break;
   case FT:
 #ifdef CONVERTDOUBLE
-    fprintf(fp, "%sbool convertdouble = true;\n", FINDENT);
+    fprintf(fp, "#define CONVERTDOUBLE true;\n");
 #else
-    fprintf(fp, "%sbool convertdouble = false;\n", FINDENT);
+    fprintf(fp, "#define CONVERTDOUBLE false;\n");
 #endif
     
   }
