@@ -41,3 +41,7 @@ set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${CXX_FLAGS}" )
 ## set dependencies and build options
 add_executable(dummy_app ${SOURCES})
 target_link_libraries(dummy_app dash-mpi dart-base dart-mpi)
+
+## Print summary
+message("Sources:     ${SOURCES}")
+message("CXX Flags:   ${CMAKE_CXX_FLAGS}")
