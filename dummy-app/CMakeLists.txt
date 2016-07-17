@@ -19,28 +19,22 @@ else()
 endif()
 
 find_package("DASH-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_DIR})
-find_package(DART-BASE REQUIRED HINTS ${DASH_BASE_DIR})
 find_package("DART-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_DIR})
 
 message("Looking for DASH installation in: ${DASH_BASE_DIR}")
 if(DASH-MPI_FOUND)
   message("DASH ${DASH_DART_IMPL} found")
-  include_directories("${DASH_BASE_DIR}/include")
 endif()
 
 if(DART-MPI_FOUND)
   message("DART ${DASH_DART_IMPL} found")
 endif()
 
-if(DART-BASE_FOUND)
-  message("DART BASE found")
-endif()
-
-set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${CXX_FLAGS}" )
+set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${DASH_CXX_FLAGS} ${CXX_FLAGS}" )
 
 ## set dependencies and build options
-add_executable(dummy_app ${SOURCES})
-target_link_libraries(dummy_app dash-mpi dart-base dart-mpi)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} dash-mpi dart-base dart-mpi)
 
 ## Print summary
 message("Sources:     ${SOURCES}")
