@@ -13,13 +13,15 @@ set(CXX_FLAGS "-O3 -Ofast")
 ## Do not edit below this line unless you know what you are doing
 
 if("$ENV{DASH_BASE}" STREQUAL "")
-  set(DASH_BASE_DIR "$ENV{HOME}/opt/dash-0.3.0/")
+  set(DASH_BASE_DIR "$ENV{HOME}/opt/dash-0.3.0")
 else()
   set(DASH_BASE_DIR $ENV{DASH_BASE})
 endif()
 
-find_package("DASH-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_DIR})
-find_package("DART-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_DIR})
+set(DASH_BASE_CMAKE_DIR "${DASH_BASE_DIR}/cmake")
+
+find_package("DASH-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_CMAKE_DIR})
+find_package("DART-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_CMAKE_DIR})
 
 message("Looking for DASH installation in: ${DASH_BASE_DIR}")
 if(DASH-MPI_FOUND)
