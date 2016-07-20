@@ -33,10 +33,11 @@ if(DART-MPI_FOUND)
 endif()
 
 set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${DASH_CXX_FLAGS} ${CXX_FLAGS}" )
+string(TOLOWER ${DASH_DART_IMPL} DASH_DART_IMPL_LC)
 
 ## set dependencies and build options
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} dash-mpi dart-base dart-mpi)
+target_link_libraries(${PROJECT_NAME} dash-mpi dart-${DASH_DART_IMPL_LC})
 
 ## Print summary
 message("Sources:     ${SOURCES}")
