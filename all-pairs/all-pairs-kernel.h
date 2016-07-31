@@ -15,7 +15,7 @@ const std::string kernel_name = "Demo";
 
 public:
 
-AllPairsKernel(int internal_repeats = 10)
+AllPairsKernel(int internal_repeats = 1)
   : int_repeats(internal_repeats)
   {}
 
@@ -34,6 +34,9 @@ const std::string name(){
   return this->kernel_name;
 }
 
+int getInternalRepeats(){
+  return this->int_repeats;
+}
 };
 
 

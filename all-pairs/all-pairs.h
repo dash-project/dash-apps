@@ -12,18 +12,20 @@ typedef dash::util::Timer<
 dash::util::TimeMeasure::Clock
 > Timer;
 
+namespace dio = dash::io::hdf5;
+
 class AllPairs {
 
 private:
 
     int                 repeats;
-    int                 internal_repeats;
     bool                make_symmetric;
     int                 return_node;
     array_t             results;
 
     int                 current_diag;
     tupel               next_pair;
+    std::string         filename;
 
     int                 myid;
 
@@ -31,12 +33,10 @@ public:
 
     AllPairs(
         int  rep        = 50,
-        int  rep_int    = 10,
         bool make_sym   = true,
         int  ret_node   = 0
     ):
         repeats(rep),
-        internal_repeats(rep_int),
         make_symmetric(make_sym),
         return_node(ret_node),
         myid(dash::myid())
@@ -44,6 +44,8 @@ public:
         auto pattern = createPattern();
         results = array_t();
         results.allocate(pattern);
+
+        filename = "all-pairs-result.hdf5";
     }
 
     template<
@@ -59,7 +61,7 @@ public:
         // calculate first pair
         updatePartUnits();
 
-        while(current_diag < ndiags) {
+        while(current_diag <= ndiags) {
             int x = next_pair.first;
             int y = next_pair.second;
 
@@ -71,9 +73,10 @@ public:
                 }
                 kernel.run(x,y);
                 if(myid == x) {
+                    int int_repeats = kernel.getInternalRepeats();
                     elapsed = timer.ElapsedSince(measurestart);
                     // TODO Assert if it is really local
-                    results[x][y][r] = elapsed / internal_repeats;
+                    results[x][y][r] = elapsed / int_repeats;
                 }
             }
 
@@ -81,6 +84,10 @@ public:
         }
 
         // kernel.name();
+        dio::HDF5OutputStream os(this->filename,
+                                  dio::HDF5FileOptions::Append);
+        os << dio::dataset(kernel.name())
+           << results;
         // Store Kernel Results
     }
 
@@ -110,11 +117,13 @@ private:
         int & k    = current_diag;
 
         for(int y=0; y<n; ++y) {
-            for(int x=0; x<y; ++x) {
+            for(int x=0; x<=y; ++x) {
                 if(((x+y) % n) == k) {
                     if(x == myid || y == myid) {
                         next_pair.first  = x;
                         next_pair.second = y;
+                        ++current_diag;
+                        return;
                     }
                 }
             }

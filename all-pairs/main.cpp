@@ -18,9 +18,9 @@ int main(int argc, char ** argv)
   //
   dash::init(&argc, &argv);
 
-  int repeats = 50;
+  int repeats = 1;
 
-  AllPairs aptest;
+  AllPairs aptest(repeats);
   AllPairsKernel defkern;
 
   // Run Kernel
