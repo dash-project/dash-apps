@@ -11,6 +11,7 @@
 #include "all-pairs.h"
 #include "kernel/all-pairs-kernel.h"
 #include "kernel/rma-get-kernel.h"
+#include "kernel/rma-put-kernel.h"
 
 int main(int argc, char ** argv)
 {
@@ -33,6 +34,11 @@ int main(int argc, char ** argv)
     RMAGetKernel rma_get;
     aptest.runKernel(rma_get);
   }
+  {
+    RMAPutKernel rma_put;
+    aptest.runKernel(rma_put);
+  }
+
 
 
   dash::finalize();
