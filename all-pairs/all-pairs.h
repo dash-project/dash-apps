@@ -2,8 +2,6 @@
 #define ALL_PAIRS_H
 
 #include <libdash.h>
-#include <queue>
-#include "all-pairs-kernel.h"
 
 typedef dash::Pattern<3>                         pattern_t;
 typedef dash::NArray<double, 3, long, pattern_t> array_t;
@@ -33,7 +31,7 @@ public:
 
     AllPairs(
         int  rep        = 50,
-        bool make_sym   = true,
+        bool make_sym   = false,
         int  ret_node   = 0
     ):
         repeats(rep),
@@ -56,14 +54,48 @@ public:
         int               ndiags   = dash::size();
         Timer             timer;
         double            measurestart = timer.Now();
+        double            kernelstart  = timer.Now();
         double            elapsed;
+        bool              is_inverted = false;
 
-        // calculate first pair
-        updatePartUnits();
+        if(myid == 0){
+          std::cout << "== Running Kernel '" << kernel.getName()
+                    << "' ==" << std::endl;
+        }
+
+        // init kernel
+        kernel.init(repeats);
+        timer.Calibrate(0);
+
+        // clear results
+        double no_measure_value = -1;
+        dash::fill(results.begin(), results.end(), no_measure_value);
+
+        for(int round = 0; round<2; ++round){
+          // Execute only first round if make_symmetric
+          if(make_symmetric){
+            round = 2;
+          }
+
+          // calculate first pair
+          updatePartUnits();
 
         while(current_diag <= ndiags) {
-            int x = next_pair.first;
-            int y = next_pair.second;
+            int x,y;
+
+            if(!is_inverted){
+              x = next_pair.first;
+              y = next_pair.second;
+            } else {
+              y = next_pair.first;
+              x = next_pair.second;
+
+              if(x == y){
+                updatePartUnits();
+                 continue; // Skip reflexive in second round
+
+              }
+            }
 
             dash::barrier();
             // Measure r times
@@ -75,20 +107,32 @@ public:
                 if(myid == x) {
                     int int_repeats = kernel.getInternalRepeats();
                     elapsed = timer.ElapsedSince(measurestart);
-                    // TODO Assert if it is really local
                     results[x][y][r] = elapsed / int_repeats;
                 }
             }
 
             updatePartUnits();
         }
+        if(make_symmetric){
+          continue;
+        } else {
+          // reset test for second half of nton plane
+          kernel.reset();
+          is_inverted = true;
+          current_diag = 0;
+        }
+        }
 
-        // kernel.name();
+        // Store results
         dio::HDF5OutputStream os(this->filename,
                                   dio::HDF5FileOptions::Append);
-        os << dio::dataset(kernel.name())
+        os << dio::dataset(kernel.getName())
            << results;
-        // Store Kernel Results
+        if(myid == 0){
+          double kernElapsed = timer.ElapsedSince(kernelstart) / 1000000; // Sec
+          std::cout << "== done in " << kernElapsed
+                    << " seconds ==" << std::endl;
+        }
     }
 
 private:

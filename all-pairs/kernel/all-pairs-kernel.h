@@ -8,10 +8,15 @@
  */
 class AllPairsKernel {
 
-private:
+protected:
 
 const int         int_repeats;
-const std::string kernel_name = "Demo";
+std::string kernel_name = "Demo";
+
+AllPairsKernel(int internal_repeats, std::string name)
+  : int_repeats(internal_repeats),
+    kernel_name(name)
+  {}
 
 public:
 
@@ -22,6 +27,16 @@ AllPairsKernel(int internal_repeats = 1)
 ~AllPairsKernel(){}
 
 /**
+ * Initialize kernel
+ */
+void init(int repeats){}
+
+/**
+ * Reset kernel for new run
+ */
+void reset(){}
+
+/**
  Perform repeated measures on given data point
  */
 void run(int send, int recv){
@@ -30,7 +45,7 @@ void run(int send, int recv){
   }
 }
 
-const std::string name(){
+const std::string getName(){
   return this->kernel_name;
 }
 

@@ -9,6 +9,8 @@
 
 #include <libdash.h>
 #include "all-pairs.h"
+#include "kernel/all-pairs-kernel.h"
+#include "kernel/rma-get-kernel.h"
 
 int main(int argc, char ** argv)
 {
@@ -21,10 +23,17 @@ int main(int argc, char ** argv)
   int repeats = 1;
 
   AllPairs aptest(repeats);
-  AllPairsKernel defkern;
 
   // Run Kernel
-  aptest.runKernel(defkern);
+  {
+    AllPairsKernel defkern;
+    aptest.runKernel(defkern);
+  }
+  {
+    RMAGetKernel rma_get;
+    aptest.runKernel(rma_get);
+  }
+
 
   dash::finalize();
 }
