@@ -1,0 +1,3 @@
+Measures the latency between each pair of MPI ranks.
+
+To analyze the data, use the provided r-script analyze_n_to_n.r
