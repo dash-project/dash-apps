@@ -12,6 +12,8 @@ set(CXX_FLAGS "-O3 -Ofast")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_package(Boost REQUIRED)
+
 ## Do not edit below this line unless you know what you are doing
 
 if("$ENV{DASH_BASE}" STREQUAL "")
