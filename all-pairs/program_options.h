@@ -5,7 +5,7 @@
 namespace po = boost::program_options;
 
 po::variables_map setup_program_options(int &argc, char ** &argv, bool &valid_opts){
-  std::cout << "All Pairs by Felix Moessbauer" 
+  std::cout << "All Pairs by Felix Moessbauer" << std::endl 
             << "This program measures the latency between all mpi ranks"
             << " using various kernels."
             << std::endl;

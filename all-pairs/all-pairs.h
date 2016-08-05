@@ -2,6 +2,7 @@
 #define ALL_PAIRS_H
 
 #include <libdash.h>
+#include <sstream>
 
 typedef dash::Pattern<3>                         pattern_t;
 typedef dash::NArray<double, 3, long, pattern_t> array_t;
@@ -37,13 +38,12 @@ public:
         repeats(rep),
         make_symmetric(make_sym),
         return_node(ret_node),
+        filename(generateFilename()),
         myid(dash::myid())
     {
         auto pattern = createPattern();
         results = array_t();
         results.allocate(pattern);
-
-        filename = "all-pairs-result.hdf5";
     }
 
     template<
@@ -136,6 +136,21 @@ public:
     }
 
 private:
+    static std::string generateFilename()
+    {
+        auto        now        = std::chrono::system_clock::now();
+        std::time_t now_c      = std::chrono::system_clock::to_time_t(now);
+        auto        timestring = std::put_time(
+                                  std::localtime(&now_c),
+                                  "%F-%H-%M");
+
+        std::stringstream fname;
+        fname << "all-pairs-result-";
+        fname << timestring;
+        fname << ".hdf5";
+
+        return fname.str();
+    }
 
     const pattern_t createPattern()
     {

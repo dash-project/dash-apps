@@ -35,11 +35,12 @@ int main(int argc, char ** argv)
     auto opts = setup_program_options(argc, argv, valid_opts);
 
     if(valid_opts) {
-        int  repeats = opts["repeats"].as<int>();
-        int  ireps   = opts["ireps"].as<int>();
-        auto kernels = opts["kernels"].as<kernels_type>();
+        int  repeats  = opts["repeats"].as<int>();
+        int  ireps    = opts["ireps"].as<int>();
+        bool make_sym = opts["make_symmetric"].as<bool>();
+        auto kernels  = opts["kernels"].as<kernels_type>();
 
-        AllPairs aptest(repeats);
+        AllPairs aptest(repeats, make_sym);
 
         for(auto k:kernels) {
             std::cout << "run kernel " << k << std::endl;
