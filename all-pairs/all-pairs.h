@@ -58,9 +58,9 @@ public:
         double            elapsed;
         bool              is_inverted = false;
 
-        if(myid == 0){
-          std::cout << "== Running Kernel '" << kernel.getName()
-                    << "' ==" << std::endl;
+        if(myid == 0) {
+            std::cout << "== Running Kernel '" << kernel.getName()
+                      << "' ==" << std::endl;
         }
 
         // init kernel
@@ -71,67 +71,67 @@ public:
         double no_measure_value = -1;
         dash::fill(results.begin(), results.end(), no_measure_value);
 
-        for(int round = 0; round<2; ++round){
-          // Execute only first round if make_symmetric
-          if(make_symmetric){
-            round = 2;
-          }
-
-          // calculate first pair
-          updatePartUnits();
-
-        while(current_diag <= ndiags) {
-            int x,y;
-
-            if(!is_inverted){
-              x = next_pair.first;
-              y = next_pair.second;
-            } else {
-              y = next_pair.first;
-              x = next_pair.second;
-
-              if(x == y){
-                updatePartUnits();
-                 continue; // Skip reflexive in second round
-
-              }
+        for(int round = 0; round<2; ++round) {
+            // Execute only first round if make_symmetric
+            if(make_symmetric) {
+                round = 2;
             }
 
-            dash::barrier();
-            // Measure r times
-            for(int r=0; r<repeats; ++r) {
-                if(myid == x) {
-                    measurestart = timer.Now();
-                }
-                kernel.run(x,y);
-                if(myid == x) {
-                    int int_repeats = kernel.getInternalRepeats();
-                    elapsed = timer.ElapsedSince(measurestart);
-                    results[x][y][r] = elapsed / int_repeats;
-                }
-            }
-
+            // calculate first pair
             updatePartUnits();
-        }
-        if(make_symmetric){
-          continue;
-        } else {
-          // reset test for second half of nton plane
-          kernel.reset();
-          is_inverted = true;
-          current_diag = 0;
-        }
+
+            while(current_diag <= ndiags) {
+                int x,y;
+
+                if(!is_inverted) {
+                    x = next_pair.first;
+                    y = next_pair.second;
+                } else {
+                    y = next_pair.first;
+                    x = next_pair.second;
+
+                    if(x == y) {
+                        updatePartUnits();
+                        continue; // Skip reflexive in second round
+
+                    }
+                }
+
+                dash::barrier();
+                // Measure r times
+                for(int r=0; r<repeats; ++r) {
+                    if(myid == x) {
+                        measurestart = timer.Now();
+                    }
+                    kernel.run(x,y);
+                    if(myid == x) {
+                        int int_repeats = kernel.getInternalRepeats();
+                        elapsed = timer.ElapsedSince(measurestart);
+                        results[x][y][r] = elapsed / int_repeats;
+                    }
+                }
+
+                updatePartUnits();
+            }
+            if(make_symmetric) {
+                continue;
+            } else {
+                // reset test for second half of nton plane
+                kernel.reset();
+                is_inverted = true;
+                current_diag = 0;
+            }
         }
 
         // Store results
         dio::HDF5OutputStream os(this->filename,
-                                  dio::HDF5FileOptions::Append);
+                                 dio::HDF5FileOptions::Append);
         os << dio::dataset(kernel.getName())
            << results;
-        if(myid == 0){
-          double kernElapsed = timer.ElapsedSince(kernelstart) / 1000000; // Sec
-          std::cout << "== done in " << kernElapsed
-                    << " seconds ==" << std::endl;
+        if(myid == 0) {
+            double kernElapsed = timer.ElapsedSince(kernelstart) / 1000000; // Sec
+            std::cout << "== done in " << kernElapsed
+                      << " seconds ==" << std::endl;
         }
     }
 
