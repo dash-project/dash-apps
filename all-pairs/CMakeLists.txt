@@ -12,7 +12,7 @@ set(CXX_FLAGS "-O3 -Ofast")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS program_options REQUIRED)
 
 ## Do not edit below this line unless you know what you are doing
 
@@ -41,6 +41,10 @@ string(TOLOWER ${DASH_DART_IMPL} DASH_DART_IMPL_LC)
 ## set dependencies and build options
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${DASH_LIBRARIES})
+
+## Add Boost
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${Boost_LIBRARIES})
 
 ## Print summary
 message("Sources:         ${SOURCES}")
