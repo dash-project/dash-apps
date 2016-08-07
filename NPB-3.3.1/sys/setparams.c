@@ -80,7 +80,6 @@ void write_ep_info(FILE *fp, int nprocs, char class);
 void write_is_info(FILE *fp, int nprocs, char class);
 void write_dt_info(FILE *fp, int nprocs, char class);
 void write_compiler_info(int type, FILE *fp);
-void write_convertdouble_info(int type, FILE *fp);
 void check_line(char *line, char *label, char *val);
 int  check_include_line(char *line, char *filename);
 void put_string(FILE *fp, char *name, char *val);
@@ -489,7 +488,7 @@ void write_info(int type, int nprocs, char class, int subtype)
     printf("setparams: (Internal error): Unknown benchmark type %d\n", type);
     exit(1);
   }
-  write_convertdouble_info(type, fp);
+
   write_compiler_info(type, fp);
   fclose(fp);
   return;
@@ -1206,25 +1205,4 @@ int ipow2(int i)
   if (i == 0) return(1);
   while(i--) pow2 *= 2;
   return(pow2);
-}
- 
-
-
-void write_convertdouble_info(int type, FILE *fp)
-{
-  switch(type) {
-  case SP:
-  case BT:
-  case LU:
-  case MG:
-  case EP:
-  case CG:
-  case FT:
-#ifdef CONVERTDOUBLE
-    fprintf(fp, "#define CONVERTDOUBLE true;\n");
-#else
-    fprintf(fp, "#define CONVERTDOUBLE false;\n");
-#endif
-    
-  }
 }
