@@ -24,6 +24,21 @@ ftA: clean
 ftB: clean
 	cd FT; $(MAKE) NPROCS=10 CLASS=B
 
+CG: cg
+cg: header
+	cd CG; $(MAKE) CLASS=$(CLASS)
+
+cgS: clean
+	cd CG; $(MAKE) NPROCS=10 CLASS=S
+
+cgW: clean
+	cd CG; $(MAKE) NPROCS=10 CLASS=W
+
+cgA: clean
+	cd CG; $(MAKE) NPROCS=10 CLASS=A
+
+cgB: clean
+	cd CG; $(MAKE) NPROCS=10 CLASS=B
 
 DT: dt
 dt: header
@@ -57,7 +72,7 @@ clean:
 
 veryclean: clean
 	#- rm -f config/make.def config/suite.def 
-	- rm -f bin/sp.* bin/lu.* bin/mg.* bin/ft.* bin/bt.* bin/is.* 
+	- rm -f bin/sp.* bin/lu.* bin/mg.* bin/ft.* bin/bt.* bin/is.*  bin/cg.* 
 	- rm -f bin/ep.* bin/cg.* bin/dt.*
 
 header:
