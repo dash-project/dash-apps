@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <omp.h>
 
 //
 //   define one of these three symbols:
