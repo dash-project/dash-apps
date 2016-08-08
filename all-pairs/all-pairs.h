@@ -57,6 +57,7 @@ public:
         double            kernelstart  = timer.Now();
         double            elapsed;
         bool              is_inverted = false;
+        int               rounds = 2;
 
         if(myid == 0) {
             std::cout << "== Running Kernel '" << kernel.getName()
@@ -71,12 +72,12 @@ public:
         double no_measure_value = -1;
         dash::fill(results.begin(), results.end(), no_measure_value);
 
-        for(int round = 0; round<2; ++round) {
+        if(make_symmetric) {
+          rounds = 1;
+        }
+        
+        for(int round = 0; round<rounds; ++round) {
             // Execute only first round if make_symmetric
-            if(make_symmetric) {
-                round = 2;
-            }
-
             // calculate first pair
             updatePartUnits();
 
@@ -93,7 +94,6 @@ public:
                     if(x == y) {
                         updatePartUnits();
                         continue; // Skip reflexive in second round
-
                     }
                 }
 
@@ -103,6 +103,9 @@ public:
                     if(myid == x) {
                         measurestart = timer.Now();
                     }
+                    sleep(1);
+                    std::cout << "==============" << std::endl;
+                    sleep(1);
                     kernel.run(x,y);
                     if(myid == x) {
                         int int_repeats = kernel.getInternalRepeats();
@@ -110,14 +113,11 @@ public:
                         results[x][y][r] = elapsed / int_repeats;
                     }
                 }
-
+                kernel.reset();
                 updatePartUnits();
             }
-            if(make_symmetric) {
-                continue;
-            } else {
+            if(!make_symmetric) {
                 // reset test for second half of nton plane
-                kernel.reset();
                 is_inverted = true;
                 current_diag = 0;
             }

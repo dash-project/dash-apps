@@ -11,10 +11,12 @@ class AllPairsKernel {
 protected:
 
 const int         int_repeats;
+const int         myid  = 0;
 std::string kernel_name = "Demo";
 
 AllPairsKernel(int internal_repeats, std::string name)
   : int_repeats(internal_repeats),
+    myid(dash::myid()),
     kernel_name(name)
   {}
 

@@ -7,11 +7,12 @@
 class MPIKernel : public AllPairsKernel {
 
 protected:
-int      local_slots;
-int    * send_data;
-int    * recv_data;
-size_t   sr_size;
-int      repeat = 0;
+int          local_slots;
+int       *  send_data;
+int       *  recv_data;
+size_t       sr_size;
+int          repeat = 0;
+MPI_Status   status;
 
 MPIKernel(int internal_repeats = 1, std::string name = "MPI")
 	: AllPairsKernel(internal_repeats, name)
@@ -23,6 +24,7 @@ MPIKernel(int internal_repeats = 1, std::string name = "MPI")
 	MPI_Free_mem(recv_data);
 }
 
+public:
 void init(int repeats){
   sr_size = sizeof(int) * repeats * int_repeats;
   MPI_Alloc_mem(sr_size, MPI_INFO_NULL, &send_data);
@@ -31,7 +33,6 @@ void init(int repeats){
 	MPI_Barrier(MPI_COMM_WORLD);	
 }
 
-public:
 void reset(){
   repeat = 0;
 }

@@ -14,6 +14,7 @@
 #include "kernel/all-pairs-kernel.h"
 #include "kernel/rma-get-kernel.h"
 #include "kernel/rma-put-kernel.h"
+#include "kernel/mpi-sync-kernel.h"
 
 #include <vector>
 #include <string>
@@ -53,6 +54,9 @@ int main(int argc, char ** argv)
             } else if(k == "mpi_rma_put") {
                 RMAPutKernel rma_put(ireps);
                 aptest.runKernel(rma_put);
+            } else if(k == "mpi_sync") {
+                MPISyncKernel mpi_sync(ireps);
+                aptest.runKernel(mpi_sync);
             } else {
                 std::cout << "unknown kernel" << std::endl;
             }
