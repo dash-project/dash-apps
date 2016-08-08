@@ -31,9 +31,10 @@ void init(int repeats){
 	MPI_Barrier(MPI_COMM_WORLD);	
 }
 
+public:
 void reset(){
   repeat = 0;
 }
 
-}
+};
 #endif // MPI_KERNEL_H

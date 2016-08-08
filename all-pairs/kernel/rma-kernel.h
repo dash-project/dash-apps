@@ -50,6 +50,6 @@ void init(int repeats){
     MPI_Win_lock_all(0, window_recv);
     MPI_Barrier(MPI_COMM_WORLD);
 }
-}
+};
 
 #endif // RMA_KERNEL_H 
