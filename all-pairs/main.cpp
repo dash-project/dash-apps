@@ -15,6 +15,7 @@
 #include "kernel/rma-get-kernel.h"
 #include "kernel/rma-put-kernel.h"
 #include "kernel/mpi-sync-kernel.h"
+#include "kernel/mpi-async-kernel.h"
 
 #include <vector>
 #include <string>
@@ -56,6 +57,9 @@ int main(int argc, char ** argv)
             } else if(k == "mpi_sync") {
                 MPISyncKernel mpi_sync(ireps);
                 aptest.runKernel(mpi_sync);
+            } else if(k == "mpi_sync") {
+                MPIASyncKernel mpi_async(ireps);
+                aptest.runKernel(mpi_async);
             } else {
                 std::cout << "unknown kernel" << std::endl;
             }
