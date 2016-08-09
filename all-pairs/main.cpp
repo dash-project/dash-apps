@@ -57,7 +57,7 @@ int main(int argc, char ** argv)
             } else if(k == "mpi_sync") {
                 MPISyncKernel mpi_sync(ireps);
                 aptest.runKernel(mpi_sync);
-            } else if(k == "mpi_sync") {
+            } else if(k == "mpi_async") {
                 MPIASyncKernel mpi_async(ireps);
                 aptest.runKernel(mpi_async);
             } else {
