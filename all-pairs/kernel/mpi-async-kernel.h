@@ -31,12 +31,12 @@ void run(int send, int recv){
                 MPI_COMM_WORLD, &request_send);                                 
         }
         if(myid == recv){
-          MPI_Irecv (&(recv_data[sr_addr]), 1, MPI_INT, recv, 99,    
+          MPI_Irecv (&(recv_data[sr_addr]), 1, MPI_INT, send, 99,    
                 MPI_COMM_WORLD, &request_recv);
-        }
-        // Wait for request to complete                                   
-        MPI_Wait (&request_recv, MPI_STATUS_IGNORE);
-      }
+          // Wait for request to complete                                   
+          MPI_Wait (&request_recv, MPI_STATUS_IGNORE);
+         }
+     }
       ++repeat;
 }
 
