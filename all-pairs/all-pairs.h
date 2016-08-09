@@ -50,9 +50,11 @@ public:
         typename APKernel>
     void runKernel(APKernel &kernel)
     {
+        Timer             timer;
+        timer.Calibrate(0);
+ 
         current_diag = 0;
         int               ndiags   = dash::size();
-        Timer             timer;
         double            measurestart = timer.Now();
         double            kernelstart  = timer.Now();
         double            elapsed;
@@ -66,7 +68,6 @@ public:
 
         // init kernel
         kernel.init(repeats);
-        timer.Calibrate(0);
 
         // clear results
         double no_measure_value = -1;
@@ -75,11 +76,12 @@ public:
         if(make_symmetric) {
           rounds = 1;
         }
-        
+ 
+        // calculate first pair
+        updatePartUnits();
+       
         for(int round = 0; round<rounds; ++round) {
             // Execute only first round if make_symmetric
-            // calculate first pair
-            updatePartUnits();
 
             while(current_diag <= ndiags) {
                 int x,y;
@@ -90,28 +92,22 @@ public:
                 } else {
                     y = next_pair.first;
                     x = next_pair.second;
-
-                    if(x == y) {
-                        updatePartUnits();
-                        continue; // Skip reflexive in second round
-                    }
                 }
 
                 dash::barrier();
+                if(!(is_inverted && x == y)) {
                 // Measure r times
                 for(int r=0; r<repeats; ++r) {
                     if(myid == x) {
                         measurestart = timer.Now();
                     }
-                    sleep(1);
-                    std::cout << "==============" << std::endl;
-                    sleep(1);
                     kernel.run(x,y);
                     if(myid == x) {
                         int int_repeats = kernel.getInternalRepeats();
                         elapsed = timer.ElapsedSince(measurestart);
                         results[x][y][r] = elapsed / int_repeats;
                     }
+                }
                 }
                 kernel.reset();
                 updatePartUnits();

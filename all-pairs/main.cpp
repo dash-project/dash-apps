@@ -44,7 +44,6 @@ int main(int argc, char ** argv)
         AllPairs aptest(repeats, make_sym);
 
         for(auto k:kernels) {
-            std::cout << "run kernel " << k << std::endl;
             if(k == "def") {
                 AllPairsKernel defkern(ireps);
                 aptest.runKernel(defkern);

@@ -23,11 +23,11 @@ void run(int send, int recv){
       for(int r=0; r<int_repeats; r++){
         int sr_addr = repeat * int_repeats + r; // send / recieve addr
         if(myid == send){
-            std::cout << "SENDER: send: " << send << " recv: " << recv << std::endl;
+            //std::cout << "SENDER: send: " << send << " recv: " << recv << std::endl;
             MPI_Send (&(send_data[sr_addr]), 1, MPI_INT, recv, 99, MPI_COMM_WORLD);
         }
         if(myid ==recv){
-            std::cout << "RECEIVER: send: " << send << " recv: " << recv << std::endl;
+            //std::cout << "RECEIVER: send: " << send << " recv: " << recv << std::endl;
             MPI_Recv (&(recv_data[sr_addr]), 1, MPI_INT, send, 99, MPI_COMM_WORLD,
                     &status);     
         }
