@@ -22,8 +22,22 @@ po::variables_map setup_program_options(int &argc, char ** &argv, bool &valid_op
     ("make_symmetric", po::value<bool>()->default_value(false), "test only upper half plane");
 
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  po::notify(vm);    
+  try {
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    try {
+      po::notify(vm);
+    } catch (po::error& e){
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      if(dash::myid() == 0){
+        std::cerr << desc << std::endl;
+      }
+      valid_opts = false;
+    }
+  } catch(std::exception& e) {
+    std::cerr << "Unhandled Exception reached the top of main: " 
+              << e.what() << ", application will now exit" << std::endl; 
+    valid_opts = false;
+  }
 
   if(vm.count("help") || argc == 1) {
     if(dash::myid() == 0){
