@@ -18,7 +18,7 @@ po::variables_map setup_program_options(int &argc, char ** &argv, bool &valid_op
     ("repeats", po::value<int>()->default_value(50), "number of measurements per pair")
     ("ireps", po::value<int>()->default_value(5), "number of repeats per measurement")
     ("kernels", po::value<std::vector<std::string>>()->multitoken(),
-     "kernels to run [def mpi_rma_get mpi_rma_put mpi_sync mpi_async dash]")
+     "kernels to run [def mpi_rma_get mpi_rma_put mpi_sync mpi_async dash_get]")
     ("make_symmetric", po::value<bool>()->default_value(false), "test only upper half plane");
 
   po::variables_map vm;
