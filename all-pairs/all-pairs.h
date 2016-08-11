@@ -3,13 +3,15 @@
 
 #include <libdash.h>
 #include <sstream>
+#include <fstream>
 
 typedef dash::Pattern<3>                         pattern_t;
 typedef dash::NArray<double, 3, long, pattern_t> array_t;
 typedef std::pair<int,int>                       tupel;
+// Hostname Array Type
+typedef std::vector<std::string>                 harray_t;
 typedef dash::util::Timer<
-dash::util::TimeMeasure::Clock
-> Timer;
+  dash::util::TimeMeasure::Clock>                Timer;
 
 namespace dio = dash::io::hdf5;
 
@@ -19,8 +21,8 @@ private:
 
     int                 repeats;
     bool                make_symmetric;
-    int                 return_node;
     array_t             results;
+    harray_t            hostnames;
 
     int                 current_diag;
     tupel               next_pair;
@@ -32,18 +34,22 @@ public:
 
     AllPairs(
         int  rep        = 50,
-        bool make_sym   = false,
-        int  ret_node   = 0
+        bool make_sym   = false
     ):
         repeats(rep),
         make_symmetric(make_sym),
-        return_node(ret_node),
         filename(generateFilename()),
         myid(dash::myid())
     {
         auto pattern = createPattern();
         results = array_t();
         results.allocate(pattern);
+
+        if(myid == 0){
+          hostnames.resize(dash::size());
+          gatherHostnames();
+          storeHostnames();
+        }
     }
 
     template<
@@ -120,7 +126,7 @@ public:
         }
 
         // Store results
-        dio::HDF5OutputStream os(this->filename,
+        dio::HDF5OutputStream os(this->filename + ".hdf5",
                                  dio::HDF5FileOptions::Append);
         os << dio::dataset(kernel.getName())
            << results;
@@ -143,7 +149,6 @@ private:
         std::stringstream fname;
         fname << "all-pairs-result-";
         fname << timestring;
-        fname << ".hdf5";
 
         return fname.str();
     }
@@ -186,6 +191,23 @@ private:
         ++current_diag;
     }
 
+  void gatherHostnames(){
+    for(int i=0; i<dash::size(); ++i){
+      hostnames[i] = dash::util::Locality::Hostname(i);
+    }
+  }
+
+  void storeHostnames(){
+   std::ofstream os(this->filename + "-hosts.csv");
+   // Write Header
+   os << "id;hostname" << std::endl;
+   for(int i=0; i<dash::size(); ++i){
+      os << i << ";" << hostnames[i];
+      if(i != dash::size()-1){
+        os << std::endl;
+      }
+   }
+  }
 };
 
 #endif // ALL_PAIRS_H
