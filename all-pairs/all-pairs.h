@@ -9,6 +9,7 @@
 
 typedef dash::Pattern<3>                         pattern_t;
 typedef dash::NArray<double, 3, long, pattern_t> array_t;
+typedef dash::NArray<double, 2, long>            marray_t;
 typedef std::pair<int,int>                       tupel;
 // Hostname Array Type
 typedef std::vector<std::string>                 harray_t;
@@ -24,6 +25,7 @@ private:
     int                 repeats;
     bool                make_symmetric;
     array_t             results;
+    marray_t            medians;
     harray_t            hostnames;
 
     int                 current_diag;
@@ -44,8 +46,13 @@ public:
         myid(dash::myid())
     {
         auto pattern = createPattern();
-        results = array_t();
         results.allocate(pattern);
+
+        // medians pattern
+        dash::Pattern<2> mpat(dash::SizeSpec<2>(dash::size(), dash::size()),
+                              dash::DistributionSpec<2>(dash::BLOCKED, dash::CYCLIC),
+                              dash::TeamSpec<2>(dash::Team::All()));
+        medians.allocate(mpat);
 
         if(myid == 0){
           hostnames.resize(dash::size());
@@ -134,11 +141,17 @@ public:
             }
         }
 
+        // Calculate Medians
+        calculateMedian();
+
         // Store results
         dio::HDF5OutputStream os(this->filename + ".hdf5",
                                  dio::HDF5FileOptions::Append);
         os << dio::dataset(kernel.getName())
-           << results;
+           << results
+           << dio::dataset((kernel.getName() + "_medians"))
+           << medians;
+
         if(myid == 0) {
             double kernElapsed = timer.ElapsedSince(kernelstart) / 1000000; // Sec
             std::cout << "== done in " << kernElapsed
@@ -199,6 +212,25 @@ private:
         }
         ++current_diag;
     }
+
+  void calculateMedian(){
+    auto onemeasure = std::vector<double>(repeats);
+    for(int x=0; x<dash::size(); ++x){
+      for(int r=0; r<repeats; ++r){
+        onemeasure[r] = results.local[0][x][r];
+      }
+      std::sort(onemeasure.begin(), onemeasure.end(), std::greater<double>());
+      double median = onemeasure[repeats / 2];
+      #if VALIDATE_KERNEL
+      if(!medians.at(myid,x).is_local()){
+         std::cerr << "Unit " << myid << " medians index "
+         << myid << "," << x
+         << " is not local" << std::endl;
+      }
+      #endif
+      medians[myid][x] = median;
+    }
+  }
 
   void gatherHostnames(){
     for(int i=0; i<dash::size(); ++i){
