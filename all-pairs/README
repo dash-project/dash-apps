@@ -1,7 +1,7 @@
 # All-Pairs
 Measures the latency between each pair of MPI ranks using various kernels.
 The results are stored as hdf5 files.
-To analyze the data, use the provided r-script analyze_n_to_n.r
+To analyze the data, use the provided r-script analyze_n_to_n.r (TODO)
 
 # Parameters
 To show all options, run all-pairs --help
