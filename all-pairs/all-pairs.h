@@ -5,6 +5,8 @@
 #include <sstream>
 #include <fstream>
 
+#define VALIDATE_KERNEL 0
+
 typedef dash::Pattern<3>                         pattern_t;
 typedef dash::NArray<double, 3, long, pattern_t> array_t;
 typedef std::pair<int,int>                       tupel;
@@ -112,6 +114,13 @@ public:
                         int int_repeats = kernel.getInternalRepeats();
                         elapsed = timer.ElapsedSince(measurestart);
                         results[x][y][r] = elapsed / int_repeats;
+                        #if VALIDATE_KERNEL
+                        if(!results.at(x,y,r).is_local()){
+                          std::cerr << "Unit " << myid << " index "
+                                    << x << "," << y << "," << r
+                                    << " is not local" << std::endl;
+                        }
+                        #endif
                     }
                 }
                 }
