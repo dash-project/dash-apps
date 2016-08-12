@@ -28,10 +28,6 @@ using kernels_type = std::vector<std::string>;
 
 int main(int argc, char ** argv)
 {
-    // Gather Parameters
-    //
-    // Print Setup
-    //
     dash::init(&argc, &argv);
 
     bool valid_opts = true;
