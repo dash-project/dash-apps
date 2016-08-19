@@ -681,7 +681,6 @@ int ProcessNodes(Graph<dash::Array<double>> & graph) {
   chksumArr.local[0] = 0;
 
   if (me.id != -1) {
-    std::cout << "myid is: " << me.id << std::endl;
     if(strstr(me.name,"Source")) {
       double * lfeat = graph.data().lbegin();
       RandomFeatures(graph.name().c_str(), fielddim, lfeat, me);
