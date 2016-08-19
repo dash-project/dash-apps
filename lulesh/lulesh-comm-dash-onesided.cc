@@ -499,7 +499,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(0);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X1Y1Z1) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -518,7 +518,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X1Y1Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -537,7 +537,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X0Y1Z1) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -556,7 +556,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X0Y1Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -575,7 +575,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X1Y0Z1) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -594,7 +594,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X1Y0Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -613,7 +613,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X0Y0Z1 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
@@ -632,7 +632,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      dash::copy( destAddr, destAddr+xferFields,
+      dash::copy( comBuf, comBuf+xferFields,
                   comm.dest( toRank, X0Y0Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
