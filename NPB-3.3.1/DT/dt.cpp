@@ -589,7 +589,9 @@ void CombineStreams(Graph<dash::Array<double>> &graph, DGNodeInfo & nd) {
       auto copy_start_idx = gindex[0];
       auto copy_end_idx = copy_start_idx + len;
 
-      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, &(pred_feat->val[0]));
+      auto future = dash::copy_async(array.begin() + copy_start_idx, array.begin() + copy_end_idx, pred_feat->val);
+      future.wait();
+      
 
       WindowFilter(resfeat, pred_feat, nd.id);
 
@@ -647,7 +649,9 @@ double ReduceStreams(Graph<dash::Array<double>> & graph, DGNodeInfo const& nd) {
       auto gindex = array.pattern().global(predRank, coords);
       auto copy_start_idx = gindex[0];
       auto copy_end_idx = copy_start_idx + len;
-      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, feat->val);
+
+      auto future = dash::copy_async(array.begin() + copy_start_idx, array.begin() + copy_end_idx, feat->val);
+      future.wait();
 
       //Calculate Checksum
       csum+=Reduce(*feat,(nd.id+1));
@@ -674,19 +678,22 @@ int ProcessNodes(Graph<dash::Array<double>> & graph) {
   DGNodeInfo &me = nodes.local[0];
 
   auto chksumArr = dash::Array<double>(numNodes);
+  chksumArr.local[0] = 0;
 
-  if(strstr(me.name,"Source")) {
-    double * lfeat = graph.data().lbegin();
-    RandomFeatures(graph.name().c_str(), fielddim, lfeat, me);
-    SendResults(me);
-  }
-  else if(strstr(me.name, "Sink")) {
-    chksum=ReduceStreams(graph, me);
-    chksumArr.local[0] = chksum;
-  }
-  else {
-    CombineStreams(graph, me);
-    SendResults(me);
+  if (me.id != -1) {
+    if(strstr(me.name,"Source")) {
+      double * lfeat = graph.data().lbegin();
+      RandomFeatures(graph.name().c_str(), fielddim, lfeat, me);
+      SendResults(me);
+    }
+    else if(strstr(me.name, "Sink")) {
+      chksum=ReduceStreams(graph, me);
+      chksumArr.local[0] = chksum;
+    }
+    else {
+      CombineStreams(graph, me);
+      SendResults(me);
+    }
   }
 
   //TODO: replace with proper dash::reduce
@@ -772,9 +779,9 @@ int main(int argc,char **argv ) {
   for(i = 0; i < dg->numNodes; i++) {
     if (my_rank == i) {
       int j;
-      DGNode *nd = dg->node[i];
       //copy required info
       DGNodeInfo ndInfo;
+      DGNode *nd = dg->node[i];
       string nodeName(nd->name);
       ndInfo.id = nd->address;
       strcpy(ndInfo.name, nd->name);;
@@ -792,6 +799,12 @@ int main(int argc,char **argv ) {
 
       graph.nodes().local[0] = ndInfo;
     }
+  }
+
+  if (my_rank >= dg->numNodes) {
+    DGNodeInfo ndInfo;
+    ndInfo.id = -1;
+    graph.nodes().local[0] = ndInfo;
   }
 
   dash::barrier();

@@ -41,7 +41,7 @@
 #include <time.h>
 
 /*
- * This is the master version number for this set of 
+ * This Is the master version number for this set of 
  * NPB benchmarks. It is in an obscure place so people
  * won't accidentally change it. 
  */
@@ -80,7 +80,6 @@ void write_ep_info(FILE *fp, int nprocs, char class);
 void write_is_info(FILE *fp, int nprocs, char class);
 void write_dt_info(FILE *fp, int nprocs, char class);
 void write_compiler_info(int type, FILE *fp);
-void write_convertdouble_info(int type, FILE *fp);
 void check_line(char *line, char *label, char *val);
 int  check_include_line(char *line, char *filename);
 void put_string(FILE *fp, char *name, char *val);
@@ -347,7 +346,8 @@ void read_info(int type, int *nprocsp, char *classp, int *subtypep)
       case LU:
       case EP:
       case CG:
-          nread = fscanf(fp, DESC_LINE, nprocsp, classp);
+          nread = fscanf(fp, DEF_CLASS_LINE, classp);
+          nread += fscanf(fp, DEF_NUM_PROCS_LINE, nprocsp);
           if (nread != 2) {
             printf("setparams: Error parsing config file %s. Ignoring previous settings\n", FILENAME);
             goto abort;
@@ -409,34 +409,36 @@ void write_info(int type, int nprocs, char class, int subtype)
 	  }
           /* Print out a warning so bozos don't mess with the file */
           fprintf(fp, "\
-c  \n\
-c  \n\
-c  This file is generated automatically by the setparams utility.\n\
-c  It sets the number of processors and the class of the NPB\n\
-c  in this directory. Do not modify it by hand.\n\
-c  \n");
+  /*\n\
+  \n\
+  This file is generated automatically by the setparams utility.\n\
+  It sets the number of processors and the class of the NPB\n\
+  in this directory. Do not modify it by hand.\n\
+  \n*/");
 
           break;
 	
       case SP:
-      case FT:
       case MG:
       case LU:
       case EP:
       case CG:
-          /* Write out the header */
-          fprintf(fp, DESC_LINE, nprocs, class);
-          /* Print out a warning so bozos don't mess with the file */
-          fprintf(fp, "\
-c  \n\
-c  \n\
-c  This file is generated automatically by the setparams utility.\n\
-c  It sets the number of processors and the class of the NPB\n\
-c  in this directory. Do not modify it by hand.\n\
-c  \n");
+
+	/* Write out the header */
+	fprintf(fp, DEF_CLASS_LINE, class);
+	fprintf(fp, DEF_NUM_PROCS_LINE, nprocs);
+	/* Print out a warning so bozos don't mess with the file */
+	fprintf(fp, "\
+/*  \n\
+  \n\
+  This file is generated automatically by the setparams utility.\n\
+  It sets the number of processors and the class of the NPB\n\
+  in this directory. Do not modify it by hand.\n\
+  */ \n");
 
           break;
       case IS:
+      case FT:
       case DT:
           fprintf(fp, DEF_CLASS_LINE, class);
           fprintf(fp, DEF_NUM_PROCS_LINE, nprocs);
@@ -486,7 +488,7 @@ c  \n");
     printf("setparams: (Internal error): Unknown benchmark type %d\n", type);
     exit(1);
   }
-  write_convertdouble_info(type, fp);
+
   write_compiler_info(type, fp);
   fclose(fp);
   return;
@@ -720,6 +722,7 @@ void write_is_info(FILE *fp, int nprocs, char class)
 
 void write_cg_info(FILE *fp, int nprocs, char class) 
 {
+  int nbp = nprocs;
   int na,nonzer,niter;
   char *shift,*rcond="1.0d-1";
   char *shiftS="10.",
@@ -730,49 +733,52 @@ void write_cg_info(FILE *fp, int nprocs, char class)
        *shiftD="500.",
        *shiftE="1.5d3";
 
-  int num_proc_cols, num_proc_rows;
+  int num_proc_cols, num_proc_rows, ii, jj;
 
-
-  if( class == 'S' )
-  { na=1400;    nonzer=7;  niter=15;  shift=shiftS; }
-  else if( class == 'W' )
-  { na=7000;    nonzer=8;  niter=15;  shift=shiftW; }
-  else if( class == 'A' )
-  { na=14000;   nonzer=11; niter=15;  shift=shiftA; }
-  else if( class == 'B' )
-  { na=75000;   nonzer=13; niter=75;  shift=shiftB; }
-  else if( class == 'C' )
-  { na=150000;  nonzer=15; niter=75;  shift=shiftC; }
-  else if( class == 'D' )
-  { na=1500000; nonzer=21; niter=100; shift=shiftD; }
-  else if( class == 'E' )
-  { na=9000000; nonzer=26; niter=100; shift=shiftE; }
-  else
-  {
+  if( class == 'S' ) {
+      na=1400; nonzer=7; niter=15; shift=shiftS;
+  } else if( class == 'W' ) {
+    na=7000; nonzer=8; niter=15; shift=shiftW;
+  } else if( class == 'A' ) {
+    na=14000; nonzer=11; niter=15; shift=shiftA;
+  } else if( class == 'B' ) {
+    na=75000; nonzer=13; niter=75; shift=shiftB;
+  } else if( class == 'C' ) {
+    na=150000; nonzer=15; niter=75; shift=shiftC;
+  } else if( class == 'D' ) {
+    na=1500000; nonzer=21; niter=100; shift=shiftD;
+  } else {
     printf("setparams: Internal error: invalid class type %c\n", class);
     exit(1);
   }
-  fprintf( fp, "%sinteger            na, nonzer, niter\n", FINDENT );
-  fprintf( fp, "%sdouble precision   shift, rcond\n", FINDENT );
-  fprintf( fp, "%sparameter(  na=%d,\n", FINDENT, na );
-  fprintf( fp, "%s             nonzer=%d,\n", CONTINUE, nonzer );
-  fprintf( fp, "%s             niter=%d,\n", CONTINUE, niter );
-  fprintf( fp, "%s             shift=%s,\n", CONTINUE, shift );
-  fprintf( fp, "%s             rcond=%s )\n", CONTINUE, rcond );
-
-
-  num_proc_cols = num_proc_rows = ilog2(nprocs)/2;
-  if (num_proc_cols+num_proc_rows != ilog2(nprocs)) num_proc_cols += 1;
-  num_proc_cols = ipow2(num_proc_cols); num_proc_rows = ipow2(num_proc_rows);
   
-  fprintf( fp, "\nc number of nodes for which this version is compiled\n" );
-  fprintf( fp, "%sinteger    nnodes_compiled\n", FINDENT );
-  fprintf( fp, "%sparameter( nnodes_compiled = %d)\n", FINDENT, nprocs );
-  fprintf( fp, "%sinteger    num_proc_cols, num_proc_rows\n", FINDENT );
-  fprintf( fp, "%sparameter( num_proc_cols=%d, num_proc_rows=%d )\n", 
-                                                          FINDENT,
-                                                          num_proc_cols,
-                                                          num_proc_rows );
+  fprintf( fp, "#define\tNA\t%d\n", na);
+  fprintf( fp, "#define\tNONZER\t%d\n", nonzer);
+  fprintf( fp, "#define\tNITER\t%d\n", niter);
+  fprintf( fp, "#define\tSHIFT\t%s\n", shift);
+  fprintf( fp, "#define\tRCOND\t%s\n", rcond);
+
+  num_proc_cols = num_proc_rows = ilog2( nbp ) / 2;
+  if((num_proc_cols + num_proc_rows) != ilog2( nbp )) {
+    num_proc_cols ++;
+  }
+  
+  jj = num_proc_cols;
+  num_proc_cols = 1;
+  for( ii=0; ii<jj; ii++ ) {
+    num_proc_cols *= 2;
+  }
+
+  jj = num_proc_rows;
+  num_proc_rows = 1;
+  for( ii=0; ii<jj; ii++ ) {
+    num_proc_rows *= 2;
+  }
+  
+  fprintf( fp, "#define\tNUM_PROC_COLS\t%d\n", num_proc_cols );
+  fprintf( fp, "#define\tNUM_PROC_COLS2\t%d\n", (2*num_proc_cols) );
+  fprintf( fp, "#define\tNUM_PROC_ROWS\t%d\n", num_proc_rows );
+  fprintf( fp, "#define\tDIM_PER_THREAD\t%d\n", (na/num_proc_rows)+2 );
 }
 
 
@@ -801,14 +807,15 @@ void write_ft_info(FILE *fp, int nprocs, char class)
   maxdim = nx;
   if (ny > maxdim) maxdim = ny;
   if (nz > maxdim) maxdim = nz;
-  fprintf(fp, "%sinteger nx, ny, nz, maxdim, niter_default, ntdivnp, np_min\n", FINDENT);
-  fprintf(fp, "%sparameter (nx=%d, ny=%d, nz=%d, maxdim=%d)\n", 
-          FINDENT, nx, ny, nz, maxdim);
-  fprintf(fp, "%sparameter (niter_default=%d)\n", FINDENT, niter);
-  fprintf(fp, "%sparameter (np_min = %d)\n", FINDENT, nprocs);
-  fprintf(fp, "%sparameter (ntdivnp=((nx*ny)/np_min)*nz)\n", FINDENT);
-  fprintf(fp, "%sdouble precision ntotal_f\n", FINDENT);
-  fprintf(fp, "%sparameter (ntotal_f=1.d0*nx*ny*nz)\n", FINDENT);
+  fprintf(fp , "#define NX %d\n", nx);
+  fprintf(fp , "#define NY %d\n", ny);
+  fprintf(fp , "#define NZ %d\n", nz);
+  fprintf(fp , "#define MAXDIM %d\n", maxdim);
+  fprintf(fp , "#define NITER_DEFAULT %d\n", niter);
+  fprintf(fp , "#define NP_MIN %d\n", nprocs);
+  fprintf(fp , "#define NTDIVNP ((NX*NY/NP_MIN)*NZ)\n");
+
+  fprintf(fp, "#define NTOTAL_F 1.0f*NX*NY*NZ\n");
 }
 
 /*
@@ -928,24 +935,23 @@ setparams: File %s doesn't exist. To build the NAS benchmarks\n\
 
 
   switch(type) {
-      case FT:
       case SP:
       case BT:
       case MG:
       case LU:
       case EP:
       case CG:
-          put_string(fp, "compiletime", compiletime);
-          put_string(fp, "npbversion", VERSION);
-          put_string(fp, "cs1", mpif77);
-          put_string(fp, "cs2", flink);
-          put_string(fp, "cs3", fmpi_lib);
-          put_string(fp, "cs4", fmpi_inc);
-          put_string(fp, "cs5", fflags);
-          put_string(fp, "cs6", flinkflags);
-	  put_string(fp, "cs7", randfile);
+          put_def_string(fp, "COMPILETIME", compiletime);
+          put_def_string(fp, "NPBVERSION", VERSION);
+          put_def_string(fp, "MPICC", mpicc);
+          put_def_string(fp, "CFLAGS", cflags);
+          put_def_string(fp, "CLINK", clink);
+          put_def_string(fp, "CLINKFLAGS", clinkflags);
+          put_def_string(fp, "CMPI_LIB", cmpi_lib);
+          put_def_string(fp, "CMPI_INC", cmpi_inc);
           break;
       case IS:
+      case FT:
       case DT:
           put_def_string(fp, "COMPILETIME", compiletime);
           put_def_string(fp, "NPBVERSION", VERSION);
@@ -1199,26 +1205,4 @@ int ipow2(int i)
   if (i == 0) return(1);
   while(i--) pow2 *= 2;
   return(pow2);
-}
- 
-
-
-void write_convertdouble_info(int type, FILE *fp)
-{
-  switch(type) {
-  case SP:
-  case BT:
-  case LU:
-  case FT:
-  case MG:
-  case EP:
-  case CG:
-    fprintf(fp, "%slogical  convertdouble\n", FINDENT);
-#ifdef CONVERTDOUBLE
-    fprintf(fp, "%sparameter (convertdouble = .true.)\n", FINDENT);
-#else
-    fprintf(fp, "%sparameter (convertdouble = .false.)\n", FINDENT);
-#endif
-    break;
-  }
 }

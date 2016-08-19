@@ -1,2 +1,6 @@
 # VIM Tags
 tags
+.syntastic*
+*.swp
+*~
+build/

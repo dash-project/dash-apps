@@ -1,6 +1,7 @@
 #include "npbparams.h"
 #include <complex>
 #include <string>
+#include <libdash.h>
 
 // If processor array is 1x1 -> 0D grid decomposition
 
@@ -81,7 +82,7 @@ static bool debug;
 // roots of unity array
 // relies on x being largest dimension?
 /* common /ucomm/ */
-static dash::Array<dcomplex> u(NXP);
+dash::Array<dcomplex> u;
 
 // for checksum data
 /* common /sumcomm/ */

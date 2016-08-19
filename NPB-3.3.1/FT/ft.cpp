@@ -5,7 +5,11 @@
 
 #include "global.h"
 
-#include "print_results.h"
+#include "../common/c_print_results.c"
+
+// TODO: check if that is really correct
+#define NTOTAL NUM_PROCS
+#define NXP NX
 
 static void init_ui(dash::Matrix<dcomplex, 3> u0,
 		    dash::Matrix<dcomplex, 3> u1,
@@ -59,10 +63,11 @@ static void checksum(int i,
 static void verify(int d1, int d2, int d3, int nt, 
                    bool *verified, char * Class);
 
-dash::SizeSpec<2>tyss (MAXDIM, FFTBLOCKPAD_DEFAULT);
-dash::DistributionSpec<2>tyds (dash::TILE(2), dash::TILE(2));
-dash::Matrix<dcomplex, 2> ty1 (tyss, tyds);
-dash::Matrix<dcomplex, 2> ty2 (tyss, tyds);
+typedef dash::Pattern<2>                            pattern_t;
+typedef dash::Matrix<dcomplex, 2>                   matrix_t;
+
+matrix_t ty1; // (tyss, tyds);
+matrix_t ty2; // (tyss, tyds);
 
 void timer_clear(int n) {
 }
@@ -76,7 +81,7 @@ void timer_stop(int n) {
 double timer_read(int n) {
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
   size_t nx = NXP;
   size_t ny = NY;
   size_t nz = NZ;
@@ -103,9 +108,18 @@ int main(int argc, char* argv[]) {
   size_t tilesize_y  = 2;
   size_t tilesize_z  = 2;
   dash::init(&argc, &argv);
-  
-  dash::SizeSpec<3>uss(NXP, NY, NZ);
-  dash::DistributionSpec<3> uds(
+ 
+  // has to be done here as dash has to be initialized
+  const dash::SizeSpec<2>tyss (MAXDIM, FFTBLOCKPAD_DEFAULT);
+  const dash::DistributionSpec<2>tyds (dash::TILE(2), dash::TILE(2));
+  const dash::TeamSpec<2> tspec(NXP, 1);
+
+  u.allocate(NXP);
+  ty1.allocate(tyss, tyds, tspec);
+  ty2.allocate(tyss, tyds, tspec);
+
+  const dash::SizeSpec<3>uss(NXP, NY, NZ);
+  const dash::DistributionSpec<3> uds(
 				dash::TILE(tilesize_x),
 				dash::TILE(tilesize_y),
 				dash::TILE(tilesize_z));
@@ -190,6 +204,8 @@ int main(int argc, char* argv[]) {
   if (timers_enabled) print_timers();
 
   return 0;
+
+  dash::finalize();
 }
 
 //---------------------------------------------------------------------
@@ -307,7 +323,7 @@ static void setup() {
   printf("\n\n NAS Parallel Benchmarks (NPB3.3-OMP-C) - FT Benchmark\n\n");
   printf(" Size                : %4dx%4dx%4d\n", NX, NY, NZ);
   printf(" Iterations                  :%7d\n", niter);
-  printf(" Number of available threads :%7d\n", dash::size());
+  printf(" Number of available threads :%7d\n", static_cast<int>(dash::size()));
   printf("\n");
 
   dims[0] = NX;
@@ -387,7 +403,7 @@ static void print_timers() {
   for (i = 1; i <= T_max; i++) {
     t = timer_read(i);
     printf(" timer %2d(%16s) :%9.4f (%6.2f%%)\n",
-        i, tstrings[i], t, t*100.0/t_m);
+        i, (tstrings[i]).c_str(), t, t*100.0/t_m);
   }
 }
 
@@ -644,7 +660,8 @@ static void checksum(int i, dash::Matrix<dcomplex, 3> u1, int d1, int d2, int d3
   int j, q, r, s;
   dcomplex chk = dcomplex(0.0, 0.0);
 
-  #pragma omp parallel default(shared) private(i,q,r,s) {
+  #pragma omp parallel default(shared) private(i,q,r,s)
+  {
     dcomplex my_chk = dcomplex(0.0, 0.0);
 
     #pragma omp for nowait
@@ -662,7 +679,7 @@ static void checksum(int i, dash::Matrix<dcomplex, 3> u1, int d1, int d2, int d3
     }
   }
 
-  chk = chk / (double)(NTOTAL);
+  chk = (chk / static_cast<double>(NTOTAL));
 
   printf(" T =%5d     Checksum =%22.12E%22.12E\n", i, chk.real(), chk.imag());
   sums[i] = chk;
