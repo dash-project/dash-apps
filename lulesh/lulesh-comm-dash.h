@@ -97,6 +97,10 @@ public:
   dash::GlobIter<Real_t, dash::Pattern<1>>
     dest( Int_t rank, Int_t desc );
 
+  // 26 = 6 faces + 12 edges + 8 corners
+  dash::Future<array_type::iterator> recvRequest[26];
+  dash::Future<array_type::iterator> sendRequest[26];
+
   double wtime();
   template<typename T> T allreduce_min(T val);
   template<typename T> T reduce_max(T val);

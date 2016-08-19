@@ -74,9 +74,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
   int myRank = dash::myid();
 
-  std::vector< dash::Future<DASHComm::array_type::iterator> >
-    futures;
-
   if( planeNotMin | planeNotMax ) {
     // ASSUMING ONE DOMAIN PER RANK, CONSTANT BLOCK SIZE HERE
     int sendCount = dx * dy;
@@ -92,11 +89,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      futures.push_back(
+      comm.sendRequest[pmsg] =
         dash::copy_async(
           destAddr,
           destAddr + (xferFields * sendCount),
-          comm.dest(myRank - (domain.tp() * domain.tp()), Z1)));
+          comm.dest(myRank - (domain.tp() * domain.tp()), Z1));
 
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -117,11 +114,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      futures.push_back(
+      comm.sendRequest[pmsg] =
         dash::copy_async(
           destAddr,
           destAddr + (xferFields * sendCount),
-          comm.dest(myRank + (domain.tp() * domain.tp()), Z0)));
+          comm.dest(myRank + (domain.tp() * domain.tp()), Z0));
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
         myRank + domain.tp()*domain.tp(), msgType,
@@ -147,11 +144,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      futures.push_back(
+      comm.sendRequest[pmsg] =
         dash::copy_async(
           destAddr,
           destAddr + xferFields*sendCount,
-          comm.dest(myRank - domain.tp(), Y1)));
+          comm.dest(myRank - domain.tp(), Y1));
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
         myRank - domain.tp(), msgType,
@@ -172,10 +169,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      futures.push_back(
+      comm.sendRequest[pmsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*sendCount,
-          comm.dest( myRank + domain.tp(), Y0 )));
+          comm.dest( myRank + domain.tp(), Y0 ));
 
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -202,10 +199,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      futures.push_back(
+      comm.sendRequest[pmsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*sendCount,
-          comm.dest( myRank - 1, X1)));
+          comm.dest( myRank - 1, X1));
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
         myRank - 1, msgType,
@@ -226,10 +223,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      futures.push_back(
+      comm.sendRequest[pmsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*sendCount,
-          comm.dest( myRank + 1, X0 )) );
+          comm.dest( myRank + 1, X0 ));
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
         myRank + 1, msgType,
@@ -253,10 +250,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
-          comm.dest( toRank, X1Y1) ) );
+          comm.dest( toRank, X1Y1) );
 
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -278,10 +275,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
-          comm.dest( toRank, Y1Z1) ) );
+          comm.dest( toRank, Y1Z1) );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -302,10 +299,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
-          comm.dest( toRank, X1Z1) ) );
+          comm.dest( toRank, X1Z1) );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -326,10 +323,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
-          comm.dest( toRank, X0Y0) ) );
+          comm.dest( toRank, X0Y0) );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -350,10 +347,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
-          comm.dest( toRank, Y0Z0) ) );
+          comm.dest( toRank, Y0Z0) );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -374,10 +371,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
-          comm.dest( toRank, X0Z0) ) );
+          comm.dest( toRank, X0Z0) );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -398,10 +395,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
-          comm.dest( toRank, X1Y0) ) );
+          comm.dest( toRank, X1Y0) );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -422,10 +419,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
-          comm.dest( toRank, Y1Z0) ) );
+          comm.dest( toRank, Y1Z0) );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -446,10 +443,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
-          comm.dest( toRank, X1Z0) ) );
+          comm.dest( toRank, X1Z0) );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -470,10 +467,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
-          comm.dest( toRank, X0Y1) ) );
+          comm.dest( toRank, X0Y1) );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
@@ -494,10 +491,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
-          comm.dest( toRank, Y0Z1 ) ) );
+          comm.dest( toRank, Y0Z1 ) );
 
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -519,10 +516,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
-          comm.dest( toRank, X0Z1) ) );
+          comm.dest( toRank, X0Z1) );
 
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -541,10 +538,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(0);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X1Y1Z1) ) );
+          comm.dest( toRank, X1Y1Z1) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -562,10 +559,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X1Y1Z0 ) ) );
+          comm.dest( toRank, X1Y1Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -583,10 +580,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X0Y1Z1) ) );
+          comm.dest( toRank, X0Y1Z1) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -604,10 +601,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X0Y1Z0 ) ) );
+          comm.dest( toRank, X0Y1Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -625,10 +622,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X1Y0Z1) ) );
+          comm.dest( toRank, X1Y0Z1) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -646,10 +643,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X1Y0Z0 ) ) );
+          comm.dest( toRank, X1Y0Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -667,10 +664,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X0Y0Z1 ) ) );
+          comm.dest( toRank, X0Y0Z1 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
@@ -688,21 +685,16 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      futures.push_back(
+      comm.sendRequest[pmsg + emsg + cmsg] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
-          comm.dest( toRank, X0Y0Z0 ) ) );
+          comm.dest( toRank, X0Y0Z0 ) );
       /*
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
       ++cmsg;
     }
-  }
-
-  /* Block until completion of all asynchronous copy operations: */
-  for (f : futures) {
-    f.wait();
   }
 }
 
