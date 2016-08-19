@@ -3,3 +3,4 @@ tags
 .syntastic*
 *.swp
 *~
+build/
