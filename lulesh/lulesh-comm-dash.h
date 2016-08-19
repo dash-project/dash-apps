@@ -63,6 +63,9 @@ private:
   dash::Array<Real_t> *m_commDataRecv;
 
 public:
+  typedef dash::Array<Real_t> array_type;
+
+public:
   DASHComm(Domain& dom);
   ~DASHComm();
 
