@@ -589,7 +589,9 @@ void CombineStreams(Graph<dash::Array<double>> &graph, DGNodeInfo & nd) {
       auto copy_start_idx = gindex[0];
       auto copy_end_idx = copy_start_idx + len;
 
-      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, &(pred_feat->val[0]));
+      auto future = dash::copy_async(array.begin() + copy_start_idx, array.begin() + copy_end_idx, pred_feat->val);
+      future.wait();
+      
 
       WindowFilter(resfeat, pred_feat, nd.id);
 
@@ -647,7 +649,9 @@ double ReduceStreams(Graph<dash::Array<double>> & graph, DGNodeInfo const& nd) {
       auto gindex = array.pattern().global(predRank, coords);
       auto copy_start_idx = gindex[0];
       auto copy_end_idx = copy_start_idx + len;
-      dash::copy(array.begin() + copy_start_idx, array.begin() + copy_end_idx, feat->val);
+
+      auto future = dash::copy_async(array.begin() + copy_start_idx, array.begin() + copy_end_idx, feat->val);
+      future.wait();
 
       //Calculate Checksum
       csum+=Reduce(*feat,(nd.id+1));

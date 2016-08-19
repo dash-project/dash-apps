@@ -1,2 +1,5 @@
 # VIM Tags
 tags
+.syntastic*
+*.swp
+*~
