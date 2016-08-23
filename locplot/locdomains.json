@@ -1,0 +1,81 @@
+{
+"scope": "GLOBAL",
+"level": 0,
+"idx": 0,
+"nodes": 1,
+"units": [ 0, 1, 2, 3 ],
+"hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 12, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } ,
+"ndomains": 1,
+"domains": {
+     ".0" : {
+         "scope": "NODE",
+         "level": 1,
+         "idx": 0,
+         "units": [ 0, 1, 2, 3 ],
+         "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 12, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } ,
+         "ndomains": 1,
+         "domains": {
+              ".0.0" : {
+                  "scope": "MODULE",
+                  "level": 2,
+                  "idx": 0,
+                  "units": [ 0, 1, 2, 3 ],
+                  "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 12, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } ,
+                  "ndomains": 2,
+                  "domains": {
+                       ".0.0.0" : {
+                           "scope": "NUMA",
+                           "level": 3,
+                           "idx": 0,
+                           "numa_id": 0,
+                           "units": [ 0, 1 ],
+                           "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 2, "num_cores": 12, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } ,
+                           "ndomains": 2,
+                           "domains": {
+                                ".0.0.0.0" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 0,
+                                    "numa_id": 0,
+                                    "units": [ 0 ],
+                                    "unit_id": { "local_id": 0, "team": 0, "global_id": 0 }, 
+                                    "unit_locality": { "domain": ".0.0.0.0", "host": "projekt03", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 3, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } }  },
+                                ".0.0.0.1" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 1,
+                                    "numa_id": 0,
+                                    "units": [ 1 ],
+                                    "unit_id": { "local_id": 1, "team": 0, "global_id": 1 }, 
+                                    "unit_locality": { "domain": ".0.0.0.1", "host": "projekt03", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 3, "cpu_id": 3, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } }  }
+                            } },
+                       ".0.0.1" : {
+                           "scope": "NUMA",
+                           "level": 3,
+                           "idx": 1,
+                           "numa_id": 0,
+                           "units": [ 2, 3 ],
+                           "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 2, "num_cores": 12, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } ,
+                           "ndomains": 2,
+                           "domains": {
+                                ".0.0.1.0" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 0,
+                                    "numa_id": 0,
+                                    "units": [ 2 ],
+                                    "unit_id": { "local_id": 2, "team": 0, "global_id": 2 }, 
+                                    "unit_locality": { "domain": ".0.0.1.0", "host": "projekt03", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 3, "cpu_id": 6, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } }  },
+                                ".0.0.1.1" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 1,
+                                    "numa_id": 0,
+                                    "units": [ 3 ],
+                                    "unit_id": { "local_id": 3, "team": 0, "global_id": 3 }, 
+                                    "unit_locality": { "domain": ".0.0.1.1", "host": "projekt03", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 3, "cpu_id": 23, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": -1,"max": -1 }, "mem_mbps": 1235 } }  }
+                            } }
+                   } }
+          } }
+ } }
+
