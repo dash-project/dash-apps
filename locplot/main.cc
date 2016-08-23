@@ -14,36 +14,61 @@ using std::endl;
 
 std::string render_domain(
   const json & elem,
+  int          x,
+  int          y,
   int          parent_w,
-  int          parent_h)
+  int          parent_h,
+  int          level = 0)
 {
   std::ostringstream os;
 
   int w = parent_w;
   int h = parent_h;
 
-  int x = 5;
-  int y = 5;
+  int pad  = 10;
+  int tpad = 5;
 
-  os << "<rect x=\"" << x << "\" y=\"" << y << "\" "
-     << "height=\"" << h << "\" width=\"" << w << "\" >"
-     << endl;
+  std::string ind(level * 4, ' ');
 
-  for (auto it = elem.begin(); it != elem.end(); ++it) {
-    if (it->is_string()) {
-      os << *it << endl;
+  os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\" "
+            << " height=\"" << h << "\" width=\"" << w << "\" "
+            << " style=\"fill:#ff5555\" >"
+            << endl
+            << "</rect>" << std::endl;
+
+  if (elem.is_object()) {
+    auto scope   = elem.find("scope");
+    auto domains = elem.find("domains");
+    if (scope != elem.end()) {
+      os << ind << "<text "
+                << " x=\"" << x + tpad << "\" "
+                << " y=\"" << y + tpad << "\" "
+                << " fill=\"#000000\" font-size=\"12\"" << " >"
+                << "scope:"  << *scope
+                << "</text>" << endl;
     }
-    if (it->is_object()) {
-      if (it.key() == "NODE") {
-        os << "NODE: " << it.value() << endl;
-      } else {
-        os << render_domain(*it, w, h);
+    if (domains != elem.end()) {
+      auto ndomains = std::distance(domains->begin(), domains->end());
+      int  d_w      = w / ndomains;
+      int  d_h      = 40;
+      int  d_idx    = 0;
+      for (auto d = domains->begin(); d != domains->end(); ++d) {
+        int d_x = x + (d_idx * (d_w + pad));
+        int d_y = y + d_h + pad;
+
+        os << ind << "<text "
+                  << " x=\"" << d_x + tpad << "\" "
+                  << " y=\"" << d_y + tpad << "\" "
+                  << " fill=\"#000000\" font-size=\"12\"" << " >"
+                  << "domain:" << d.key()
+                  << "</text>" << endl;
+
+        os << render_domain(d.value(), d_x, d_y, d_w, d_h, level+1);
+
+        d_idx++;
       }
     }
   }
-
-  os << endl;
-  os << "</rect>" << std::endl;
 
   return os.str();
 }
@@ -74,9 +99,7 @@ int main(int argc, char * argv[])
   os << "<svg xmlns=\"http://www.w3.org/2000/svg\"";
   os << " xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n";
 
-  for (auto & elem : loc_hierarchy) {
-    os << render_domain(elem, 100, 100);
-  }
+  os << render_domain(loc_hierarchy, 0, 0, 400, 40);
 
   cout << os.str() << endl;
 
