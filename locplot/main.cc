@@ -12,6 +12,51 @@ using std::cerr;
 using std::endl;
 
 
+std::string render_core_domain(
+  const json & elem,
+  int          x,
+  int          y,
+  int          w,
+  int          h,
+  int          level = 0)
+{
+  static std::string fontstyle =
+    " style=\"font-family:Lucida Console\" fill=\"#000000\" font-size=\"10\" ";
+
+  std::ostringstream os;
+  std::string ind(level * 4, ' ');
+
+  int pad  = 10;
+  int tpad = 15;
+
+  os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
+            << " height=\"" << h << "\" width=\"" << w << "\""
+            << " style=\"fill:#ff5555;stroke:#124512;stroke-width:1\" >"
+            << "</rect>" << std::endl;
+
+  auto unit_id  = elem.find("unit_id");
+  auto unit_loc = elem.find("unit_locality");
+
+  int  nthreads = -1;
+  if (unit_loc != elem.end()) {
+//  nthreads = (*unit_loc)["threads"]["max"];
+  }
+  if (unit_id == elem.end()) {
+    return "???";
+  }
+  int unit_local_id = (*unit_id)["local_id"];
+  os << ind << "<text"
+            << " x=\"" << x + tpad << "\""
+            << " y=\"" << y + tpad << "\""
+            << fontstyle
+            << ">"
+            << unit_local_id << " ("
+            << " t:" << nthreads << ")"
+            << "</text>" << endl;
+
+  return os.str();
+}
+
 std::string render_domain(
   const json & elem,
   int          x,
@@ -26,44 +71,59 @@ std::string render_domain(
   int h = parent_h;
 
   int pad  = 10;
-  int tpad = 5;
+  int tpad = 15;
 
   std::string ind(level * 4, ' ');
 
-  os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\" "
-            << " height=\"" << h << "\" width=\"" << w << "\" "
-            << " style=\"fill:#ff5555\" >"
-            << endl
+  static std::vector<std::string> scope_fills = {
+    "#efefef", "#cfcfcf", "#afafaf", "#8f8f8f"
+  };
+  std::string scope_fill = scope_fills[
+                             std::min<int>(level,
+                                           scope_fills.size()-1)
+                           ];
+
+  static std::string fontstyle =
+    " style=\"font-family:Lucida Console\" fill=\"#000000\" font-size=\"10\" ";
+
+  os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
+            << " height=\"" << h << "\" width=\"" << w << "\""
+            << " style=\"fill:" << scope_fill << ";"
+            << " stroke:#005544;stroke-width:1\" >"
             << "</rect>" << std::endl;
 
   if (elem.is_object()) {
     auto scope   = elem.find("scope");
     auto domains = elem.find("domains");
     if (scope != elem.end()) {
-      os << ind << "<text "
-                << " x=\"" << x + tpad << "\" "
-                << " y=\"" << y + tpad << "\" "
-                << " fill=\"#000000\" font-size=\"12\"" << " >"
-                << "scope:"  << *scope
+      if (*scope == "CORE") {
+        return render_core_domain(elem, x, y, w, h, level+1);
+      }
+      os << ind << "<text"
+                << " x=\"" << x + tpad << "\""
+                << " y=\"" << y + tpad << "\""
+                << " fill=\"#000000\" font-size=\"10\"" << " >"
+                << *scope
                 << "</text>" << endl;
     }
     if (domains != elem.end()) {
       auto ndomains = std::distance(domains->begin(), domains->end());
-      int  d_w      = w / ndomains;
+      int  d_w      = (w / ndomains) - ((pad / ndomains) * (ndomains-1));
       int  d_h      = 40;
       int  d_idx    = 0;
       for (auto d = domains->begin(); d != domains->end(); ++d) {
         int d_x = x + (d_idx * (d_w + pad));
         int d_y = y + d_h + pad;
 
-        os << ind << "<text "
-                  << " x=\"" << d_x + tpad << "\" "
-                  << " y=\"" << d_y + tpad << "\" "
-                  << " fill=\"#000000\" font-size=\"12\"" << " >"
+        os << render_domain(d.value(), d_x, d_y, d_w, d_h, level+1);
+
+        os << ind << "<text"
+                  << " x=\"" << d_x + tpad << "\""
+                  << " y=\"" << d_y + tpad + 20 << "\""
+                  << fontstyle
+                  << ">"
                   << "domain:" << d.key()
                   << "</text>" << endl;
-
-        os << render_domain(d.value(), d_x, d_y, d_w, d_h, level+1);
 
         d_idx++;
       }
@@ -99,7 +159,7 @@ int main(int argc, char * argv[])
   os << "<svg xmlns=\"http://www.w3.org/2000/svg\"";
   os << " xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n";
 
-  os << render_domain(loc_hierarchy, 0, 0, 400, 40);
+  os << render_domain(loc_hierarchy, 0, 0, 1200, 40);
 
   cout << os.str() << endl;
 
