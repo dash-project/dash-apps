@@ -159,14 +159,20 @@ std::string render_domain(
 
   if (elem.is_object()) {
     auto scope   = elem.find("scope");
+    auto host    = elem.find("host");
     auto domains = elem.find("domains");
+    std::string hostname = "?";
+    if (host != elem.end()) {
+      hostname = *host;
+    }
     if (scope != elem.end()) {
-      if (*scope == "NODE") {
+      if (*scope == "NODE" || *scope == "MODULE") {
         os << ind << "<text"
                   << " x=\"" << x + tpad + 50 << "\""
                   << " y=\"" << y + tpad << "\""
-                  << " fill=\"#000000\" font-size=\"10\"" << " >"
-                  << "hostname"
+                  << fontstyle
+                  << ">"
+                  << "host:" << hostname
                   << "</text>" << endl;
       }
       else if (*scope == "NUMA") {
@@ -178,7 +184,8 @@ std::string render_domain(
       os << ind << "<text"
                 << " x=\"" << x + tpad << "\""
                 << " y=\"" << y + tpad << "\""
-                << " fill=\"#000000\" font-size=\"10\"" << " >"
+                << fontstyle
+                << ">"
                 << scope->get<std::string>()
                 << "</text>" << endl;
     }
