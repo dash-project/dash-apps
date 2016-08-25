@@ -6,3 +6,5 @@ tags
 build/
 *.bin
 *.out
+
+locplot/*.svg
