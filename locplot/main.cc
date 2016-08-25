@@ -57,6 +57,46 @@ std::string render_core_domain(
   return os.str();
 }
 
+std::string render_numa_domain(
+  const json & elem,
+  int          x,
+  int          y,
+  int          w,
+  int          h,
+  int          level = 0)
+{
+  static std::string fontstyle =
+    " style=\"font-family:Lucida Console\" fill=\"#000000\" font-size=\"10\" ";
+
+  std::ostringstream os;
+  std::string ind(level * 4, ' ');
+
+  int pad  = 10;
+  int tpad = 15;
+
+  os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
+            << " height=\"" << h << "\" width=\"" << w << "\""
+            << " style=\"fill:#ff55aa;stroke:#124578;stroke-width:1\" >"
+            << "</rect>" << std::endl;
+
+  if (elem.is_object()) {
+    auto domains = elem.find("domains");
+    int  d_w      = (w / 2) - (pad / 2);
+    int  d_h      = 40;
+    int  d_idx    = 0;
+    for (auto d = domains->begin(); d != domains->end(); ++d) {
+      int  d_x      = x + ((d_idx % 2) * (pad + d_w));
+      int  d_y      = y + d_h + ((d_idx / 2) * (d_h + pad));
+
+      os << render_core_domain(d.value(), d_x, d_y, d_w, d_h, level+1);
+
+      d_idx++;
+    }
+  }
+
+  return os.str();
+}
+
 std::string render_domain(
   const json & elem,
   int          x,
@@ -96,7 +136,10 @@ std::string render_domain(
     auto scope   = elem.find("scope");
     auto domains = elem.find("domains");
     if (scope != elem.end()) {
-      if (*scope == "CORE") {
+      if (*scope == "NUMA") {
+        return render_numa_domain(elem, x, y, w, h, level+1);
+      }
+      else if (*scope == "CORE") {
         return render_core_domain(elem, x, y, w, h, level+1);
       }
       os << ind << "<text"
@@ -159,7 +202,7 @@ int main(int argc, char * argv[])
   os << "<svg xmlns=\"http://www.w3.org/2000/svg\"";
   os << " xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n";
 
-  os << render_domain(loc_hierarchy, 0, 0, 1200, 40);
+  os << render_domain(loc_hierarchy, 0, 0, 3000, 40);
 
   cout << os.str() << endl;
 
