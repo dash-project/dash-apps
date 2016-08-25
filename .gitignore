@@ -6,3 +6,7 @@ tags
 build/
 *.bin
 *.out
+CMakeCache.txt
+CMakeFiles
+locplot/Makefile
+cmake_install.cmake

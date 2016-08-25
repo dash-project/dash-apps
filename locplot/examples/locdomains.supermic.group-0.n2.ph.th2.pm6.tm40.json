@@ -1,0 +1,221 @@
+{
+"scope": "GLOBAL",
+"level": 0,
+"idx": 0,
+"nodes": 1,
+"units": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 ],
+"hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+"ndomains": 1,
+"domains": {
+     ".0" : {
+         "scope": "NODE",
+         "level": 1,
+         "idx": 0,
+         "units": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 ],
+         "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+         "ndomains": 2,
+         "domains": {
+              ".0.0" : {
+                  "scope": "MODULE",
+                  "level": 2,
+                  "idx": 0,
+                  "units": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ],
+                  "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+                  "ndomains": 2,
+                  "domains": {
+                       ".0.0.0" : {
+                           "scope": "NUMA",
+                           "level": 3,
+                           "idx": 0,
+                           "numa_id": 0,
+                           "units": [ 0, 1, 2, 3, 4, 5, 6, 7 ],
+                           "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+                           "ndomains": 8,
+                           "domains": {
+                                ".0.0.0.0" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 0,
+                                    "numa_id": 0,
+                                    "units": [ 0 ],
+                                    "unit_id": { "local_id": 0, "team": 1, "global_id": 0 }, 
+                                    "unit_locality": { "domain": ".0.0.0.0", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.1" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 1,
+                                    "numa_id": 0,
+                                    "units": [ 1 ],
+                                    "unit_id": { "local_id": 1, "team": 1, "global_id": 1 }, 
+                                    "unit_locality": { "domain": ".0.0.0.1", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 1, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.2" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 2,
+                                    "numa_id": 0,
+                                    "units": [ 2 ],
+                                    "unit_id": { "local_id": 2, "team": 1, "global_id": 2 }, 
+                                    "unit_locality": { "domain": ".0.0.0.2", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 2, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.3" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 3,
+                                    "numa_id": 0,
+                                    "units": [ 3 ],
+                                    "unit_id": { "local_id": 3, "team": 1, "global_id": 3 }, 
+                                    "unit_locality": { "domain": ".0.0.0.3", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 3, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.4" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 4,
+                                    "numa_id": 0,
+                                    "units": [ 4 ],
+                                    "unit_id": { "local_id": 4, "team": 1, "global_id": 4 }, 
+                                    "unit_locality": { "domain": ".0.0.0.4", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 4, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.5" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 5,
+                                    "numa_id": 0,
+                                    "units": [ 5 ],
+                                    "unit_id": { "local_id": 5, "team": 1, "global_id": 5 }, 
+                                    "unit_locality": { "domain": ".0.0.0.5", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 5, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.6" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 6,
+                                    "numa_id": 0,
+                                    "units": [ 6 ],
+                                    "unit_id": { "local_id": 6, "team": 1, "global_id": 6 }, 
+                                    "unit_locality": { "domain": ".0.0.0.6", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 6, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.0.7" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 7,
+                                    "numa_id": 0,
+                                    "units": [ 7 ],
+                                    "unit_id": { "local_id": 7, "team": 1, "global_id": 7 }, 
+                                    "unit_locality": { "domain": ".0.0.0.7", "host": "i01r13a08", "hwinfo": { "numa_id": 0, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 7, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  }
+                            } },
+                       ".0.0.1" : {
+                           "scope": "NUMA",
+                           "level": 3,
+                           "idx": 1,
+                           "numa_id": 0,
+                           "units": [ 8, 9, 10, 11, 12, 13, 14, 15 ],
+                           "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+                           "ndomains": 8,
+                           "domains": {
+                                ".0.0.1.0" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 0,
+                                    "numa_id": 0,
+                                    "units": [ 8 ],
+                                    "unit_id": { "local_id": 8, "team": 1, "global_id": 8 }, 
+                                    "unit_locality": { "domain": ".0.0.1.0", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 8, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.1" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 1,
+                                    "numa_id": 0,
+                                    "units": [ 9 ],
+                                    "unit_id": { "local_id": 9, "team": 1, "global_id": 9 }, 
+                                    "unit_locality": { "domain": ".0.0.1.1", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 9, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.2" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 2,
+                                    "numa_id": 0,
+                                    "units": [ 10 ],
+                                    "unit_id": { "local_id": 10, "team": 1, "global_id": 10 }, 
+                                    "unit_locality": { "domain": ".0.0.1.2", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 10, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.3" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 3,
+                                    "numa_id": 0,
+                                    "units": [ 11 ],
+                                    "unit_id": { "local_id": 11, "team": 1, "global_id": 11 }, 
+                                    "unit_locality": { "domain": ".0.0.1.3", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 11, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.4" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 4,
+                                    "numa_id": 0,
+                                    "units": [ 12 ],
+                                    "unit_id": { "local_id": 12, "team": 1, "global_id": 12 }, 
+                                    "unit_locality": { "domain": ".0.0.1.4", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 12, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.5" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 5,
+                                    "numa_id": 0,
+                                    "units": [ 13 ],
+                                    "unit_id": { "local_id": 13, "team": 1, "global_id": 13 }, 
+                                    "unit_locality": { "domain": ".0.0.1.5", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 13, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.6" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 6,
+                                    "numa_id": 0,
+                                    "units": [ 14 ],
+                                    "unit_id": { "local_id": 14, "team": 1, "global_id": 14 }, 
+                                    "unit_locality": { "domain": ".0.0.1.6", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 14, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  },
+                                ".0.0.1.7" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 7,
+                                    "numa_id": 0,
+                                    "units": [ 15 ],
+                                    "unit_id": { "local_id": 15, "team": 1, "global_id": 15 }, 
+                                    "unit_locality": { "domain": ".0.0.1.7", "host": "i01r13a08", "hwinfo": { "numa_id": 1, "num_numa": 2, "num_sockets": 2, "num_cores": 1, "cpu_id": 31, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } }  }
+                            } }
+                   } },
+              ".0.1" : {
+                  "scope": "MODULE",
+                  "level": 2,
+                  "idx": 1,
+                  "units": [ 16, 17, 18 ],
+                  "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+                  "ndomains": 1,
+                  "domains": {
+                       ".0.1.0" : {
+                           "scope": "NUMA",
+                           "level": 3,
+                           "idx": 0,
+                           "numa_id": 0,
+                           "units": [ 16, 17, 18 ],
+                           "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 2, "num_cores": 16, "cpu_id": 0, "threads":{ "min": 1, "max": 2 }, "cpu_mhz": { "min": 1200,"max": 2600 }, "mem_mbps": 26214 } ,
+                           "ndomains": 3,
+                           "domains": {
+                                ".0.1.0.0" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 0,
+                                    "numa_id": 0,
+                                    "units": [ 16 ],
+                                    "unit_id": { "local_id": 16, "team": 1, "global_id": 16 }, 
+                                    "unit_locality": { "domain": ".0.1.0.0", "host": "i01r13a08-mic0", "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 1, "num_cores": 20, "cpu_id": 6, "threads":{ "min": 4, "max": 4 }, "cpu_mhz": { "min": 1100,"max": 1100 }, "mem_mbps": 3907 } }  },
+                                ".0.1.0.1" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 1,
+                                    "numa_id": 0,
+                                    "units": [ 17 ],
+                                    "unit_id": { "local_id": 17, "team": 1, "global_id": 17 }, 
+                                    "unit_locality": { "domain": ".0.1.0.1", "host": "i01r13a08-mic0", "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 1, "num_cores": 20, "cpu_id": 46, "threads":{ "min": 4, "max": 4 }, "cpu_mhz": { "min": 1100,"max": 1100 }, "mem_mbps": 3907 } }  },
+                                ".0.1.0.2" : {
+                                    "scope": "CORE",
+                                    "level": 4,
+                                    "idx": 2,
+                                    "numa_id": 0,
+                                    "units": [ 18 ],
+                                    "unit_id": { "local_id": 18, "team": 1, "global_id": 18 }, 
+                                    "unit_locality": { "domain": ".0.1.0.2", "host": "i01r13a08-mic0", "hwinfo": { "numa_id": 0, "num_numa": 1, "num_sockets": 1, "num_cores": 20, "cpu_id": 86, "threads":{ "min": 4, "max": 4 }, "cpu_mhz": { "min": 1100,"max": 1100 }, "mem_mbps": 3907 } }  }
+                            } }
+                   } }
+          } }
+ }
+}
+
