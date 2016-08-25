@@ -13,6 +13,7 @@ using std::endl;
 
 
 std::string render_core_domain(
+  const std::string & domain_tag,
   const json & elem,
   int          x,
   int          y,
@@ -26,20 +27,29 @@ std::string render_core_domain(
   std::ostringstream os;
   std::string ind(level * 4, ' ');
 
-  int pad  = 10;
-  int tpad = 15;
+  int tpad = 12;
 
   os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
             << " height=\"" << h << "\" width=\"" << w << "\""
-            << " style=\"fill:#ff5555;stroke:#124512;stroke-width:1\" >"
+            << " style=\"fill:#87cdde;stroke:#164450;stroke-width:1\" >"
             << "</rect>" << std::endl;
+
+  os << ind << "<text"
+            << " x=\"" << x + tpad << "\""
+            << " y=\"" << y + tpad * 2 << "\""
+            << fontstyle
+            << ">"
+            << "domain:" << domain_tag
+            << "</text>" << endl;
 
   auto unit_id  = elem.find("unit_id");
   auto unit_loc = elem.find("unit_locality");
 
   int  nthreads = -1;
+  int  ncores   = -1;
   if (unit_loc != elem.end()) {
-//  nthreads = (*unit_loc)["threads"]["max"];
+    nthreads = (*unit_loc)["hwinfo"]["threads"]["max"];
+    ncores   = (*unit_loc)["hwinfo"]["num_cores"];
   }
   if (unit_id == elem.end()) {
     return "???";
@@ -50,8 +60,15 @@ std::string render_core_domain(
             << " y=\"" << y + tpad << "\""
             << fontstyle
             << ">"
-            << unit_local_id << " ("
-            << " t:" << nthreads << ")"
+            << "Unit " << unit_local_id
+            << "</text>" << endl;
+  os << ind << "<text"
+            << " x=\"" << x + tpad << "\""
+            << " y=\"" << y + tpad * 3 << "\""
+            << fontstyle
+            << ">"
+            << ncores   << " cores x "
+            << nthreads << " threads"
             << "</text>" << endl;
 
   return os.str();
@@ -72,12 +89,19 @@ std::string render_numa_domain(
   std::string ind(level * 4, ' ');
 
   int pad  = 10;
-  int tpad = 15;
+  int tpad = 12;
 
   os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
             << " height=\"" << h << "\" width=\"" << w << "\""
-            << " style=\"fill:#ff55aa;stroke:#124578;stroke-width:1\" >"
+            << " style=\"fill:#37abc8;stroke:#164450;stroke-width:1\" >"
             << "</rect>" << std::endl;
+  os << ind << "<text"
+            << " x=\"" << x + tpad << "\""
+            << " y=\"" << y + tpad << "\""
+            << fontstyle
+            << ">"
+            << "NUMA"
+            << "</text>" << endl;
 
   if (elem.is_object()) {
     auto domains = elem.find("domains");
@@ -86,9 +110,10 @@ std::string render_numa_domain(
     int  d_idx    = 0;
     for (auto d = domains->begin(); d != domains->end(); ++d) {
       int  d_x      = x + ((d_idx % 2) * (pad + d_w));
-      int  d_y      = y + d_h + ((d_idx / 2) * (d_h + pad));
+      int  d_y      = y + d_h + pad + ((d_idx / 2) * (d_h + pad));
 
-      os << render_core_domain(d.value(), d_x, d_y, d_w, d_h, level+1);
+      os << render_core_domain(d.key(), d.value(),
+                               d_x, d_y, d_w, d_h, level+1);
 
       d_idx++;
     }
@@ -111,7 +136,7 @@ std::string render_domain(
   int h = parent_h;
 
   int pad  = 10;
-  int tpad = 15;
+  int tpad = 12;
 
   std::string ind(level * 4, ' ');
 
@@ -136,7 +161,15 @@ std::string render_domain(
     auto scope   = elem.find("scope");
     auto domains = elem.find("domains");
     if (scope != elem.end()) {
-      if (*scope == "NUMA") {
+      if (*scope == "NODE") {
+        os << ind << "<text"
+                  << " x=\"" << x + tpad + 50 << "\""
+                  << " y=\"" << y + tpad << "\""
+                  << " fill=\"#000000\" font-size=\"10\"" << " >"
+                  << "hostname"
+                  << "</text>" << endl;
+      }
+      else if (*scope == "NUMA") {
         return render_numa_domain(elem, x, y, w, h, level+1);
       }
       else if (*scope == "CORE") {
@@ -146,7 +179,7 @@ std::string render_domain(
                 << " x=\"" << x + tpad << "\""
                 << " y=\"" << y + tpad << "\""
                 << " fill=\"#000000\" font-size=\"10\"" << " >"
-                << *scope
+                << scope->get<std::string>()
                 << "</text>" << endl;
     }
     if (domains != elem.end()) {
