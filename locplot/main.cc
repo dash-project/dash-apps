@@ -39,165 +39,200 @@ static std::string fontstyle =
 static std::string fontstyle_bold =
   " style=\"font-family:Lucida Console;font-weight:bold;\" fill=\"#000000\" font-size=\"10\" ";
 
-std::string render_unit_domain(
+typedef struct rect_s {
+  int x;
+  int y;
+  int w;
+  int h;
+} rect_t;
+
+typedef struct svg_node_s {
+  rect_t      rect;
+  std::string svg;
+} svg_node_t;
+
+
+std::string render_svg(
   const std::string & domain_tag,
   const json &        elem,
   int                 x,
   int                 y,
-  int                 parent_w,
-  int                 parent_h,
-  int                 level = 0)
+  int                 w,
+  int                 h,
+  int                 level)
 {
   std::ostringstream os;
 
-  int w = parent_w;
-  int h = parent_h;
-
-  int pad  = 10;
-  int tpad = 12;
-
   std::string ind(level * 4, ' ');
 
-  if (elem.is_object()) {
-    auto scope   = elem.find("scope");
-    auto host    = elem.find("host");
-    auto domains = elem.find("domains");
+  int tpad = 11;
+  int fpad = 10;
+
+  auto scope   = elem.find("scope");
+  auto host    = elem.find("host");
+
+  std::string hostname = "?";
+  if (host != elem.end()) {
+    hostname = *host;
+  }
+
+  if (scope != elem.end()) {
+    std::string scope_fill   = scope_fills[*scope];
+    std::string scope_stroke = scope_strokes[*scope];
+    std::string scope_name   = *scope;
+    std::string rect_attr    = "";
+
+    if (scope_name == "CORE") { scope_name = "UNIT"; }
+
+    if (scope_name == "UNIT") {
+      w = 150;
+      h = 60;
+    }
+    if (scope_name == "GROUP") {
+      rect_attr = " ry=\"8\" ";
+    }
+    os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
+              << " height=\"" << h << "\" width=\"" << w << "\""
+              << rect_attr
+              << " style=\""
+                  << "fill:"   << scope_fill   << ";"
+                  << "stroke:" << scope_stroke << ";"
+                  << "stroke-width:1\" >"
+              << "</rect>" << std::endl;
+
+    os << ind << "<text"
+              << " x=\"" << x + tpad << "\""
+              << " y=\"" << y + tpad + fpad << "\""
+              << fontstyle_bold
+              << ">"
+              << scope_name
+              << "</text>" << endl;
+    os << ind << "<text"
+              << " x=\"" << x + tpad + 40   << "\""
+              << " y=\"" << y + tpad + fpad << "\""
+              << fontstyle
+              << ">"
+              << domain_tag
+              << "</text>" << endl;
+
+    if (scope_name == "NODE" || scope_name == "MODULE") {
+      os << ind << "<text"
+                << " x=\"" << x + tpad + 90   << "\""
+                << " y=\"" << y + tpad + fpad << "\""
+                << fontstyle
+                << ">"
+                << "host:" << hostname
+                << "</text>" << endl;
+      os << ind << "<text"
+                << " x=\"" << x + tpad     << "\""
+                << " y=\"" << y + tpad * 2 + fpad << "\""
+                << fontstyle
+                << ">"
+                << elem["hwinfo"]["system_mb"]
+                << " MB"
+                << "</text>" << endl;
+    }
+    if (scope_name == "NUMA") {
+      os << ind << "<text"
+                << " x=\"" << x + tpad     << "\""
+                << " y=\"" << y + tpad * 2 + fpad << "\""
+                << fontstyle
+                << ">"
+                << elem["hwinfo"]["numa_mb"]
+                << " MB"
+                << "</text>" << endl;
+    }
+    if (scope_name == "UNIT") {
+      int ncores   = elem["unit_locality"]["hwinfo"]["num_cores"];
+      int nthreads = elem["unit_locality"]["hwinfo"]["threads"]["max"];
+      os << ind << "<text"
+                << " x=\"" << x + tpad << "\""
+                << " y=\"" << y + tpad * 2 + fpad << "\""
+                << fontstyle
+                << ">"
+                << "id:"
+                << elem["unit_id"]["local_id"]
+                << "</text>" << endl;
+      os << ind << "<text"
+                << " x=\"" << x + tpad << "\""
+                << " y=\"" << y + tpad * 3 + fpad << "\""
+                << fontstyle
+                << ">"
+                << ncores   << " x "
+                << nthreads << " threads"
+                << "</text>" << endl;
+    }
   }
 
   return os.str();
 }
 
-std::string render_domain(
+svg_node_t render_domain(
   const std::string & domain_tag,
   const json &        elem,
   int                 x,
   int                 y,
-  int                 parent_w,
-  int                 parent_h,
   int                 level = 0)
 {
-  std::ostringstream os;
+  int w = 0;
+  int h = 0;
 
-  int w = parent_w;
-  int h = parent_h;
-
-  int pad  = 10;
-  int tpad = 15;
+  int pad  = 11;
 
   std::string ind(level * 4, ' ');
+  std::ostringstream os;
 
   if (elem.is_object()) {
-    auto scope   = elem.find("scope");
-    auto host    = elem.find("host");
-    auto domains = elem.find("domains");
-    std::string hostname = "?";
-    if (host != elem.end()) {
-      hostname = *host;
-    }
-    if (scope != elem.end()) {
-      std::string scope_fill   = scope_fills[*scope];
-      std::string scope_stroke = scope_strokes[*scope];
-      std::string scope_name   = *scope;
-      std::string rect_attr    = "";
-
-      if (scope_name == "CORE") { scope_name = "UNIT"; }
-
-      if (scope_name == "UNIT") {
-        h         = 60;
-      }
-      if (scope_name == "GROUP") {
-        rect_attr = " ry=\"8\" ";
-      }
-      os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
-                << " height=\"" << h << "\" width=\"" << w << "\""
-                << rect_attr
-                << " style=\""
-                    << "fill:"   << scope_fill   << ";"
-                    << "stroke:" << scope_stroke << ";"
-                    << "stroke-width:1\" >"
-                << "</rect>" << std::endl;
-
-      os << ind << "<text"
-                << " x=\"" << x + tpad << "\""
-                << " y=\"" << y + tpad << "\""
-                << fontstyle_bold
-                << ">"
-                << scope_name
-                << "</text>" << endl;
-      os << ind << "<text"
-                << " x=\"" << x + tpad + 40 << "\""
-                << " y=\"" << y + tpad      << "\""
-                << fontstyle
-                << ">"
-                << domain_tag
-                << "</text>" << endl;
-
-      if (scope_name == "NODE" || scope_name == "MODULE") {
-        os << ind << "<text"
-                  << " x=\"" << x + tpad + 90 << "\""
-                  << " y=\"" << y + tpad << "\""
-                  << fontstyle
-                  << ">"
-                  << "host:" << hostname
-                  << "</text>" << endl;
-        os << ind << "<text"
-                  << " x=\"" << x + tpad     << "\""
-                  << " y=\"" << y + tpad * 2 << "\""
-                  << fontstyle
-                  << ">"
-                  << elem["hwinfo"]["system_mb"]
-                  << " MB"
-                  << "</text>" << endl;
-      }
-      if (scope_name == "NUMA") {
-        os << ind << "<text"
-                  << " x=\"" << x + tpad     << "\""
-                  << " y=\"" << y + tpad * 2 << "\""
-                  << fontstyle
-                  << ">"
-                  << elem["hwinfo"]["numa_mb"]
-                  << " MB"
-                  << "</text>" << endl;
-      }
-      if (scope_name == "UNIT") {
-        int ncores   = elem["unit_locality"]["hwinfo"]["num_cores"];
-        int nthreads = elem["unit_locality"]["hwinfo"]["threads"]["max"];
-        os << ind << "<text"
-                  << " x=\"" << x + tpad << "\""
-                  << " y=\"" << y + tpad * 2 << "\""
-                  << fontstyle
-                  << ">"
-                  << "id:"
-                  << elem["unit_id"]["local_id"]
-                  << "</text>" << endl;
-        os << ind << "<text"
-                  << " x=\"" << x + tpad << "\""
-                  << " y=\"" << y + tpad * 3 << "\""
-                  << fontstyle
-                  << ">"
-                  << ncores   << " x "
-                  << nthreads << " threads"
-                  << "</text>" << endl;
-      }
+    auto domains  = elem.find("domains");
+    auto scope    = elem.find("scope");
+    bool vertical = true;
+    if (scope != elem.end() && *scope == "NUMA") {
+      vertical = false;
     }
     if (domains != elem.end()) {
       auto ndomains = std::distance(domains->begin(), domains->end());
-      int  d_w      = (w / ndomains) - ((pad / ndomains) * (ndomains-1));
-      int  d_h      = 40;
       int  d_idx    = 0;
       for (auto d = domains->begin(); d != domains->end(); ++d) {
-        int d_x = x + (d_idx * (d_w + pad));
-        int d_y = y + d_h + pad;
-
-        os << render_domain(d.key(), d.value(),
-                            d_x, d_y, d_w, d_h, level+1);
-
+        int d_x = x;
+        int d_y = y;
+        if (vertical) {
+          d_x += pad;
+          d_y += h + 40;
+        } else {
+          d_x += w + pad;
+          d_y += 40;
+        }
+        auto svg_node = render_domain(d.key(), d.value(),
+                                      d_x, d_y,
+                                      level+1);
+        if (vertical) {
+          h += svg_node.rect.h + (d_idx < ndomains - 1 ? pad : 0);
+          w  = std::max(w, svg_node.rect.w);
+        } else {
+          w += svg_node.rect.w + (d_idx < ndomains - 1 ? pad : 0);
+          h  = std::max(h, svg_node.rect.h);
+        }
+        os << svg_node.svg;
         d_idx++;
       }
+      w += 2 * pad;
+      h += 40 + pad;
+    }
+    else if (scope != elem.end() && *scope == "CORE") {
+      w = 150;
+      h = 60;
     }
   }
 
-  return os.str();
+  rect_t     rect;
+  svg_node_t node;
+  rect.w    = w;
+  rect.h    = h;
+  node.rect = rect;
+  node.svg  = render_svg(domain_tag, elem, x, y, rect.w, rect.h, level) +
+              os.str();
+
+  return node;
 }
 
 int main(int argc, char * argv[])
@@ -226,7 +261,7 @@ int main(int argc, char * argv[])
   os << "<svg xmlns=\"http://www.w3.org/2000/svg\"";
   os << " xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n";
 
-  os << render_domain(".", loc_hierarchy, 0, 0, 4000, 40);
+  os << render_domain(".", loc_hierarchy, 0, 0, 0).svg;
 
   cout << os.str() << endl;
 
