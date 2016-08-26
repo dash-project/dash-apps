@@ -65,15 +65,21 @@ std::string render_svg(
 
   std::string ind(level * 4, ' ');
 
-  int tpad = 11;
+  int tpad = 13;
   int fpad = 10;
 
-  auto scope   = elem.find("scope");
-  auto host    = elem.find("host");
+  auto scope     = elem.find("scope");
+  auto host      = elem.find("host");
+  auto dom_level = elem.find("level");
 
   std::string hostname = "?";
   if (host != elem.end()) {
     hostname = *host;
+  }
+
+  int d_level = -1;
+  if (dom_level != elem.end()) {
+    d_level = *dom_level;
   }
 
   if (scope != elem.end()) {
@@ -85,8 +91,8 @@ std::string render_svg(
     if (scope_name == "CORE") { scope_name = "UNIT"; }
 
     if (scope_name == "UNIT") {
-      w = 150;
-      h = 60;
+      w = 170;
+      h = 67;
     }
     if (scope_name == "GROUP") {
       rect_attr = " ry=\"8\" ";
@@ -108,7 +114,14 @@ std::string render_svg(
               << scope_name
               << "</text>" << endl;
     os << ind << "<text"
-              << " x=\"" << x + tpad + 40   << "\""
+              << " x=\"" << x + tpad + 50   << "\""
+              << " y=\"" << y + tpad + fpad << "\""
+              << fontstyle
+              << ">"
+              << "L:" << d_level
+              << "</text>" << endl;
+    os << ind << "<text"
+              << " x=\"" << x + tpad + 80   << "\""
               << " y=\"" << y + tpad + fpad << "\""
               << fontstyle
               << ">"
@@ -117,7 +130,7 @@ std::string render_svg(
 
     if (scope_name == "NODE" || scope_name == "MODULE") {
       os << ind << "<text"
-                << " x=\"" << x + tpad + 90   << "\""
+                << " x=\"" << x + tpad + 110   << "\""
                 << " y=\"" << y + tpad + fpad << "\""
                 << fontstyle
                 << ">"
@@ -134,6 +147,13 @@ std::string render_svg(
     }
     if (scope_name == "NUMA") {
       os << ind << "<text"
+                << " x=\"" << x + tpad + 110  << "\""
+                << " y=\"" << y + tpad + fpad << "\""
+                << fontstyle
+                << ">"
+                << "NUMA:" << elem["hwinfo"]["numa_id"]
+                << "</text>" << endl;
+      os << ind << "<text"
                 << " x=\"" << x + tpad     << "\""
                 << " y=\"" << y + tpad * 2 + fpad << "\""
                 << fontstyle
@@ -147,7 +167,7 @@ std::string render_svg(
       int nthreads = elem["unit_locality"]["hwinfo"]["threads"]["max"];
       os << ind << "<text"
                 << " x=\"" << x + tpad << "\""
-                << " y=\"" << y + tpad * 2 + fpad << "\""
+                << " y=\"" << y + tpad * 2 + fpad + 7 << "\""
                 << fontstyle
                 << ">"
                 << "id:"
@@ -155,7 +175,7 @@ std::string render_svg(
                 << "</text>" << endl;
       os << ind << "<text"
                 << " x=\"" << x + tpad << "\""
-                << " y=\"" << y + tpad * 3 + fpad << "\""
+                << " y=\"" << y + tpad * 3 + fpad + 7 << "\""
                 << fontstyle
                 << ">"
                 << ncores   << " x "
@@ -197,10 +217,10 @@ svg_node_t render_domain(
         int d_y = y;
         if (vertical) {
           d_x += pad;
-          d_y += h + 40;
+          d_y += h + 50;
         } else {
           d_x += w + pad;
-          d_y += 40;
+          d_y += 50;
         }
         auto svg_node = render_domain(d.key(), d.value(),
                                       d_x, d_y,
@@ -216,11 +236,11 @@ svg_node_t render_domain(
         d_idx++;
       }
       w += 2 * pad;
-      h += 40 + pad;
+      h += 50 + pad;
     }
     else if (scope != elem.end() && *scope == "CORE") {
-      w = 150;
-      h = 60;
+      w = 170;
+      h = 67;
     }
   }
 
