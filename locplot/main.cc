@@ -16,21 +16,39 @@ using std::endl;
 
 
 static std::map<std::string, std::string> scope_fills = {
+#if 0
   { "GLOBAL", "#efefef" },
   { "NODE",   "#cfcfcf" },
   { "MODULE", "#e9c6af" },
   { "NUMA",   "#d89d96" },
   { "GROUP",  "#cf6262" },
   { "CORE",   "#87cdde" }
+#else
+  { "GLOBAL", "#ffffff" },
+  { "NODE",   "#eff3f4" },
+  { "MODULE", "#d0e0eb" },
+  { "NUMA",   "#88abc2" },
+  { "GROUP",  "#de8787" },
+  { "CORE",   "#87cdde" }
+#endif
 };
 
 static std::map<std::string, std::string> scope_strokes = {
+#if 0
   { "GLOBAL", "#545454" },
   { "NODE",   "#232323" },
   { "MODULE", "#a05a2c" },
   { "NUMA",   "#944940" },
   { "GROUP",  "#800000" },
   { "CORE",   "#164450" }
+#else
+  { "GLOBAL", "#343434" },
+  { "NODE",   "#343434" },
+  { "MODULE", "#8aa0ab" },
+  { "NUMA",   "#386583" },
+  { "GROUP",  "#fe9a9a" },
+  { "CORE",   "#287d93" }
+#endif
 };
 
 static std::string fontstyle =
@@ -90,9 +108,14 @@ std::string render_svg(
 
     if (scope_name == "CORE") { scope_name = "UNIT"; }
 
+    int col_0 = 60;
+    int col_1 = 100;
+
     if (scope_name == "UNIT") {
-      w = 170;
-      h = 67;
+      w     = 170;
+      h     = 67;
+      col_0 = 40;
+      col_1 = 80;
     }
     if (scope_name == "GROUP") {
       rect_attr = " ry=\"8\" ";
@@ -114,52 +137,52 @@ std::string render_svg(
               << scope_name
               << "</text>" << endl;
     os << ind << "<text"
-              << " x=\"" << x + tpad + 50   << "\""
-              << " y=\"" << y + tpad + fpad << "\""
+              << " x=\"" << x + tpad + col_0 << "\""
+              << " y=\"" << y + tpad + fpad  << "\""
               << fontstyle
               << ">"
               << "L:" << d_level
               << "</text>" << endl;
     os << ind << "<text"
-              << " x=\"" << x + tpad + 80   << "\""
-              << " y=\"" << y + tpad + fpad << "\""
+              << " x=\"" << x + tpad + col_1 << "\""
+              << " y=\"" << y + tpad + fpad  << "\""
               << fontstyle
               << ">"
-              << domain_tag
+              << "[" << domain_tag << "]"
               << "</text>" << endl;
 
     if (scope_name == "NODE" || scope_name == "MODULE") {
       os << ind << "<text"
-                << " x=\"" << x + tpad + 110   << "\""
-                << " y=\"" << y + tpad + fpad << "\""
-                << fontstyle
-                << ">"
-                << "host:" << hostname
-                << "</text>" << endl;
-      os << ind << "<text"
-                << " x=\"" << x + tpad     << "\""
+                << " x=\"" << x + tpad            << "\""
                 << " y=\"" << y + tpad * 2 + fpad << "\""
                 << fontstyle
                 << ">"
                 << elem["hwinfo"]["system_mb"]
                 << " MB"
                 << "</text>" << endl;
+      os << ind << "<text"
+                << " x=\"" << x + tpad + col_0    << "\""
+                << " y=\"" << y + tpad * 2 + fpad << "\""
+                << fontstyle
+                << ">"
+                << "host:" << hostname
+                << "</text>" << endl;
     }
     if (scope_name == "NUMA") {
       os << ind << "<text"
-                << " x=\"" << x + tpad + 110  << "\""
-                << " y=\"" << y + tpad + fpad << "\""
-                << fontstyle
-                << ">"
-                << "NUMA:" << elem["hwinfo"]["numa_id"]
-                << "</text>" << endl;
-      os << ind << "<text"
-                << " x=\"" << x + tpad     << "\""
+                << " x=\"" << x + tpad            << "\""
                 << " y=\"" << y + tpad * 2 + fpad << "\""
                 << fontstyle
                 << ">"
                 << elem["hwinfo"]["numa_mb"]
                 << " MB"
+                << "</text>" << endl;
+      os << ind << "<text"
+                << " x=\"" << x + tpad + col_0    << "\""
+                << " y=\"" << y + tpad * 2 + fpad << "\""
+                << fontstyle
+                << ">"
+                << "id:" << elem["hwinfo"]["numa_id"]
                 << "</text>" << endl;
     }
     if (scope_name == "UNIT") {
