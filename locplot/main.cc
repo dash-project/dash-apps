@@ -232,7 +232,8 @@ svg_node_t render_domain(
     bool nested   = true;
     if (domains != elem.end()) {
       auto ndomains = std::distance(domains->begin(), domains->end());
-      if (scope != elem.end() && (*scope == "NUMA" || *scope == "CACHE")) {
+      if (scope != elem.end() &&
+          (*scope == "NUMA" || *scope == "CACHE" || *scope == "PACKAGE")) {
         vertical = false;
       }
       if (scope != elem.end() && (*scope == "CACHE") && ndomains > 0) {
