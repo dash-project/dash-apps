@@ -16,42 +16,28 @@ using std::endl;
 
 
 static std::map<std::string, std::string> scope_fills = {
-#if 0
-  { "GLOBAL", "#efefef" },
-  { "NODE",   "#cfcfcf" },
-  { "MODULE", "#e9c6af" },
-  { "NUMA",   "#d89d96" },
-  { "GROUP",  "#cf6262" },
-  { "CORE",   "#87cdde" }
-#else
-  { "GLOBAL", "#ffffff" },
-  { "NODE",   "#eff3f4" },
-  { "MODULE", "#d0e0eb" },
-  { "NUMA",   "#88abc2" },
-  { "GROUP",  "#de8787" },
-  { "CORE",   "#87cdde" }
-#endif
+  { "GLOBAL",  "#ffffff" },
+  { "NODE",    "#eff3f4" },
+  { "MODULE",  "#d0e0eb" },
+  { "PACKAGE", "#d0e0eb" },
+  { "NUMA",    "#88abc2" },
+  { "CACHE",   "#aacde4" },
+  { "GROUP",   "#de8787" },
+  { "CORE",    "#87cdde" }
 };
 
 static std::map<std::string, std::string> scope_strokes = {
-#if 0
-  { "GLOBAL", "#545454" },
-  { "NODE",   "#232323" },
-  { "MODULE", "#a05a2c" },
-  { "NUMA",   "#944940" },
-  { "GROUP",  "#800000" },
-  { "CORE",   "#164450" }
-#else
-  { "GLOBAL", "#343434" },
-  { "NODE",   "#343434" },
-  { "MODULE", "#8aa0ab" },
-  { "NUMA",   "#386583" },
-  { "GROUP",  "#fe9a9a" },
-  { "CORE",   "#287d93" }
-#endif
+  { "GLOBAL",  "#343434" },
+  { "NODE",    "#343434" },
+  { "MODULE",  "#8aa0ab" },
+  { "PACKAGE", "#8aa0ab" },
+  { "NUMA",    "#386583" },
+  { "CACHE",   "#5a87a5" },
+  { "GROUP",   "#fe9a9a" },
+  { "CORE",    "#287d93" }
 };
 
-static std::string fontstyle =
+static std::string fontstyle_regular =
   " style=\"font-family:Lucida Console\" fill=\"#000000\" font-size=\"10\" ";
 
 static std::string fontstyle_bold =
@@ -69,6 +55,62 @@ typedef struct svg_node_s {
   std::string svg;
 } svg_node_t;
 
+std::string svg_text(
+  const std::string & text,
+  int                 x,
+  int                 y,
+  const std::string & style = fontstyle_regular)
+{
+  std::ostringstream os;
+  os << "<text"
+     << " x=\"" << x << "\""
+     << " y=\"" << y << "\""
+     << style
+     << ">"
+     << text
+     << "</text>" << endl;
+  return os.str();
+}
+
+template <typename T>
+std::string svg_text(
+  const std::string & label,
+  T                   value,
+  int                 x,
+  int                 y,
+  const std::string & style = fontstyle_regular)
+{
+  std::ostringstream os;
+  os << "<text"
+     << " x=\"" << x << "\""
+     << " y=\"" << y << "\""
+     << style
+     << ">"
+     << label << ":" << value
+     << "</text>" << endl;
+  return os.str();
+}
+
+std::string svg_rect(
+  int x,
+  int y,
+  int w,
+  int h,
+  const std::string & fill_color,
+  const std::string & stroke_color,
+  const std::string & attr = "")
+{
+  std::ostringstream os;
+  os << "<rect x=\"" << x << "\" y=\"" << y << "\""
+     << " height=\"" << h << "\" width=\"" << w << "\""
+     << attr
+     << " style=\""
+         << "fill:"   << fill_color   << ";"
+         << "stroke:" << stroke_color << ";"
+         << "stroke-width:1\" >"
+     << "</rect>" << std::endl;
+  return os.str();
+}
 
 std::string render_svg(
   const std::string & domain_tag,
@@ -109,101 +151,57 @@ std::string render_svg(
     if (scope_name == "CORE") { scope_name = "UNIT"; }
 
     int col_0 = 60;
-    int col_1 = 100;
+    int col_1 = 130;
 
     if (scope_name == "UNIT") {
       w     = 170;
-      h     = 67;
+      h     = 77;
       col_0 = 40;
       col_1 = 80;
     }
     if (scope_name == "GROUP") {
       rect_attr = " ry=\"8\" ";
     }
-    os << ind << "<rect x=\"" << x << "\" y=\"" << y << "\""
-              << " height=\"" << h << "\" width=\"" << w << "\""
-              << rect_attr
-              << " style=\""
-                  << "fill:"   << scope_fill   << ";"
-                  << "stroke:" << scope_stroke << ";"
-                  << "stroke-width:1\" >"
-              << "</rect>" << std::endl;
-
-    os << ind << "<text"
-              << " x=\"" << x + tpad << "\""
-              << " y=\"" << y + tpad + fpad << "\""
-              << fontstyle_bold
-              << ">"
-              << scope_name
-              << "</text>" << endl;
-    os << ind << "<text"
-              << " x=\"" << x + tpad + col_0 << "\""
-              << " y=\"" << y + tpad + fpad  << "\""
-              << fontstyle
-              << ">"
-              << "L:" << d_level
-              << "</text>" << endl;
-    os << ind << "<text"
-              << " x=\"" << x + tpad + col_1 << "\""
-              << " y=\"" << y + tpad + fpad  << "\""
-              << fontstyle
-              << ">"
-              << "[" << domain_tag << "]"
-              << "</text>" << endl;
+    os << ind << svg_rect(x, y, w, h, scope_fill, scope_stroke, rect_attr);
+    os << ind << svg_text(scope_name,
+                          x + tpad, y + tpad + fpad, fontstyle_bold);
+    os << ind << svg_text("L", d_level,
+                          x + tpad + col_0, y + tpad + fpad);
+    os << ind << svg_text(std::string("[") + domain_tag + "]",
+                          x + tpad, y + (tpad * 2) + fpad);
 
     if (scope_name == "NODE" || scope_name == "MODULE") {
-      os << ind << "<text"
-                << " x=\"" << x + tpad            << "\""
-                << " y=\"" << y + tpad * 2 + fpad << "\""
-                << fontstyle
-                << ">"
-                << elem["hwinfo"]["system_mb"]
-                << " MB"
-                << "</text>" << endl;
-      os << ind << "<text"
-                << " x=\"" << x + tpad + col_0    << "\""
-                << " y=\"" << y + tpad * 2 + fpad << "\""
-                << fontstyle
-                << ">"
-                << "host:" << hostname
-                << "</text>" << endl;
+      std::ostringstream system_mb;
+      system_mb << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      os << ind << svg_text(system_mb.str(),
+                            x + tpad, y + tpad * 3 + fpad);
+      os << ind << svg_text(std::string("host:") + hostname,
+                            x + tpad + col_0, y + tpad * 3 + fpad);
     }
     if (scope_name == "NUMA") {
-      os << ind << "<text"
-                << " x=\"" << x + tpad            << "\""
-                << " y=\"" << y + tpad * 2 + fpad << "\""
-                << fontstyle
-                << ">"
-                << elem["hwinfo"]["numa_mb"]
-                << " MB"
-                << "</text>" << endl;
-      os << ind << "<text"
-                << " x=\"" << x + tpad + col_0    << "\""
-                << " y=\"" << y + tpad * 2 + fpad << "\""
-                << fontstyle
-                << ">"
-                << "id:" << elem["hwinfo"]["numa_id"]
-                << "</text>" << endl;
+      std::ostringstream numa_mb;
+      numa_mb << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      os << ind << svg_text(numa_mb.str(),
+                            x + tpad, y + tpad * 3 + fpad);
+      os << ind << svg_text("id", elem["hwinfo"]["numa_id"],
+                            x + tpad + col_0, y + tpad * 3 + fpad);
+    }
+    if (scope_name == "CACHE") {
     }
     if (scope_name == "UNIT") {
-      int ncores   = elem["unit_locality"]["hwinfo"]["num_cores"];
-      int nthreads = elem["unit_locality"]["hwinfo"]["threads"]["max"];
-      os << ind << "<text"
-                << " x=\"" << x + tpad << "\""
-                << " y=\"" << y + tpad * 2 + fpad + 7 << "\""
-                << fontstyle
-                << ">"
-                << "id:"
-                << elem["unit_id"]["local_id"]
-                << "</text>" << endl;
-      os << ind << "<text"
-                << " x=\"" << x + tpad << "\""
-                << " y=\"" << y + tpad * 3 + fpad + 7 << "\""
-                << fontstyle
-                << ">"
-                << ncores   << " x "
-                << nthreads << " threads"
-                << "</text>" << endl;
+      int ncores   = elem["unit_loc"]["hwinfo"]["num_cores"];
+      int nthreads = elem["unit_loc"]["hwinfo"]["threads"]["max"];
+      int cpu_id   = elem["unit_loc"]["hwinfo"]["cpu_id"];
+      int unit_id  = elem["unit_id"]["local_id"];
+
+      os << ind << svg_text("id", unit_id,
+                            x + tpad, y + tpad * 3 + fpad + 7);
+      os << ind << svg_text("CPU", cpu_id,
+                            x + tpad + 60, y + tpad * 3 + fpad + 7);
+      os << ind << svg_text("cores", ncores,
+                            x + tpad, y + tpad * 4 + fpad + 7);
+      os << ind << svg_text("t/c", nthreads,
+                            x + tpad + 60, y + tpad * 4 + fpad + 7);
     }
   }
 
@@ -229,7 +227,7 @@ svg_node_t render_domain(
     auto domains  = elem.find("domains");
     auto scope    = elem.find("scope");
     bool vertical = true;
-    if (scope != elem.end() && *scope == "NUMA") {
+    if (scope != elem.end() && (*scope == "NUMA" || *scope == "CACHE")) {
       vertical = false;
     }
     if (domains != elem.end()) {
@@ -240,10 +238,10 @@ svg_node_t render_domain(
         int d_y = y;
         if (vertical) {
           d_x += pad;
-          d_y += h + 50;
+          d_y += h + 60;
         } else {
           d_x += w + pad;
-          d_y += 50;
+          d_y += 60;
         }
         auto svg_node = render_domain(d.key(), d.value(),
                                       d_x, d_y,
@@ -259,11 +257,11 @@ svg_node_t render_domain(
         d_idx++;
       }
       w += 2 * pad;
-      h += 50 + pad;
+      h += 60 + pad;
     }
     else if (scope != elem.end() && *scope == "CORE") {
       w = 170;
-      h = 67;
+      h = 77;
     }
   }
 
