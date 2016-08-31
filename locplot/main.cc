@@ -20,8 +20,8 @@ static std::map<std::string, std::string> scope_fills = {
   { "NODE",    "#eff3f4" },
   { "MODULE",  "#d0e0eb" },
   { "PACKAGE", "#d0e0eb" },
-  { "NUMA",    "#88abc2" },
-  { "CACHE",   "#aacde4" },
+  { "NUMA",    "#c6e9af" },
+  { "CACHE",   "#c7dae0" },
   { "GROUP",   "#de8787" },
   { "CORE",    "#87cdde" }
 };
@@ -31,8 +31,8 @@ static std::map<std::string, std::string> scope_strokes = {
   { "NODE",    "#343434" },
   { "MODULE",  "#8aa0ab" },
   { "PACKAGE", "#8aa0ab" },
-  { "NUMA",    "#386583" },
-  { "CACHE",   "#5a87a5" },
+  { "NUMA",    "#5aa02c" },
+  { "CACHE",   "#83b4c0" },
   { "GROUP",   "#fe9a9a" },
   { "CORE",    "#287d93" }
 };
@@ -156,8 +156,6 @@ std::string render_svg(
     if (scope_name == "UNIT") {
       w     = 170;
       h     = 77;
-      col_0 = 40;
-      col_1 = 80;
     }
     if (scope_name == "GROUP") {
       rect_attr = " ry=\"8\" ";
@@ -173,20 +171,24 @@ std::string render_svg(
     if (scope_name == "NODE" || scope_name == "MODULE") {
       std::ostringstream system_mb;
       system_mb << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      os << ind << svg_text(std::string("host:") + hostname,
+                            x + tpad + col_1, y + tpad + fpad);
       os << ind << svg_text(system_mb.str(),
                             x + tpad, y + tpad * 3 + fpad);
-      os << ind << svg_text(std::string("host:") + hostname,
-                            x + tpad + col_0, y + tpad * 3 + fpad);
     }
     if (scope_name == "NUMA") {
       std::ostringstream numa_mb;
       numa_mb << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      os << ind << svg_text("id", elem["hwinfo"]["numa_id"],
+                            x + tpad + col_1, y + tpad + fpad);
       os << ind << svg_text(numa_mb.str(),
                             x + tpad, y + tpad * 3 + fpad);
-      os << ind << svg_text("id", elem["hwinfo"]["numa_id"],
-                            x + tpad + col_0, y + tpad * 3 + fpad);
     }
     if (scope_name == "CACHE") {
+      std::ostringstream cache_size;
+      cache_size << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      os << ind << svg_text(cache_size.str(),
+                            x + tpad, y + tpad * 3 + fpad);
     }
     if (scope_name == "UNIT") {
       int ncores   = elem["unit_loc"]["hwinfo"]["num_cores"];
@@ -227,37 +229,60 @@ svg_node_t render_domain(
     auto domains  = elem.find("domains");
     auto scope    = elem.find("scope");
     bool vertical = true;
-    if (scope != elem.end() && (*scope == "NUMA" || *scope == "CACHE")) {
-      vertical = false;
-    }
+    bool nested   = true;
     if (domains != elem.end()) {
       auto ndomains = std::distance(domains->begin(), domains->end());
-      int  d_idx    = 0;
+      if (scope != elem.end() && (*scope == "NUMA" || *scope == "CACHE")) {
+        vertical = false;
+      }
+      if (scope != elem.end() && (*scope == "CACHE") && ndomains > 0) {
+        nested = false;
+      }
+      int  d_idx = 0;
       for (auto d = domains->begin(); d != domains->end(); ++d) {
         int d_x = x;
         int d_y = y;
-        if (vertical) {
-          d_x += pad;
-          d_y += h + 60;
+
+        if (nested) {
+          if (vertical) {
+            d_x += pad;
+            d_y += h + 60;
+          } else {
+            d_x += w + pad;
+            d_y += 60;
+          }
         } else {
-          d_x += w + pad;
+          // draw stacked domains, horizontal
+          d_x += w;
           d_y += 60;
         }
+
         auto svg_node = render_domain(d.key(), d.value(),
                                       d_x, d_y,
                                       level+1);
-        if (vertical) {
-          h += svg_node.rect.h + (d_idx < ndomains - 1 ? pad : 0);
-          w  = std::max(w, svg_node.rect.w);
+        if (nested) {
+          // draw nested domains
+          if (vertical) {
+            h += svg_node.rect.h + (d_idx < ndomains - 1 ? pad : 0);
+            w  = std::max(w, svg_node.rect.w);
+          } else {
+            w += svg_node.rect.w + (d_idx < ndomains - 1 ? pad : 0);
+            h  = std::max(h, svg_node.rect.h);
+          }
         } else {
+          // draw stacked domains, horizontal
           w += svg_node.rect.w + (d_idx < ndomains - 1 ? pad : 0);
           h  = std::max(h, svg_node.rect.h);
         }
         os << svg_node.svg;
         d_idx++;
       }
-      w += 2 * pad;
-      h += 60 + pad;
+      if (nested) {
+        w += 2 * pad;
+        h += 60 + pad;
+      } else {
+        h += 60;
+      }
     }
     else if (scope != elem.end() && *scope == "CORE") {
       w = 170;
