@@ -1,0 +1,2 @@
+Example call:
+Rscript load_and_process.r all-pairs-output.hdf5
