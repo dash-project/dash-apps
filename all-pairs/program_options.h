@@ -4,6 +4,10 @@
 
 namespace po = boost::program_options;
 
+/**
+* Parses the program options and passes it to the app.
+* If everything is correct, valid_opts is set to true
+*/
 po::variables_map setup_program_options(int &argc, char ** &argv, bool &valid_opts){
   if(dash::myid() == 0){
     std::cout << "All Pairs by Felix Moessbauer" << std::endl 
