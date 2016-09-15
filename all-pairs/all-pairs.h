@@ -155,11 +155,11 @@ public:
                                  dio::HDF5FileOptions::Append);
         os << dio::dataset(kernel.getName())
            << results
-           << dio::dataset((kernel.getName() + "_medians"))
+           << dio::dataset((kernel.getName() + "_median"))
            << medians
-           << dio::dataset((kernel.getName() + "_mins"))
+           << dio::dataset((kernel.getName() + "_min"))
            << mins
-           << dio::dataset((kernel.getName() + "_maxs"))
+           << dio::dataset((kernel.getName() + "_max"))
            << maxs; 
 
         if(myid == 0) {
