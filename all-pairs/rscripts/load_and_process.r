@@ -10,9 +10,9 @@ args = commandArgs(trailingOnly=TRUE)
 filepath = args[1]
 print(args)
 
-# Get all datasets in this file ending with MEDIAN
+# Get all datasets in this file ending with median or min 
 filestructure = h5ls(filepath)
-med_sets = filter(filestructure, grepl('median', name))
+med_sets = filter(filestructure, grepl('median|min', name))
 
 res     = apply(med_sets, 1, function(name){print(name["name"])})
 
@@ -32,8 +32,9 @@ sapply(res, function(name){
   data = h5read(filepath, name);
   kernel_list = unlist(strsplit(name, "_"))
   kernel      = paste(head(kernel_list, -1), collapse=" ")
-  print(kernel)
-  analyze_all_pairs(data, kernel, fwithoutext);
+  kind        = tail(kernel_list, 1)
+  print(paste(kernel, kind, sep=","))
+  analyze_all_pairs(data, kernel, kind, fwithoutext);
 })
 
 
