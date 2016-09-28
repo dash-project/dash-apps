@@ -168,9 +168,18 @@ std::string render_svg(
     os << ind << svg_text(std::string("[") + domain_tag + "]",
                           x + tpad, y + (tpad * 2) + fpad);
 
+    auto elem_hwinfo = elem.find("hwinfo");
+    std::ostringstream shared_mem_kb;
+    if (elem_hwinfo != elem.end()) {
+      auto hwinfo_shared_mem_kb = elem_hwinfo->find("shmem");
+      if (hwinfo_shared_mem_kb != elem_hwinfo->end()) {
+        shared_mem_kb << *hwinfo_shared_mem_kb << " KB";
+      }
+    }
+
     if (scope_name == "NODE" || scope_name == "MODULE") {
       std::ostringstream system_mb;
-      system_mb << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      system_mb << shared_mem_kb.str();
       os << ind << svg_text(std::string("host:") + hostname,
                             x + tpad + col_1, y + tpad + fpad);
       os << ind << svg_text(system_mb.str(),
@@ -178,15 +187,20 @@ std::string render_svg(
     }
     if (scope_name == "NUMA") {
       std::ostringstream numa_mb;
-      numa_mb << elem["hwinfo"]["shared_mem_kb"] << " KB";
-      os << ind << svg_text("id", elem["hwinfo"]["numa_id"],
+      numa_mb << shared_mem_kb.str();
+      std::string numa_id = "?";
+      if (elem_hwinfo != elem.end() &&
+          elem_hwinfo->find("numa_id") != elem_hwinfo->end()) {
+        numa_id = (*elem_hwinfo)["numa_id"];
+      }
+      os << ind << svg_text("id", numa_id,
                             x + tpad + col_1, y + tpad + fpad);
       os << ind << svg_text(numa_mb.str(),
                             x + tpad, y + tpad * 3 + fpad);
     }
     if (scope_name == "CACHE") {
       std::ostringstream cache_size;
-      cache_size << elem["hwinfo"]["shared_mem_kb"] << " KB";
+      cache_size << shared_mem_kb.str();
       os << ind << svg_text(cache_size.str(),
                             x + tpad, y + tpad * 3 + fpad);
     }
