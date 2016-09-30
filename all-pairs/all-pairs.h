@@ -25,6 +25,7 @@ class AllPairs {
 private:
 
     int                 repeats;
+    int                 ptests;
     bool                make_symmetric;
     array_t             results;
     /* summarized results */
@@ -44,9 +45,11 @@ public:
 
     AllPairs(
         int  rep        = 50,
+        int  partests   = 0,
         bool make_sym   = false
     ):
         repeats(rep),
+        ptests(partests),
         make_symmetric(make_sym),
         filename(generateFilename()),
         myid(dash::myid())

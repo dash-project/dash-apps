@@ -36,10 +36,16 @@ int main(int argc, char ** argv)
     if(valid_opts) {
         int  repeats  = opts["repeats"].as<int>();
         int  ireps    = opts["ireps"].as<int>();
+        int  ptests   = opts["ptests"].as<int>();
         bool make_sym = opts["make_symmetric"].as<bool>();
         auto kernels  = opts["kernels"].as<kernels_type>();
 
-        AllPairs aptest(repeats, make_sym);
+        // Sanitize
+        if(ptests <= 0 || ptests > dash::size()){
+          ptests = dash::size();
+        }
+
+        AllPairs aptest(repeats, ptests, make_sym);
 
         for(auto k:kernels) {
             if(k == "def") {
