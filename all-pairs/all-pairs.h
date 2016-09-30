@@ -25,7 +25,6 @@ class AllPairs {
 private:
 
     int                 repeats;
-    int                 ptests;
     bool                make_symmetric;
     array_t             results;
     /* summarized results */
@@ -35,6 +34,7 @@ private:
 
     harray_t            hostnames;
 
+    int                 sub_dims;
     int                 current_diag;
     tupel               next_pair;
     std::string         filename;
@@ -49,11 +49,11 @@ public:
         bool make_sym   = false
     ):
         repeats(rep),
-        ptests(partests),
         make_symmetric(make_sym),
         filename(generateFilename()),
         myid(dash::myid())
     {
+        sub_dims = (dash::size() -1) / partests + 1;
         auto pattern = createPattern();
         results.allocate(pattern);
 
@@ -120,27 +120,38 @@ public:
                     x = next_pair.second;
                 }
 
-                dash::barrier();
-                if(!(is_inverted && x == y)) {
-                // Measure r times
-                for(int r=0; r<repeats; ++r) {
-                    if(myid == x) {
-                        measurestart = timer.Now();
-                    }
-                    kernel.run(x,y);
-                    if(myid == x) {
-                        int int_repeats = kernel.getInternalRepeats();
-                        elapsed = timer.ElapsedSince(measurestart);
-                        results[x][y][r] = elapsed / int_repeats;
-                        #if VALIDATE_KERNEL
-                        if(!results.at(x,y,r).is_local()){
-                          std::cerr << "Unit " << myid << " index "
-                                    << x << "," << y << "," << r
-                                    << " is not local" << std::endl;
+                // Test only subsection of diagonal
+                for(int s=0; s<sub_dims; s++){
+                  dash::barrier();
+
+                  // Skip pair
+                  if((x % sub_dims) != s &&
+                     ((myid == x) || (myid == y)))
+                  {
+                    continue;
+                  }
+
+                  if(!(is_inverted && x == y)) {
+                    // Measure r times
+                    for(int r=0; r<repeats; ++r) {
+                        if(myid == x) {
+                            measurestart = timer.Now();
                         }
-                        #endif
+                        kernel.run(x,y);
+                        if(myid == x) {
+                            int int_repeats = kernel.getInternalRepeats();
+                            elapsed = timer.ElapsedSince(measurestart);
+                            results[x][y][r] = elapsed / int_repeats;
+                            #if VALIDATE_KERNEL
+                            if(!results.at(x,y,r).is_local()){
+                              std::cerr << "Unit " << myid << " index "
+                                        << x << "," << y << "," << r
+                                        << " is not local" << std::endl;
+                            }
+                            #endif
+                        }
                     }
-                }
+                  }
                 }
                 kernel.reset();
                 updatePartUnits();
