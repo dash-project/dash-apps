@@ -16,6 +16,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 find_package(Boost COMPONENTS program_options log REQUIRED)
 
+# workaround if cmake does not detect boost dependencies automatically
+#find_package(Boost COMPONENTS
+#  log 
+#    log_setup date_time system filesystem thread
+#    regex chrono atomic
+#  program_options
+#  REQUIRED)
+
 ## Do not edit below this line unless you know what you are doing
 
 if("$ENV{DASH_BASE}" STREQUAL "")

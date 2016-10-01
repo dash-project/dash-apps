@@ -7,6 +7,10 @@ To analyze the data, use the provided r-script `load_and_process.r`
 This project uses cmake to setup the build environment. It depends on Boost (program_options) and a build of DASH-MPI which can be downloaded here: http://dash-project.org/
 When everything is set up correctly, run build.sh to build the project using cmake.
 
+### Troubleshooting
+If your version of Boost is too new, cmake might not detect the dependencies correctly. Hence the application does not link correctly.
+In this case, uncomment the provided workaround in `CMakeLists.txt`.
+
 ## Run
 For the collection of the data run the application with `mpiexec ./all-pairs <params>`. The output files are placed in the current directory.
 As this application uses parallel I/O, run it on a parallel filesystem only.
