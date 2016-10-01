@@ -12,7 +12,8 @@ set(CXX_FLAGS "-O3 -Ofast")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Boost COMPONENTS program_options REQUIRED)
+# load boost
+find_package(Boost COMPONENTS program_options log REQUIRED)
 
 ## Do not edit below this line unless you know what you are doing
 

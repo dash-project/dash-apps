@@ -9,6 +9,10 @@
 
 
 #include <libdash.h>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+
 #include "program_options.h"
 #include "all-pairs.h"
 #include "kernel/all-pairs-kernel.h"
@@ -24,6 +28,8 @@
 
 using kernels_type = std::vector<std::string>;
 
+namespace logging  = boost::log;
+namespace logtriv  = logging::trivial;
 
 
 int main(int argc, char ** argv)
@@ -39,10 +45,27 @@ int main(int argc, char ** argv)
         int  ptests   = opts["ptests"].as<int>();
         bool make_sym = opts["make_symmetric"].as<bool>();
         auto kernels  = opts["kernels"].as<kernels_type>();
+        int  loglevel = opts["verbose"].as<int>();
 
         // Sanitize
         if(ptests <= 0 || ptests > dash::size()){
           ptests = dash::size();
+        }
+
+        // Setup Logging
+        auto logger = logging::core::get();
+        switch(loglevel){
+          case 1:
+            logger->set_filter(logtriv::severity >= logtriv::info);
+            break;
+          case 2:
+            logger->set_filter(logtriv::severity >= logtriv::debug);
+            break;
+          case 3:
+            logger->set_filter(logtriv::severity >= logtriv::trace);
+            break;
+          default:
+            logger->set_logging_enabled(false);
         }
 
         AllPairs aptest(repeats, ptests, make_sym);

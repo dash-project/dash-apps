@@ -26,7 +26,8 @@ po::variables_map setup_program_options(int &argc, char ** &argv, bool &valid_op
               "number of simultaneously tested pairs. Zero if no limit")
     ("kernels", po::value<std::vector<std::string>>()->multitoken(),
      "kernels to run [def mpi_rma_get mpi_rma_put mpi_sync mpi_async dash_get]")
-    ("make_symmetric", po::value<bool>()->default_value(false), "test only upper half plane");
+    ("make_symmetric", po::value<bool>()->default_value(false), "test only upper half plane")
+    ("verbose", po::value<int>()->default_value(0), "logging level (0-3), where 0 denotes no logging");
 
   po::variables_map vm;
   try {
