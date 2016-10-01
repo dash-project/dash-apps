@@ -9,6 +9,8 @@
 #include <iomanip>
 #include <ctime>
 
+#include "logger.h"
+
 #define VALIDATE_KERNEL 0
 
 typedef dash::Pattern<3>                         pattern_t;
@@ -89,7 +91,7 @@ public:
         bool              is_inverted = false;
         int               rounds = 2;
 
-        BOOST_LOG_TRIVIAL(info) << "Run Kernel";
+        LOG_UNIT(info) << "Run Kernel";
 
         if(myid == 0) {
             std::cout << "== Running Kernel '" << kernel.getName()
@@ -112,11 +114,11 @@ public:
        
         for(int round = 0; round<rounds; ++round) {
             // Execute only first round if make_symmetric
-            BOOST_LOG_TRIVIAL(debug) << "ROUND: " << round;
+            LOG_UNIT(debug) << "ROUND: " << round;
             while(current_diag <= ndiags) {
                 int x,y;
 
-                BOOST_LOG_TRIVIAL(debug) << "Measure diag " << current_diag
+                LOG_UNIT(debug) << "Measure diag " << current_diag
                                          << " out of " << ndiags;
 
                 if(!is_inverted) {
@@ -130,7 +132,7 @@ public:
                 // Test only subsection of diagonal
                 for(int s=0; s<sub_diags; s++){
                   dash::barrier();
-                  BOOST_LOG_TRIVIAL(trace) << "Measure subdiag " << s
+                  LOG_UNIT(trace) << "Measure subdiag " << s
                                            << " out of " << sub_diags;
 
                   // Skip pair
@@ -237,7 +239,7 @@ private:
         int   n    = dash::size();
         int & k    = current_diag;
 
-        BOOST_LOG_TRIVIAL(debug) << "update participating units";
+        LOG_UNIT(debug) << "update participating units";
 
         for(int y=0; y<n; ++y) {
             for(int x=0; x<=y; ++x) {
@@ -260,7 +262,7 @@ private:
   void calculateStatistics(){
     auto onemeasure = std::vector<double>(repeats);
 
-    BOOST_LOG_TRIVIAL(debug) << "calculate statistics";
+    LOG_UNIT(debug) << "calculate statistics";
 
     for(int x=0; x<dash::size(); ++x){
       for(int r=0; r<repeats; ++r){

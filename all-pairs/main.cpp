@@ -13,6 +13,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 
+#include "logger.h"
 #include "program_options.h"
 #include "all-pairs.h"
 #include "kernel/all-pairs-kernel.h"
@@ -31,6 +32,24 @@ using kernels_type = std::vector<std::string>;
 namespace logging  = boost::log;
 namespace logtriv  = logging::trivial;
 
+void setupLogger(int loglevel){
+  auto logger = logging::core::get();
+
+  switch(loglevel){
+    case 1:
+      logger->set_filter(logtriv::severity >= logtriv::info);
+      break;
+    case 2:
+      logger->set_filter(logtriv::severity >= logtriv::debug);
+      break;
+    case 3:
+      logger->set_filter(logtriv::severity >= logtriv::trace);
+      break;
+    default:
+      logger->set_logging_enabled(false);
+  }
+  LOG_UNIT(info) << "Logging enabled";
+}
 
 int main(int argc, char ** argv)
 {
@@ -52,22 +71,7 @@ int main(int argc, char ** argv)
           ptests = dash::size();
         }
 
-        // Setup Logging
-        auto logger = logging::core::get();
-        switch(loglevel){
-          case 1:
-            logger->set_filter(logtriv::severity >= logtriv::info);
-            break;
-          case 2:
-            logger->set_filter(logtriv::severity >= logtriv::debug);
-            break;
-          case 3:
-            logger->set_filter(logtriv::severity >= logtriv::trace);
-            break;
-          default:
-            logger->set_logging_enabled(false);
-        }
-        BOOST_LOG_TRIVIAL(info) << "Logging enabled";
+        setupLogger(loglevel);
 
         AllPairs aptest(repeats, ptests, make_sym);
 
