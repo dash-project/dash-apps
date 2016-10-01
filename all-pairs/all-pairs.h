@@ -128,6 +128,7 @@ public:
                     y = next_pair.first;
                     x = next_pair.second;
                 }
+                LOG_UNIT(trace) << "Candidate pair " << x << "," << y; 
 
                 // Test only subsection of diagonal
                 for(int s=0; s<sub_diags; s++){
@@ -141,7 +142,7 @@ public:
                   {
                     continue;
                   }
-
+                  LOG_UNIT(trace) << "Measure pair " << x << "," << y; 
                   if(!(is_inverted && x == y)) {
                     // Measure r times
                     for(int r=0; r<repeats; ++r) {
