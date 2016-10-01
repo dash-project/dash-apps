@@ -2,6 +2,8 @@
 #define ALL_PAIRS_H
 
 #include <libdash.h>
+#include <boost/log/trivial.hpp>
+
 #include <sstream>
 #include <fstream>
 #include <iomanip>
@@ -34,7 +36,7 @@ private:
 
     harray_t            hostnames;
 
-    int                 sub_dims;
+    int                 sub_diags;
     int                 current_diag;
     tupel               next_pair;
     std::string         filename;
@@ -53,7 +55,7 @@ public:
         filename(generateFilename()),
         myid(dash::myid())
     {
-        sub_dims = (dash::size() -1) / partests + 1;
+        sub_diags = (dash::size() -1) / partests + 1;
         auto pattern = createPattern();
         results.allocate(pattern);
 
@@ -87,6 +89,8 @@ public:
         bool              is_inverted = false;
         int               rounds = 2;
 
+        BOOST_LOG_TRIVIAL(info) << "Run Kernel";
+
         if(myid == 0) {
             std::cout << "== Running Kernel '" << kernel.getName()
                       << "' ==" << std::endl;
@@ -108,9 +112,12 @@ public:
        
         for(int round = 0; round<rounds; ++round) {
             // Execute only first round if make_symmetric
-
+            BOOST_LOG_TRIVIAL(debug) << "ROUND: " << round;
             while(current_diag <= ndiags) {
                 int x,y;
+
+                BOOST_LOG_TRIVIAL(debug) << "Measure diag " << current_diag
+                                         << " out of " << ndiags;
 
                 if(!is_inverted) {
                     x = next_pair.first;
@@ -121,11 +128,13 @@ public:
                 }
 
                 // Test only subsection of diagonal
-                for(int s=0; s<sub_dims; s++){
+                for(int s=0; s<sub_diags; s++){
                   dash::barrier();
+                  BOOST_LOG_TRIVIAL(trace) << "Measure subdiag " << s
+                                           << " out of " << sub_diags;
 
                   // Skip pair
-                  if((x % sub_dims) != s &&
+                  if((x % sub_diags) != s &&
                      ((myid == x) || (myid == y)))
                   {
                     continue;
@@ -167,6 +176,7 @@ public:
         calculateStatistics();
 
         // Store results
+        BOOST_LOG_TRIVIAL(info) << "Store results";
         dio::HDF5OutputStream os(this->filename + ".hdf5",
                                  dio::HDF5FileOptions::Append);
         os << dio::dataset(kernel.getName())
@@ -227,6 +237,8 @@ private:
         int   n    = dash::size();
         int & k    = current_diag;
 
+        BOOST_LOG_TRIVIAL(debug) << "update participating units";
+
         for(int y=0; y<n; ++y) {
             for(int x=0; x<=y; ++x) {
                 if(((x+y) % n) == k) {
@@ -247,6 +259,9 @@ private:
   */
   void calculateStatistics(){
     auto onemeasure = std::vector<double>(repeats);
+
+    BOOST_LOG_TRIVIAL(debug) << "calculate statistics";
+
     for(int x=0; x<dash::size(); ++x){
       for(int r=0; r<repeats; ++r){
         onemeasure[r] = results.local[0][x][r];

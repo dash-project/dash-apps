@@ -48,7 +48,7 @@ int main(int argc, char ** argv)
         int  loglevel = opts["verbose"].as<int>();
 
         // Sanitize
-        if(ptests <= 0 || ptests > dash::size()){
+        if((ptests <= 0) || (ptests > dash::size())){
           ptests = dash::size();
         }
 
@@ -67,6 +67,7 @@ int main(int argc, char ** argv)
           default:
             logger->set_logging_enabled(false);
         }
+        BOOST_LOG_TRIVIAL(info) << "Logging enabled";
 
         AllPairs aptest(repeats, ptests, make_sym);
 
