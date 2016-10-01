@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # load boost
+ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 find_package(Boost COMPONENTS program_options log REQUIRED)
 
 ## Do not edit below this line unless you know what you are doing
