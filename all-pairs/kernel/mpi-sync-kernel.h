@@ -20,6 +20,10 @@ MPISyncKernel(int internal_repeats = 1)
  Perform repeated measures on given data point
  */
 void run(int send, int recv){
+      if(send == recv){
+        // skip as this is not possible
+        return;
+      }
       for(int r=0; r<int_repeats; r++){
         int sr_addr = repeat * int_repeats + r; // send / recieve addr
         if(myid == send){
