@@ -178,7 +178,7 @@ public:
         calculateStatistics();
 
         // Store results
-        BOOST_LOG_TRIVIAL(info) << "Store results";
+        LOG_UNIT(info) << "Store results";
         dio::HDF5OutputStream os(this->filename + ".hdf5",
                                  dio::HDF5FileOptions::Append);
         os << dio::dataset(kernel.getName())
