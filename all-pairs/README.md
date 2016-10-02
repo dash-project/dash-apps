@@ -4,7 +4,7 @@ The results are stored as hdf5 files.
 To analyze the data, use the provided r-script `load_and_process.r`
 
 ## Build
-This project uses cmake to setup the build environment. It depends on Boost (program_options) and a build of DASH-MPI which can be downloaded here: http://dash-project.org/
+This project uses cmake to setup the build environment. It depends on Boost (program_options, log) and a build of DASH-MPI which can be downloaded here: http://dash-project.org/
 When everything is set up correctly, run build.sh to build the project using cmake.
 
 ### Troubleshooting
