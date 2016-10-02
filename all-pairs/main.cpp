@@ -46,6 +46,9 @@ namespace expr     = logging::expressions;
 namespace sinks    = logging::sinks;
 namespace keywords = logging::keywords;
 
+/** Setup the boost logger
+ * \param loglevel value between 0 (no logging) and 3
+ */
 void setupLogger(int loglevel){
   typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
   logging::add_common_attributes();
