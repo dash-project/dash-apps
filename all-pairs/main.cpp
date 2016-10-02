@@ -12,6 +12,15 @@
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/attributes/attribute.hpp>
+#include <boost/log/attributes/attribute_cast.hpp>
+#include <boost/log/attributes/attribute_value.hpp>
+#include <boost/log/attributes/constant.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/core/null_deleter.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/log/utility/setup/console.hpp>
 
 #include "logger.h"
 #include "program_options.h"
@@ -31,9 +40,28 @@ using kernels_type = std::vector<std::string>;
 
 namespace logging  = boost::log;
 namespace logtriv  = logging::trivial;
+namespace attrs    = logging::attributes;
+namespace src      = logging::sources;
+namespace expr     = logging::expressions;
+namespace sinks    = logging::sinks;
+namespace keywords = logging::keywords;
 
 void setupLogger(int loglevel){
+  typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
+  logging::add_common_attributes();
+
   auto logger = logging::core::get();
+  logger->add_global_attribute("Unit", attrs::constant< int >(dash::myid()));
+  boost::shared_ptr< text_sink > sink = logging::add_console_log();
+
+  sink->set_formatter(
+          expr::stream << std::left
+           << "["   << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%H:%M:%S")
+           << "] [Unit " << std::setw(3) << expr::attr< int >("Unit")
+           << "] [" << std::setw(5) << logging::trivial::severity
+           << "] " << expr::smessage);
+
+  logger->add_sink(sink);
 
   switch(loglevel){
     case 1:
