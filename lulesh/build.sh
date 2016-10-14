@@ -22,4 +22,4 @@ rm -Rf $BUILD_DIR/*
           \
            ../ && \
     await_confirm && \
-    make -j 4)
+    make VERBOSE=1 2>&1 | tee make.log)

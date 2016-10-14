@@ -46,8 +46,11 @@ foreach (MPI_LINK_FLAG ${MPI_LINK_FLAGS})
 endforeach()
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${MPI_INCLUDE_PATH}" )
+foreach (MPI_INC_ ${MPI_INCLUDE_PATH})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${MPI_INC_}" )
+endforeach()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DASH_CXX_FLAGS} ${CXX_FLAGS}" )
+
 string(TOLOWER ${DASH_DART_IMPL} DASH_DART_IMPL_LC)
 
 ## set dependencies and build options

@@ -1033,11 +1033,19 @@ void Domain::VerifyAndWriteFinalOutput(Real_t elapsed,
 
   Index_t ElemId = 0;
 
+#if 0
   cout << "Run completed:" << endl;
   cout << "   Problem size        = " << nx << endl;
   cout << "   MPI tasks           = " << numRanks << endl;
   cout << "   Iteration count     = " << cycle() << endl;
   cout << "   Final Origin Energy = " << e(ElemId) << endl;
+#endif
+
+  printf("Run completed:  \n");
+  printf("   Problem size        =  %i \n",    nx);
+  printf("   MPI tasks           =  %i \n",    numRanks);
+  printf("   Iteration count     =  %i \n",    cycle());
+  printf("   Final Origin Energy = %12.6e \n", e(ElemId));
 
   Real_t   MaxAbsDiff = Real_t(0.0);
   Real_t TotalAbsDiff = Real_t(0.0);
@@ -1056,6 +1064,7 @@ void Domain::VerifyAndWriteFinalOutput(Real_t elapsed,
     }
   }
 
+#if 0
   cout << std::scientific;
   // Quick symmetry check
   cout << "   Testing Plane 0 of Energy Array on rank 0: "<< endl;
@@ -1069,4 +1078,14 @@ void Domain::VerifyAndWriteFinalOutput(Real_t elapsed,
   cout << "Grind time (us/z/c)  = " << grindTime1 << " (per dom) " << endl;
   cout << "Grind time (us/z/c)  = " << grindTime2 << " (overall) " << endl;
   cout << "FOM                  = " << 1000.0/grindTime2 << endl;
+#endif
+  printf("   Testing Plane 0 of Energy Array on rank 0:\n");
+  printf("        MaxAbsDiff   = %12.6e\n",   MaxAbsDiff   );
+  printf("        TotalAbsDiff = %12.6e\n",   TotalAbsDiff );
+  printf("        MaxRelDiff   = %12.6e\n\n", MaxRelDiff   );
+
+   // Timing information
+  printf("\nElapsed time         = %10.2f (s)\n", elapsed);
+  printf("Grind time (us/z/c)  = %10.8g (per dom)  (%10.8g overall)\n", grindTime1, grindTime2);
+  printf("FOM                  = %10.8g (z/s)\n\n", 1000.0/grindTime2); // zones per second
 }
