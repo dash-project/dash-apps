@@ -15,7 +15,6 @@ The astro examples need:
 ## Assignments
 
 The assignments are given codes with some DASH data container allocations or operations on them missing. Participants need to fill in few lines of code in order to:
-<<<<<<< HEAD
 
 ### 1. A hello world intro
 
@@ -34,20 +33,4 @@ The assignments are given codes with some DASH data container allocations or ope
 ### 5. Count the number of bright objects in the image.
 * For every pixel, run a given 'checkobject' function. It will report, if it was a bright pixel and, if so, mark all adjacent pixels with the marker color, so that they won't be reported again.
 * Count in parallel for every block and combine the result into the global result.
-* (For simplixity, we don't correct for bright objects at the border between distributed block, which may be countet multiple time. Thie correction is left as a further exercise ...)
-=======
-1. A hello world intro
-2. Load image, optionally show a part of the image
-    * Declare the 2D block-distributed DASH matrix.
-    * Copy the images line by line from the libtiff buffer to the distributed matrix using a DASH algorithm.
-3. Compute a brightness histogram of the pixel values
-    * First, compute independent local histograms in each local block in parallel.
-    * Then, sum the local histograms using a DASH algorithm to produce the global result.
-    * Finally, looking at the brightness histogram define the limit between what is considered as bright pixels and dark pixels.
-4. Choose a marker color that is not appearing in the image yet
-    * Do a quick parallel scan over all pixels to confirm, that the marker color is not found.
-5. Count the number of bright objects in the image.
-    * For every pixel, run a given 'checkobject' function. It will report, if it was a bright pixel and, if so, mark all adjacent pixels with the marker color, so that they won't be reported again.
-    * Count in parallel for every block and combine the result into the global result.
-    * (For simplixity, we don't correct for bright objects at the border between distributed block, which may be countet multiple time. Thie correction is left as a further exercise ...)
->>>>>>> a4201f7c60385ed5d6ef613c7addbe01f43b7179
+* For simplixity, we don't correct for bright objects at the border between distributed block, which may be countet multiple time. Thie correction is left as a further exercise ...
