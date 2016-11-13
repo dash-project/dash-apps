@@ -137,7 +137,13 @@ void print_histogram( LocalHistIter first, LocalHistIter last ) {
 }
 
 
-uint32_t checkpixel( RGB* ptr,
+/* The checkobject function checks, if a pixel is brighter than the given limit.
+If so, mark it with the marker color and return 1. Also mark all adjacent bright pixels
+so that they will not counted again. This is done with a flood-fill algorithm.
+Note: Usually, one would implement the flood-fill recursively but this breaks for very
+large images! While it would work fine and with much less lines of code for small
+images, for very large images the  call stack gets very deep, causing stray segfaults. */
+uint32_t checkobject( RGB* ptr,
         uint32_t x, uint32_t y,
         uint32_t w, uint32_t h,
         uint32_t limit, RGB marker ) {
@@ -401,7 +407,7 @@ int main( int argc, char* argv[] ) {
         for ( uint32_t y= 0; y < lh ; y++ ){
         for ( uint32_t x= 0; x < lw ; x++ ){
 
-            foundobjects += checkpixel( matrix.lbegin(),
+            foundobjects += checkobject( matrix.lbegin(),
                 x, y, lw, lh,
                 limit, marker );
         }

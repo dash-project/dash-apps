@@ -137,7 +137,13 @@ void print_histogram( LocalHistIter first, LocalHistIter last ) {
 }
 
 
-uint32_t checkpixel( RGB* ptr,
+/* The checkobject function checks, if a pixel is brighter than the given limit.
+If so, mark it with the marker color and return 1. Also mark all adjacent bright pixels
+so that they will not counted again. This is done with a flood-fill algorithm.
+Note: Usually, one would implement the flood-fill recursively but this breaks for very
+large images! While it would work fine and with much less lines of code for small
+images, for very large images the  call stack gets very deep, causing stray segfaults. */
+uint32_t checkobject( RGB* ptr,
         uint32_t x, uint32_t y,
         uint32_t w, uint32_t h,
         uint32_t limit, RGB marker ) {
@@ -398,11 +404,11 @@ int main( int argc, char* argv[] ) {
 
         uint32_t foundobjects= 0;
 
-        /* Assignment: apply the given 'checkpixel' function to every pixel in the local part of the matrix
-        Use local 'x' and 'y' coordinates. Count how many times it returns 1 since that gives the number 
-        of bright objects touched. Count it in the local variale 'foundobjects'. 
-        
-        For now, we ignore that bright objects will be counted multiple times if they cross the border 
+        /* Assignment: apply the given 'checkobject' function to every pixel in the local part of the matrix
+        Use local 'x' and 'y' coordinates. Count how many times it returns 1 since that gives the number
+        of bright objects touched. Count it in the local variale 'foundobjects'.
+
+        For now, we ignore that bright objects will be counted multiple times if they cross the border
         between different blocks of the DASH matrix. Correcting this is left as an exercise ... */
 
 
@@ -412,7 +418,7 @@ int main( int argc, char* argv[] ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
         }
 
-        /* Assignment: Sum the the local numbers of bright objects from all units into the global result. 
+        /* Assignment: Sum the the local numbers of bright objects from all units into the global result.
         Use the same manner as for the histogram above */
 
         dash::barrier();
