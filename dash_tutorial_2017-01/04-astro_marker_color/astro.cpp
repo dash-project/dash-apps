@@ -281,12 +281,24 @@ int main( int argc, char* argv[] ) {
                 histogram.local[ it->brightness() * BINS / MAXKEY ]++;
         }
 
-        /* is this barrier needed? The example 'bench.04.histo-tf' doesn't have it */
+        // is this barrier needed? The example 'bench.04.histo-tf' doesn't have it
+        //
+        // <fuchsto> It's not needed. dash::transform ist a one-sided, non-collective
+        //           operation and does not require any synchronization.
+        //           Values in local histograms don't depend on other units' results
+        //           so there is no need to synchronize local completion.
+        //           Every unit just adds its local result onto the master unit's
+        //           histogram whenever it is ready.
+        //           We just have to synchronize units for the overall completion
+        //           of the global histogram.
         dash::barrier();
 
         if ( 0 != myid ) {
 
             // is this using atomic accesses?
+            //
+            // <fuchsto> Sure! dash::transform resolves to MPI_Accumulate, so transform
+            //           operations are atomic for every single element.
             dash::transform<uint32_t>(
                 histogram.lbegin(), histogram.lend(), // first source
                 histogram.begin(), // second source
