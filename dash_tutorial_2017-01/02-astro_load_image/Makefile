@@ -1,7 +1,7 @@
 include ../make.defs
 
 .phony: all
-all: astro heic1620a.tif
+all: astro astro-alternative heic1620a.tif
 
 .phon<: diff
 diff:  astro-assignment.cpp astro-solution.cpp
@@ -11,6 +11,10 @@ heic1620a.tif:
 	@echo "  --> please download laegest version of heic1620a.tif at http://www.spacetelescope.org/images/heic1620a/"
 
 astro:  astro.cpp
+	$(CXX) -c $(INC) -DWITHSDL $?
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
+
+astro-alternative:  astro-alternative.cpp
 	$(CXX) -c $(INC) -DWITHSDL $?
 	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
