@@ -212,19 +212,25 @@ int main( int argc, char* argv[] ) {
             Then again, we don't care about the colors for the rest of the code,
             and we can leave this out entirely. Histogram and counting objects won't
             produce any difference*/
-            std::for_each( rgb, rgb+w*rowsperstrip, [](RGB& rgb){
+            /*
+             * std::for_each( rgb, rgb+w*rowsperstrip, [](RGB& rgb){
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
+            */
 
             for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
 
-                auto range = matrix.cols( line, 1 );
+                //auto range = matrix.cols( line, 1 );
+                auto range = matrix.rows(line,1).cols(0,w);
+
                 dash::copy( rgb, rgb+w, range.begin() );
             }
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
             }
+            
+            if ( strip > 300 ) break;
         }
         end = std::chrono::system_clock::now();
         cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;

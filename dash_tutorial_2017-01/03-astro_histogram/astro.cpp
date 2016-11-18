@@ -92,7 +92,7 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
     if ( mw < w ) w= mw;
     if ( mh < h ) h= mh;
 
-    auto range = matrix.rows(startx,w).cols(starty,h);
+    auto range = matrix.cols(startx,w).rows(starty,h);
     RGB* pixels = (RGB*) pic->pixels;
 
     /* copy only the selected range to the raw pointer of the SDL pic */
@@ -240,7 +240,7 @@ int main( int argc, char* argv[] ) {
 
             for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
 
-                auto range = matrix.cols( line, 1 );
+                auto range = matrix.cols(0,w).rows( line, 1 );
                 dash::copy( rgb, rgb+w, range.begin() );
             }
 

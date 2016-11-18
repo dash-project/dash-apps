@@ -1,7 +1,7 @@
 include ../make.defs
 
 .phony: all
-all: astro astro-alternative heic1620a.tif
+all: astro astro-alternative astro-batch heic1620a.tif
 
 .phon<: diff
 diff:  astro-assignment.cpp astro-solution.cpp
@@ -18,6 +18,9 @@ astro-alternative:  astro-alternative.cpp
 	$(CXX) -c $(INC) -DWITHSDL $?
 	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
+astro-batch:  astro-batch.cpp
+	$(CXX) -c $(INC) -DWITHSDL $?
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
 .phony: printenv
 printenv :
@@ -29,4 +32,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f astro *.o
+	rm -f astro astro-alternative astro-batch *.o
