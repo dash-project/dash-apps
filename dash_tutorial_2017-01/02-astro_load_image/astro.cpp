@@ -216,12 +216,13 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
-            for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
+            // in the last iteration we can overwrite 'rowsperstrip'
+            if ( line + rowsperstrip > h ) rowsperstrip= h - line;
 
-                auto range = matrix.rows(line,1).cols(0,w);
+            auto range = matrix.rows(line,rowsperstrip).cols(0,w);
+            dash::copy( rgb, rgb+w, range.begin() );
 
-                dash::copy( rgb, rgb+w, range.begin() );
-            }
+            line += rowsperstrip;
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
