@@ -240,7 +240,7 @@ int main( int argc, char* argv[] ) {
 
             for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
 
-                auto range = matrix.cols(0,w).rows( line, 1 );
+                auto range = matrix.rows( line, 1 ).cols(0,w);
                 dash::copy( rgb, rgb+w, range.begin() );
             }
 
