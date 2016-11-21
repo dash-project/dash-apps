@@ -1,5 +1,6 @@
-#include "../generator/make_graph.h"
-#include "../generator/utils.h"
+#include <graph500/dist/bfs/generator/make_graph.h>
+#include <graph500/dist/bfs/generator/utils.h>
+
 #include <libdash.h>
 #include <list>
 
