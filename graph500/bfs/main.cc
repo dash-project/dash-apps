@@ -90,6 +90,7 @@ int main() {
   dart_unit_t next_unit = partition.next_in_row();
   dart_unit_t prev_unit = partition.prev_in_row();
   dart_unit_t transposed_unit = partition.get_unit(partition_row_index, partition_row); //(i, j) -> (j, i)
+  dart_unit_t root = partition.get_unit(partition_row, partition_columns - 1);
   dart_team_t row_team = partition.team_in_row();
   // we can infer more methods like get_row_count from this
   // maybe get_position -> (row, column)?
@@ -122,6 +123,7 @@ int main() {
         // we could do a simple neighbours.empty() then
         
         // perform "wave":
+        // TODO: how to calculate size for dart_recv?
         if(partition_row_index < partition_columns - 1) {
           if(partition_row_index > 0) {
             // wait for prefixes from previous processor in partition row
@@ -138,7 +140,6 @@ int main() {
           assigned = get_assigned_nodes(neighbours, prefix);
           // wait for broadcast from last unit in row
           neighbours.clear();
-          dart_team_recv(static_cast<void *>(neighbours), , row_team);
         } else {
           // wait for prefixes from previous processor in partition row
           dart_recv(static_cast<void *>(prefix), , prev_unit);
@@ -146,8 +147,8 @@ int main() {
           // this processor now holds the whole frontier for the next iteration
           // -> broadcast back to all other processors in row
           neighbours.insert(neighbours.end(), prefix.begin(), prefix.end());
-          dart_team_send(static_cast<void *>(neighbours), neighbours.size() * sizeof(dash::GraphNode), row_team);
         }
+        dart_bcast(static_cast<void *>(neighbours), neighbours.size() * sizeof(dash::GraphNode), root, row_team);
         
         // each unit has 2 vectors now:
         // neighbours: frontier for the next iteration in this row
