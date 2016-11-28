@@ -5,6 +5,5 @@
 #include <boost/log/trivial.hpp>
 
 #define LOG_UNIT(logger) \
-     BOOST_LOG_TRIVIAL(logger) << "[UNIT ID " << dash::myid() << "] "
-
+     BOOST_LOG_TRIVIAL(logger)
 #endif // LOGGER_H

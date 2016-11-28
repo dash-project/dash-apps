@@ -180,8 +180,8 @@ public:
 
         // Store results
         LOG_UNIT(info) << "Store results";
-        dio::HDF5OutputStream os(this->filename + ".hdf5",
-                                 dio::HDF5FileOptions::Append);
+        dio::OutputStream os(this->filename + ".hdf5",
+                                 dio::DeviceMode::app);
         os << dio::dataset(kernel.getName())
            << results
            << dio::dataset((kernel.getName() + "_median"))
@@ -289,7 +289,8 @@ private:
 
   void gatherHostnames(){
     for(int i=0; i<dash::size(); ++i){
-      hostnames[i] = dash::util::Locality::Hostname(i);
+      auto UL = dash::util::UnitLocality(i);
+      hostnames[i] = UL.hostname(); 
     }
   }
 

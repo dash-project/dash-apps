@@ -12,6 +12,9 @@ set(CXX_FLAGS "-O3 -Ofast")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# load MPI
+find_package(MPI REQUIRED)
+
 # load boost
 ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 find_package(Boost COMPONENTS program_options log REQUIRED)
@@ -51,6 +54,9 @@ string(TOLOWER ${DASH_DART_IMPL} DASH_DART_IMPL_LC)
 ## set dependencies and build options
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${DASH_LIBRARIES})
+
+## Add MPI
+include_directories(${MPI_INCLUDE_PATH})
 
 ## Add Boost
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})

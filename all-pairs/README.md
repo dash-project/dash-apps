@@ -4,7 +4,7 @@ The results are stored as hdf5 files.
 To analyze the data, use the provided r-script `load_and_process.r`
 
 ## Build
-This project uses cmake to setup the build environment. It depends on Boost (program_options) and a build of DASH-MPI which can be downloaded here: http://dash-project.org/
+This project uses cmake to setup the build environment. It depends on Boost (program_options, log) and a build of DASH-MPI which is available on GitHub: https://github.com/dash-project/dash
 When everything is set up correctly, run build.sh to build the project using cmake.
 
 ### Troubleshooting
@@ -22,3 +22,15 @@ To show all options, run `all-pairs --help`
 
 ## Add Kernels
 Feel free to write your own kernels by extending `AllPairsKernel` or a subclass of it.
+
+## Examples
+### LRZ SuperMUC Phase II HPC system
+Run on 20 haswell nodes of [SuperMUC](https://www.lrz.de/services/compute/supermuc/systemdescription/), using intel MPI. The cassis switches (3) can be easily seen as light blue blocks.
+
+![supermuc 20 nodes](https://gist.githubusercontent.com/fmoessbauer/051bc8340e0d6c05432394b95f521bc2/raw/414acc1f12c0acf7551224230f5746a65d7f4f46/supermuc_20_nodes_RMA_GET_web.png)
+
+### HLRS Hazel Hen HPC system
+Run on 5 nodes of [Hazel Hen](https://www.hlrs.de/de/systems/cray-xc40-hazel-hen/) using cray MPI. The schedule is disadvantageous because the nodes are split over two groups of the dragonfly interconnect.
+
+![hazelhen 5 nodes]
+(https://gist.githubusercontent.com/fmoessbauer/051bc8340e0d6c05432394b95f521bc2/raw/414acc1f12c0acf7551224230f5746a65d7f4f46/hazelhen_5_nodes_RMA_GET_web.png)
