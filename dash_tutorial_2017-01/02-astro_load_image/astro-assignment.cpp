@@ -92,7 +92,7 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
     if ( mw < w ) w= mw;
     if ( mh < h ) h= mh;
 
-    auto range = matrix.rows(startx,w).cols(starty,h);
+    auto range = matrix.cols(startx,w).rows(starty,h);
     RGB* pixels = (RGB*) pic->pixels;
 
     /* copy only the selected range to the raw pointer of the SDL pic */
@@ -124,7 +124,8 @@ int main( int argc, char* argv[] ) {
     team_size= dash::Team::All().size();
 
     dash::TeamSpec<2> teamspec(team_size, 1);
-
+    teamspec.balance_extents();
+    
     uint32_t w= 0;
     uint32_t h= 0;
     uint32_t rowsperstrip= 0;
@@ -185,10 +186,10 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
 
 
-    /* Assignment: declare and allocate a distributed 2d DASH matrix container
-    with width 'w' and height 'h' with the RGB basic data type It should be a
-    row major matrix which is block distributed vertically and
-    continuous (not distributed) horizontally. It should use all DASH units. */
+    /* Assignment: declare and allocate a distributed 2d DASH matrix 
+    container with width 'w' and height 'h' with the RGB basic data type. 
+    Select BLOCKED or NONE distribution in each dimension. In this case 
+    the TILED distribution is not recommended, though. */
 
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
@@ -201,8 +202,9 @@ int main( int argc, char* argv[] ) {
         uint32_t numstrips= TIFFNumberOfStrips(tif);
         tdata_t buf= _TIFFmalloc( TIFFStripSize(tif) );
         uint32_t line= 0;
+        auto iter= matrix.begin();
         start = std::chrono::system_clock::now();
-        for ( uint32_t strip = 0; strip < numstrips; strip++ ) {
+        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
 
             TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1);
             RGB* rgb= (RGB*) buf;
@@ -218,13 +220,14 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
-            for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
+            // in the last iteration we can overwrite 'rowsperstrip'
+            if ( line + rowsperstrip > h ) rowsperstrip= h - line;
 
 
-                /* Assignment: copy the next line (at pointer 'rgb' with width 'w') to
-                proper position in the distributed matrix.
-                Hint: get the respective matrix range first. */
-            }
+            /* Assignment: copy the next 'rowsperstrip' lines 
+            from pointer 'rgb' with width 'w' each to the target
+            position in the distributed matrix. */
+            
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;

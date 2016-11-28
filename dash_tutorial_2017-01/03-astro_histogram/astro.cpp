@@ -146,7 +146,8 @@ int main( int argc, char* argv[] ) {
     team_size= dash::Team::All().size();
 
     dash::TeamSpec<2> teamspec(team_size, 1);
-
+    teamspec.balance_extents();
+    
     uint32_t w= 0;
     uint32_t h= 0;
     uint32_t rowsperstrip= 0;
@@ -207,7 +208,7 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
 
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
-        dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE ),
+        dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
         dash::Team::All(), teamspec );
 
 
@@ -221,8 +222,9 @@ int main( int argc, char* argv[] ) {
         uint32_t numstrips= TIFFNumberOfStrips(tif);
         tdata_t buf= _TIFFmalloc( TIFFStripSize(tif) );
         uint32_t line= 0;
+        auto iter= matrix.begin();
         start = std::chrono::system_clock::now();
-        for ( uint32_t strip = 0; strip < numstrips; strip++ ) {
+        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
 
             TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1);
             RGB* rgb= (RGB*) buf;
@@ -238,11 +240,10 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
-            for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
+            // in the last iteration we can overwrite 'rowsperstrip'
+            if ( line + rowsperstrip > h ) rowsperstrip= h - line;
 
-                auto range = matrix.rows( line, 1 ).cols(0,w);
-                dash::copy( rgb, rgb+w, range.begin() );
-            }
+            iter= dash::copy( rgb, rgb+w*rowsperstrip, iter );
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
@@ -281,9 +282,6 @@ int main( int argc, char* argv[] ) {
                 histogram.local[ it->brightness() * BINS / MAXKEY ]++;
         }
 
-        /* is this barrier needed? The example 'bench.04.histo-tf' doesn't have it */
-        dash::barrier();
-
         if ( 0 != myid ) {
 
             // is this using atomic accesses?
@@ -305,8 +303,8 @@ int main( int argc, char* argv[] ) {
         }
     }
 
-    /* from the brightness histogram we learned, that we should define all but the first two histogram bins
-    as bright pixels */
+    /* from the brightness histogram we learned, that we should define 
+    all but the first two histogram bins as bright pixels */
     const uint32_t limit= 255*3*2/17;
 
 

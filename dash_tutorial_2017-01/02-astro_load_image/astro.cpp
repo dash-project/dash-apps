@@ -124,7 +124,8 @@ int main( int argc, char* argv[] ) {
     team_size= dash::Team::All().size();
 
     dash::TeamSpec<2> teamspec(team_size, 1);
-
+    teamspec.balance_extents();
+    
     uint32_t w= 0;
     uint32_t h= 0;
     uint32_t rowsperstrip= 0;
@@ -185,7 +186,7 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
 
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
-        dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE ),
+        dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
         dash::Team::All(), teamspec );
 
 
@@ -199,8 +200,9 @@ int main( int argc, char* argv[] ) {
         uint32_t numstrips= TIFFNumberOfStrips(tif);
         tdata_t buf= _TIFFmalloc( TIFFStripSize(tif) );
         uint32_t line= 0;
+        auto iter= matrix.begin();
         start = std::chrono::system_clock::now();
-        for ( uint32_t strip = 0; strip < numstrips; strip++ ) {
+        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
 
             TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1);
             RGB* rgb= (RGB*) buf;
@@ -219,10 +221,7 @@ int main( int argc, char* argv[] ) {
             // in the last iteration we can overwrite 'rowsperstrip'
             if ( line + rowsperstrip > h ) rowsperstrip= h - line;
 
-            auto range = matrix.rows(line,rowsperstrip).cols(0,w);
-            dash::copy( rgb, rgb+w, range.begin() );
-
-            line += rowsperstrip;
+            iter= dash::copy( rgb, rgb+w*rowsperstrip, iter );
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;

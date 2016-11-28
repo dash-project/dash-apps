@@ -92,7 +92,7 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
     if ( mw < w ) w= mw;
     if ( mh < h ) h= mh;
 
-    auto range = matrix.rows(startx,w).cols(starty,h);
+    auto range = matrix.cols(startx,w).rows(starty,h);
     RGB* pixels = (RGB*) pic->pixels;
 
     /* copy only the selected range to the raw pointer of the SDL pic */
@@ -146,7 +146,8 @@ int main( int argc, char* argv[] ) {
     team_size= dash::Team::All().size();
 
     dash::TeamSpec<2> teamspec(team_size, 1);
-
+    teamspec.balance_extents();
+    
     uint32_t w= 0;
     uint32_t h= 0;
     uint32_t rowsperstrip= 0;
@@ -207,7 +208,7 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
 
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
-        dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE ),
+        dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
         dash::Team::All(), teamspec );
 
 
@@ -221,8 +222,9 @@ int main( int argc, char* argv[] ) {
         uint32_t numstrips= TIFFNumberOfStrips(tif);
         tdata_t buf= _TIFFmalloc( TIFFStripSize(tif) );
         uint32_t line= 0;
+        auto iter= matrix.begin();
         start = std::chrono::system_clock::now();
-        for ( uint32_t strip = 0; strip < numstrips; strip++ ) {
+        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
 
             TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1);
             RGB* rgb= (RGB*) buf;
@@ -238,11 +240,10 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
-            for ( uint32_t l= 0; ( l < rowsperstrip ) && ( line < h ) ; l++, line++, rgb += w ) {
+            // in the last iteration we can overwrite 'rowsperstrip'
+            if ( line + rowsperstrip > h ) rowsperstrip= h - line;
 
-                auto range = matrix.cols( line, 1 );
-                dash::copy( rgb, rgb+w, range.begin() );
-            }
+            iter= dash::copy( rgb, rgb+w*rowsperstrip, iter );
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
@@ -270,24 +271,33 @@ int main( int argc, char* argv[] ) {
         const uint64_t MAXKEY= 255*3;
         const uint64_t BINS= 17;
 
+        
         /* Assignment: Create a distributed DASH array for the histogram
-        of size ( 'BINS' x team size ) which is block distributed over all units.
-        Fill it with '0' using a DASH algorithm. */
+        of size ( 'BINS' x team size ) which is block distributed 
+        over all units. Fill it with '0' using a DASH algorithm. */
 
+        
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
 
-        /* Assignment: Iterate over all local pixels in the distributed matrix using the local iterator.
-        For every pixel determine the brightness bin in the histogram of 'BINS' bins.
-        Then increment the corresponding histogram bin in the local part of the histogram be 1. */
+        
+        /* Assignment: Iterate over all local pixels in the 
+        distributed matrix using the local iterator. For every pixel 
+        determine the brightness bin in the histogram of 'BINS' bins.
+        Then increment the corresponding histogram bin in the local 
+        part of the histogram be 1. */
 
-        /* is this barrier needed? The example 'bench.04.histo-tf' doesn't have it */
+        
         dash::barrier();
 
         if ( 0 != myid ) {
 
-            /* Assignment: For all units except unit 0, add their histogram bins to the
-            values of the histogram of unit 0. Try using a DASH algorithm for that. */
+            
+            /* Assignment: For all units except unit 0, add their histogram 
+            bins to the values of the histogram of unit 0. Try using a DASH 
+            algorithm for that. */
+
+            
         }
 
         dash::barrier();
@@ -302,12 +312,13 @@ int main( int argc, char* argv[] ) {
         }
     }
 
-    /* from the brightness histogram we learned, that we should define all but the first two histogram bins
-    as bright pixels */
+    /* from the brightness histogram we learned, that we should define all 
+    but the first two histogram bins as bright pixels */
 
-    /* Assignment: but here the limit where the pixel color is considered part of
-    a bright object instead of the dark background. Look at the histogram you produced to
-    find out a good limit */
+    
+    /* Assignment: but here the limit where the pixel color is considered 
+    part of a bright object instead of the dark background. Look at the 
+    histogram you produced to find out a good limit */
 
     const uint32_t limit= 0;
 
