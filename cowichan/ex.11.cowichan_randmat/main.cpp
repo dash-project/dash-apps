@@ -15,6 +15,19 @@ void print2d(T& mat) {
   }
 }
 
+//
+// The Cowichan problems require that the output is independent of the
+// numbers of processors used. For randmat() a common solution found
+// in other implementations is to use a simple linear congruential
+// random number generator (LCG) with a separate deterministic seed
+// for each row and to parallelize over the rows of the matrix. This
+// is also how the DASH solution below works.
+//
+// A potential alternative would be to use a counter-based random
+// number generation scheme (e.g. random123) that can be easily
+// parallelized.
+//
+
 template<typename T>
 void randmat(dash::NArray<T, 2>& mat, uint seed)
 {
@@ -25,7 +38,7 @@ void randmat(dash::NArray<T, 2>& mat, uint seed)
 
   auto gc = mat.pattern().global({0,0});
   uint gbeg = gc[0];  // global row of local (0,0)
-  
+
   if(0 < mat.local_size()){
     for(uint i=0; i<nrows; ++i ) {
       uint s = seed + gbeg + i;
@@ -42,21 +55,22 @@ void randmat(dash::NArray<T, 2>& mat, uint seed)
 int main(int argc, char* argv[])
 {
   typedef unsigned int uint;
-  
+
   dash::init(&argc,&argv);
-  
+
   auto myid = dash::myid();
-  
+
   if(argc != 4){
-    if (0==myid) cout << "3 Parameters expected!" << endl << "Usage: cowichan_randmat nrows ncols seed" << endl;
+    if (0==myid) cout << "3 Parameters expected!" << endl
+		      << "Usage: cowichan_randmat nrows ncols seed" << endl;
     dash::finalize();
     return 0;
   }
-  
+
   uint nrows = static_cast<uint>(atoi(argv[1]));
   uint ncols = static_cast<uint>(atoi(argv[2]));
   uint s     = static_cast<uint>(atoi(argv[3]));
-  
+
   dash::NArray<unsigned char, 2> mat(nrows, ncols);
 
   randmat(mat, s);
@@ -66,8 +80,3 @@ int main(int argc, char* argv[])
 
   dash::finalize();
 }
-
-
-
-
-
