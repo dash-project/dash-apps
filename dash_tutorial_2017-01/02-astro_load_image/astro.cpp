@@ -138,7 +138,7 @@ int main( int argc, char* argv[] ) {
 
     /* just a fixed size DASH array to distribute the image dimensions.
     Could also use dash::Shared<pair<...>> but we'd need more code for sure. */
-    dash::Array<uint32_t> arr(2);
+    dash::Array<uint32_t> array(2);
 
     if ( 0 == myid ) {
 
@@ -169,21 +169,20 @@ int main( int argc, char* argv[] ) {
             }
         }
 
-        arr[0]= w;
-        arr[1]= h;
+        array[0]= w;
+        array[1]= h;
     }
 
-    dash::barrier();
+    array.barrier();
 
     if ( 0 != myid ) {
 
-        w= arr[0];
-        h= arr[1];
+        w= array[0];
+        h= array[1];
     }
 
     // cout << "unit " << myid << " thinks the image is " << w << "*" << h << endl;
 
-    dash::barrier();
 
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
         dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
@@ -231,7 +230,7 @@ int main( int argc, char* argv[] ) {
         cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
     }
 
-    dash::barrier();
+    matrix.barrier();
 
     if ( 0 == myid ) {
 

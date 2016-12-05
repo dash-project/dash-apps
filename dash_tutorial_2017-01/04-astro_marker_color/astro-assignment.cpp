@@ -160,7 +160,7 @@ int main( int argc, char* argv[] ) {
 
     /* just a fixed size DASH array to distribute the image dimensions.
     Could also use dash::Shared<pair<...>> but we'd need more code for sure. */
-    dash::Array<uint32_t> arr(2);
+    dash::Array<uint32_t> array(2);
 
     if ( 0 == myid ) {
 
@@ -191,21 +191,19 @@ int main( int argc, char* argv[] ) {
             }
         }
 
-        arr[0]= w;
-        arr[1]= h;
+        array[0]= w;
+        array[1]= h;
     }
 
-    dash::barrier();
+    array.barrier();
 
     if ( 0 != myid ) {
 
-        w= arr[0];
-        h= arr[1];
+        w= array[0];
+        h= array[1];
     }
 
     // cout << "unit " << myid << " thinks the image is " << w << "*" << h << endl;
-
-    dash::barrier();
 
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
         dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
@@ -253,14 +251,14 @@ int main( int argc, char* argv[] ) {
         cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
     }
 
-    dash::barrier();
+    matrix.barrier();
 
     if ( 0 == myid ) {
 
         show_matrix( matrix, 1600, 1200 );
     }
 
-    dash::barrier();
+    matrix.barrier();
 
 
     /* *** part 3: compute historgramm in parallel *** */
@@ -292,9 +290,10 @@ int main( int argc, char* argv[] ) {
                 dash::plus<uint32_t>() );
         }
 
-        dash::barrier();
+        histogram.barrier();
 
         end = std::chrono::system_clock::now();
+
 
         if ( 0 == myid ) {
 
@@ -308,7 +307,7 @@ int main( int argc, char* argv[] ) {
     const uint32_t limit= 255*3*2/17;
 
 
-    dash::barrier();
+    matrix.barrier();
 
 
     /* *** part 4: define a marker color and check that it is not appearing 
@@ -333,12 +332,8 @@ int main( int argc, char* argv[] ) {
             (uint32_t) marker.g << ":" <<
             (uint32_t) marker.b << ":" <<
             "in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
-        dash::barrier();
         cout << "    unit " << myid << " found it " << count << " times" << endl;
     }
-
-    dash::barrier();
-
 
     dash::finalize();
 }
