@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(cowichan_randmat)
+project(randmat)
 
 ## Adjust to your needs
 

@@ -1,0 +1,10 @@
+# no Makefiles
+*Makefile
+
+# just Makefile in cowichan root folder should be tracked
+!/Makefile
+
+*/randmat
+*/thresh
+
+

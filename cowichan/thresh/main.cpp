@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
   auto myid = dash::myid();
   
   if(argc != 4){
-    if (0==myid) cout << "2 Parameters expected!" << endl << "Usage:cowichan_thresh nrows ncols percentage" << endl;
+    if (0==myid) cout << "3 Parameters expected!" << endl << "Usage:cowichan_thresh nrows ncols percentage" << endl;
     dash::finalize();
     return 0;
   }
