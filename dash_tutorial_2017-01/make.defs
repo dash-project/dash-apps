@@ -1,6 +1,6 @@
 
 
-DASH_ROOT = /home/knue/opt/dash-0.3.0
+DASH_ROOT = /home/knue/local/dash-0.3.0
 #DASH_ROOT = /opt/dash
 MPIROOT = /opt/open-mpi/
 
@@ -12,4 +12,4 @@ LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base
 #CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 CXXFLAGS= -O3 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 
-CXX       = $(MPIROOT)/bin/mpicxx -std=c++11 $(CXXFLAGS)
+CXX       = mpicxx -std=c++11 $(CXXFLAGS)
