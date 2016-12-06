@@ -16,7 +16,7 @@ cache:
 
 
 clean:
-	find ./randmat/* ! -name CMakeLists.txt ! -name main.cpp ! -delete
-	find ./thresh/*  ! -name CMakeLists.txt ! -name main.cpp ! -delete
+	find ./randmat/* ! -name CMakeLists.txt ! -name main.cpp  -delete
+	find ./thresh/*  ! -name CMakeLists.txt ! -name main.cpp  -delete
 
     
