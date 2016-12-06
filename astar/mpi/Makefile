@@ -1,2 +1,2 @@
 all:
-		mpiCC main.cpp -o main
+		mpiCC main.cpp Puzzle.cpp -o main
