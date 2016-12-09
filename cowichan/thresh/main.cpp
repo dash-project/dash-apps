@@ -8,6 +8,12 @@ using std::endl;
 typedef unsigned int  uint;
 typedef unsigned char uchar;
 
+#define USED_TYPE uchar
+
+
+template<typename T = USED_TYPE>
+inline void thresh(uint nrows, uint ncols, uint percent, int myid);
+
 
 template<typename T>
 void print2d(T& mat) {
@@ -19,13 +25,73 @@ void print2d(T& mat) {
   }
 }
 
-template<typename T>
-uchar thresh(uint nrows, uint ncols, uint percent, T& matSrc, T& mask){
+
+int main(int argc, char* argv[])
+{  
+  dash::init(&argc,&argv);
+  int myid = static_cast<int>( dash::myid() );
+  
+  if(argc != 4){
+    if (0==myid){ cout << "3 Parameters expected!" 
+                 << endl
+                 << "Usage:cowichan_thresh nrows ncols percentage"
+                 << endl;
+    }
+    dash::finalize();
+    return 0;
+  }
+  
+  uint nrows   = static_cast<uint>(atoi(argv[1]));
+  uint ncols   = static_cast<uint>(atoi(argv[2]));
+  uint percent = static_cast<uint>(atoi(argv[3]));
+  
+  thresh(nrows, ncols, percent, myid);
+
+  dash::finalize();
+}
+
+
+template<typename T = USED_TYPE>
+inline void thresh(uint nrows, uint ncols, uint percent, int myid){
+
+  dash::NArray<T, 2> matSrc(nrows, ncols);
+  dash::NArray<T, 2> mask  (nrows, ncols);
+  
+  T tmp;
+  if(0 == myid){
+    for(auto i : matSrc){
+      scanf("%d", &tmp);
+      i = tmp;
+    }
+  }
+  
   //find max value in matSrc
   auto maxGlobIt = dash::max_element(matSrc.begin(), matSrc.end());
-  uchar max = *maxGlobIt;
+  T max = *maxGlobIt;
   
-  uchar* histogram = new uchar[max+1];
+  size_t num_units  = dash::size();
+  dash::barrier();
+  
+  //dash::DistributionSpec<1> distr (dash::BLOCKCYCLIC(3));
+  dash::Array<T> histo((max + 1) * num_units, dash::BLOCKCYCLIC(3));
+  
+  cout << "myid: " << myid << " has histo.lsize(): " << histo.lsize() << endl;
+  dash::barrier();
+  
+  for(uint i = 0; i < histo.lsize(); ++i){
+    histo[i] = myid;
+  }
+  
+  dash::barrier();
+  
+  if(0==myid){
+    cout << endl << "--------" << endl;
+    
+    for(auto i : histo){
+      cout << static_cast<uint>(i) << " ";
+    }
+    cout << endl << "--------" << endl;
+  }
   
   /* TO DO...
   for (int i = 0; i < nrows; i++) {
@@ -50,46 +116,11 @@ uchar thresh(uint nrows, uint ncols, uint percent, T& matSrc, T& mask){
     }
   }*/
   
-  delete[] histogram;
-  return max;
-}
-
-int main(int argc, char* argv[])
-{
-  dash::init(&argc,&argv);
-  
-  auto myid = dash::myid();
-  
-  if(argc != 4){
-    if (0==myid) cout << "3 Parameters expected!" << endl << "Usage:cowichan_thresh nrows ncols percentage" << endl;
-    dash::finalize();
-    return 0;
-  }
-  
-  uint nrows   = static_cast<uint>(atoi(argv[1]));
-  uint ncols   = static_cast<uint>(atoi(argv[2]));
-  uint percent = static_cast<uint>(atoi(argv[3]));
-  
-  dash::NArray<uchar, 2> matSrc(nrows, ncols);
-  dash::NArray<uchar, 2> mask  (nrows, ncols);
-  
-  uchar tmp;
-  if(0 == myid){
-    for(auto i : matSrc){
-      scanf("%d", &tmp);
-      i = tmp;
-    }
-  }
-  
-  cout << static_cast<uint>(thresh(nrows, ncols, percent, matSrc, mask)) << endl;
-  
   dash::barrier();
-  if( myid==0 ) print2d(matSrc);
-
-  dash::finalize();
+  
+  if(0 == myid) cout << endl << "found max: " << static_cast<uint>(max) << endl;
+  if(0 == myid) print2d(matSrc);
 }
-
-
 
 
 
