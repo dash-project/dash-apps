@@ -55,8 +55,9 @@ template<typename T = USED_TYPE>
 inline void thresh(uint nrows, uint ncols, uint percent, int myid){
 
   dash::NArray<T, 2> matSrc(nrows, ncols);
-  dash::NArray<T, 2> mask  (nrows, ncols);
+  //dash::NArray<T, 2> mask  (nrows, ncols);  //not used yet
   
+  //read Input Matrix from stdin
   T tmp;
   if(0 == myid){
     for(auto i : matSrc){
@@ -64,22 +65,33 @@ inline void thresh(uint nrows, uint ncols, uint percent, int myid){
       i = tmp;
     }
   }
+  dash::barrier();
   
   //find max value in matSrc
   auto maxGlobIt = dash::max_element(matSrc.begin(), matSrc.end());
-  T max = *maxGlobIt;
+  T max          = *maxGlobIt;
+  T maxPO        = max + 1; //max plus one
   
-  size_t num_units  = dash::size();
-  dash::barrier();
+  //get number of Units running
+  size_t num_units = dash::size();
   
-  //dash::DistributionSpec<1> distr (dash::BLOCKCYCLIC(3));
-  dash::Array<T> histo((max + 1) * num_units, dash::BLOCKCYCLIC(3));
+  //calculate how many numbers are hold of each unit -> remark: each unit hold the number of every unit (rounding up)
+  T histNumPerUnit = ((maxPO % num_units) > 0) ? (maxPO / num_units) + 1 : maxPO / num_units;
   
-  cout << "myid: " << myid << " has histo.lsize(): " << histo.lsize() << endl;
-  dash::barrier();
+  //calculate tiling -> space on one unit to fit all numbers it's holding (last unit may be underfilled)
+  size_t tiling    = histNumPerUnit * num_units;
+  
+  //for debugging
+  size_t reqMem    = tiling * num_units;
+ 
+  
+  dash::Array<T> histo(reqMem);  //dash::TILE(tiling) -> not required anymore?
+  
+  //for debugging
+/*   cout << "myid: " << myid << " has histo.lsize(): " << histo.lsize() << endl;
   
   for(uint i = 0; i < histo.lsize(); ++i){
-    histo[i] = myid;
+    histo.local[i] = myid;
   }
   
   dash::barrier();
@@ -91,7 +103,17 @@ inline void thresh(uint nrows, uint ncols, uint percent, int myid){
       cout << static_cast<uint>(i) << " ";
     }
     cout << endl << "--------" << endl;
+  } */
+  
+  //zähle lokal die Vorkommen jeder Zahl und schreibe sie asynchron ins globale array
+  for (T * i = matSrc.lbegin(); i < matSrc.lend(); ++i){
+    if(*i){ //don't do anything if zero -> right now zeros aren't count at all
+      int globIdx = (*i) * num_units + myid;
+      histo.async[globIdx]++;      //should i make a differentiation between local and global?
+    }
   }
+  histo.async.push();
+  
   
   /* TO DO...
   for (int i = 0; i < nrows; i++) {
@@ -118,7 +140,12 @@ inline void thresh(uint nrows, uint ncols, uint percent, int myid){
   
   dash::barrier();
   
-  if(0 == myid) cout << endl << "found max: " << static_cast<uint>(max) << endl;
+  if(0 == myid) cout << endl 
+                << "found max: "      << static_cast<uint>(max            ) << endl
+                << "histNumPerUnit: " << static_cast<uint>(histNumPerUnit ) << endl
+                << "tiling        : " << static_cast<uint>(tiling         ) << endl
+                << "reqMem        : " << static_cast<uint>(reqMem         ) << endl;
+  //cout << "myid: " << myid << " found max: " << static_cast<uint>(max) << endl;
   if(0 == myid) print2d(matSrc);
 }
 
