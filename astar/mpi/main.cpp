@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <vector>
+#include <algorithm>
 #include "Puzzle.h"
 
 
@@ -56,6 +57,18 @@ void recvNPuzzles(std::vector<Puzzle> & puzzles, MPI_Datatype type, int src, int
   }
 }
 
+void addToQueue(std::vector<Puzzle> &pv, Puzzle p) {
+  auto it = std::find(pv.begin(), pv.end(), p);
+  if (it == pv.end()) {
+    pv.push_back(p);
+    return;
+  }
+
+  if ((*it).cost < p.cost) {
+    (*it) = p;
+  }
+}
+
 int main (int argc, char* argv[]) {
 
   MPI_Init(NULL, NULL);
@@ -63,12 +76,6 @@ int main (int argc, char* argv[]) {
   MPI_Datatype puzzleType = register_type(p);
 
   std::vector<Puzzle> np;
-  np.push_back(p);
-  np.push_back(Puzzle());
-  np.push_back(Puzzle());
-  np.push_back(Puzzle());
-  np.push_back(Puzzle());
-  np.push_back(Puzzle());
 
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -80,9 +87,28 @@ int main (int argc, char* argv[]) {
   int name_len;
   MPI_Get_processor_name(processor_name, &name_len);
 
+
+
+
   if (0 == world_rank) {
-    p.puzzle[3] = 21;
-    np[4].puzzle[6] = 139;
+    //addToQueue(np, p);
+    //addToQueue(np, np.back().moveRight());
+    //addToQueue(np, np.back().moveDown());
+    //addToQueue(np, np.back().moveLeft());
+    //addToQueue(np, np.back().moveDown());
+    //addToQueue(np, np.back().moveRight());
+    np.push_back(p);
+
+    Puzzle p2 = p.moveDown();
+    np.push_back(p2);
+    //addToQueue(np,p2);
+    np.push_back(np.back().moveDown());
+
+    std::cout << "----- VECTOR: -----" << std::endl;
+    for (int i=0; i<np.size(); ++i) {
+      np[i].print();
+    }
+    std::cout << "--------------- move tests fertig ------------------" << std::endl;
     sendPuzzle(p,puzzleType, 1, 0, MPI_COMM_WORLD);
     sendNPuzzles(np,puzzleType, 1, 0, MPI_COMM_WORLD);
   } else if(1 == world_rank) {
