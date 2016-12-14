@@ -10,7 +10,7 @@ diff:  astro-assignment.cpp astro-solution.cpp
 heic1620a.tif:
 	@echo "  --> please download laegest version of heic1620a.tif at http://www.spacetelescope.org/images/heic1620a/"
 
-astro:  astro.cpp
+astro:  astro.cpp misc.h
 	$(CXX) -c $(INC) -DWITHSDL $?
 	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
