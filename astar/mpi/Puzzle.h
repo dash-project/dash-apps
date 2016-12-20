@@ -1,7 +1,10 @@
 #pragma once
 #include <iostream>
+#include <string.h>
 
-const int COLUMNS = 2, ROWS = 3;
+const int COLUMNS = 3, ROWS = 3;
+//const int SIZE = COLUMNS * ROWS;
+
 
 class Puzzle{
 public:
@@ -12,11 +15,11 @@ public:
 
   Puzzle();
 
-  inline bool operator==(const Puzzle& rhs) {
-    return (puzzle == rhs.puzzle);
+  inline bool operator==(const Puzzle& other) {
+    return (memcmp(puzzle, other.puzzle, sizeof(puzzle)) == 0);
   }
 
-
+  Puzzle randomize(int n);
 
   void print();
   Puzzle moveUp();
@@ -26,4 +29,18 @@ public:
 
   int get_responsible_process(int no_of_processes);
   
+};
+
+
+struct cmp{
+  bool operator() (const Puzzle& lhs, const Puzzle& rhs) const {
+    for (int i=0; i<ROWS*COLUMNS; ++i) {
+      if (lhs.puzzle[i] < rhs.puzzle[i]) {
+        return true;
+      } else if (lhs.puzzle[i] > rhs.puzzle[i]) {
+        return false;
+      }
+    }
+    return false;
+  }
 };

@@ -9,6 +9,30 @@ Puzzle::Puzzle() {
   }
 }
 
+Puzzle Puzzle::randomize(int n) {
+  Puzzle p;
+  for (int i=0; i<n; ++i) {
+    int r = rand() % 4;
+    switch (r) {
+      case 0:
+        p = p.moveRight();
+        break;
+      case 1:
+        p = p.moveLeft();
+        break;
+      case 2:
+        p = p.moveUp();
+        break;
+      case 3:
+        p = p.moveDown();
+        break;
+      default:
+        break;
+    }
+  }
+  return p;
+}
+
 void Puzzle::print() {
   std::cout << "----- PUZZLE STATE: -----" << std::endl;
   std::cout << "cost: " << cost << std::endl;
@@ -38,7 +62,7 @@ Puzzle Puzzle::moveUp() {
   }
 
   Puzzle p_new(*this);
-  puzzle_to_previous();
+  p_new.puzzle_to_previous();
   p_new.puzzle[empty] = p_new.puzzle[empty-COLUMNS];
   p_new.puzzle[empty - COLUMNS] = 0;
   p_new.cost++;
@@ -52,7 +76,7 @@ Puzzle Puzzle::moveDown() {
   }
 
   Puzzle p_new = Puzzle(*this);
-  puzzle_to_previous();
+  p_new.puzzle_to_previous();
   p_new.puzzle[empty] = p_new.puzzle[empty + COLUMNS];
   p_new.puzzle[empty + COLUMNS] = 0;
   p_new.cost++;
@@ -66,7 +90,7 @@ Puzzle Puzzle::moveLeft() {
   }
 
   Puzzle p_new = Puzzle(*this);
-  puzzle_to_previous();
+  p_new.puzzle_to_previous();
   p_new.puzzle[empty] = p_new.puzzle[empty-1];
   p_new.puzzle[empty-1] = 0;
   p_new.cost++;
@@ -80,7 +104,7 @@ Puzzle Puzzle::moveRight() {
   }
 
   Puzzle p_new = Puzzle(*this);
-  puzzle_to_previous();
+  p_new.puzzle_to_previous();
   p_new.puzzle[empty] = p_new.puzzle[empty+1];
   p_new.puzzle[empty+1] = 0;
   p_new.cost++;
@@ -104,5 +128,7 @@ void Puzzle::puzzle_to_previous() {
 }
 
 int Puzzle::get_responsible_process(int no_of_processes) {
-  return 0;
+  //int area_size = SIZE / no_of_processes;
+  //return findEmpty() / area_size ;
+  return findEmpty() % no_of_processes;
 }
