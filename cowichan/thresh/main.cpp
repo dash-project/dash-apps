@@ -54,114 +54,107 @@ int main(int argc, char* argv[])
 template<typename T = USED_TYPE>
 inline void thresh(uint nrows, uint ncols, uint percent, int myid){
 
-  dash::NArray<T, 2> matSrc(nrows, ncols);
-  // dash::NArray<T, 2> mask  (nrows, ncols);  //not used yet
-  
+  dash::NArray<T   , 2> matSrc(nrows, ncols);
+  dash::NArray<bool, 2> mask  (nrows, ncols);  //not used yet
   
   // read Input Matrix from stdin
-  T tmp;
   if (0 == myid){
+    T tmp;
     for ( auto i : matSrc ){
       scanf( "%d", &tmp );
       i = tmp;
     }
   }
   
-  
   // wait for initialization of the matrix bevore calculating maximum
   dash::barrier();
-  
   
   // find max value in matSrc
   auto maxGlobIt = dash::max_element(matSrc.begin(), matSrc.end());
   T max          = *maxGlobIt;
   T maxPO        =  max + 1  ;   //max plus one
   
-  //cout << myid <<  " found max: " << static_cast<uint>(max) << endl;
-  
   // get number of Units running
   size_t num_units = dash::size();
   
-  dash::Array<T> histo(maxPO * num_units, dash::BLOCKED);
+  dash::Array<uint> histo(maxPO * num_units, dash::BLOCKED);
   
   for (T * i = matSrc.lbegin(); i < matSrc.lend(); ++i) {
     ++histo.local[*i];
   }
   
-  /* for review: i think the barrier is necessary because if unit 0 is still calculating
+  /* FOR REVIEW: i think the barrier is necessary because if unit 0 is still calculating
      while another unit sarts with dash::transform there could be a race condition */
   dash::barrier();
   
   // add the values of the local histogram to the histogram of unit 0
   if (0 != myid) {
-    dash::transform<T>( histo.lbegin  () ,
-                        histo.lend    () ,
-                        histo.begin   () ,
-                        histo.begin   () ,
-                        dash::plus<T> ());
+    dash::transform<uint>( histo.lbegin     () ,
+                           histo.lend       () ,
+                           histo.begin      () ,
+                           histo.begin      () ,
+                           dash::plus<uint> ());
   }
-  // debug ausgabe
-  cout << myid <<  " survived transform" << endl;
   
   // wait for all units to finish adding
   dash::barrier();
   
-  if (0 == myid) {    
-    for ( uint i = 0; i < histo.lsize(); ++i ){
-      tmp = histo.local[i];
-      if(tmp) cout << std::setw(3) << i << " counted: " << static_cast<uint>(tmp) << endl;
-    }
-  }
-  
-  
-  //for debugging
-/*   cout << "myid: " << myid << " has histo.lsize(): " << histo.lsize() << endl;
-  
-  for(uint i = 0; i < histo.lsize(); ++i){
-    histo.local[i] = myid;
-  }
-  
-  dash::barrier();
-  
-  if(0==myid){
-    cout << endl << "--------" << endl;
-    
-    for(auto i : histo){
-      cout << static_cast<uint>(i) << " ";
-    }
-    cout << endl << "--------" << endl;
+/*   alternative
+    if (0 != myid) {
+    // Overwrite local histogram result with result histogram from unit 0:
+    dash::copy(histo.begin(),           // Begin of block at unit 0
+               histo.begin() + maxPO,   // End of block at unit 0
+               histo.lbegin());
   } */
+  dash::Shared<int> threshold;
+  threshold.set(max);
   
-  
-  
-  
-  /* TO DO...
-  for (int i = 0; i < nrows; i++) {
-    for (int j = 0; j < ncols; j++) {
-      histogram[matrix[i][j]]++;
+  if (0 == myid) {
+    
+    #if 0
+      for (uint j = 0; j < histo.lsize(); ++j) {
+        if(histo.local[j]) cout << std::setw(3)   << j 
+                << " counted: " << histo.local[j] << endl;
+      }
+    #endif
+    //cout << "haeee" << endl;
+    uint count = (nrows * ncols * percent) / 100;
+    uint prefixsum = 0;
+    int i;
+    
+    // for (uint * i = histo.lend(); i >= histo.lbegin() && prefixsum <= count; i--) {
+    for (i = max; i >= 0 && prefixsum <= count; --i) {
+      prefixsum += histo.local[i];
     }
+    
+    threshold.set (++i);
+    cout << "original thresh: " << i << endl;
   }
+  
+  // wait for Unit 0 to finish
+  //threshold.flush();
+  //dash::barrier();
+  threshold.barrier();
 
-  int count = (nrows * ncols * percent) / 100;
-
-  int prefixsum = 0;
-  int threshold = nmax;
-
-  for (int i = nmax; i >= 0 && prefixsum <= count; i--) {
-    prefixsum += histogram[i];
-    threshold = i;
-  }
-
-  for (int i = 0; i < nrows; i++) {
-    for (int j = 0; j < ncols; j++) {
-      mask[i][j] = matrix[i][j] >= threshold;
+  {
+  int threshLclCpy = threshold.get();
+  
+    T * src  = matSrc.lbegin( );
+    bool * i = mask.lbegin(   );
+    
+        *i =   *src >= threshLclCpy;      
+    while (i < mask.lend()) {
+      *++i = *++src >= threshLclCpy;
     }
-  }*/
+  #if 1
+    cout << myid << " got threshold: " << threshLclCpy << endl;
+  #endif
+  }
   
   dash::barrier();
   if(0 == myid) {
     cout << "----------------------------" << endl;
-    print2d(matSrc);
+    print2d(mask);
   }
 }
 
