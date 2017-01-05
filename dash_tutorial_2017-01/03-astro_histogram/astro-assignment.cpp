@@ -172,7 +172,7 @@ int main( int argc, char* argv[] ) {
     /* from the brightness histogram we learned, that we should define all but the first two histogram bins
     as bright pixels */
 
-    /* Assignment: but here the limit where the pixel color is considered
+    /* Assignment: put here the limit where the pixel color is considered
     part of a bright object instead of the dark background. Look at the
     histogram you produced to find out a good limit */
 
