@@ -83,6 +83,7 @@ int main( int argc, char* argv[] ) {
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
         dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
         dash::Team::All(), teamspec );
+    dash::fill( matrix.begin(), matrix.end(), RGB(0,0,0) );
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
 
