@@ -1,7 +1,7 @@
 include ../make.defs
 
 .phony: all
-all: astro heic1620a.tif
+all: astro astro-benchmark heic1620a.tif
 
 .phon<: diff
 diff:  astro-assignment.cpp astro-solution.cpp
@@ -14,7 +14,11 @@ astro:  astro.cpp misc.h
 	$(CXX) -c $(INC) -DWITHSDL $?
 	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
+astro-benchmark:  astro-benchmark.cpp misc.h
+	$(CXX) -c $(INC) -DWITHOUTSDL $?
+	$(CXX) -o $@ $@.o $(LIB) -ltiff
 
+	
 .phony: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
@@ -25,4 +29,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f astro *.o
+	rm -f astro astro-benchmark *.gch *.o
