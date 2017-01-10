@@ -138,12 +138,12 @@ uint32_t checkobject( RGB* ptr,
         uint32_t w, uint32_t h,
         uint32_t limit, RGB marker ) {
 
-    std::set< std::pair<uint32_t,uint32_t> > queue;
-    queue.insert( { x, y } );
-
     RGB* pixel= ptr + y*w+ x;
     if ( *pixel == marker ) return 0;
     if ( pixel->brightness() < limit ) return 0;
+
+    std::set< std::pair<uint32_t,uint32_t> > queue;
+    queue.insert( { x, y } );
 
     *pixel= marker;
 
