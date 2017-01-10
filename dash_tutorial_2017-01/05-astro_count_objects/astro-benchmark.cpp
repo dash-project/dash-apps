@@ -21,9 +21,6 @@ int main( int argc, char* argv[] ) {
 
     char hostname[100];
     double time_creatematrix;
-    double time_fillmatrix;
-    double time_fillmatrix2;
-    double time_fillmatrix3;
     double time_readtiff;
     double time_histogram;
     double time_searchmarkercolor;
@@ -35,7 +32,7 @@ int main( int argc, char* argv[] ) {
     dart_unit_t myid= dash::myid();
     size_t numunits= dash::Team::All().size();
     dash::TeamSpec<2> teamspec( numunits, 1 );
-    //teamspec.balance_extents();
+    teamspec.balance_extents();
 
     uint32_t w= 0;
     uint32_t h= 0;
@@ -92,32 +89,19 @@ int main( int argc, char* argv[] ) {
     }
 
     start= std::chrono::system_clock::now();
-    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
-    dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
-        distspec,
-        dash::Team::All(), teamspec );
+    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED );
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
+        distspec, dash::Team::All(), teamspec );
+    
+    /* this is a workaround for incorrect local iterators. Local extents and the global iterator are fine, though. */
+    RGB black(0,0,0);
+    std::fill( matrix.lbegin(), matrix.lend(), black );
+
     end= std::chrono::system_clock::now();
     time_creatematrix= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
 
-    RGB black(0,255,0);
-    start= std::chrono::system_clock::now();
-    std::fill( matrix.lbegin(), matrix.lend(), black );
-    end= std::chrono::system_clock::now();
-    time_fillmatrix= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
+    matrix.barrier();
 
-    start= std::chrono::system_clock::now();
-    dash::fill( matrix.begin(), matrix.end(), black );
-    end= std::chrono::system_clock::now();
-    time_fillmatrix2= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
-
-    start= std::chrono::system_clock::now();
-    for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
-                *it= black;
-    }
-    end= std::chrono::system_clock::now();
-    time_fillmatrix3= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
-
-        
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
 
     if ( 0 == myid ) {
@@ -139,21 +123,22 @@ int main( int argc, char* argv[] ) {
             Then again, we don't care about the colors for the rest of the code,
             and we can leave this out entirely. Histogram and counting objects won't
             produce any difference*/
-            std::for_each( rgb, rgb+w*rowsperstrip, [](RGB& rgb) {
-                std::swap<uint8_t>( rgb.r, rgb.b );
-            } );
+            //std::for_each( rgb, rgb+w*rowsperstrip, [](RGB& rgb) {
+            //    std::swap<uint8_t>( rgb.r, rgb.b );
+            //} );
 
             // in the last iteration we can overwrite 'rowsperstrip'
             if ( line + rowsperstrip > h ) rowsperstrip= h - line;
-
             iter= dash::copy( rgb, rgb+w*rowsperstrip, iter );
 
-            if ( 0 == ( strip % 100 ) ) {
+            /*
+             * if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
             }
+            */
         }
         end= std::chrono::system_clock::now();
-        // cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
+        cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
         time_readtiff= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
     }
 
@@ -163,11 +148,12 @@ int main( int argc, char* argv[] ) {
 
     {
         // really need 64 bits for very large images
-        const uint64_t MAXKEY= 255*3;
+        const uint64_t MAXKEY= 256*3;
         const uint64_t BINS= 17;
 
         dash::Array<uint32_t> histogram( BINS * numunits, dash::BLOCKED );
         dash::fill( histogram.begin(), histogram.end(), (uint32_t) 0 );
+
 
         start= std::chrono::system_clock::now();
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
@@ -203,7 +189,6 @@ int main( int argc, char* argv[] ) {
     /* *** part 4: define a marker color and check that it is not appearing in the image yet *** */
 
     RGB marker(0,255,0);
-
     {
         start= std::chrono::system_clock::now();
 
@@ -222,30 +207,40 @@ int main( int argc, char* argv[] ) {
 
     matrix.barrier();
 
+    uint32_t nobjects= 0;
     /* *** part 5: count bright objects in the image by finding a bright pixel, then flood-filling all
     bright neighbor pixels with marker color *** */
-    uint32_t foundobjects= 0;
-    {
+     {
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
         uint32_t lh= matrix.local.extent(0);
+
+        uint32_t foundobjects= 0;
+        uint32_t visitedpixels= 0;
+        uint32_t brightnesssum= 0;
         for ( uint32_t y= 0; y < lh ; y++ ){
         for ( uint32_t x= 0; x < lw ; x++ ){
 
             foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
+            visitedpixels++;
+            RGB* pixel= matrix.lbegin() + y*lw+ x;
+            brightnesssum += pixel->brightness();
         }
         }
 
+        cout << "unit " << myid << " has " << lw << " x " << lh << " == " << lw*lh << " and visited " << visitedpixels << " pixels, found " << foundobjects << ", sum of brightness " << brightnesssum << endl;
+        
         matrix.barrier();
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
-            time_checkobjects= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
+            time_checkobjects= 0.001 * std::chrono::duration_cast<std::chrono::seconds> (end-start).count();
         }
 
         /* combine the local number of objects found into the global result */
         dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
+        cout << "unit " << myid << " found " << foundobjects << " objects locally" << endl;
         sums.local[0]= foundobjects;
 
         if ( 0 != myid ) {
@@ -258,11 +253,11 @@ int main( int argc, char* argv[] ) {
         }
 
         sums.barrier();
-        foundobjects= sums[0];
 
         if ( 0 == myid ) {
-            cout << "found " << foundobjects << " objects in total" << endl;
+            cout << "found " << sums.local[0] << " objects in total" << endl;
         }
+        nobjects= sums.local[0];
     }
 
     matrix.barrier();
@@ -281,15 +276,12 @@ int main( int argc, char* argv[] ) {
             " on " << hostname << 
             " at " << std::put_time( std::localtime(&in_time_t), "%Y-%m-%d %X" ) << 
             " creatematrix " << time_creatematrix << " s," <<
-            " fillmatrix " << time_fillmatrix << " s," <<
-            " fillmatrix2 " << time_fillmatrix2 << " s," <<
-            " fillmatrix3 " << time_fillmatrix3 << " s," <<
             " readtiff " << time_readtiff << " s," <<
             " histogram " << time_histogram << " s," <<
             " searchcolor " << time_searchmarkercolor << " s," <<
             " checkobjects " << time_checkobjects << " s" <<
             " imagefile " << argv[1] << 
-            " foundobjects " << foundobjects << flush << endl;
+            " foundobjects " << nobjects << flush << endl;
     }
     
     dash::finalize();

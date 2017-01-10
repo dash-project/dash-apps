@@ -1,7 +1,7 @@
 include ../make.defs
 
 .phony: all
-all: astro astro-benchmark heic1620a.tif
+all: astro astro-benchmark bug heic1620a.tif
 
 .phon<: diff
 diff:  astro-assignment.cpp astro-solution.cpp
@@ -11,12 +11,16 @@ heic1620a.tif:
 	@echo "  --> please download laegest version of heic1620a.tif at http://www.spacetelescope.org/images/heic1620a/"
 
 astro:  astro.cpp misc.h
-	$(CXX) -c $(INC) -DWITHSDL $?
-	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
+	$(CXX) -c $(INC) -DWITHOUTSDL $?
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
+
+bug:  bug.cpp
+	$(CXX) -c $(INC) -DWITHOUTSDL $?
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
 
 astro-benchmark:  astro-benchmark.cpp misc.h
 	$(CXX) -c $(INC) -DWITHOUTSDL $?
-	$(CXX) -o $@ $@.o $(LIB) -ltiff
+	$(CXX) -o $@ $@.o $(LIB) -ltiff -lhwloc -lnuma
 
 	
 .phony: printenv
@@ -29,4 +33,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f astro astro-benchmark *.gch *.o
+	rm -f astro astro-benchmark  bug *.gch *.o

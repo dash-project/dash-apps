@@ -80,10 +80,13 @@ int main( int argc, char* argv[] ) {
         h= array[1];
     }
 
-    dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
-        dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
-        dash::Team::All(), teamspec );
-    dash::fill( matrix.begin(), matrix.end(), RGB(0,0,0) );
+    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED );
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
+        distspec, dash::Team::All(), teamspec );
+
+    /* this is a workaround for incorrect local iterators. Local extents and the global iterator are fine, though. */
+    RGB black(0,0,0);
+    std::fill( matrix.lbegin(), matrix.lend(), black );
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
 
