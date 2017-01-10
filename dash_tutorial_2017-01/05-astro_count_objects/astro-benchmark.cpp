@@ -193,14 +193,19 @@ int main( int argc, char* argv[] ) {
         start= std::chrono::system_clock::now();
 
         uint64_t count= 0;
+        uint64_t visitedpixels= 0;
+        uint64_t brightnesssum= 0;
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
 
             if ( marker == *it ) count++;
+	    visitedpixels++;
+	    brightnesssum += it->brightness();
         }
 
         end= std::chrono::system_clock::now();
         cout << "    unit " << myid << " found marker color " << count << " times " <<
-            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
+            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << 
+	    ", visited " << visitedpixels << ", sum of brightness " << brightnesssum << endl;
         time_searchmarkercolor= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
         
     }
@@ -216,9 +221,9 @@ int main( int argc, char* argv[] ) {
         uint32_t lw= matrix.local.extent(1);
         uint32_t lh= matrix.local.extent(0);
 
-        uint32_t foundobjects= 0;
-        uint32_t visitedpixels= 0;
-        uint32_t brightnesssum= 0;
+        uint64_t foundobjects= 0;
+        uint64_t visitedpixels= 0;
+        uint64_t brightnesssum= 0;
         for ( uint32_t y= 0; y < lh ; y++ ){
         for ( uint32_t x= 0; x < lw ; x++ ){
 
