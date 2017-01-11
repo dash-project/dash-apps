@@ -12,7 +12,7 @@ heic1620a.tif:
 
 astro:  astro.cpp
 	$(CXX) -c $(INC) -DWITHSDL $?
-	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
 
 
 .phony: printenv

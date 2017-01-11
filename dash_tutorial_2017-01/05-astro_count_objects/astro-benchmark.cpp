@@ -32,7 +32,7 @@ int main( int argc, char* argv[] ) {
     dart_unit_t myid= dash::myid();
     size_t numunits= dash::Team::All().size();
     dash::TeamSpec<2> teamspec( numunits, 1 );
-    teamspec.balance_extents();
+    //teamspec.balance_extents();
 
     uint32_t w= 0;
     uint32_t h= 0;
@@ -89,7 +89,7 @@ int main( int argc, char* argv[] ) {
     }
 
     start= std::chrono::system_clock::now();
-    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED );
+    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
     dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
         distspec, dash::Team::All(), teamspec );
     
@@ -219,6 +219,7 @@ int main( int argc, char* argv[] ) {
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
+        uint32_t lww= 15907;
         uint32_t lh= matrix.local.extent(0);
 
         uint64_t foundobjects= 0;

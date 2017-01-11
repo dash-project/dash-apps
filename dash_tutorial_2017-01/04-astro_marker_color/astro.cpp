@@ -24,7 +24,6 @@ int main( int argc, char* argv[] ) {
     dart_unit_t myid= dash::myid();
     size_t numunits= dash::Team::All().size();
     dash::TeamSpec<2> teamspec( numunits, 1 );
-    teamspec.balance_extents();
 
     uint32_t w= 0;
     uint32_t h= 0;
@@ -81,7 +80,7 @@ int main( int argc, char* argv[] ) {
     }
 
     dash::Matrix<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
-        dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ),
+        dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE ),
         dash::Team::All(), teamspec );
     dash::fill( matrix.begin(), matrix.end(), RGB(0,0,0) );
 
