@@ -41,6 +41,11 @@ struct RGB {
     uint32_t brightness() const { return (uint32_t) r + (uint32_t) g + (uint32_t) b; }
 };
 
+struct ImageSize {
+    uint32_t height;
+    uint32_t width;
+};
+
 
 /** show RGB matrix values graphically with SDL, show a window of w*h at most */
 template<class MatrixT>
@@ -61,26 +66,20 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
 
         /* init SDL only on first time this is called */
 
-        if ( w > 2000 ) w= 2000;
-        if ( h > 2000 ) h= 2000;
+        width  = ( w > 2000 ) ? 2000 : w;
+        height = ( h > 2000 ) ? 2000 : h;
 
         SDL_Init(SDL_INIT_EVERYTHING);
-        pic = SDL_SetVideoMode( w, h, 24, SDL_HWSURFACE );
+        pic = SDL_SetVideoMode( width, height, 24, SDL_HWSURFACE );
         SDL_WM_SetCaption( "DASH RGB Matrix", "matrix" );
 
-        /* allow to set width and height only the first time this is called */
-        width= w;
-        height= h;
     }
 
     auto mw = matrix.extent(1);
     auto mh = matrix.extent(0);
 
-    w= width;
-    h= height;
-
-    if ( mw < w ) w= mw;
-    if ( mh < h ) h= mh;
+    w = (mw < width) ? mw : width;
+    h = (mh < height) ? mh : height;
 
     auto range = matrix.cols(startx,w).rows(starty,h);
     RGB* pixels = (RGB*) pic->pixels;
@@ -105,20 +104,20 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
 }
 
 
-template<class LocalHistIter>
-void print_histogram( LocalHistIter first, LocalHistIter last ) {
+template<class Iter>
+void print_histogram( Iter first, Iter last ) {
 
-    uint64_t max= 1;
-    for ( auto it= first; it != last; ++it ) {
+    constexpr uint64_t HISTOGRAMWIDTH = 60;
 
-        if ( *it > max ) max= *it;
-    }
+    if(first == last)
+        return;
 
-#define HISTOGRAMWIDTH 60
+    uint64_t max = *(std::max_element(first, last));
+    double len_factor = HISTOGRAMWIDTH * (1.0 / max);
 
-    for ( auto it= first; it != last; ++it ) {
+    for ( auto it = first; it != last; ++it ) {
 
-        uint32_t len= ( (uint64_t) HISTOGRAMWIDTH * (uint64_t) *it ) / max;
+        uint32_t len = *it * len_factor;
 
         cout << setw(len) << std::setfill('#') << "|" <<
             setw(12) << std::setfill(' ') << *it << endl;
@@ -167,4 +166,64 @@ uint32_t checkobject( RGB* ptr,
     return 1;
 }
 
+template<typename MatrixT>
+uint32_t check_objects_it(MatrixT& matrix, RGB& marker)
+{
+    constexpr uint32_t limit= 256*3*2/17;
+    auto width = matrix.local.extent(1);
+    uint32_t found_objects = 0;
+    for(auto it = matrix.local.begin(); it != matrix.local.end(); ++it)
+    {
+        if(it.local()->brightness() < limit)
+          continue;
+
+        *it = marker;
+
+        if(it.lpos().index >= width)
+        {
+          if(*(it - width) == marker)
+            continue;
+        }
+        if(it.lpos().index % width != 0)
+        {
+          if(*(it - 1) == marker)
+            continue;
+        }
+
+        ++found_objects;
+    }
+
+    return found_objects;
+}
+
+template<typename MatrixT>
+uint32_t check_objects_ptr(MatrixT& matrix, RGB& marker)
+{
+    constexpr uint32_t limit= 256*3*2/17;
+    auto width = matrix.local.extent(1);
+    uint32_t found_objects = 0;
+    RGB* pixel = matrix.lbegin();
+    for(auto i = 0; i < matrix.local.size(); ++i)
+    {
+        if(pixel[i].brightness() < limit)
+          continue;
+
+        pixel[i] = marker;
+
+        if(i >= width)
+        {
+          if(pixel[i - width] == marker)
+            continue;
+        }
+        if(i % width != 0)
+        {
+          if(pixel[i - 1] == marker)
+            continue;
+        }
+
+        ++found_objects;
+    }
+
+    return found_objects;
+}
 #endif /* MISC_H */
