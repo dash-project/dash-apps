@@ -32,7 +32,7 @@ int main( int argc, char* argv[] ) {
     dart_unit_t myid= dash::myid();
     size_t numunits= dash::Team::All().size();
     dash::TeamSpec<2> teamspec( numunits, 1 );
-    teamspec.balance_extents();
+    //teamspec.balance_extents();
 
     uint32_t w= 0;
     uint32_t h= 0;
@@ -89,7 +89,7 @@ int main( int argc, char* argv[] ) {
     }
 
     start= std::chrono::system_clock::now();
-    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED );
+    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
     dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
         distspec, dash::Team::All(), teamspec );
     
@@ -176,13 +176,19 @@ int main( int argc, char* argv[] ) {
         if ( 0 == myid ) {
             cout << "computed parallel historgram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
             // print_histogram<uint32_t*>( histogram.lbegin(), histogram.lend() );
+            cout << "astro-benchmark histogram with " << numunits << " units ";
+            for ( auto it= histogram.lbegin(); it != histogram.lend(); ++it ) {
+                
+                cout << (uint32_t) *it << ", ";
+            }
+            cout << endl << flush;
             time_histogram= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
         }
     }
 
     /* from the brightness histogram we learned, that we should define all but the first two histogram bins
     as bright pixels */
-    const uint32_t limit= 255*3*2/17;
+    const uint32_t limit= 256*3*2/17;
 
     matrix.barrier();
 
@@ -193,14 +199,19 @@ int main( int argc, char* argv[] ) {
         start= std::chrono::system_clock::now();
 
         uint64_t count= 0;
+        uint64_t visitedpixels= 0;
+        uint64_t brightnesssum= 0;
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
 
             if ( marker == *it ) count++;
+	    visitedpixels++;
+	    brightnesssum += it->brightness();
         }
 
         end= std::chrono::system_clock::now();
         cout << "    unit " << myid << " found marker color " << count << " times " <<
-            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
+            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << 
+	    ", visited " << visitedpixels << ", sum of brightness " << brightnesssum << endl;
         time_searchmarkercolor= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
         
     }
@@ -214,11 +225,12 @@ int main( int argc, char* argv[] ) {
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
+        uint32_t lww= 15907;
         uint32_t lh= matrix.local.extent(0);
 
-        uint32_t foundobjects= 0;
-        uint32_t visitedpixels= 0;
-        uint32_t brightnesssum= 0;
+        uint64_t foundobjects= 0;
+        uint64_t visitedpixels= 0;
+        uint64_t brightnesssum= 0;
         for ( uint32_t y= 0; y < lh ; y++ ){
         for ( uint32_t x= 0; x < lw ; x++ ){
 
@@ -235,7 +247,7 @@ int main( int argc, char* argv[] ) {
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
-            time_checkobjects= 0.001 * std::chrono::duration_cast<std::chrono::seconds> (end-start).count();
+            time_checkobjects= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
         }
 
         /* combine the local number of objects found into the global result */
@@ -271,7 +283,7 @@ int main( int argc, char* argv[] ) {
         auto now = std::chrono::system_clock::now();
         auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
-        cout << "astro-benchmark with " << numunits << " units " <<
+        cout << "astro-benchmark timings with " << numunits << " units " <<
             " with distribution-spec " << distspec << 
             " on " << hostname << 
             " at " << std::put_time( std::localtime(&in_time_t), "%Y-%m-%d %X" ) << 
