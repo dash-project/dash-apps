@@ -247,7 +247,7 @@ int main( int argc, char* argv[] ) {
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
-            time_checkobjects= 0.001 * std::chrono::duration_cast<std::chrono::seconds> (end-start).count();
+            time_checkobjects= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
         }
 
         /* combine the local number of objects found into the global result */
