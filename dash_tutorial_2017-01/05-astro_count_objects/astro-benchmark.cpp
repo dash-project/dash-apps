@@ -176,13 +176,19 @@ int main( int argc, char* argv[] ) {
         if ( 0 == myid ) {
             cout << "computed parallel historgram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
             // print_histogram<uint32_t*>( histogram.lbegin(), histogram.lend() );
+            cout << "astro-benchmark histogram with " << numunits << " units ";
+            for ( auto it= histogram.lbegin(); it != histogram.lend(); ++it ) {
+                
+                cout << (uint32_t) *it << ", ";
+            }
+            cout << endl << flush;
             time_histogram= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
         }
     }
 
     /* from the brightness histogram we learned, that we should define all but the first two histogram bins
     as bright pixels */
-    const uint32_t limit= 255*3*2/17;
+    const uint32_t limit= 256*3*2/17;
 
     matrix.barrier();
 
@@ -277,7 +283,7 @@ int main( int argc, char* argv[] ) {
         auto now = std::chrono::system_clock::now();
         auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
-        cout << "astro-benchmark with " << numunits << " units " <<
+        cout << "astro-benchmark timings with " << numunits << " units " <<
             " with distribution-spec " << distspec << 
             " on " << hostname << 
             " at " << std::put_time( std::localtime(&in_time_t), "%Y-%m-%d %X" ) << 
