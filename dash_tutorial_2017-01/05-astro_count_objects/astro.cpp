@@ -31,9 +31,7 @@ int main( int argc, char* argv[] ) {
 
     /* *** Part 1: open TIFF input, find out image dimensions, create distributed DASH matrix *** */
 
-    /* Just a fixed size DASH array to distribute the image dimensions.
-    Could also use dash::Shared<pair<...>> but we'd need more code for sure. */
-    dash::Shared<ImageSize> image_size{};
+    dash::Shared<ImageSize> imagesize_shared {};
 
     if ( 0 == myid ) {
 
@@ -68,21 +66,17 @@ int main( int argc, char* argv[] ) {
              << height << " pixels with " << samplespp << " channels x " << bitsps
              << " bits per pixel, " << rowsperstrip << " rows per strip" << endl;
 
-        image_size.set( {height, width} );
+        imagesize_shared.set( {height, width} );
     }
 
-    image_size.barrier();
+    imagesize_shared.barrier();
 
-    ImageSize image_size_cached = image_size.get();
-    cout << "unit " << myid << " thinks image is " << image_size_cached.width << " x " << image_size_cached.height << endl;
+    ImageSize imagesize = imagesize_shared.get();
+    cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
     auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
-    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( image_size_cached.height, image_size_cached.width),
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
         distspec, dash::Team::All(), teamspec );
-
-    /* this is a workaround for incorrect local iterators. Local extents and the global iterator are fine, though. */
-    //RGB black(0,0,0);
-    //dash::fill( matrix.begin(), matrix.end(), black );
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
 
@@ -96,7 +90,7 @@ int main( int argc, char* argv[] ) {
 
         uint32_t line= 0;
         start= std::chrono::system_clock::now();
-        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip) {
+        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
 
             TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 );
             RGB* rgb= (RGB*) buf;
@@ -108,16 +102,16 @@ int main( int argc, char* argv[] ) {
             Then again, we don't care about the colors for the rest of the code,
             and we can leave this out entirely. Histogram and counting objects won't
             produce any difference*/
-            std::for_each( rgb, rgb + image_size_cached.width * rowsperstrip, [](RGB& rgb) {
+            std::for_each( rgb, rgb + imagesize.width * rowsperstrip, [](RGB& rgb) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
             // in the last iteration we can overwrite 'rowsperstrip'
-            if ( line + rowsperstrip > image_size_cached.height ) {
-                rowsperstrip= image_size_cached.height - line;
+            if ( line + rowsperstrip > imagesize.height ) {
+                rowsperstrip= imagesize.height - line;
             }
 
-            iter = dash::copy( rgb, rgb+image_size_cached.width*rowsperstrip, iter );
+            iter = dash::copy( rgb, rgb+imagesize.width*rowsperstrip, iter );
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
@@ -205,7 +199,6 @@ int main( int argc, char* argv[] ) {
         dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
         start= std::chrono::system_clock::now();
 
-        constexpr uint32_t limit= 256*3*2/17;
         uint32_t lw= matrix.local.extent(1);
         uint32_t lh= matrix.local.extent(0);
         uint32_t foundobjects= 0;
@@ -218,14 +211,13 @@ int main( int argc, char* argv[] ) {
 
         sums.local[0] = foundobjects;
         
+        sums.barrier();
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
         }
 
         /* combine the local number of objects found into the global result */
-
-        sums.barrier();
 
         if ( 0 != myid ) {
 

@@ -11,7 +11,7 @@ heic1620a.tif:
 	@echo "  --> please download laegest version of heic1620a.tif at http://www.spacetelescope.org/images/heic1620a/"
 
 astro:  astro.cpp misc.h
-	$(CXX) -c $(INC) -DWITHOUTSDL $?
+	$(CXX) -c $(INC) -DWITHOUTSDL astro.cpp
 	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
 
 bug:  bug.cpp
@@ -19,7 +19,7 @@ bug:  bug.cpp
 	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
 
 astro-benchmark:  astro-benchmark.cpp misc.h
-	$(CXX) -c $(INC) -DWITHOUTSDL $?
+	$(CXX) -c $(INC) -DWITHOUTSDL astro-benchmark.cpp
 	$(CXX) -o $@ $@.o $(LIB) -ltiff -lhwloc -lnuma
 
 	
