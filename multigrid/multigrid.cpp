@@ -9,7 +9,7 @@
 #include <libdash.h>
 #include <dash/experimental/HaloMatrix.h>
 
-//#define WITHPNGOUTPUT 1
+#define WITHPNGOUTPUT 1
 #ifdef WITHPNGOUTPUT
 #include <png++/png.hpp>
 

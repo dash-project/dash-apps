@@ -23,11 +23,8 @@ int main( int argc, char* argv[] ) {
 
     dart_unit_t myid= dash::myid();
     size_t numunits= dash::Team::All().size();
-    dash::TeamSpec<2> teamspec( numunits, 1 );
-    teamspec.balance_extents();
+    dash::TeamSpec<2> teamspec{};
 
-    uint32_t w= 0;
-    uint32_t h= 0;
     uint32_t rowsperstrip= 0;
     TIFF* tif= NULL;
     std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -36,7 +33,7 @@ int main( int argc, char* argv[] ) {
 
     /* Just a fixed size DASH array to distribute the image dimensions.
     Could also use dash::Shared<pair<...>> but we'd need more code for sure. */
-    dash::Array<uint32_t> array(2);
+    dash::Shared<ImageSize> image_size{};
 
     if ( 0 == myid ) {
 
@@ -58,46 +55,48 @@ int main( int argc, char* argv[] ) {
         uint32_t bitsps= 0;
         uint32_t samplespp= 0;
 
-        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w );
-        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h );
+        uint32_t width  = 0;
+        uint32_t height = 0;
+
+        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width );
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height );
         TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bitsps );
         TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &samplespp );
         TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip );
 
-        cout << "input file " << argv[1] << endl << "    image size: " << w << " x " << h << " pixels "
-            "with " << samplespp << " channels x " << bitsps << " bits per pixel, " <<
-            rowsperstrip << " rows per strip" << endl;
+        cout << "input file " << argv[1] << endl << "    image size: " << width << " x "
+             << height << " pixels with " << samplespp << " channels x " << bitsps
+             << " bits per pixel, " << rowsperstrip << " rows per strip" << endl;
 
-        array[0]= w;
-        array[1]= h;
+        image_size.set( {height, width} );
     }
 
-    array.barrier();
+    image_size.barrier();
 
-    if ( 0 != myid ) {
+    ImageSize image_size_cached = image_size.get();
+    cout << "unit " << myid << " thinks image is " << image_size_cached.width << " x " << image_size_cached.height << endl;
 
-        w= array[0];
-        h= array[1];
-    }
-
-    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED );
-    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
+    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( image_size_cached.height, image_size_cached.width),
         distspec, dash::Team::All(), teamspec );
 
     /* this is a workaround for incorrect local iterators. Local extents and the global iterator are fine, though. */
-    RGB black(0,0,0);
-    std::fill( matrix.lbegin(), matrix.lend(), black );
+    //RGB black(0,0,0);
+    //dash::fill( matrix.begin(), matrix.end(), black );
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
+
+    matrix.barrier();
 
     if ( 0 == myid ) {
 
         uint32_t numstrips= TIFFNumberOfStrips( tif );
         tdata_t buf= _TIFFmalloc( TIFFStripSize( tif ) );
         auto iter= matrix.begin();
+
         uint32_t line= 0;
         start= std::chrono::system_clock::now();
-        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
+        for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip) {
 
             TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 );
             RGB* rgb= (RGB*) buf;
@@ -109,19 +108,22 @@ int main( int argc, char* argv[] ) {
             Then again, we don't care about the colors for the rest of the code,
             and we can leave this out entirely. Histogram and counting objects won't
             produce any difference*/
-            std::for_each( rgb, rgb+w*rowsperstrip, [](RGB& rgb) {
+            std::for_each( rgb, rgb + image_size_cached.width * rowsperstrip, [](RGB& rgb) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
             // in the last iteration we can overwrite 'rowsperstrip'
-            if ( line + rowsperstrip > h ) rowsperstrip= h - line;
+            if ( line + rowsperstrip > image_size_cached.height ) {
+                rowsperstrip= image_size_cached.height - line;
+            }
 
-            iter= dash::copy( rgb, rgb+w*rowsperstrip, iter );
+            iter = dash::copy( rgb, rgb+image_size_cached.width*rowsperstrip, iter );
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
             }
         }
+
         end= std::chrono::system_clock::now();
         cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
     }
@@ -129,7 +131,7 @@ int main( int argc, char* argv[] ) {
     matrix.barrier();
 
     if ( 0 == myid ) {
-        show_matrix( matrix, 1200, 733 );
+        show_matrix( matrix, 1200, 1000, 15700, 9500 );
     }
 
     matrix.barrier();
@@ -138,17 +140,18 @@ int main( int argc, char* argv[] ) {
 
     {
         // really need 64 bits for very large images
-        const uint64_t MAXKEY= 255*3;
-        const uint64_t BINS= 17;
+        constexpr uint64_t MAXKEY = 256*3;
+        constexpr uint64_t BINS = 17;
 
         dash::Array<uint32_t> histogram( BINS * numunits, dash::BLOCKED );
-        dash::fill( histogram.begin(), histogram.end(), (uint32_t) 0 );
+        dash::fill( histogram.begin(), histogram.end(), 0 );
 
         start= std::chrono::system_clock::now();
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
-
                 histogram.local[ it->brightness() * BINS / MAXKEY ]++;
         }
+
+        histogram.barrier();
 
         if ( 0 != myid ) {
 
@@ -164,7 +167,7 @@ int main( int argc, char* argv[] ) {
 
         if ( 0 == myid ) {
             cout << "computed parallel historgram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
-            print_histogram<uint32_t*>( histogram.lbegin(), histogram.lend() );
+            print_histogram( histogram.lbegin(), histogram.lend() );
         }
     }
 
@@ -181,15 +184,16 @@ int main( int argc, char* argv[] ) {
     {
         start= std::chrono::system_clock::now();
 
-        uint64_t count= 0;
+        size_t count = 0;
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
 
             if ( marker == *it ) count++;
         }
 
-        end= std::chrono::system_clock::now();
-        cout << "    unit " << myid << " found marker color " << count << " times " <<
-            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
+        end = std::chrono::system_clock::now();
+        cout << "    unit " << myid << " found marker color (knue) " << count << " times "
+             << "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count()
+             << " seconds" << endl;
     }
 
     matrix.barrier();
@@ -198,8 +202,10 @@ int main( int argc, char* argv[] ) {
     bright neighbor pixels with marker color *** */
 
     {
+        dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
         start= std::chrono::system_clock::now();
 
+        constexpr uint32_t limit= 256*3*2/17;
         uint32_t lw= matrix.local.extent(1);
         uint32_t lh= matrix.local.extent(0);
         uint32_t foundobjects= 0;
@@ -210,15 +216,16 @@ int main( int argc, char* argv[] ) {
         }
         }
 
-        matrix.barrier();
+        sums.local[0] = foundobjects;
+        
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
         }
 
         /* combine the local number of objects found into the global result */
-        dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
-        sums.local[0]= foundobjects;
+
+        sums.barrier();
 
         if ( 0 != myid ) {
 
@@ -239,7 +246,7 @@ int main( int argc, char* argv[] ) {
     matrix.barrier();
 
     if ( 0 == myid ) {
-        show_matrix( matrix, 1200, 733 );
+        show_matrix( matrix, 1200, 1000, 15700, 9500 );
     }
 
     dash::finalize();

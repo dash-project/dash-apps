@@ -183,9 +183,18 @@ int main( int argc, char* argv[] ) {
             if ( marker == *it ) count++;
         }
 
+        uint64_t count2= 0;
+        for ( auto it : matrix.local ) {
+
+            if ( marker == it ) count2++;
+        }
+
+        auto ret= std::find( matrix.lbegin(), matrix.lend(), marker );
+        bool found= ( matrix.lend() != ret );
+        
         end= std::chrono::system_clock::now();
-        cout << "    unit " << myid << " found marker color " << count << " times " <<
-            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
+        cout << "    unit " << myid << " found marker color " << count << "," << count2 << " times, " << 
+        (found ? "(found)" : "(not found)" ) << " in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
     }
 
     dash::finalize();
