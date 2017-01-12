@@ -106,12 +106,11 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
-            // in the last iteration we can overwrite 'rowsperstrip'
-            if ( line + rowsperstrip > imagesize.height ) {
-                rowsperstrip= imagesize.height - line;
-            }
+            for ( uint32_t l= 0; ( l < rowsperstrip ) && (line+l < imagesize.height); l++ ) {
 
-            iter = dash::copy( rgb, rgb+imagesize.width*rowsperstrip, iter );
+                iter = dash::copy( rgb, rgb+imagesize.width, iter );
+                rgb += imagesize.width;
+            }
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
