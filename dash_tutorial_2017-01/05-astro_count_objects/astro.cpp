@@ -159,7 +159,7 @@ int main( int argc, char* argv[] ) {
         end= std::chrono::system_clock::now();
 
         if ( 0 == myid ) {
-            cout << "computed parallel historgram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
+            cout << "computed parallel histogram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
             print_histogram( histogram.lbegin(), histogram.lend() );
         }
     }
