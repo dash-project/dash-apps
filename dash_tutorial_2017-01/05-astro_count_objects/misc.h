@@ -98,14 +98,15 @@ void print_histogram( Iter first, Iter last ) {
 
     constexpr uint64_t HISTOGRAMWIDTH = 60;
     uint64_t max = *(std::max_element(first, last));
-
+    uint64_t sum= 0;
     for ( auto it = first; it != last; ++it ) {
 
         uint32_t len = *it * HISTOGRAMWIDTH / max;
         cout << setw(len) << std::setfill('#') << "|" <<
             setw(12) << std::setfill(' ') << *it << endl;
+        sum += *it;
     }
-    cout << endl;
+    cout << "sum is " << sum << endl;
 }
 
 
