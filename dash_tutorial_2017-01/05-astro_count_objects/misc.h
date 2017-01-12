@@ -101,7 +101,7 @@ void print_histogram( Iter first, Iter last ) {
 
     for ( auto it = first; it != last; ++it ) {
 
-        uint32_t len = *it / max;
+        uint32_t len = *it * HISTOGRAMWIDTH / max;
         cout << setw(len) << std::setfill('#') << "|" <<
             setw(12) << std::setfill(' ') << *it << endl;
     }
