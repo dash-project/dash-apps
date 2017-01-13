@@ -8,16 +8,12 @@
 #include <iomanip>
 #include <cstdlib>
 
-using std::cout;
-using std::endl;
-using std::setw;
-using std::flush;
-
 #include <libdash.h>
 
 #ifdef WITHSDL
 #include <SDL/SDL.h>
 #endif
+
 
 struct RGB {
 
@@ -29,16 +25,20 @@ struct RGB {
     RGB() = default;
 
     bool operator==( const RGB& other ) const {
-
         return ( r == other.r ) && ( g == other.g ) && ( b == other.b );
     };
 
     bool operator!=( const RGB& other ) const {
-
         return ( r != other.r ) || ( g != other.g ) || ( b != other.b );
     };
 
     uint32_t brightness() const { return (uint32_t) r + (uint32_t) g + (uint32_t) b; }
+};
+
+
+struct ImageSize {
+    uint32_t height;
+    uint32_t width;
 };
 
 
@@ -54,39 +54,29 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
     static SDL_Surface* pic= NULL;
     static uint32_t width= 0;
     static uint32_t height= 0;
-
     SDL_Event event;
 
+    /* init SDL only on first time this is called */
     if ( NULL == pic ) {
 
-        /* init SDL only on first time this is called */
-
-        if ( w > 2000 ) w= 2000;
-        if ( h > 2000 ) h= 2000;
+        width  = ( w > 2000 ) ? 2000 : w;
+        height = ( h > 2000 ) ? 2000 : h;
 
         SDL_Init(SDL_INIT_EVERYTHING);
-        pic = SDL_SetVideoMode( w, h, 24, SDL_HWSURFACE );
+        pic = SDL_SetVideoMode( width, height, 24, SDL_HWSURFACE );
         SDL_WM_SetCaption( "DASH RGB Matrix", "matrix" );
-
-        /* allow to set width and height only the first time this is called */
-        width= w;
-        height= h;
     }
 
     auto mw = matrix.extent(1);
     auto mh = matrix.extent(0);
 
-    w= width;
-    h= height;
-
-    if ( mw < w ) w= mw;
-    if ( mh < h ) h= mh;
+    w = (mw < width) ? mw : width;
+    h = (mh < height) ? mh : height;
 
     auto range = matrix.cols(startx,w).rows(starty,h);
     RGB* pixels = (RGB*) pic->pixels;
 
     /* copy only the selected range to the raw pointer of the SDL pic */
-    /* using dash::copy here causes a strange image or a crash! */
     std::copy( range.begin(), range.end(), pixels );
 
     SDL_Flip( pic );
@@ -94,10 +84,8 @@ void show_matrix( MatrixT & matrix, uint32_t w= 400, uint32_t h= 300, uint32_t s
     cout << endl << "Wait, please press any key ..." << flush;
     /* wait for key pressed before going on */
     do {
-
         SDL_Delay(50);
         SDL_PollEvent(&event);
-
     } while( event.type != SDL_QUIT && event.type != SDL_KEYDOWN );
     cout << " done" << endl << endl;
 
