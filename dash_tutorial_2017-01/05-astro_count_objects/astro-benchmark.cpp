@@ -25,26 +25,21 @@ int main( int argc, char* argv[] ) {
     double time_histogram;
     double time_searchmarkercolor;
     double time_checkobjects;
-    
-    
+
+
     dash::init( &argc, &argv );
 
     dart_unit_t myid= dash::myid();
     size_t numunits= dash::Team::All().size();
-    dash::TeamSpec<2> teamspec( numunits, 1 );
-    //teamspec.balance_extents();
+    dash::TeamSpec<2> teamspec{};
 
-    uint32_t w= 0;
-    uint32_t h= 0;
     uint32_t rowsperstrip= 0;
     TIFF* tif= NULL;
     std::chrono::time_point<std::chrono::system_clock> start, end;
 
     /* *** Part 1: open TIFF input, find out image dimensions, create distributed DASH matrix *** */
 
-    /* Just a fixed size DASH array to distribute the image dimensions.
-    Could also use dash::Shared<pair<...>> but we'd need more code for sure. */
-    dash::Array<uint32_t> array(2);
+    dash::Shared<ImageSize> imagesize_shared {};
 
     if ( 0 == myid ) {
 
@@ -66,36 +61,31 @@ int main( int argc, char* argv[] ) {
         uint32_t bitsps= 0;
         uint32_t samplespp= 0;
 
-        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w );
-        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h );
+        uint32_t width  = 0;
+        uint32_t height = 0;
+
+        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width );
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height );
         TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bitsps );
         TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &samplespp );
         TIFFGetField(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip );
 
-        cout << "input file " << argv[1] << endl << "    image size: " << w << " x " << h << " pixels "
-            "with " << samplespp << " channels x " << bitsps << " bits per pixel, " <<
-            rowsperstrip << " rows per strip" << endl;
+        cout << "input file " << argv[1] << endl << "    image size: " << width << " x "
+             << height << " pixels with " << samplespp << " channels x " << bitsps
+             << " bits per pixel, " << rowsperstrip << " rows per strip" << endl;
 
-        array[0]= w;
-        array[1]= h;
+        imagesize_shared.set( {height, width} );
     }
 
-    array.barrier();
+    imagesize_shared.barrier();
 
-    if ( 0 != myid ) {
-
-        w= array[0];
-        h= array[1];
-    }
+    ImageSize imagesize = imagesize_shared.get();
+    cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
     start= std::chrono::system_clock::now();
     auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
-    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( h, w ),
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
         distspec, dash::Team::All(), teamspec );
-    
-    /* this is a workaround for incorrect local iterators. Local extents and the global iterator are fine, though. */
-    RGB black(0,0,0);
-    std::fill( matrix.lbegin(), matrix.lend(), black );
 
     end= std::chrono::system_clock::now();
     time_creatematrix= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
@@ -109,6 +99,7 @@ int main( int argc, char* argv[] ) {
         uint32_t numstrips= TIFFNumberOfStrips( tif );
         tdata_t buf= _TIFFmalloc( TIFFStripSize( tif ) );
         auto iter= matrix.begin();
+
         uint32_t line= 0;
         start= std::chrono::system_clock::now();
         for ( uint32_t strip = 0; strip < numstrips; strip++, line += rowsperstrip ) {
@@ -123,20 +114,21 @@ int main( int argc, char* argv[] ) {
             Then again, we don't care about the colors for the rest of the code,
             and we can leave this out entirely. Histogram and counting objects won't
             produce any difference*/
-            //std::for_each( rgb, rgb+w*rowsperstrip, [](RGB& rgb) {
-            //    std::swap<uint8_t>( rgb.r, rgb.b );
-            //} );
+            std::for_each( rgb, rgb + imagesize.width * rowsperstrip, [](RGB& rgb) {
+                std::swap<uint8_t>( rgb.r, rgb.b );
+            } );
 
-            // in the last iteration we can overwrite 'rowsperstrip'
-            if ( line + rowsperstrip > h ) rowsperstrip= h - line;
-            iter= dash::copy( rgb, rgb+w*rowsperstrip, iter );
+            for ( uint32_t l= 0; ( l < rowsperstrip ) && (line+l < imagesize.height); l++ ) {
 
-            /*
-             * if ( 0 == ( strip % 100 ) ) {
+                iter = dash::copy( rgb, rgb+imagesize.width, iter );
+                rgb += imagesize.width;
+            }
+
+            if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
             }
-            */
         }
+
         end= std::chrono::system_clock::now();
         cout << "read image in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
         time_readtiff= 0.001*std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() ;
@@ -148,18 +140,18 @@ int main( int argc, char* argv[] ) {
 
     {
         // really need 64 bits for very large images
-        const uint64_t MAXKEY= 256*3;
-        const uint64_t BINS= 17;
+        constexpr uint64_t MAXKEY = 256*3;
+        constexpr uint64_t BINS = 17;
 
         dash::Array<uint32_t> histogram( BINS * numunits, dash::BLOCKED );
-        dash::fill( histogram.begin(), histogram.end(), (uint32_t) 0 );
-
+        dash::fill( histogram.begin(), histogram.end(), 0 );
 
         start= std::chrono::system_clock::now();
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
-
                 histogram.local[ it->brightness() * BINS / MAXKEY ]++;
         }
+
+        histogram.barrier();
 
         if ( 0 != myid ) {
 
@@ -174,15 +166,8 @@ int main( int argc, char* argv[] ) {
         end= std::chrono::system_clock::now();
 
         if ( 0 == myid ) {
-            cout << "computed parallel historgram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
-            // print_histogram<uint32_t*>( histogram.lbegin(), histogram.lend() );
-            cout << "astro-benchmark histogram with " << numunits << " units ";
-            for ( auto it= histogram.lbegin(); it != histogram.lend(); ++it ) {
-                
-                cout << (uint32_t) *it << ", ";
-            }
-            cout << endl << flush;
-            time_histogram= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
+            cout << "computed parallel histogram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
+            print_histogram( histogram.lbegin(), histogram.lend() );
         }
     }
 
@@ -195,6 +180,7 @@ int main( int argc, char* argv[] ) {
     /* *** part 4: define a marker color and check that it is not appearing in the image yet *** */
 
     RGB marker(0,255,0);
+
     {
         start= std::chrono::system_clock::now();
 
@@ -209,41 +195,44 @@ int main( int argc, char* argv[] ) {
         }
 
         end= std::chrono::system_clock::now();
-        cout << "    unit " << myid << " found marker color " << count << " times " <<
-            "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << 
-	    ", visited " << visitedpixels << ", sum of brightness " << brightnesssum << endl;
+        cout << "    unit " << myid << " found marker color " << count << " times "
+             << "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count()
+             << " seconds" << ", visited " << visitedpixels << ", sum of brightness "
+             << brightnesssum << endl;
+
         time_searchmarkercolor= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
-        
     }
 
     matrix.barrier();
 
-    uint32_t nobjects= 0;
     /* *** part 5: count bright objects in the image by finding a bright pixel, then flood-filling all
     bright neighbor pixels with marker color *** */
-     {
+    uint32_t sum_objects = 0;
+    {
+        dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
-        uint32_t lww= 15907;
         uint32_t lh= matrix.local.extent(0);
 
-        uint64_t foundobjects= 0;
-        uint64_t visitedpixels= 0;
-        uint64_t brightnesssum= 0;
+        auto foundobjects = sums.lbegin();
+        uint64_t visitedpixels = 0;
+        uint64_t brightnesssum = 0;
+
         for ( uint32_t y= 0; y < lh ; y++ ){
-        for ( uint32_t x= 0; x < lw ; x++ ){
-
-            foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
-            visitedpixels++;
-            RGB* pixel= matrix.lbegin() + y*lw+ x;
-            brightnesssum += pixel->brightness();
+            for ( uint32_t x= 0; x < lw ; x++ ){
+                *foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
+                visitedpixels++;
+                RGB* pixel= matrix.lbegin() + y*lw+ x;
+                brightnesssum += pixel->brightness();
+            }
         }
-        }
 
-        cout << "unit " << myid << " has " << lw << " x " << lh << " == " << lw*lh << " and visited " << visitedpixels << " pixels, found " << foundobjects << ", sum of brightness " << brightnesssum << endl;
-        
-        matrix.barrier();
+        cout << "unit " << myid << " has " << lw << " x " << lh << " == " << lw*lh
+             << " and visited " << visitedpixels << " pixels, found " << *foundobjects
+             << ", sum of brightness " << brightnesssum << endl;
+
+        sums.barrier();
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
@@ -251,32 +240,19 @@ int main( int argc, char* argv[] ) {
         }
 
         /* combine the local number of objects found into the global result */
-        dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
-        cout << "unit " << myid << " found " << foundobjects << " objects locally" << endl;
-        sums.local[0]= foundobjects;
-
-        if ( 0 != myid ) {
-
-            dash::transform<uint32_t>(
-                sums.lbegin(), sums.lend(), // first source
-                sums.begin(), // second source
-                sums.begin(), // destination
-                dash::plus<uint32_t>() );
-        }
-
-        sums.barrier();
+        cout << "unit " << myid << " found " << *foundobjects << " objects locally" << endl;
 
         if ( 0 == myid ) {
-            cout << "found " << sums.local[0] << " objects in total" << endl;
+            sum_objects = std::accumulate(sums.begin(), sums.end(), 0);
+            cout << "found " << sum_objects << " objects in total" << endl;
         }
-        nobjects= sums.local[0];
     }
 
     matrix.barrier();
 
     if ( 0 == myid ) {
-    
-    
+
+
         /* benchmark output in one line for convenient */
         gethostname( hostname , 100 );
 
@@ -284,18 +260,18 @@ int main( int argc, char* argv[] ) {
         auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
         cout << "astro-benchmark timings with " << numunits << " units " <<
-            " with distribution-spec " << distspec << 
-            " on " << hostname << 
-            " at " << std::put_time( std::localtime(&in_time_t), "%Y-%m-%d %X" ) << 
+            " with distribution-spec " << distspec <<
+            " on " << hostname <<
+            " at " << std::put_time( std::localtime(&in_time_t), "%Y-%m-%d %X" ) <<
             " creatematrix " << time_creatematrix << " s," <<
             " readtiff " << time_readtiff << " s," <<
             " histogram " << time_histogram << " s," <<
             " searchcolor " << time_searchmarkercolor << " s," <<
             " checkobjects " << time_checkobjects << " s" <<
-            " imagefile " << argv[1] << 
-            " foundobjects " << nobjects << flush << endl;
+            " imagefile " << argv[1] <<
+            " foundobjects " << sum_objects << flush << endl;
     }
-    
+
     dash::finalize();
     return 0;
 }

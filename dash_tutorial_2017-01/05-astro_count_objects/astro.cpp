@@ -184,7 +184,7 @@ int main( int argc, char* argv[] ) {
         }
 
         end = std::chrono::system_clock::now();
-        cout << "    unit " << myid << " found marker color (knue) " << count << " times "
+        cout << "    unit " << myid << " found marker color " << count << " times "
              << "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count()
              << " seconds" << endl;
     }
@@ -193,23 +193,20 @@ int main( int argc, char* argv[] ) {
 
     /* *** part 5: count bright objects in the image by finding a bright pixel, then flood-filling all
     bright neighbor pixels with marker color *** */
-
+    uint32_t sum_objects = 0;
     {
         dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
         uint32_t lh= matrix.local.extent(0);
-        uint32_t foundobjects= 0;
+        auto foundobjects = sums.lbegin();
         for ( uint32_t y= 0; y < lh ; y++ ){
-        for ( uint32_t x= 0; x < lw ; x++ ){
-
-            foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
+            for ( uint32_t x= 0; x < lw ; x++ ){
+                *foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
+            }
         }
-        }
 
-        sums.local[0] = foundobjects;
-        
         sums.barrier();
         end= std::chrono::system_clock::now();
         if ( 0 == myid ) {
@@ -217,20 +214,11 @@ int main( int argc, char* argv[] ) {
         }
 
         /* combine the local number of objects found into the global result */
-
-        if ( 0 != myid ) {
-
-            dash::transform<uint32_t>(
-                sums.lbegin(), sums.lend(), // first source
-                sums.begin(), // second source
-                sums.begin(), // destination
-                dash::plus<uint32_t>() );
-        }
-
-        sums.barrier();
+        cout << "unit " << myid << " found " << *foundobjects << " objects locally" << endl;
 
         if ( 0 == myid ) {
-            cout << "found " << sums.local[0] << " objects in total" << endl;
+            sum_objects = std::accumulate(sums.begin(), sums.end(), 0);
+            cout << "found " << sum_objects << " objects in total" << endl;
         }
     }
 
