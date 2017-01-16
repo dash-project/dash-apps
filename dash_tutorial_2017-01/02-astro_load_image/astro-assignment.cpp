@@ -128,7 +128,7 @@ int main( int argc, char* argv[] ) {
     matrix.barrier();
 
     if ( 0 == myid ) {
-        show_matrix( matrix, 1200, 1000, 15700, 9500 );
+        show_matrix( matrix, 1200, 1000 );
     }
 
     dash::finalize();
