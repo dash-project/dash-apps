@@ -3,7 +3,7 @@ include ../make.defs
 .phony: all
 all: astro astro-benchmark bug heic1620a.tif
 
-.phon<: diff
+.phony: diff
 diff:  astro-assignment.cpp astro-solution.cpp
 	diff  astro-assignment.cpp astro-solution.cpp
 
@@ -12,15 +12,15 @@ heic1620a.tif:
 
 astro:  astro.cpp misc.h
 	$(CXX) -c $(INC) -DWITHOUTSDL astro.cpp
-	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
 bug:  bug.cpp
 	$(CXX) -c $(INC) -DWITHOUTSDL $?
-	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
 astro-benchmark:  astro-benchmark.cpp misc.h
 	$(CXX) -c $(INC) -DWITHOUTSDL astro-benchmark.cpp
-	$(CXX) -o $@ $@.o $(LIB) -ltiff -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB) -ltiff
 
 	
 .phony: printenv

@@ -2,12 +2,11 @@
 
 DASH_ROOT = /home/knue/local/dash-0.3.0
 #DASH_ROOT = /opt/dash
-MPIROOT = /opt/open-mpi/
 
 DART_IMPL = mpi
 
 INC=-I$(DASH_ROOT)/include
-LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base
+LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lhwloc -lnuma -lpapi
 
 #CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 CXXFLAGS= -O3 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG

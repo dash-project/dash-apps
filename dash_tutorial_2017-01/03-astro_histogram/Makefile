@@ -3,7 +3,7 @@ include ../make.defs
 .phony: all
 all: astro heic1620a.tif
 
-.phon<: diff
+.phony: diff
 diff:  astro-assignment.cpp astro-solution.cpp
 	diff  astro-assignment.cpp astro-solution.cpp
 
@@ -12,7 +12,7 @@ heic1620a.tif:
 
 astro:  astro.cpp
 	$(CXX) -c $(INC) -DWITHSDL $?
-	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB) -lSDL -ltiff
 
 
 .phony: printenv

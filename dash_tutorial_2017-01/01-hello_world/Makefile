@@ -5,15 +5,15 @@ all: hello hello_array hello_minimum
 
 hello:  hello.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB) 
 
 hello_array:  hello_array.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB)
 
 hello_minimum:  hello_minimum.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) -lhwloc -lnuma
+	$(CXX) -o $@ $@.o $(LIB) 
 
 .phony: printenv
 printenv :
