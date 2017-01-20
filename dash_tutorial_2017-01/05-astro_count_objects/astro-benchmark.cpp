@@ -169,6 +169,7 @@ int main( int argc, char* argv[] ) {
             cout << "computed parallel histogram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
             print_histogram( histogram.lbegin(), histogram.lend() );
         }
+        time_histogram= 0.001 * std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count();
     }
 
     /* from the brightness histogram we learned, that we should define all but the first two histogram bins
