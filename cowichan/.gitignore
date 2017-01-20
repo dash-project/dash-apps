@@ -4,7 +4,8 @@
 # just Makefile in cowichan root folder should be tracked
 !/Makefile
 
-*/randmat
-*/thresh
+*/cowichan_randmat
+*/cowichan_thresh
+*/cowichan_winnow
 
 

@@ -1,4 +1,4 @@
-LIST = randmat thresh
+LIST = randmat thresh winnow
 
 all: cache
 	for i in $(LIST); do \

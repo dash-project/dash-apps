@@ -8,10 +8,10 @@ using std::endl;
 typedef unsigned int  uint;
 typedef unsigned char uchar;
 
-#define USED_TYPE uchar
+#define MTRX_TYPE uchar
 
 
-template< typename T = USED_TYPE >
+template< typename T = MTRX_TYPE >
 inline void thresh(uint nrows, uint ncols, uint percent, int myid);
 
 
@@ -28,12 +28,13 @@ void print2d( T& mat ) {
 
 int main( int argc, char* argv[] )
 {  
-  dash::init( &argc,&argv );
+  dash::init( &argc, &argv );
   int myid = static_cast<int>( dash::myid( ) );
   
   if( argc != 4 ){
-    if( 0 == myid ){ cout << "3 Parameters expected!"                 << endl
-                    << "Usage:cowichan_thresh nrows ncols percentage" << endl;
+    if( 0 == myid ){ cout << "3 Parameters expected!"         << endl
+                    << "Usage: cowichan_thresh nRows nCols percentage" << endl
+                    << "Then enter the matrix."               << endl;
     }
     dash::finalize( );
     return 0;
@@ -49,7 +50,7 @@ int main( int argc, char* argv[] )
 }
 
 
-template<typename T = USED_TYPE>
+template<typename T = MTRX_TYPE>
 inline void thresh(uint nrows, uint ncols, uint percent, int myid){
 
   dash::NArray<T   , 2> matSrc( nrows, ncols );

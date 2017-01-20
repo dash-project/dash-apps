@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(thresh)
+project(cowichan_thresh)
 
 ## Adjust to your needs
 
