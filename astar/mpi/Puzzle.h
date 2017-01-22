@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string.h>
 
-const int COLUMNS = 3, ROWS = 3;
+const int COLUMNS = 2, ROWS = 3;
 //const int SIZE = COLUMNS * ROWS;
 
 

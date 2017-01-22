@@ -4,7 +4,9 @@
 #include <map>
 #include <algorithm>
 #include "Puzzle.h"
+#include "JUtils.h"
 #include <unistd.h>
+#include <cstddef>
 
 
 
@@ -28,37 +30,6 @@ MPI_Datatype register_type(Puzzle const&) {
 void deregister_mpi_type(MPI_Datatype type) {
   MPI_Type_free(&type);
 }
-/*
-void sendPuzzle(Puzzle const& p, MPI_Datatype type, int dest, int tag, MPI_Comm comm) {
-  MPI_Send(&p, 1, type, dest, tag, comm);
-}
-
-void sendNPuzzles(std::vector<Puzzle> puzzles, MPI_Datatype type, int dest, int tag, MPI_Comm comm) {
-  int len = puzzles.size();
-  MPI_Send(&len, 1, MPI_INT, dest, tag, comm);
-
-  if (0 != len) {
-    MPI_Send(&puzzles[0], puzzles.size(), type, dest, tag, comm);
-  }
-}
-
-void recvPuzzle(Puzzle & p, MPI_Datatype type, int src, int tag, MPI_Comm comm) {
-  MPI_Status s;
-  MPI_Recv(&p, 1, type, src, tag, comm, &s);
-}
-
-void recvNPuzzles(std::vector<Puzzle> & puzzles, MPI_Datatype type, int src, int tag, MPI_Comm comm) {
-  int len;
-  MPI_Status s;
-  MPI_Recv(&len, 1, MPI_INT, src, tag, comm, &s);
-
-  if (len != 0) {
-    puzzles.resize(len);
-    MPI_Recv(puzzles.data(), len, type, src, tag, comm, &s);
-  } else {
-    puzzles.clear();
-  }
-}*/
 
 void addToQueue(std::map<Puzzle,int,cmp> &exP, std::vector<std::vector<Puzzle>> &queues, Puzzle p, const int &processes) {
   auto it = exP.find(p);
@@ -86,42 +57,44 @@ int main (int argc, char* argv[]) {
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   int name_len;
   MPI_Get_processor_name(processor_name, &name_len);
+  
+  if (world_rank == 0) {
+	  std::cout << "MPI started with " << world_size << " processes\n";
+  }
 
   Puzzle p;
   MPI_Datatype puzzleType = register_type(p);
 
-  std::vector<std::vector<Puzzle>> queues;
-  queues.resize(world_size);
+  std::vector<std::vector<Puzzle>> queues(world_size);
 
-  std::vector<int> size_send_buffers;
-  size_send_buffers.resize(world_size);
-  std::vector<std::vector<Puzzle>> send_buffers;
-  send_buffers.resize(world_size);
+  std::vector<int> size_send_buffers(world_size);
+  std::vector<std::vector<Puzzle>> send_buffers(world_size);
 
-  std::vector<int> recv_sizes;
-  recv_sizes.resize(world_size);
+  std::vector<int> recv_sizes(world_size);
   std::vector<Puzzle> recv_buffer;
 
-  std::vector<MPI_Request> size_send_requests;
-  size_send_requests.resize(world_size);
-  std::vector<MPI_Request> puzzle_send_requests;
-  puzzle_send_requests.resize(world_size);
+  std::vector<MPI_Request> size_send_requests(world_size);
+  std::vector<MPI_Request> puzzle_send_requests(world_size);
 
-  std::vector<MPI_Request> size_recv_requests;
-  size_recv_requests.resize(world_size);
-  std::vector<MPI_Request> puzzle_recv_requests;
-  puzzle_recv_requests.resize(world_size);
+  std::vector<MPI_Request> size_recv_requests(world_size);
+  std::vector<MPI_Request> puzzle_recv_requests(world_size);
+  
+  std::vector<int> sent_to(world_size);
 
   MPI_Status status;
 
   std::map<Puzzle, int, cmp> examined;
   int exID = 0;
 
+  JDurationManager dm;
   bool done = false, first = true;
   int flag = 0, localExaminedSum = 0, globalExaminedSum = 0, openOps = 0;
+  
+
 
   if (0 == world_rank) {
     addToQueue(examined, queues, p, world_size);
+	dm.start();
   }
 
   //initialize the receives
@@ -132,7 +105,7 @@ int main (int argc, char* argv[]) {
   }
 
   int recvFailures = 0;
-
+  
   while (!done) {
     //handle own queue
     while (queues[world_rank].size() > 0) {
@@ -176,18 +149,28 @@ int main (int argc, char* argv[]) {
         }
         //send
         MPI_Test(&puzzle_send_requests[i], &flag, &status);
-        if (queues[i].size() > 0 && flag) {
+        if (!queues[i].empty() && flag) {
+		  sent_to[i] = queues[i].size();
           size_send_buffers[i] = queues[i].size();
           send_buffers[i] = queues[i];
           queues[i].clear();
           MPI_Isend(&size_send_buffers[i],1,MPI_INT, i, 0, MPI_COMM_WORLD, &size_send_requests[i]);
           MPI_Isend(&send_buffers[i][0], size_send_buffers[i], puzzleType, i, 1, MPI_COMM_WORLD, &puzzle_send_requests[i]);
           recvFailures = 0;
-          first = false;
+          //first = false;
         }
       }
     }
-
+	
+	//if own queue is empty, tell process 0 which processes you send something to
+	if (0 == world_rank) {
+	  //receive
+	  
+	  //if own queue is empty, i am done, but others might not be
+	} else if (queues[world_rank].empty()) {
+	  //MPI_Isend()
+	  //clear sent_to
+	}
     ++recvFailures;
     if (recvFailures > 990) {
       sleep(1);
@@ -203,6 +186,8 @@ int main (int argc, char* argv[]) {
   MPI_Reduce(&localExaminedSum, &globalExaminedSum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   if (world_rank == 0) {
     std::cout << "total states examined: " << globalExaminedSum << std::endl;
+	dm.stop();
+	dm.print();
   }
 
   Puzzle p2;
