@@ -15,7 +15,7 @@ public:
 		t_now = std::chrono::high_resolution_clock::now();
 		
 		time_span = std::chrono::duration<double, std::milli>(t_now - t_last);
-		iterations_per_second = second / time_span;
+		iterations_per_second = (iterations_per_second + (second / time_span)) / 2.f;
 		if (print_debug) {
 			if (std::chrono::duration<double>(t_now - t_out).count() > 1) {
 				t_out = std::chrono::high_resolution_clock::now();
