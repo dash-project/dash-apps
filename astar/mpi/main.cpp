@@ -1,25 +1,41 @@
 #include <mpi.h>
-//#include <stdio.h>
-//#include <vector>
-//#include <map>
-//#include <algorithm>
-//#include "Puzzle.h"
 #include "JUtils.h"
 #include "Astar.h"
-//#include <unistd.h>
-//#include <cstddef>
 
 int main (int argc, char* argv[]) {
 	MPI_Init(NULL, NULL);
 	
 	JDurationManager dm;
 	{
-		dm.start();
 		Astar a;
+		dm.start();
+		
 		a.run();
 		
 		dm.stop();
-		dm.print();
+		
+		if (a.get_rank() == 0) {
+			//a.print();
+			dm.print();
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		if (a.get_rank() == 1) {
+			//a.print();
+			dm.print();
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		if (a.get_rank() == 2) {
+			//a.print();
+			dm.print();
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		if (a.get_rank() == 3) {
+      //a.print();
+			dm.print();
+		}
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	MPI_Finalize();	
