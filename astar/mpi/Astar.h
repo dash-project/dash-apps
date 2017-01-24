@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 #include <mpi.h>
 #include <cstddef>
 #include <vector>

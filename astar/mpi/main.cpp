@@ -1,13 +1,13 @@
 #include <mpi.h>
-#include <stdio.h>
-#include <vector>
-#include <map>
-#include <algorithm>
-#include "Puzzle.h"
+//#include <stdio.h>
+//#include <vector>
+//#include <map>
+//#include <algorithm>
+//#include "Puzzle.h"
 #include "JUtils.h"
 #include "Astar.h"
-#include <unistd.h>
-#include <cstddef>
+//#include <unistd.h>
+//#include <cstddef>
 
 int main (int argc, char* argv[]) {
 	MPI_Init(NULL, NULL);
