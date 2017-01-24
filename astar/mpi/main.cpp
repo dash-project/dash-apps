@@ -15,25 +15,25 @@ int main (int argc, char* argv[]) {
 		dm.stop();
 		
 		if (a.get_rank() == 0) {
-			//a.print();
+			a.print();
 			dm.print();
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
 		
 		if (a.get_rank() == 1) {
-			//a.print();
+			a.print();
 			dm.print();
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
 		
 		if (a.get_rank() == 2) {
-			//a.print();
+			a.print();
 			dm.print();
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
 		
 		if (a.get_rank() == 3) {
-      //a.print();
+      a.print();
 			dm.print();
 		}
 		MPI_Barrier(MPI_COMM_WORLD);

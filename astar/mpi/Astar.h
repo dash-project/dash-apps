@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <numeric>
 
 #include "Puzzle.h"
 
@@ -233,11 +234,11 @@ public:
 		std::cout << "----- PROCESS " << world_rank << " -----\n";
 		std::cout << "examined " << examined.size() << " states!\n";
 		
-		for (int i=0; i<world_size; ++i) {
+		/*for (int i=0; i<world_size; ++i) {
 			std::cout << "sent " << sent_to_ctr[i] << " states to process " << i << '\n';
 		}
 		for (int i=0; i<world_size; ++i) {
 			std::cout << "received " << recv_from_ctr[i] << " states from process " << i << '\n';
-		}
+		}*/
 	}
 };
