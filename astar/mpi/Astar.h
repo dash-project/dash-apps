@@ -1,4 +1,3 @@
-//#pragma once
 #include <mpi.h>
 #include <cstddef>
 #include <vector>
@@ -53,12 +52,10 @@ private:
 		if (it != examined.end()) {
 			if (p.cost < it->first.cost) {
 				examined.erase(it);
-				//queues[p.get_responsible_process(world_size)].push_back(p);
 				queues[p.get_responsible_process(world_size)].emplace_back(p);
 			}
 			return;
 		}
-		//queues[p.get_responsible_process(world_size)].push_back(p);
 		queues[p.get_responsible_process(world_size)].emplace_back(p);
 	}
 	
@@ -158,11 +155,11 @@ private:
     
     if (world_rank == 0 && (std::accumulate(sent_to_ctr.begin(), sent_to_ctr.end(), 0) == 0)) {
       //std::cout << "looks like everyone is done!\n";
-	done = true;
-	for (int i=1; i<world_size; ++i) {
-		noti_send_buffers[i] = -1;
-		MPI_Isend(&noti_send_buffers[i], 1, MPI_INT, i, 2, MPI_COMM_WORLD, &noti_send_requests[i]);
-	}
+	    done = true;
+	    for (int i=1; i<world_size; ++i) {
+		    noti_send_buffers[i] = -1;
+		    MPI_Isend(&noti_send_buffers[i], 1, MPI_INT, i, 2, MPI_COMM_WORLD, &noti_send_requests[i]);
+	    }
     }
 	}
 public:

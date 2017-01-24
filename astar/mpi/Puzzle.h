@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <mpi.h>
 
-const int COLUMNS = 3, ROWS = 3;
+const int COLUMNS = 4, ROWS = 4;
 //const int SIZE = COLUMNS * ROWS;
 
 class Puzzle{
