@@ -76,7 +76,11 @@ inline void thresh(uint nrows, uint ncols, uint percent, int myid){
   // get number of units running
   size_t num_units = dash::size( );
   
+  // create global histo array and initialze with 0
   dash::Array<uint> histo( maxPO * num_units, dash::BLOCKED );
+  for( uint * i = histo.lbegin(); i < histo.lend(); ++i) {
+    *i = 0;
+  }
   
   for( T * i = matSrc.lbegin( ); i < matSrc.lend( ); ++i ) {
     ++histo.local[*i];
