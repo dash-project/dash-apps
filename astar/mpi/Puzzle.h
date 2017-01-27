@@ -1,10 +1,11 @@
 #pragma once
 #include <iostream>
 #include <string.h>
+#include <cstddef>
+#include <mpi.h>
 
-const int COLUMNS = 3, ROWS = 3;
+const int COLUMNS = 4, ROWS = 4;
 //const int SIZE = COLUMNS * ROWS;
-
 
 class Puzzle{
 public:
@@ -30,7 +31,6 @@ public:
   int get_responsible_process(int no_of_processes);
   
 };
-
 
 struct cmp{
   bool operator() (const Puzzle& lhs, const Puzzle& rhs) const {

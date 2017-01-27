@@ -1,2 +1,2 @@
 all:
-		mpiCC main.cpp Puzzle.cpp -o main
+		mpic++ -std=c++11 main.cpp Puzzle.cpp -o main

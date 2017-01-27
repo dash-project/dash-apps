@@ -1,6 +1,8 @@
 #include "Puzzle.h"
 #include <iostream>
 
+
+
 Puzzle::Puzzle() {
   for (int i=0; i<ROWS * COLUMNS; ++i){
     puzzle[i] = i;
@@ -132,3 +134,4 @@ int Puzzle::get_responsible_process(int no_of_processes) {
   //return findEmpty() / area_size ;
   return findEmpty() % no_of_processes;
 }
+
