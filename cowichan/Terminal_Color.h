@@ -43,6 +43,14 @@ inline const sPar<T> fmt( const T& in, const Code code, const int width = 0 ) {
   return sPar<T>( in, code, width );
 }
 
+std::ostream& operator<<(std::ostream& os, const sPar<unsigned char>& par) {
+  #ifdef TERMINAL_COLORS
+    return os << BEGIN_COLOR << par.code << "m" << std::setw(par.width) << static_cast<uint>(par.in) << END_COLOR;
+  #else
+    return os << std::setw(par.width) << static_cast<uint>(par.in);
+  #endif
+}
+
 // overloading for transfer of several parameters
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const sPar<T>& par) {
@@ -53,14 +61,6 @@ std::ostream& operator<<(std::ostream& os, const sPar<T>& par) {
   #endif
 }
 
-template<>
-std::ostream& operator<<(std::ostream& os, const sPar<unsigned char>& par) {
-  #ifdef TERMINAL_COLORS
-    return os << BEGIN_COLOR << par.code << "m" << std::setw(par.width) << static_cast<uint>(par.in) << END_COLOR;
-  #else
-    return os << std::setw(par.width) << static_cast<uint>(par.in);
-  #endif
-}
 
 
 #endif
