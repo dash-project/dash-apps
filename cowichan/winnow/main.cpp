@@ -5,7 +5,7 @@
 #include <libdash.h>
 #include <chrono>
 #include <thread>
-#include "Terminal_Color.h"
+#include "../Terminal_Color.h"
 
 #define DEBUG
 #define SLEEP_TIME            30 //that's the sleep time before DEBUG IO

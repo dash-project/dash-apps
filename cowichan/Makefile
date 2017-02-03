@@ -1,4 +1,4 @@
-LIST = randmat thresh winnow
+LIST = randmat thresh winnow outer
 
 # Usage: make all                   -> builds all cowichan problems
 #        make                       -> same as make all
@@ -23,5 +23,5 @@ cache:
 
 clean:
 	for i in $(LIST); do \
-		find ./$$i/* ! -name CMakeLists.txt ! -name main.cpp ! -name Terminal_Color.h  -delete ;\
+		find ./$$i/* ! -name CMakeLists.txt ! -name main.cpp -delete ;\
 	done    
