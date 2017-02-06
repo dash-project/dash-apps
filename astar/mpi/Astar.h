@@ -7,26 +7,9 @@
 
 #include "Puzzle.h"
 
-MPI_Datatype register_type(Puzzle const&) {
-	size_t num_members = 3;
-	int lengths[num_members] = {1,ROWS*COLUMNS,ROWS*COLUMNS};
-	
-	MPI_Aint offsets[num_members] = {
-		offsetof(Puzzle, cost),
-		offsetof(Puzzle, puzzle),
-		offsetof(Puzzle, previous)};
-	
-	MPI_Datatype types[num_members] = { MPI_INT, MPI_INT, MPI_INT };
-	
-	MPI_Datatype type;
-	MPI_Type_create_struct(num_members, lengths, offsets, types, &type);
-	MPI_Type_commit(&type);
-	return type;
-}
 
-void deregister_mpi_type(MPI_Datatype type) {
-	MPI_Type_free(&type);
-}
+
+
 
 class Astar{
 private:
@@ -47,7 +30,7 @@ private:
 	
 	Puzzle puzzle_buffer;
 
-	void add_to_queue(Puzzle p) {
+	void add_to_queue(Puzzle & p) {
 		auto it = examined.find(p);
 		if (it != examined.end()) {
 			if (p.cost < it->first.cost) {
@@ -58,6 +41,12 @@ private:
 		}
 		queues[p.get_responsible_process(world_size)].emplace_back(p);
 	}
+  
+  void add_to_queue(Puzzle p, Puzzle & previous) {
+    if (p.puzzle != previous.previous) {
+      add_to_queue(p);
+    }
+  }
 	
 	void handle_queue(double interrupt_ctr = std::numeric_limits<double>::infinity()) {
 		queue_ctr = 0;
@@ -67,10 +56,10 @@ private:
 		
 			auto it = examined.find(puzzle_buffer);
 			if (it == examined.end() || it->first.cost > puzzle_buffer.cost) {
-				add_to_queue(puzzle_buffer.moveDown());
-				add_to_queue(puzzle_buffer.moveUp());
-				add_to_queue(puzzle_buffer.moveLeft());
-				add_to_queue(puzzle_buffer.moveRight());
+				add_to_queue(puzzle_buffer.moveDown(), puzzle_buffer);
+				add_to_queue(puzzle_buffer.moveUp(), puzzle_buffer);
+				add_to_queue(puzzle_buffer.moveLeft(), puzzle_buffer);
+				add_to_queue(puzzle_buffer.moveRight(), puzzle_buffer);
 				examined[puzzle_buffer] = ++exID;
 			}
 			
@@ -209,10 +198,9 @@ public:
 		return world_rank;
 	}
 	
-	void run() {
-		//for (int a=0;a<1000000; ++a) {
+	void run(int break_after) {
 		while (!done) {
-			handle_queue(1000);
+			handle_queue(break_after);
 			for (int i=0; i<world_size; ++i) {
 				if (i != world_rank) {
 					receive(i);
