@@ -10,10 +10,14 @@ int main (int argc, char* argv[]) {
 		Astar a;
 		dm.start();
 		
-		a.run();
+		a.run(1000);
 		
 		dm.stop();
-		
+    if (a.get_rank() == 0) {
+      dm.print();
+    }
+    
+		/*
 		if (a.get_rank() == 0) {
 			a.print();
 			dm.print();
@@ -36,7 +40,7 @@ int main (int argc, char* argv[]) {
       a.print();
 			dm.print();
 		}
-		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);*/
 	}
 	MPI_Finalize();	
 	return 0;

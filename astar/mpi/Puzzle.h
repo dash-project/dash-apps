@@ -4,8 +4,7 @@
 #include <cstddef>
 #include <mpi.h>
 
-const int COLUMNS = 4, ROWS = 4;
-//const int SIZE = COLUMNS * ROWS;
+const int COLUMNS = 3, ROWS = 3;
 
 class Puzzle{
 public:
@@ -44,3 +43,6 @@ struct cmp{
     return false;
   }
 };
+
+MPI_Datatype register_type(Puzzle const&);
+void deregister_mpi_type(MPI_Datatype type);
