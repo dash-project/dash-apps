@@ -8,13 +8,13 @@ CFLAGS = -Iinclude
 .phony: all
 all: serial dash
 
-serial: CFLAGS += -O2 -std=c99 -g -D_POSIX_C_SOURCE=1
+serial: CFLAGS += -O0 -std=c99 -g -D_POSIX_C_SOURCE=1
 serial: serial.c
-	$(CC) $(CFLAGS) -o $@ $< -DKMER_LENGTH=$(KMER_LENGTH) -DKMER_PACKED_LENGTH=$(KMER_PACKED_LENGTH) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $< -DKMER_LENGTH=$(KMER_LENGTH) -DKMER_PACKED_LENGTH=$(KMER_PACKED_LENGTH)
 
 dash:  dash.cpp
-	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB)
+	$(MPICXX) -c $(INC) $? -DKMER_LENGTH=$(KMER_LENGTH) -DKMER_PACKED_LENGTH=$(KMER_PACKED_LENGTH)
+	$(MPICXX) -o $@ $@.o $(LIB)
 
 .phony: printenv
 printenv :
