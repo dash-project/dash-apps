@@ -3,15 +3,6 @@
 #endif */
 
 #include <libdash.h>
-#include <chrono>
-#include <thread>
-#include "../Terminal_Color.h"
-
-#define DEBUG
-#define SLEEP_TIME            30 //that's the sleep time before DEBUG IO
-#define MAX_KEY               99
-#define MIN_NUM_ELEM_PER_UNIT 10
-
 
 using std::cout;
 using std::cin;
@@ -20,9 +11,8 @@ using std::vector;
 using std::pair;
 using std::max;
 using std::make_pair;
-using std::this_thread::sleep_for;
 
-using uint  = unsigned  int;
+using uint  = unsigned int;
 using POI_T = int;  //this type musst be signed!
 
 template<typename T = POI_T>
@@ -94,6 +84,27 @@ int main( int argc, char* argv[] )
 
   outer( nelts, points, matOut, vec, myid );
 
+  dash::barrier( );
+  
+  if( 0 == myid ){
+    uint count = 0;
+    cout << std::showpoint << std::fixed << std::setprecision(5);
+    
+    for(uint i = 0; i < matOut.extent(0); ++i) {
+      for(uint j = 0; j < matOut.extent(1); ++j) {
+        if(j) cout << " ";
+        cout << static_cast<double>(matOut[i][j]);
+      } cout << "\n";
+    }
+    
+    cout << "\n";
+    
+    for(uint i = 0; i < vec.size(); ++i){
+      if(i) cout << " ";
+      cout << static_cast<double>(vec[i]);
+    } cout << endl;
+  }
+
   dash::finalize( );
 }
 
@@ -114,13 +125,6 @@ inline void outer(
             dash::Array<double> & vec,
                             int   myid
     ){
-
-  dash::Team & team = dash::Team::All();
-  size_t nUnits     = team.size();
-  
-   // cout << "#" << myid << ": " << matOut.pattern().global( {0,0} )[0] << "\n";
-   // cout << "#" << myid << ": " << matOut.pattern().local_extents()[0] << endl;
-   
    uint gRow =        matOut.pattern().global({0,0})[0];
    uint end  = gRow + matOut.pattern().local_extents()[0];
    double nmax;
@@ -135,26 +139,5 @@ inline void outer(
     }
     matOut.local[i][gRow] = nelts * nmax;
     vec.local[i] = distance(make_pair(0,0), points[gRow]);
-  }
-  
-  
-  dash::barrier( );
-  if( 0 == myid ){
-    uint count = 0;
-    cout << std::showpoint << std::fixed << std::setprecision(5);
-    
-    for(uint i = 0; i < matOut.extent(0); ++i) {
-      for(uint j = 0; j < matOut.extent(1); ++j) {
-        if(j) cout << " ";
-        cout << static_cast<double>(matOut[i][j]);
-      } cout << "\n";
-    }
-    
-    cout << "\n";
-    
-    for(uint i = 0; i < vec.size(); ++i){
-      if(i) cout << " ";
-      cout << static_cast<double>(vec[i]);
-    } cout << endl;
   }
 }
