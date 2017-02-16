@@ -7,10 +7,12 @@
 #include "map"
 #include "thread"
 #include "chrono"
+#include "JUtils.h"
 
 class AStar {
 private:
-	std::vector<Puzzle> queue;
+	//std::vector<Puzzle> queue;
+  std::deque<Puzzle> queue;
 	std::map<Puzzle, int, cmp> examined;
 
   Puzzle puzzle_buffer;

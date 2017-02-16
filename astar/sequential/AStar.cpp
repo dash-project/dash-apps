@@ -23,9 +23,12 @@ void AStar::add_to_queue(Puzzle p, Puzzle & previous) {
 }
 
 void AStar::run() {
+  JIpsManager im;
 	while (queue.size() > 0) {
-		puzzle_buffer = queue.back();
-		queue.pop_back();
+    im.update(true);
+    //std::cout << "qs: " << queue.size() << '\n';
+		puzzle_buffer = queue.front();
+		queue.pop_front();
 	
 		auto it = examined.find(puzzle_buffer);
 		if (it == examined.end() || it->first.cost > puzzle_buffer.cost) {

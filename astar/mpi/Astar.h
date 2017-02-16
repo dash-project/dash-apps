@@ -33,7 +33,7 @@ private:
 	void add_to_queue(Puzzle & p);
   void add_to_queue(Puzzle p, Puzzle & previous);	
   
-	void handle_queue(double interrupt_ctr = std::numeric_limits<double>::infinity());
+	void handle_queue(int interrupt_ctr = std::numeric_limits<int>::max());
 	
 	void receive(int from);	
 	void send(int to);

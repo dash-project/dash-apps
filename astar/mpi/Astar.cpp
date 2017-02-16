@@ -60,7 +60,7 @@ void Astar::add_to_queue(Puzzle p, Puzzle & previous) {
    }
  }
 
-void Astar::handle_queue(double interrupt_ctr) {
+void Astar::handle_queue(int interrupt_ctr) {
 	queue_ctr = 0;
 	while (queues[world_rank].size() > 0 && queue_ctr < interrupt_ctr) {
 		puzzle_buffer = queues[world_rank].back();

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <cstddef>
 
-const int COLUMNS = 2, ROWS = 4;
+const int COLUMNS = 3, ROWS = 3;
 
 class Puzzle{
 public:
