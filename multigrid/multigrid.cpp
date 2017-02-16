@@ -27,7 +27,7 @@ char filename[101];
 #else /* WITHPNGOUTPUT */
 
 #define WRITETOPNG(GRID)
-    
+
 #endif /* WITHPNGOUTPUT */
 
 using std::cout;
@@ -36,7 +36,7 @@ using std::setw;
 using std::vector;
 
 
-dash::HaloSpec<2> halospec({{ {-1,1}, {-1,1} }});
+dash::experimental::HaloSpec<2> halospec({{ {-1,1}, {-1,1} }});
 
 
 class Level {
@@ -44,8 +44,8 @@ class Level {
 public:
 
     dash::Matrix<double,2> grid;
-    dash::HaloMatrix< dash::Matrix<double,2>, dash::HaloSpec<2> > halo;
-    
+    dash::experimental::HaloMatrix< dash::Matrix<double,2>, dash::experimental::HaloSpec<2> > halo;
+
     Level( size_t w, size_t h, dash::Team& team, dash::TeamSpec<2> teamspec ) :
         grid( dash::SizeSpec<2>( h+2, w+2 ),
               dash::DistributionSpec<2>( dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
@@ -55,8 +55,8 @@ public:
 
 
 void sanitycheck( const dash::Matrix<double,2>& grid  ) {
-    
-    /* check if the sum of the local extents of the matrix blocks sum up to 
+
+    /* check if the sum of the local extents of the matrix blocks sum up to
      * the global extents, abort otherwise */
     dash::Array<size_t> sums( dash::Team::All().size(), dash::BLOCKED );
     sums.local[0]= grid.local.extent(0) * grid.local.extent(1);
@@ -75,11 +75,11 @@ void sanitycheck( const dash::Matrix<double,2>& grid  ) {
     if ( ( (size_t) sums[0] ) != grid.extent(0) * grid.extent(1) ) {
 
         if ( 0 == dash::myid() ) {
-            cout << "ERROR: size mismatch: global size is " << 
-                grid.extent(0) * grid.extent(1) << " == " << grid.extent(0) << "x" << grid.extent(1) << 
+            cout << "ERROR: size mismatch: global size is " <<
+                grid.extent(0) * grid.extent(1) << " == " << grid.extent(0) << "x" << grid.extent(1) <<
                 " but sum of local sizes is " << (size_t) sums[0] << std::flush << endl;
         }
-    
+
         dash::finalize();
         exit(0);
     }
@@ -90,9 +90,9 @@ void initgrid( dash::Matrix<double,2>& grid ) {
 
     if ( 0 != dash::myid() ) return;
 
-    /* do initialization only from unit 0 with global accesses. 
-    This is not the fastest way and a parallel routine would not be too 
-    complicated but it should demonstrate the possibility to trade 
+    /* do initialization only from unit 0 with global accesses.
+    This is not the fastest way and a parallel routine would not be too
+    complicated but it should demonstrate the possibility to trade
     convenience against performance. */
 
     size_t w= grid.extent(1);
@@ -115,14 +115,14 @@ void initgrid( dash::Matrix<double,2>& grid ) {
 
 
 void setboundary( dash::Matrix<double,2>& grid ) {
-    
+
     if ( 0 != dash::myid() ) return;
-    
-    /* do initialization only from unit 0 with global accesses. 
-    This is not the fastest way and a parallel routine would not be too 
-    complicated but it should demonstrate the possibility to trade 
+
+    /* do initialization only from unit 0 with global accesses.
+    This is not the fastest way and a parallel routine would not be too
+    complicated but it should demonstrate the possibility to trade
     convenience against performance. */
-    
+
     size_t w= grid.extent(1);
     size_t h= grid.extent(0);
 
@@ -174,7 +174,7 @@ void scaledownboundary( const dash::Matrix<double,2>& fine, dash::Matrix<double,
         }
 
     } else {
-        
+
         /* else boundary in the end -- this is only true for the restructed case with 4 units */
         size_t startx= ( 0 == cornerc[1] ) ? 1 : 0;
         for ( size_t x= 0; x < wc-1; x++ ) {
@@ -191,7 +191,7 @@ void scaledownboundary( const dash::Matrix<double,2>& fine, dash::Matrix<double,
         }
 
     } else {
-        
+
         /* else boundary in the end -- this is only true for the restructed case with 4 units */
         size_t starty= ( 0 == cornerc[0] ) ? 1 : 0;
         for ( size_t y= 0; y < hc-1; y++ ) {
@@ -254,10 +254,10 @@ void scaleup( const dash::Matrix<double,2>& coarse, dash::Matrix<double,2>& fine
 
 
 double smoothen( dash::Matrix<double,2>& grid,
-               dash::HaloMatrix< dash::Matrix<double,2>, dash::HaloSpec<2> >& halo ) {
+               dash::experimental::HaloMatrix< dash::Matrix<double,2>, dash::experimental::HaloSpec<2> >& halo ) {
 
     double res= 0.0;
-    
+
     /// relaxation coeff.
     const double c= 1.0;
 
@@ -327,14 +327,14 @@ double smoothen( dash::Matrix<double,2>& grid,
     }
 
     residuals.barrier();
-    
+
     /* only unit 0 returns global residual */
     return residuals.local[0];
 }
 
 
 #ifdef WITHPNGOUTPUT
-void topng( dash::Matrix<double,2>& grid, const char* filename, 
+void topng( dash::Matrix<double,2>& grid, const char* filename,
         const double minvalue= 0.0, const double maxvalue= 100.0 ) {
 
     if ( 0 != dash::myid() ) return;
@@ -345,11 +345,11 @@ void topng( dash::Matrix<double,2>& grid, const char* filename,
     size_t h= grid.extent(0);
 
     if ( w < minsize || h < minsize ) {
-        
+
         f= ( w <= h ) ? w : h;
         f= 1+minsize/f;
     }
-    
+
     png::image< png::rgb_pixel > image( h*f, w*f );
     for ( png::uint_32 y = 0; y < h; y++ ) {
         for ( png::uint_32 x = 0; x < w; x++ ) {
@@ -389,18 +389,18 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
         scaledown( levels[i-1]->grid, levels[i]->grid );
 
         if ( 0 == dash::myid() ) {
-            cout << "smoothen with residual " << res << 
-                ", then scale down " << levels[i-1]->grid.extent(1) << "x" << levels[i-1]->grid.extent(1) << 
+            cout << "smoothen with residual " << res <<
+                ", then scale down " << levels[i-1]->grid.extent(1) << "x" << levels[i-1]->grid.extent(1) <<
                 " --> " << levels[i]->grid.extent(1)   << "x" << levels[i]->grid.extent(1) << endl;
         }
 
         WRITETOPNG( levels[i]->grid )
     }
 
-    /* do a fixed number of smoothing steps until the residual on the coarsest grid is 
+    /* do a fixed number of smoothing steps until the residual on the coarsest grid is
     what you want on the finest level in the end. */
     for ( uint32_t i= 0; i < inneriterations; i++ ) {
-        
+
         double res= smoothen( levels.back()->grid, levels.back()->halo );
 
         if ( 0 == dash::myid() ) {
@@ -408,7 +408,7 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
         }
         WRITETOPNG( levels.back()->grid )
     }
-    
+
     for ( uint32_t i= levels.size()-1; i > 0; i-- ) {
 
         scaleup( levels[i]->grid, levels[i-1]->grid );
@@ -418,8 +418,8 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
         double res= smoothen( levels[i-1]->grid, levels[i-1]->halo );
 
         if ( 0 == dash::myid() ) {
-            cout << "scale up " << levels[i]->grid.extent(1)   << "x" << levels[i]->grid.extent(1) << 
-                " --> " << levels[i-1]->grid.extent(1) << "x" << levels[i-1]->grid.extent(1) << 
+            cout << "scale up " << levels[i]->grid.extent(1)   << "x" << levels[i]->grid.extent(1) <<
+                " --> " << levels[i-1]->grid.extent(1) << "x" << levels[i-1]->grid.extent(1) <<
                 ", then smoothen with residual " << res << endl;
         }
 
@@ -431,7 +431,7 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
 int main( int argc, char* argv[] ) {
 
     dash::init(&argc, &argv);
-    
+
     dash::TeamSpec<2> teamspec( dash::Team::All().size(), 1 );
     teamspec.balance_extents();
 
@@ -446,7 +446,7 @@ int main( int argc, char* argv[] ) {
             cout << "level " << l << " is " << (1<<(howmanylevels-l))+2 << "x" << (1<<(howmanylevels-l))+2 << endl;
         }
         levels.push_back( new Level( (1<<(howmanylevels-l)), (1<<(howmanylevels-l)), dash::Team::All(), teamspec ) );
-        
+
         if ( 0 == l ) {
             sanitycheck( levels[0]->grid );
             setboundary( levels[0]->grid );
@@ -454,15 +454,15 @@ int main( int argc, char* argv[] ) {
             scaledownboundary( levels[l-1]->grid, levels[l]->grid );
         }
     }
-   
+
     dash::barrier();
 
-    /* Fill finest level. Strictly, we don't need to set any initial values here 
+    /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the PNG images */
     initgrid( levels[0]->grid );
 
     dash::barrier();
-    
+
     v_cycle( levels, 10 );
 
     double res= smoothen( levels.front()->grid, levels.front()->halo );
@@ -471,7 +471,7 @@ int main( int argc, char* argv[] ) {
     }
 
     WRITETOPNG( levels.front()->grid )
-        
+
     for ( auto ll : levels ) {
         delete( ll );
     }

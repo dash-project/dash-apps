@@ -1,4 +1,4 @@
-LIST = randmat thresh winnow outer
+LIST = randmat thresh winnow outer product
 
 # Usage: make all                   -> builds all cowichan problems
 #        make                       -> same as make all
