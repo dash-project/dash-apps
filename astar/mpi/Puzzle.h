@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <mpi.h>
 
-const int COLUMNS = 3, ROWS = 3;
+#define COLUMNS 3
+#define ROWS 3
+//const int COLUMNS = 3, ROWS = 3;
 
 class Puzzle{
 public:

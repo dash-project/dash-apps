@@ -8,64 +8,22 @@
 #include "thread"
 #include "chrono"
 
-
-class State
-{
+class AStar {
 private:
-public:
-	State();
-	State(std::string s, std::string p, int c);
+	std::vector<Puzzle> queue;
+	std::map<Puzzle, int, cmp> examined;
 
-	~State();
+  Puzzle puzzle_buffer;
+	unsigned long id, ow_ctr;
 
-	bool operator==(const State & b);
-	bool operator<(const State & b);
-	bool operator()(const State & b);
+	void add_to_queue(Puzzle & p);
+  void add_to_queue(Puzzle p, Puzzle & previous);	
 
-	std::string state, prev;
-	int cost;
-};
-
-struct cmp
-{
-	bool operator() (const State& lhs, const State& rhs) const
-	{
-		for (int i = 0; i < lhs.state.size(); ++i) {
-			if (lhs.state[i] < rhs.state[i]) {
-				return true;
-			}
-			else if (lhs.state[i] > rhs.state[i]) {
-				return false;
-			}
-		}
-		return false;
-	}
-};
-
-
-
-class AStar
-{
-private:
-	//std::deque<State> examinedStates, queuedStates, solution;
-	std::deque<State> queuedStates, solution;
-	std::map<State, int, cmp> examinedStates; //, queuedStates, solution;
-	std::map<State, int, cmp>::iterator solveIterator, addIterator;
-	State goal;
-	unsigned long queueID, exID;
-
-	void addToQueue(State s);
-	bool found;
-
-	//muss dann durch ein template ersetzt werden
-	Puzzle p;
-	
 public:
 	AStar();
-	AStar(int rowCount, int columnCount);
-	~AStar();
 
-	void solve();
-	void reconstructPath();
+	void run();
+  void print();
+	//void reconstructPath();
 	
 };

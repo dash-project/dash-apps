@@ -1,2 +1,2 @@
 all:
-	g++ main.cpp AStar.cpp Puzzle.cpp -g -Wall -o main
+	g++ -std=c++11 main.cpp AStar.cpp Puzzle.cpp -o main

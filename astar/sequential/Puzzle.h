@@ -1,41 +1,44 @@
 #pragma once
-#include "string"
-#include "vector"
-#include "iostream"
+#include <iostream>
+#include <string.h>
+#include <cstddef>
 
-class Coords {
+const int COLUMNS = 2, ROWS = 4;
+
+class Puzzle{
 public:
-	Coords();
-	Coords(int r, int c);
-	~Coords();
+  int cost;
+  int puzzle[ROWS * COLUMNS], previous[ROWS * COLUMNS];
+  int findEmpty();
+  void puzzle_to_previous();
 
-	int column, row;
+  Puzzle();
+
+  inline bool operator==(const Puzzle& other) {
+    return (memcmp(puzzle, other.puzzle, sizeof(puzzle)) == 0);
+  }
+
+  Puzzle randomize(int n);
+
+  void print();
+  Puzzle moveUp();
+  Puzzle moveDown();
+  Puzzle moveLeft();
+  Puzzle moveRight();
+
+  int get_responsible_process(int no_of_processes);
+  
 };
 
-class Puzzle
-{
-private:
-	int rowCount, columnCount;
-	Coords empty;
-	std::vector<std::vector<int>> puzzle;
-	
-	void createPuzzle();
-	void randomizePuzzle();
-	void swap(Coords a, Coords b);
-
-public:
-	Puzzle(int rC, int cC);
-	~Puzzle();
-
-
-	void moveUp();
-	void moveDown();
-	void moveLeft();
-	void moveRight();
-
-	std::string getGoalHash();
-	std::string getStateHash();
-	void setState(std::string hash);
-	void printCurrentState();
+struct cmp{
+  bool operator() (const Puzzle& lhs, const Puzzle& rhs) const {
+    for (int i=0; i<ROWS*COLUMNS; ++i) {
+      if (lhs.puzzle[i] < rhs.puzzle[i]) {
+        return true;
+      } else if (lhs.puzzle[i] > rhs.puzzle[i]) {
+        return false;
+      }
+    }
+    return false;
+  }
 };
-

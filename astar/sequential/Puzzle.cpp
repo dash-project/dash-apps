@@ -1,161 +1,134 @@
-//#include "stdafx.h"
 #include "Puzzle.h"
 
-Puzzle::Puzzle(int rC, int cC)
-{
-  empty = Coords(0,0);
-	rowCount = rC;
-	columnCount = cC;
-	createPuzzle();
-	randomizePuzzle();
+Puzzle::Puzzle() {
+  for (int i=0; i<ROWS * COLUMNS; ++i){
+    puzzle[i] = i;
+    previous[i] = i;
+    cost = 0;
+  }
 }
 
-
-Puzzle::~Puzzle()
-{
+Puzzle Puzzle::randomize(int n) {
+  Puzzle p;
+  for (int i=0; i<n; ++i) {
+    int r = rand() % 4;
+    switch (r) {
+      case 0:
+        p = p.moveRight();
+        break;
+      case 1:
+        p = p.moveLeft();
+        break;
+      case 2:
+        p = p.moveUp();
+        break;
+      case 3:
+        p = p.moveDown();
+        break;
+      default:
+        break;
+    }
+  }
+  return p;
 }
 
-void Puzzle::createPuzzle()
-{
-	for (int i = 0; i < rowCount; i++) {
-		std::vector<int> row;
-		for (int j = 0; j < columnCount; j++) {
-			row.push_back(i*columnCount + j);
-		}
-		puzzle.push_back(row);
-	}
-}
+void Puzzle::print() {
+  std::cout << "----- PUZZLE STATE: -----" << std::endl;
+  std::cout << "cost: " << cost << std::endl;
+  for (int i=0; i<ROWS; ++i) {
+     for (int j=0; j<COLUMNS; ++j) {
+        std::cout << puzzle[i*COLUMNS + j] << " ";
+     }
+     std::cout << std::endl;
+  }
 
-void Puzzle::randomizePuzzle() {
-	for (int i = 0; i < 500; i++) {
-		int r = rand() % 4;
-		switch (r) {
-		case 0:
-			moveRight();
-			break;
-		case 1:
-			moveLeft();
-			break;
-		case 2:
-			moveUp();
-			break;
-		case 3:
-			moveDown();
-			break;
-		default:
-			break;
-		}
-	}
-}
-
-void Puzzle::swap(Coords a, Coords b)
-{
-  //std::cout << "a: " << a.row << ", " << a.column << std::endl;
-  //std::cout << "b: " << b.row << ", " << b.column << std::endl;
-  //std::cout << "dimensions: " << rowCount << ", " << columnCount << std::endl;
-	int buf = puzzle[a.row][a.column];
-	puzzle[a.row][a.column] = puzzle[b.row][b.column];
-	puzzle[b.row][b.column] = buf;
+  std::cout << "  --- PREVIOUS STATE: ---  " << std::endl;
+  for (int i=0;i<ROWS;++i) {
+    for (int j=0;j<COLUMNS; ++j) {
+      std::cout << previous[i*COLUMNS + j] << " ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "-------------------------" << std::endl;
 }
 
 
 
-std::string Puzzle::getGoalHash()
-{
-	std::string goal;
-	for (int i = 0; i < rowCount*columnCount; i++) {
-		goal += (char)(i+97);
-	}
-	return goal;
+Puzzle Puzzle::moveUp() {
+  int empty = findEmpty();
+  if (empty < COLUMNS) {
+    return *this;
+  }
+
+  Puzzle p_new(*this);
+  p_new.puzzle_to_previous();
+  p_new.puzzle[empty] = p_new.puzzle[empty-COLUMNS];
+  p_new.puzzle[empty - COLUMNS] = 0;
+  p_new.cost++;
+
+  return p_new;
+}
+Puzzle Puzzle::moveDown() {
+  int empty = findEmpty();
+  if ((empty / COLUMNS) == ROWS - 1) {
+    return *this;
+  }
+
+  Puzzle p_new = Puzzle(*this);
+  p_new.puzzle_to_previous();
+  p_new.puzzle[empty] = p_new.puzzle[empty + COLUMNS];
+  p_new.puzzle[empty + COLUMNS] = 0;
+  p_new.cost++;
+
+  return p_new;
+}
+Puzzle Puzzle::moveLeft() {
+  int empty = findEmpty();
+  if ((empty % COLUMNS)==0) {
+    return *this;
+  }
+
+  Puzzle p_new = Puzzle(*this);
+  p_new.puzzle_to_previous();
+  p_new.puzzle[empty] = p_new.puzzle[empty-1];
+  p_new.puzzle[empty-1] = 0;
+  p_new.cost++;
+
+  return p_new;
+}
+Puzzle Puzzle::moveRight() {
+  int empty = findEmpty();
+  if ((empty % COLUMNS) == COLUMNS-1) {
+    return *this;
+  }
+
+  Puzzle p_new = Puzzle(*this);
+  p_new.puzzle_to_previous();
+  p_new.puzzle[empty] = p_new.puzzle[empty+1];
+  p_new.puzzle[empty+1] = 0;
+  p_new.cost++;
+
+  return p_new;
 }
 
-std::string Puzzle::getStateHash()
-{
-	std::string hash;
-	for (int i = 0; i < puzzle.size(); i++) {
-		for (int j = 0; j < puzzle[i].size(); j++) {
-			hash += (char)(puzzle[i][j]+97);
-		}
-	}
-	
-	return hash;
+int Puzzle::findEmpty() {
+  for (size_t i = 0; i<ROWS*COLUMNS; ++i) {
+    if (puzzle[i] == 0) {
+      return i;
+    }
+  }
+  return 0;
 }
 
-void Puzzle::setState(std::string hash)
-{
-	for (int i = 0; i < hash.length(); i++) {
-		puzzle[i / columnCount][i % columnCount] = (int)(hash[i] - 97);
-		if ((int)(hash[i] - 97) == 0) {
-			empty.column = i % columnCount;
-			empty.row = i / columnCount;
-		}
-	}
+void Puzzle::puzzle_to_previous() {
+  for (int i=0; i<ROWS*COLUMNS; ++i) {
+    previous[i]=puzzle[i];
+  }
 }
 
-void Puzzle::moveLeft()
-{
-	if (empty.column == 0) {
-		return;
-	}
-	Coords newEmpty = Coords(empty.row, empty.column-1);
-	swap(empty, newEmpty);
-	empty = newEmpty;
+int Puzzle::get_responsible_process(int no_of_processes) {
+  //int area_size = SIZE / no_of_processes;
+  //return findEmpty() / area_size ;
+  return findEmpty() % no_of_processes;
 }
 
-void Puzzle::moveRight()
-{
-	if (empty.column == columnCount-1) {
-		return;
-	}
-	Coords newEmpty = Coords(empty.row, empty.column+1);
-	swap(empty, newEmpty);
-	empty = newEmpty;
-}
-
-void Puzzle::moveUp()
-{
-	if (empty.row == 0) {
-		return;
-	}
-	Coords newEmpty = Coords(empty.row-1, empty.column);
-	swap(empty, newEmpty);
-	empty = newEmpty;
-}
-
-void Puzzle::moveDown()
-{
-	if (empty.row == rowCount-1) {
-		return;
-	}
-	Coords newEmpty = Coords(empty.row+1, empty.column);
-	swap(empty, newEmpty);
-	empty = newEmpty;
-}
-
-
-
-void Puzzle::printCurrentState()
-{
-	std::cout << "------ state -----" << std::endl;
-	for (int i = 0; i < rowCount; i++) {
-		for (int j = 0; j < columnCount; j++) {
-			std::cout << puzzle[i][j] << " ";
-		}
-		std::cout << std::endl;
-	}
-	std::cout << "------------------" << std::endl;
-}
-
-Coords::Coords()
-{
-}
-
-Coords::Coords(int _row, int _column)
-{
-	row		= _row;
-	column	= _column;
-}
-
-Coords::~Coords()
-{
-}
