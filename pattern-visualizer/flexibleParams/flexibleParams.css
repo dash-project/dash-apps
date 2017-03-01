@@ -1,0 +1,41 @@
+.flexibleParams_container {
+    border: none;
+    display: inline-block;
+    margin: 0 2px 0 2px;
+    padding: 0;
+    float: left;
+}
+
+.flexibleParams_linebreak {
+    clear: left;
+}
+
+.flexibleParams_label::after {
+    content: ": ";
+}
+
+.flexibleParams_input {
+    margin: 0 2px 0 2px;
+}
+
+.flexibleParams_input[type="range"] {
+    padding: 0;
+}
+
+.flexibleParams_selectionHelper {
+    display: none;
+}
+.flexibleParams_selectionHelper + .flexibleParams_container {
+    display: none;
+}
+.flexibleParams_selectionHelper:checked + .flexibleParams_container {
+    display: inline-block;
+}
+
+.flexibleParams_quantityHelper {
+    display: none;
+}
+.flexibleParams_quantityHelper:checked ~ .flexibleParams_container {
+    display: none;
+}
+
