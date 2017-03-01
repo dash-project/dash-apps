@@ -3,17 +3,17 @@ var ex01 = // todo complete
 "name": "ex01",
 "type": "group",
 "content": [
-{"name":"numUnits","label":"Number of Units","type":"number","min":1},
-{"name":"memArrangement","label":"Memory Arrangement","type":"selection","values":[{"name":"ROW_MAJOR"},{"name":"COL_MAJOR"}]},
+{"name":"pattern","label":"Pattern","type":"selection","values":[{"name":"summa","label":"SummaPattern"},{"name":"block","label":"BlockPattern"},{"name":"shift","label":"ShiftTilePattern"},{"name":"seq","label":"SeqTilePattern"}]},
+{"name":"numDim","label":"Number of Dimensions","type":"range","value":2,"min":2,"max":2},
  {"type":"br"},
-{"name":"pattern","label":"Pattern","type":"selection","values":[{"name":"TilePattern"},{"name":"ShiftTilePattern"}]},
-{"name":"numDim","label":"Number of Dimensions","type":"range","value":2,"min":1,"max":5},
+{"name":"blocked_display","label":"Blocked display","type":"checkbox"},
+{"name":"balance_extents","label":"Balance extents","type":"checkbox"},
  {"type":"br"},
 {"name":"dim_group","type":"group","quantity":"numDim","content":[
- {"name":"dim","label":"Extent Dimension","type":"logrange"},
- {"name":"dist","label":"Distribution","type":"selection",
-  "values":[{"name":"BLOCKED"},{"name":"CYCLIC"},{"name":"NONE"},{"name":"TILE","params":[{"name":"TILE_blockSize","label":"Block Size","type":"number","quantity":1}]},{"name":"BLOCKCYCLIC","params":[{"name":"BLOCKCYCLIC_blockSize","label":"Block Size","type":"number","quantity":1}]}]}
- ]}
+ {"name":"size","label":"Extent Dimension","type":"logrange"},
+ {"name":"units","label":"Units Dimension","type":"number"},
+ {"name":"tile","label":"Tile Dimension","type":"number"}
+]}
 ]
 };
 
