@@ -23,3 +23,5 @@ rm -Rf $BUILD_DIR/*
            ../ && \
     await_confirm && \
     make -j 4)
+
+cp $BUILD_DIR/pattern-visualizer flexibleParams
