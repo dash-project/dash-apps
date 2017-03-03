@@ -1,5 +1,5 @@
 #include "Puzzle.h"
-#include <iostream>
+
 
 MPI_Datatype register_type(Puzzle const&) {
 	size_t num_members = 3;
