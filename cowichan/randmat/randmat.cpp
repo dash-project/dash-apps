@@ -4,15 +4,35 @@
 using std::cout;
 using std::endl;
 
+using uint unsigned int;
+using uchar unsigned char;
+
+// NArray
+template<typename ElemenT , dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = Pattern<NumDimensions, ROW_MAJOR, IndexT>>
+using dash::NArray = typedef dash::Matrix<T, NumDimensions, IndexT, PatternT>
+
+
+template<typename ElementT, dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = TilePattern<NumDimensions, ROW_MAJOR, IndexT>> 
+
+
+using array_t dash::Matrix<unsigned char, 2>;
+
+static array_t mat;
 
 template< typename T >
-void print2d( T& mat ) {
+void print2d(const T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
     for( int j = 0; j < mat.extent(1); j++ ) {
       cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
     }
     cout << endl;
   }
+}
+
+inline void readPars( &nrows, &ncols, &s){
+  cin >> nrows;
+  cin >> ncols;
+  cin >>     s;
 }
 
 //
@@ -29,12 +49,9 @@ void print2d( T& mat ) {
 //
 
 template< typename T >
-void randmat( dash::NArray<T, 2>& mat, uint seed )
+void randmat( dash::NArray<T, 2>& mat, const uint& nrows, const uint& ncols, const uint& seed )
 {
   const int LCG_A = 1664525, LCG_C = 1013904223;
-
-  int nrows = mat.local.extent( 0 ); // num of local rows
-  int ncols = mat.local.extent( 1 ); // num of local cols
 
   auto gc   = mat.pattern( ).global( {0,0} );
   uint gbeg = gc[0];  // global row of local (0,0)
@@ -54,26 +71,17 @@ void randmat( dash::NArray<T, 2>& mat, uint seed )
 
 int main( int argc, char* argv[] )
 {
-  typedef unsigned int uint;
-
   dash::init( &argc,&argv );
 
   auto myid = dash::myid( );
 
-  if( argc != 4 ) {
-    if( 0 == myid )    cout << "3 Parameters expected!" << endl
-		      << "Usage: cowichan_randmat nrows ncols seed" << endl;
-    dash::finalize( );
-    return 0;
-  }
+  uint nrows, ncols, s;
 
-  uint nrows = static_cast<uint>( atoi( argv[1] ) );
-  uint ncols = static_cast<uint>( atoi( argv[2] ) );
-  uint s     = static_cast<uint>( atoi( argv[3] ) );
+  readPars(nrows, ncols, s);
 
-  dash::NArray<unsigned char, 2> mat( nrows, ncols );
+  mat = ( nrows, ncols );
 
-  randmat( mat, s );
+  randmat( mat, nrows, ncols, s );
 
   dash::barrier( );
   if( myid==0 ) print2d( mat );
