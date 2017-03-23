@@ -1,6 +1,4 @@
-
-
-DASH_ROOT = /home/kowalewski/opt/dash-0.3.0
+DASH_ROOT = /home/kowalewski/opt/dash-0.3.0-dev
 PAPI_ROOT = /home/kowalewski/opt/papi
 
 DART_IMPL = mpi
@@ -8,7 +6,8 @@ DART_IMPL = mpi
 INC=-I$(DASH_ROOT)/include -Iinclude
 LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lhwloc -lnuma -L$(PAPI_ROOT)/lib -lpapi
 
-CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
+CXXFLAGS= -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG -DDASH_ENABLE_LOGGING
+#CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 #CXXFLAGS= -O3 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 
-MPICXX       = mpicxx -std=c++11 $(CXXFLAGS)
+MPICXX       = mpicxx -std=c++11
