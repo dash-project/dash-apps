@@ -3,7 +3,7 @@
 
 #define TERMINAL_COLORS
 
-#define BEGIN_COLOR "\033["
+#define BEGIN_COLOR "\x1B["
 #define END_COLOR   "\x1B[0m"
 
 // Color codes for colorized output on terminal

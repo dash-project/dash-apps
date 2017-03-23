@@ -1,124 +1,46 @@
-//#include "stdafx.h"
 #include "AStar.h"
 
-AStar::AStar() : 
-	queueID(0),
-  exID(0),
-  found(false),
-  p(3, 3)
-{
+AStar::AStar() {
+	queue.push_back(Puzzle());
 }
 
-AStar::AStar(int rowCount, int columnCount):
-	queueID(0),
-  exID(0),
-  found(false),
-  p(rowCount,columnCount)
-{
-}
-
-
-AStar::~AStar()
-{
-}
-
-void AStar::solve()
-{
-	goal = State(p.getGoalHash(), "-1", 0);
-	std::cout << "goal: " << goal.state << std::endl;
-	queuedStates.push_back(State(p.getStateHash(), "start", 0));
-
-	p.printCurrentState();
-	std::cout << "hash: " << p.getStateHash() << std::endl;
-
-	while (!queuedStates.empty() && !found) {
-		solveIterator = examinedStates.find(queuedStates.front());
-		if (solveIterator == examinedStates.end()) {
-
-			p.setState(queuedStates.front().state);
-			p.moveUp();
-			addToQueue(State(p.getStateHash(), queuedStates.front().state, queuedStates.front().cost + 1));
-
-			p.setState(queuedStates.front().state);
-			p.moveDown();
-			addToQueue(State(p.getStateHash(), queuedStates.front().state, queuedStates.front().cost + 1));
-
-			p.setState(queuedStates.front().state);
-			p.moveLeft();
-			addToQueue(State(p.getStateHash(), queuedStates.front().state, queuedStates.front().cost + 1));
-
-			p.setState(queuedStates.front().state);
-			p.moveRight();
-			addToQueue(State(p.getStateHash(), queuedStates.front().state, queuedStates.front().cost + 1));
-
-			examinedStates[queuedStates.front()] = ++exID;			
-		}
-		queuedStates.pop_front();
-	}
-	reconstructPath();
-}
-
-void AStar::reconstructPath()
-{
-	solveIterator = examinedStates.find(goal);
-	if (solveIterator == examinedStates.end()) {
-		std::cout << "there is no solution" << std::endl;
-		return;
-	}
-	while (solveIterator != examinedStates.end()) {
-		solution.push_front(solveIterator->first);
-		solveIterator = examinedStates.find(State(solveIterator->first.prev, "egal", 0));
-	}
-
-	for (int i = 0; i < solution.size(); ++i) {
-		p.setState(solution[i].state);
-		p.printCurrentState();
-	}
-	std::cout << "The minimal solution takes " << solution.size()-1 << " steps!" << std::endl;
-}
-
-void AStar::addToQueue(State s)
-{
-	if (found) { return; }
-
-	addIterator = examinedStates.find(s);
-	if (addIterator != examinedStates.end()) {
-		if (s.cost < addIterator->first.cost) {
-			examinedStates.erase(addIterator);
-			queuedStates.push_back(s);
+void AStar::add_to_queue(Puzzle & p) {
+	auto it = examined.find(p);
+	if (it != examined.end()) {
+		if (p.cost < it->first.cost) {
+			examined.erase(it);
+			queue.emplace_back(p);
 		}
 		return;
 	}
-
-	queuedStates.push_back(s);
+	queue.emplace_back(p);
 }
 
-State::State()
-{
+void AStar::add_to_queue(Puzzle p, Puzzle & previous) {
+  if (p.puzzle != previous.previous) {
+    add_to_queue(p);
+  }
 }
 
-State::State(std::string s, std::string p, int c)
-{
-	state = s;
-	cost = c;
-	prev = p;
+void AStar::run() {
+  JIpsManager im;
+	while (queue.size() > 0) {
+    im.update(true);
+    //std::cout << "qs: " << queue.size() << '\n';
+		puzzle_buffer = queue.front();
+		queue.pop_front();
+	
+		auto it = examined.find(puzzle_buffer);
+		if (it == examined.end() || it->first.cost > puzzle_buffer.cost) {
+			add_to_queue(puzzle_buffer.moveDown(), puzzle_buffer);
+			add_to_queue(puzzle_buffer.moveUp(), puzzle_buffer);
+			add_to_queue(puzzle_buffer.moveLeft(), puzzle_buffer);
+			add_to_queue(puzzle_buffer.moveRight(), puzzle_buffer);
+			examined[puzzle_buffer] = ++id;
+		}
+	}
 }
 
-State::~State()
-{
-}
-
-bool State::operator==(const State & b)
-{
-	return (0 == state.compare(b.state));
-}
-
-bool State::operator<(const State & b)
-{
-	return false;
-}
-
-bool State::operator()(const State & b)
-{
-	return false;
+void AStar::print() {
+	std::cout << "examined " << examined.size() << " states!\n";
 }

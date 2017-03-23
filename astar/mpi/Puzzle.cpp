@@ -1,5 +1,21 @@
 #include "Puzzle.h"
-#include <iostream>
+
+MPI_Datatype register_type(Puzzle const&) {
+	size_t num_members = 3;
+	int lengths[num_members] = {1,ROWS*COLUMNS,ROWS*COLUMNS};
+	
+	MPI_Aint offsets[num_members] = {
+		offsetof(Puzzle, cost),
+		offsetof(Puzzle, puzzle),
+		offsetof(Puzzle, previous)};
+	
+	MPI_Datatype types[num_members] = { MPI_INT, MPI_INT, MPI_INT };
+	
+	MPI_Datatype type;
+	MPI_Type_create_struct(num_members, lengths, offsets, types, &type);
+	MPI_Type_commit(&type);
+	return type;
+}
 
 MPI_Datatype register_type(Puzzle const&) {
 	size_t num_members = 3;

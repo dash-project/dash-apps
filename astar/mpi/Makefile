@@ -1,2 +1,2 @@
 all:
-		mpic++ -std=c++11 main.cpp Puzzle.cpp -o main
+		mpic++ -std=c++11 main.cpp Puzzle.cpp Astar.cpp -o main

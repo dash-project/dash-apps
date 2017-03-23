@@ -13,34 +13,11 @@ int main (int argc, char* argv[]) {
 		a.run(1000);
 		
 		dm.stop();
+    a.print_all(true);
+    
     if (a.get_rank() == 0) {
       dm.print();
     }
-    
-		/*
-		if (a.get_rank() == 0) {
-			a.print();
-			dm.print();
-		}
-		MPI_Barrier(MPI_COMM_WORLD);
-		
-		if (a.get_rank() == 1) {
-			a.print();
-			dm.print();
-		}
-		MPI_Barrier(MPI_COMM_WORLD);
-		
-		if (a.get_rank() == 2) {
-			a.print();
-			dm.print();
-		}
-		MPI_Barrier(MPI_COMM_WORLD);
-		
-		if (a.get_rank() == 3) {
-      a.print();
-			dm.print();
-		}
-		MPI_Barrier(MPI_COMM_WORLD);*/
 	}
 	MPI_Finalize();	
 	return 0;
