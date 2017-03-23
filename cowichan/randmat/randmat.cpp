@@ -3,24 +3,32 @@
 
 using std::cout;
 using std::endl;
+using std::cin;
 
-using uint unsigned int;
-using uchar unsigned char;
+using uint  = unsigned int ;
+using uchar = unsigned char;
 
 // NArray
-template<typename ElemenT , dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = Pattern<NumDimensions, ROW_MAJOR, IndexT>>
-using dash::NArray = typedef dash::Matrix<T, NumDimensions, IndexT, PatternT>
+//template<typename ElemenT , dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = Pattern<NumDimensions, ROW_MAJOR, IndexT>>
+//using dash::NArray = typedef dash::Matrix<T, NumDimensions, IndexT, PatternT>
 
+//template<typename ElementT, dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = TilePattern<NumDimensions, ROW_MAJOR, IndexT>> 
 
-template<typename ElementT, dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = TilePattern<NumDimensions, ROW_MAJOR, IndexT>> 
+using matrix_t = dash::Matrix<
+  uint,
+  2,
+  dash::default_index_t,
+  dash::BlockPattern<
+    2,
+    dash::ROW_MAJOR,
+    dash::default_index_t
+  >
+>;
 
-
-using array_t dash::Matrix<unsigned char, 2>;
-
-static array_t mat;
+matrix_t mat;
 
 template< typename T >
-void print2d(const T& mat ) {
+void print2d(T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
     for( int j = 0; j < mat.extent(1); j++ ) {
       cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
@@ -29,7 +37,7 @@ void print2d(const T& mat ) {
   }
 }
 
-inline void readPars( &nrows, &ncols, &s){
+inline void readPars( uint &nrows, uint &ncols, uint &s){
   cin >> nrows;
   cin >> ncols;
   cin >>     s;
@@ -78,7 +86,9 @@ int main( int argc, char* argv[] )
   uint nrows, ncols, s;
 
   readPars(nrows, ncols, s);
-
+  cout << "test\n" << "nrows:" << nrows << ", ncols:" << ncols << endl;
+  
+  dash::barrier();
   mat = ( nrows, ncols );
 
   randmat( mat, nrows, ncols, s );
