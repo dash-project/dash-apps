@@ -8,12 +8,6 @@ using std::cin;
 using uint  = unsigned int ;
 using uchar = unsigned char;
 
-// NArray
-//template<typename ElemenT , dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = Pattern<NumDimensions, ROW_MAJOR, IndexT>>
-//using dash::NArray = typedef dash::Matrix<T, NumDimensions, IndexT, PatternT>
-
-//template<typename ElementT, dim_t NumDimensions, typename IndexT = dash::default_index_t, class PatternT = TilePattern<NumDimensions, ROW_MAJOR, IndexT>> 
-
 using matrix_t = dash::Matrix<
   uint,
   2,
@@ -24,8 +18,6 @@ using matrix_t = dash::Matrix<
     dash::default_index_t
   >
 >;
-
-matrix_t mat;
 
 template< typename T >
 void print2d(T& mat ) {
@@ -89,7 +81,7 @@ int main( int argc, char* argv[] )
   cout << "test\n" << "nrows:" << nrows << ", ncols:" << ncols << endl;
   
   dash::barrier();
-  mat = ( nrows, ncols );
+  matrix_t mat ( nrows, ncols );
 
   randmat( mat, nrows, ncols, s );
 
