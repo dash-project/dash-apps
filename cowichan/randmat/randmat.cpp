@@ -6,10 +6,10 @@ using std::endl;
 
 
 template< typename T >
-void print2d( T& mat ) {
+void print2d(const T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
     for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
+      cout << std::setw(3) <<  mat(i,j) << " ";
     }
     cout << endl;
   }
