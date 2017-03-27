@@ -8,31 +8,33 @@ using std::cin;
 using uint  = unsigned int ;
 using uchar = unsigned char;
 
-using matrix_t = dash::Matrix<
-  uint,
-  2,
-  dash::default_index_t,
-  dash::BlockPattern<
-    2,
-    dash::ROW_MAJOR,
-    dash::default_index_t
-  >
->;
 
 template< typename T >
-void print2d(T& mat ) {
+inline void print2d(const T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
     for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
+      cout << std::setw(3) << static_cast<const uint>( mat(i,j) )<< " ";
     }
     cout << endl;
   }
 }
 
 inline void readPars( uint &nrows, uint &ncols, uint &s){
-  cin >> nrows;
-  cin >> ncols;
-  cin >>     s;
+  dash::Shared<uint> nrows, ncols, s;
+
+  uint tmp;
+  cin >> tmp;
+  nrows.set(tmp);
+  cin >> tmp;
+  ncols.set(tmp);
+  cin >> tmp;
+  s.set(tmp);
+  
+  nrows.flush();
+  ncols.flush();
+  s.flush();
+  }
+  dash::barrier();
 }
 
 //
@@ -76,17 +78,17 @@ int main( int argc, char* argv[] )
   auto myid = dash::myid( );
 
   uint nrows, ncols, s;
-
-  readPars(nrows, ncols, s);
+  readPars( nrows, ncols, s);
+  
   cout << "test\n" << "nrows:" << nrows << ", ncols:" << ncols << endl;
   
-  dash::barrier();
-  matrix_t mat ( nrows, ncols );
+
+  dash::NArray<unsigned char, 2> rand_mat ( nrows, ncols );
 
   randmat( mat, nrows, ncols, s );
 
   dash::barrier( );
-  if( myid==0 ) print2d( mat );
+  if( myid==0 ) print2d( rand_mat );
 
   dash::finalize( );
 }
