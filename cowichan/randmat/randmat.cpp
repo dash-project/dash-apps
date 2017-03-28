@@ -8,6 +8,8 @@ using std::cin;
 using uint  = unsigned int ;
 using uchar = unsigned char;
 
+struct inputPar { uint nrows, ncols, s;};
+
 
 template< typename T >
 inline void print2d(const T& mat ) {
@@ -19,22 +21,21 @@ inline void print2d(const T& mat ) {
   }
 }
 
-inline void readPars( uint &nrows, uint &ncols, uint &s){
-  dash::Shared<uint> nrows, ncols, s;
+template<typename T>
+inline void readPars(T myid, inputPar& input){
 
-  uint tmp;
-  cin >> tmp;
-  nrows.set(tmp);
-  cin >> tmp;
-  ncols.set(tmp);
-  cin >> tmp;
-  s.set(tmp);
+  dash::Shared<inputPar> inputTransfer;
   
-  nrows.flush();
-  ncols.flush();
-  s.flush();
+  if(0 == myid)
+  {
+    cin >> input.nrows;    
+    cin >> input.ncols;
+    cin >> input.s;
+    
+    inputTransfer.set(input);
   }
-  dash::barrier();
+  inputTransfer.barrier();
+  input = inputTransfer.get();
 }
 
 //
@@ -74,18 +75,14 @@ void randmat( dash::NArray<T, 2>& mat, const uint& nrows, const uint& ncols, con
 int main( int argc, char* argv[] )
 {
   dash::init( &argc,&argv );
-
   auto myid = dash::myid( );
 
-  uint nrows, ncols, s;
-  readPars( nrows, ncols, s);
-  
-  cout << "test\n" << "nrows:" << nrows << ", ncols:" << ncols << endl;
-  
+  inputPar input;
+  readPars(myid, input);
 
-  dash::NArray<unsigned char, 2> rand_mat ( nrows, ncols );
+  dash::NArray<unsigned char, 2> rand_mat ( input.nrows, input.ncols );
 
-  randmat( mat, nrows, ncols, s );
+  randmat( rand_mat, input.nrows, input.ncols, input.s );
 
   dash::barrier( );
   if( myid==0 ) print2d( rand_mat );
