@@ -10,7 +10,11 @@ using uchar = unsigned char;
 
 struct inputPar { uint nrows, ncols, s;};
 
-
+/* 
+ * This function prints the content of a 2D matrix to std::out.
+ * Datatypes are casted to <const uint> for readable output
+ * (otherwise uchars would be printed as chars and not as numerics)
+ */ 
 template< typename T >
 inline void print2d(const T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
@@ -21,8 +25,13 @@ inline void print2d(const T& mat ) {
   }
 }
 
+/* 
+ * One unit has the job to read in the parameters.
+ * Because there's always a unit0, it reads the input parameter and
+ * distributes them to the rest of the units.
+ */
 template<typename T>
-inline void readPars(T myid, inputPar& input){
+inline void readPars(const T myid, inputPar& input){
 
   dash::Shared<inputPar> inputTransfer;
   
@@ -38,18 +47,18 @@ inline void readPars(T myid, inputPar& input){
   input = inputTransfer.get();
 }
 
-//
-// The Cowichan problems require that the output is independent of the
-// numbers of processors used. For randmat() a common solution found
-// in other implementations is to use a simple linear congruential
-// random number generator (LCG) with a separate deterministic seed
-// for each row and to parallelize over the rows of the matrix. This
-// is also how the DASH solution below works.
-//
-// A potential alternative would be to use a counter-based random
-// number generation scheme (e.g. random123) that can be easily
-// parallelized.
-//
+/*
+ * The Cowichan problems require that the output is independent of the
+ * numbers of processors used. For randmat() a common solution found
+ * in other implementations is to use a simple linear congruential
+ * random number generator (LCG) with a separate deterministic seed
+ * for each row and to parallelize over the rows of the matrix. This
+ * is also how the DASH solution below works.
+ *
+ * A potential alternative would be to use a counter-based random
+ * number generation scheme (e.g. random123) that can be easily
+ * parallelized.
+ */
 
 template< typename T >
 void randmat( dash::NArray<T, 2>& mat, const uint& nrows, const uint& ncols, const uint& seed )

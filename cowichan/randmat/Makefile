@@ -2,10 +2,12 @@ include ../make.defs
 
 .phony: all
 all: randmat
+#mpirun -n 4 ./$@ < main.in > rand.out2
+#diff -ws rand.out2 main.gold
 
 randmat:  randmat.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) 
+	$(CXX) -o $@ $@.o $(LIB)
 
 
 .phony: printenv
