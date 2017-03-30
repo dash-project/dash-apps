@@ -21,7 +21,7 @@ inline void Print2D(const T& mat ) {
   if(0==myid){
     for( int i = 0; i < mat.extent(0); i++ ) {
       for( int j = 0; j < mat.extent(1); j++ ) {
-	cout << std::setw(3) << static_cast<const uint>( mat(i,j) )<< " ";
+        cout << std::setw(3) << static_cast<const uint>( mat(i,j) )<< " ";
       }
       cout << endl;
     }
@@ -33,9 +33,9 @@ inline void Print2D(const T& mat ) {
  * Because there's always a unit0, it reads the input parameter and
  * distributes them to the rest of the units.
  */
-inline void ReadPars(inputPar& input){
+inline void ReadPars(InputPar& input){
 
-  dash::Shared<inputPar> input_transfer;
+  dash::Shared<InputPar> input_transfer;
   
   if(0 == myid)
   {

@@ -13,6 +13,6 @@ all: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) -C $@
 
-.PHONY: clean
-clean: $(SUBDIRS)
-	$(MAKE) -C $? clean
+#.PHONY: clean
+#clean: $(SUBDIRS)
+#	$(MAKE) -C $? clean

@@ -1,6 +1,6 @@
 include ../make.defs
 
-.phony: all
+.PHONY: all
 all: winnow
 
 winnow: winnow.o
@@ -10,7 +10,7 @@ winnow.o: winnow.cpp
 	$(CXX) -c $(INC) $?
 
 
-.phony: printenv
+.PHONY: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
