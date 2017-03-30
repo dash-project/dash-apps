@@ -3,9 +3,11 @@ include ../make.defs
 .phony: all
 all: winnow
 
-winnow: winnow.cpp
+winnow: winnow.o
+	$(CXX) -o $@ $? $(LIB) 
+
+winnow.o: winnow.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .phony: printenv
@@ -16,7 +18,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
 	rm -f winnow
 	rm -f winnow.o

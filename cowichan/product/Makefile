@@ -3,9 +3,11 @@ include ../make.defs
 .phony: all
 all: product
 
-product:  product.cpp
+product: product.o
+	$(CXX) -o $@ $? $(LIB) 
+
+product.o: product.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .phony: printenv
@@ -16,7 +18,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
 	rm -f product
 	rm -f product.o

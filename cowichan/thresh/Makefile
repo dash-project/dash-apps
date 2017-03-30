@@ -3,9 +3,11 @@ include ../make.defs
 .phony: all
 all: thresh
 
-thresh: thresh.cpp
+thresh: thresh.o
+	$(CXX) -o $@ $? $(LIB) 
+
+thresh.o: thresh.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .phony: printenv
@@ -16,7 +18,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
 	rm -f thresh
 	rm -f thresh.o

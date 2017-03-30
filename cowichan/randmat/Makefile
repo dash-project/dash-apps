@@ -1,16 +1,18 @@
 include ../make.defs
 
-.phony: all
+.PHONY: all
 all: randmat
 #mpirun -n 4 ./$@ < main.in > rand.out2
 #diff -ws rand.out2 main.gold
 
-randmat:  randmat.cpp
+randmat:  randmat.o
+	$(CXX) -o $@ $? $(LIB)
+
+randmat.o:randmat.cpp 
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB)
 
 
-.phony: printenv
+.PHONY: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
@@ -18,7 +20,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
 	rm -f randmat
 	rm -f randmat.o

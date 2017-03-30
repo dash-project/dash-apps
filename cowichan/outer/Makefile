@@ -3,9 +3,11 @@ include ../make.defs
 .phony: all
 all: outer
 
-outer:  outer.cpp
+outer: outer.o
+	$(CXX) -o $@ $? $(LIB) 
+
+outer.o: outer.cpp
 	$(CXX) -c $(INC) $?
-	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .phony: printenv
@@ -16,7 +18,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
 	rm -f outer
 	rm -f outer.o
