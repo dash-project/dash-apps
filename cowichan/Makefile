@@ -2,7 +2,7 @@ include ./make.defs
 
 SUBDIRS = randmat thresh winnow outer product
 
-.PHONY: all $(SUBDIRS)
+.PHONY: all clean $(SUBDIRS)
 all: $(SUBDIRS)
 
 clean: $(SUBDIRS)
