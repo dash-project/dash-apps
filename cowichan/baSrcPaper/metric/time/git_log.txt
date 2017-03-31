@@ -1,0 +1,7 @@
+git log --stat
+git log --pretty=format:"%ad %s" > log.txt
+tac log.txt > log_reverse.txt
+
+diff -crB a b > patch
+patch --dry-run -p1 -i b.patch
+
