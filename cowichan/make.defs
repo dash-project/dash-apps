@@ -1,5 +1,4 @@
 DASH_ROOT = $(HOME)/opt/dash-0.3.0
-#DASH_ROOT = /opt/dash
 
 DART_IMPL = mpi
 

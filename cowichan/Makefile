@@ -3,16 +3,10 @@ include ./make.defs
 SUBDIRS = randmat thresh winnow outer product
 
 .PHONY: all $(SUBDIRS)
-#all: subdirs
 all: $(SUBDIRS)
 
-#.PHONY: subdirs $(SUBDIRS)
-
-#subdirs: $(SUBDIRS)
+clean: $(SUBDIRS)
 
 $(SUBDIRS):
-	$(MAKE) -C $@
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-#.PHONY: clean
-#clean: $(SUBDIRS)
-#	$(MAKE) -C $? clean
