@@ -3,10 +3,8 @@ include ./make.defs
 
 MAKEFLAGS = -j 5 -Orecurse
 
-SUBDIRS  = randmat thresh winnow outer product
-GOROOT   = baSrcPaper/go
-PAPERSUB = expertpar
-
+SUBDIRS   = randmat thresh winnow outer product
+GOROOT    = baSrcPaper/go
 
 .PHONY: help printenv all clean all-clean dash dash-clean $(SUBDIRS) 
 help:
@@ -17,10 +15,10 @@ help:
 	@echo "make dash       : builds all DASH cowichan problems"
 	@echo "make dash-clean : cleans all DASH cowichan problems"
 	@echo "make problem    : builds the DASH version of the problem. for example: make randmat"
-	@echo "make go         : builds all go expertpar cowichan problems"
-	@echo "make go-clean   : cleans all go expertpar cowichan problems"
-	@echo "make all        : currently builds all of DASH and the expertpar variants"
-	@echo "make clean      : currently cleans all of DASH and the expertpar variants"
+	@echo "make go         : builds all go expertpar/seq cowichan problems"
+	@echo "make go-clean   : cleans all go expertpar/seq cowichan problems"
+	@echo "make all        : currently builds all of DASH and the expertpar/seq variants"
+	@echo "make clean      : currently cleans all of DASH and the expertpar/seq variants"
 	@echo "make all-clean  : synonym for clean"
 	@echo " "
 	@echo "note this makefile is executed with 5 jobs! If you want to change that adjust the '-j' paramter in the MAKEFLAGS."
@@ -45,16 +43,20 @@ dash-clean: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
+
 ####  <GO>  ####
 .PHONY: go go-clean $(SUBDIRS:%=go-%) $(SUBDIRS:%=go-clean-%)
-
 
 go-clean: $(SUBDIRS:%=go-clean-%)
 $(SUBDIRS:%=go-clean-%):
 # '-' =>continue on error
 	-rm $(GOROOT)/$(@:go-clean-%=%)/expertpar/main
+	-rm $(GOROOT)/$(@:go-clean-%=%)/expertseq/main
 
 go:$(SUBDIRS:%=go-%)
 $(SUBDIRS:%=go-%):
-	$(MAKE) -C $(GOROOT)/$(@:go-%=%)/$(PAPERSUB) main
+	$(MAKE) -C $(GOROOT)/$(@:go-%=%)/expertpar main
+	$(MAKE) -C $(GOROOT)/$(@:go-%=%)/expertseq main
+
+
 ####  </GO>  ####
