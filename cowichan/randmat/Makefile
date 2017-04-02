@@ -13,7 +13,7 @@ randmat.o:randmat.cpp
 
 
 .PHONY: printenv
-printenv :
+printenv:
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
 	@echo "DASH_ROOT     = $(DASH_ROOT)"

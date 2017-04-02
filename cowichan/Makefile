@@ -1,12 +1,14 @@
 #postfix $(SUBDIRS:%=%-go)
 include ./make.defs
 
-MAKEFLAGS = -j 5 -Orecurse
+# if you wish the output to be not interleaved use -Orecursive or -Otarget
+# but with some make versions there a are issues using this flags...
+MAKEFLAGS = -j 20 #-Orecursive /-Otarget
 
 SUBDIRS   = randmat thresh winnow outer product
 GOROOT    = baSrcPaper/go
 
-.PHONY: help printenv all clean all-clean dash dash-clean $(SUBDIRS) 
+.PHONY: help printenv all clean all-clean dash dash-clean $(SUBDIRS)
 help:
 	@echo "commands:"
 	@echo "make            : shows this help message"
@@ -29,8 +31,8 @@ printenv:
 	@echo "DASH_ROOT     = $(DASH_ROOT)"
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
- 
- 
+
+
 all: dash go
 clean: dash-clean go-clean
 all-clean: clean
