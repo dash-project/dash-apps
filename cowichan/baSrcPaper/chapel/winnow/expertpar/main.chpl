@@ -11,6 +11,8 @@
  *   points: a vector of (x, y) points
  */
 
+use Sort;
+
 config const is_bench = false;
 config const nrows = read(int),
              ncols = read(int);
@@ -51,7 +53,7 @@ proc winnow(nelts: int) {
     }
   }
 
-  QuickSort(values[0..n]);
+  quickSort(values[0..n]);
 
   var chunk: int = n / nelts;
 

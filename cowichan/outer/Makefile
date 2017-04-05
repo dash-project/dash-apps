@@ -3,11 +3,9 @@ include ../make.defs
 .PHONY: all
 all: outer
 
-outer: outer.o
-	$(CXX) -o $@ $? $(LIB) 
-
-outer.o: outer.cpp
-	$(CXX) -c $(INC) $?
+outer: outer.cpp
+	$(CXX) -c $(INC) $<
+	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .PHONY: printenv
@@ -20,5 +18,5 @@ printenv :
 
 .PHONY: clean
 clean:
-	rm -f outer
-	rm -f outer.o
+	-rm outer
+	-rm outer.o

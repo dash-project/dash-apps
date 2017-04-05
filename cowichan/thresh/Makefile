@@ -3,11 +3,9 @@ include ../make.defs
 .PHONY: all
 all: thresh
 
-thresh: thresh.o
-	$(CXX) -o $@ $? $(LIB) 
-
-thresh.o: thresh.cpp
-	$(CXX) -c $(INC) $?
+thresh: thresh.cpp
+	$(CXX) -c $(INC) $<
+	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .PHONY: printenv
@@ -20,5 +18,5 @@ printenv :
 
 .PHONY: clean
 clean:
-	rm -f thresh
-	rm -f thresh.o
+	-rm thresh
+	-rm thresh.o

@@ -1,12 +1,14 @@
-#postfix $(SUBDIRS:%=%-go)
+#suffix $(SUBDIRS:%=%-go)
+#@echo $(@:%-go=%) #get rid of suffix
 include ./make.defs
 
-# if you wish the output to be not interleaved use -Orecursive or -Otarget
-# but with some make versions there a are issues using this flags...
-MAKEFLAGS = -j 20 #-Orecursive /-Otarget
-
+GO_ROOT   = baSrcPaper/go
+CHPL_ROOT = baSrcPaper/chapel
 SUBDIRS   = randmat thresh winnow outer product
-GOROOT    = baSrcPaper/go
+
+.PHONY: testB
+testB:
+	@echo $(MAKEFLAGS)
 
 .PHONY: help printenv all clean all-clean dash dash-clean $(SUBDIRS)
 help:
@@ -17,13 +19,13 @@ help:
 	@echo "make dash       : builds all DASH cowichan problems"
 	@echo "make dash-clean : cleans all DASH cowichan problems"
 	@echo "make problem    : builds the DASH version of the problem. for example: make randmat"
-	@echo "make go         : builds all go expertpar/seq cowichan problems"
-	@echo "make go-clean   : cleans all go expertpar/seq cowichan problems"
+	@echo "make go         : builds all go     expertpar/seq cowichan problems"
+	@echo "make go-clean   : cleans all go     expertpar/seq cowichan problems"
+	@echo "make chpl       : builds all chapel expertpar/seq cowichan problems"
+	@echo "make chpl-clean : cleans all chapel expertpar/seq cowichan problems"
 	@echo "make all        : currently builds all of DASH and the expertpar/seq variants"
 	@echo "make clean      : currently cleans all of DASH and the expertpar/seq variants"
 	@echo "make all-clean  : synonym for clean"
-	@echo " "
-	@echo "note this makefile is executed with 5 jobs! If you want to change that adjust the '-j' paramter in the MAKEFLAGS."
 
 printenv:
 	@echo "CXX           = $(CXX)"
@@ -51,14 +53,30 @@ $(SUBDIRS):
 
 go-clean: $(SUBDIRS:%=go-clean-%)
 $(SUBDIRS:%=go-clean-%):
-# '-' =>continue on error
-	-rm $(GOROOT)/$(@:go-clean-%=%)/expertpar/main
-	-rm $(GOROOT)/$(@:go-clean-%=%)/expertseq/main
+	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertpar/main
+	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertseq/main
 
 go:$(SUBDIRS:%=go-%)
 $(SUBDIRS:%=go-%):
-	$(MAKE) -C $(GOROOT)/$(@:go-%=%)/expertpar main
-	$(MAKE) -C $(GOROOT)/$(@:go-%=%)/expertseq main
-
-
+	$(MAKE) -C $(GO_ROOT)/$(@:go-%=%)/expertpar main
+	$(MAKE) -C $(GO_ROOT)/$(@:go-%=%)/expertseq main
 ####  </GO>  ####
+
+
+#### <Chapel> ####
+.PHONY: chpl chpl-clean $(SUBDIRS:%=chpl-%) $(SUBDIRS:%=chpl-clean-%) chpl-test
+chpl: $(SUBDIRS:%=chpl-%)
+
+$(SUBDIRS:%=chpl-%):
+	$(MAKE) -C $(CHPL_ROOT)/$(@:chpl-%=%)/expertpar main
+
+chpl-clean: $(SUBDIRS:%=chpl-clean-%)
+$(SUBDIRS:%=chpl-clean-%):
+	-rm $(CHPL_ROOT)/$(@:chpl-clean-%=%)/expertpar/main
+
+chpl-test: #chpl-randmat chpl-thresh
+	mkdir -p test_results
+	@echo "10 9 8" | $(CHPL_ROOT)/randmat/expertpar/main > test_results/chpl_randmat
+	$(CHPL_ROOT)/thresh/expertpar/main  < test_results/chpl_randmat
+#### </Chapel> ####
+

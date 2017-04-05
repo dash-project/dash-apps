@@ -3,11 +3,9 @@ include ../make.defs
 .PHONY: all
 all: product
 
-product: product.o
-	$(CXX) -o $@ $? $(LIB) 
-
-product.o: product.cpp
-	$(CXX) -c $(INC) $?
+product: product.cpp
+	$(CXX) -c $(INC) $<
+	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .PHONY: printenv
@@ -20,5 +18,5 @@ printenv :
 
 .PHONY: clean
 clean:
-	rm -f product
-	rm -f product.o
+	-rm product
+	-rm product.o

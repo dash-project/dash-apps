@@ -3,11 +3,9 @@ include ../make.defs
 .PHONY: all
 all: winnow
 
-winnow: winnow.o
-	$(CXX) -o $@ $? $(LIB) 
-
-winnow.o: winnow.cpp
-	$(CXX) -c $(INC) $?
+winnow: winnow.cpp
+	$(CXX) -c $(INC) $<
+	$(CXX) -o $@ $@.o $(LIB) 
 
 
 .PHONY: printenv
@@ -20,5 +18,5 @@ printenv :
 
 .PHONY: clean
 clean:
-	rm -f winnow
-	rm -f winnow.o
+	-rm winnow
+	-rm winnow.o
