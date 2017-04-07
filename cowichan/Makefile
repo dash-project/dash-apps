@@ -7,6 +7,8 @@ CHPL_ROOT = baSrcPaper/chapel
 CILK_ROOT = baSrcPaper/cilk
 SUBDIRS   = randmat thresh winnow outer product
 
+SHELL:=/bin/bash
+
 .PHONY: help printenv 
 help:
 	@echo "commands:"
@@ -31,9 +33,18 @@ printenv:
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.PHONY: all clean all-clean dash dash-clean $(SUBDIRS)
+.PHONY: all clean all-clean dash dash-clean init-modules swap-gnu swap-intel $(SUBDIRS)
 
-all: dash go chpl #intel
+init-modules:
+	source /etc/profile.d/modules.sh
+
+swap-gnu: init-modules
+	module swap intel gnu
+
+swap-intel: init-modules
+	module swap gnu intel
+
+all: swap-gnu dash go chpl #intel
 all-clean: clean
 clean: dash-clean go-clean chpl-clean cilk-clean
 
@@ -64,6 +75,11 @@ intel: gnu
 ####  <DASH>  ####
 dash: MAKECMDGOALS = all
 dash: $(SUBDIRS)
+
+dash-gnu: swap-gnu dash
+
+dash-intel: swap-intel dash
+
 dash-clean: MAKECMDGOALS = clean
 dash-clean: $(SUBDIRS)
 
