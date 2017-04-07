@@ -4,13 +4,10 @@ include ./make.defs
 
 GO_ROOT   = baSrcPaper/go
 CHPL_ROOT = baSrcPaper/chapel
+CILK_ROOT = baSrcPaper/cilk
 SUBDIRS   = randmat thresh winnow outer product
 
-.PHONY: testB
-testB:
-	@echo $(MAKEFLAGS)
-
-.PHONY: help printenv all clean all-clean dash dash-clean $(SUBDIRS)
+.PHONY: help printenv 
 help:
 	@echo "commands:"
 	@echo "make            : shows this help message"
@@ -34,11 +31,37 @@ printenv:
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
+.PHONY: all clean all-clean dash dash-clean $(SUBDIRS)
 
-all: dash go
-clean: dash-clean go-clean
+all: dash go chpl #intel
 all-clean: clean
+clean: dash-clean go-clean chpl-clean cilk-clean
 
+
+.PHONY: intel gnu testB testA
+testA:
+	@echo $(PATH)
+
+testB:
+	@echo "testB hier"
+	@echo $(CC)
+
+gnu:
+ifneq (gcc, $(CC)) 
+	./swap.sh
+	@echo "gnu hier!"
+	@echo $(CC)
+#module swap intel gnu
+else
+	@echo bla
+	@echo $(CC)
+endif
+
+intel: gnu
+#	$(MAKE)
+
+
+####  <DASH>  ####
 dash: MAKECMDGOALS = all
 dash: $(SUBDIRS)
 dash-clean: MAKECMDGOALS = clean
@@ -46,7 +69,7 @@ dash-clean: $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@ $(MAKECMDGOALS)
-
+####  </DASH>  ####
 
 ####  <GO>  ####
 .PHONY: go go-clean $(SUBDIRS:%=go-%) $(SUBDIRS:%=go-clean-%)
@@ -77,6 +100,18 @@ $(SUBDIRS:%=chpl-clean-%):
 chpl-test: #chpl-randmat chpl-thresh
 	mkdir -p test_results
 	@echo "10 9 8" | $(CHPL_ROOT)/randmat/expertpar/main > test_results/chpl_randmat
-	$(CHPL_ROOT)/thresh/expertpar/main  < test_results/chpl_randmat
+# $(CHPL_ROOT)/thresh/expertpar/main  < test_results/chpl_randmat
 #### </Chapel> ####
 
+
+#### <Cilk> ####
+.PHONY: cilk cilk-clean $(SUBDIRS:%=cilk-%) $(SUBDIRS:%=cilk-clean-%)
+cilk: $(SUBDIRS:%=cilk-%)
+
+$(SUBDIRS:%=cilk-%):
+	$(MAKE) -C $(CILK_ROOT)/$(@:cilk-%=%)/expertpar main
+
+cilk-clean: $(SUBDIRS:%=cilk-clean-%)
+$(SUBDIRS:%=cilk-clean-%):
+	-rm $(CILK_ROOT)/$(@:cilk-clean-%=%)/expertpar/main
+#### </Cilk> ####
