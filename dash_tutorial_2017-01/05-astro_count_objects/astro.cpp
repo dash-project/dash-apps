@@ -196,6 +196,8 @@ int main( int argc, char* argv[] ) {
     uint32_t sum_objects = 0;
     {
         dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
+        dash::fill( sums.begin(), sums.end(), 0 );
+
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
