@@ -24,7 +24,7 @@ inline void Print2D(const T& mat ) {
         cout << std::setw(3) << static_cast<const uint>( mat(i,j) )<< " ";
       }
       cout << endl;
-    }
+    } cout << endl;
   }
 }
 
