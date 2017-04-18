@@ -157,10 +157,6 @@ test_results:; mkdir -p test_results
 
 test: test-all
 test-all: chpl-test go-test cilk-test tbb-test dash-test | test_results
-	@echo 
-	@echo Comparing outputs...
-	@$(MAKE) --no-print-directory compare
-# $(CHPL_ROOT)/thresh/expertpar/main  < test_results/chpl_randmat
 
 .PHONY: dash-test dash-test-randmat
 dash-test: | test_results
@@ -203,31 +199,44 @@ else
 endif
 cilk-test-randmat:|test_results; @echo "10 9 8" | $(CILK_ROOT)/randmat/expertpar/main > test_results/cilk_randmat_out
 
-.PHONY: tbb-test tbb-test-randmat
+.PHONY: tbb-test tbb-test_ tbb-test-randmat
 tbb-test:| test_results
 ifeq (gcc,$(CC))
 	@module swap gnu intel &> /dev/null; \
-	$(MAKE) --no-print-directory tbb-test-randmat
+	$(MAKE) --no-print-directory tbb-test_
 	@echo TBB......finished
 else
-	@$(MAKE) --no-print-directory tbb-test-randmat
+	@$(MAKE) --no-print-directory tbb-test_
 	@echo TBB......finished
 endif
+tbb-test_: tbb-test-randmat
 tbb-test-randmat:|test_results; @echo "10 9 8" | $(TBB_ROOT)/randmat/expertpar/main > test_results/tbb_randmat_out
 
-.PHONY: compare cmp-randmat
-compare: cmp-randmat
-cmp-randmat: RANDMAT_RESULT = $(if\
+.PHONY: compare
+compare:
+	@RANDMAT_RESULT=$(if\
 		$(and \
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/chpl_randmat_out)),\
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/go_randmat_out)),\
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/cilk_randmat_out)),\
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/tbb_randmat_out))\
-		),\
-	SUCCESS, FAILURE)
-cmp-randmat:;	@echo Randmat Validation: $(RANDMAT_RESULT)
+		),SUCCESS,FAILURE);\
+	echo Randmat Validation: $$RANDMAT_RESULT ;\
+	export row=10;\
+	$(MAKE) --no-print-directory testB ;\
+	export row=100;\
+	$(MAKE) --no-print-directory testB ;\
+	echo Randmat Validation: $$RANDMAT_RESULT
 	
 .PHONY: test-clean
 test-clean:
 	-rm -r test_results
+	
+.PHONY: testA testB
+testA:
+	message=hello;\
+	echo $$message
+
+testB:
+	@echo $(row)
 ################  </Validation Test>   ##########################
