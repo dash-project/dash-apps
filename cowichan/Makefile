@@ -151,71 +151,81 @@ $(SUBDIRS:%=tbb-clean-%):
 	-rm $(TBB_ROOT)/$(@:tbb-clean-%=%)/expertpar/main
 ####################    </TBB>     ##############################
 ################   <Validation Test>   ##########################
-.PHONY: crOut test-all
+.PHONY: test-all
 
-crOut:; mkdir -p test_results
+test_results:; mkdir -p test_results
 
 test: test-all
-test-all: crOut chpl-test go-test cilk-test tbb-test dash-test
-	$(MAKE) compare
+test-all: chpl-test go-test cilk-test tbb-test dash-test | test_results
+	@echo 
+	@echo Comparing outputs...
+	@$(MAKE) --no-print-directory compare
 # $(CHPL_ROOT)/thresh/expertpar/main  < test_results/chpl_randmat
 
 .PHONY: dash-test dash-test-randmat
-dash-test: crOut
+dash-test: | test_results
 ifeq (icc, $(findstring icc, $(CC)))
-	@module swap intel gnu; \
-	$(MAKE) dash-test-randmat
+	@module swap intel gnu &> /dev/null; \
+	$(MAKE) --no-print-directory dash-test-randmat
+	@echo DASH.....finished
 else
-	$(MAKE) dash-test-randmat
+	@$(MAKE) --no-print-directory dash-test-randmat
+	@echo DASH.....finished
 endif
-dash-test-randmat:crOut; @echo "10 9 8" | ./randmat/randmat > test_results/dash_randmat_out
+dash-test-randmat: | test_results; @echo "10 9 8" | ./randmat/randmat > test_results/dash_randmat_out
 
 .PHONY: chpl-test chpl-test-randmat
-chpl-test: crOut
+chpl-test:| test_results
 ifeq (icc, $(findstring icc, $(CC)))
-	@module swap intel gnu; \
-	$(MAKE) chpl-test-randmat
+	@module swap intel gnu &> /dev/null; \
+	$(MAKE) --no-print-directory chpl-test-randmat
+	@echo Chapel...finished
 else
-	$(MAKE) chpl-test-randmat
+	@$(MAKE) --no-print-directory chpl-test-randmat
+	@echo Chapel...finished
 endif
-chpl-test-randmat:crOut; @echo "10 9 8" | $(CHPL_ROOT)/randmat/expertpar/main > test_results/chpl_randmat_out
+chpl-test-randmat: | test_results; @echo "10 9 8" | $(CHPL_ROOT)/randmat/expertpar/main > test_results/chpl_randmat_out
 
 .PHONY: go-test go-test-randmat
-go-test: crOut go-test-randmat
-go-test-randmat:crOut; @echo "10 9 8" | $(GO_ROOT)/randmat/expertpar/main > test_results/go_randmat_out
+go-test: go-test-randmat | test_results
+	@echo Go.......finished
+go-test-randmat:|test_results; @echo "10 9 8" | $(GO_ROOT)/randmat/expertpar/main > test_results/go_randmat_out
 
 .PHONY: cilk-test cilk-test-randmat
-cilk-test: crOut
+cilk-test: |test_results
 ifeq (gcc,$(CC))
-	@module swap gnu intel; \
-	$(MAKE) cilk-test-randmat
+	@module swap gnu intel &> /dev/null; \
+	$(MAKE) --no-print-directory cilk-test-randmat
+	@echo Cilk.....finished
 else
-	$(MAKE) cilk-test-randmat
+	@$(MAKE) --no-print-directory cilk-test-randmat
+	@echo Cilk.....finished
 endif
-cilk-test-randmat:crOut; @echo "10 9 8" | $(CILK_ROOT)/randmat/expertpar/main > test_results/cilk_randmat_out
+cilk-test-randmat:|test_results; @echo "10 9 8" | $(CILK_ROOT)/randmat/expertpar/main > test_results/cilk_randmat_out
 
 .PHONY: tbb-test tbb-test-randmat
-tbb-test: crOut
+tbb-test:| test_results
 ifeq (gcc,$(CC))
-	@module swap gnu intel; \
-	$(MAKE) tbb-test-randmat
+	@module swap gnu intel &> /dev/null; \
+	$(MAKE) --no-print-directory tbb-test-randmat
+	@echo TBB......finished
 else
-	$(MAKE) tbb-test-randmat
+	@$(MAKE) --no-print-directory tbb-test-randmat
+	@echo TBB......finished
 endif
-tbb-test-randmat:crOut; @echo "10 9 8" | $(TBB_ROOT)/randmat/expertpar/main > test_results/tbb_randmat_out
+tbb-test-randmat:|test_results; @echo "10 9 8" | $(TBB_ROOT)/randmat/expertpar/main > test_results/tbb_randmat_out
 
-.PHONY: compare
-RANDMAT_RESULT=NULL
-compare:
-	RANDMAT_RESULT = $(if\
+.PHONY: compare cmp-randmat
+compare: cmp-randmat
+cmp-randmat: RANDMAT_RESULT = $(if\
 		$(and \
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/chpl_randmat_out)),\
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/go_randmat_out)),\
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/cilk_randmat_out)),\
 			$(findstring identical, $(shell diff -sw test_results/dash_randmat_out test_results/tbb_randmat_out))\
 		),\
-	RANDMAT_RESULT=true, RANDMAT_RESULT=false)
-	@echo Value: $(RANDMAT_RESULT)
+	SUCCESS, FAILURE)
+cmp-randmat:;	@echo Randmat Validation: $(RANDMAT_RESULT)
 	
 .PHONY: test-clean
 test-clean:
