@@ -6,8 +6,5 @@ all: main
 	echo "2 5 9" | ./main
 	echo "10 9 8" | ./main --is_bench
 
-main: main.6
-	go tool 6l -o main main.6
-
-main.6: main.go
-	go tool 6g -O2 main.go
+main: main.go
+	go build -o main

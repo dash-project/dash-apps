@@ -10,9 +10,15 @@ CILK_ROOT = baSrcPaper/cilk
 TBB_ROOT  = baSrcPaper/tbb
 SUBDIRS   = randmat thresh winnow outer product
 
+# Color Codes
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
 
 ####################         <Info>          ####################
-.PHONY: help printenv 
+.PHONY: help printenv
 #### ------------------------------------------------------------
 help:
 	@echo "commands:"
@@ -40,7 +46,7 @@ printenv:
 	@echo "DASH_ROOT     = $(DASH_ROOT)"
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
-####################        </Info>          ####################  
+####################        </Info>          ####################
 ####################   <Top Level Targets>   ####################
 .PHONY: all clean all-clean
 #### ------------------------------------------------------------
@@ -53,12 +59,14 @@ all-clean: clean
 .PHONY: dash-gnu dash-intel dash dash-clean $(SUBDIRS)
 #### ------------------------------------------------------------
 dash-gnu:
-	@if [[ $$CC == *icc ]] ; then module swap intel gnu; fi;\
-	$(MAKE) dash
+	@echo -e making ... $(BLUE)DASH GNU$(NC);\
+	if [[ $$CC == *icc ]] ; then module swap intel gnu; fi;\
+	$(MAKE) --no-print-directory dash
 
 dash-intel:
-	@if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
-	$(MAKE) dash
+	@echo -e making ... $(BLUE)DASH Intel$(NC);\
+	if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
+	$(MAKE) --no-print-directory dash
 
 dash: MAKECMDGOALS = all
 dash: $(SUBDIRS)
@@ -67,7 +75,7 @@ dash-clean: MAKECMDGOALS = clean
 dash-clean: $(SUBDIRS)
 
 $(SUBDIRS):
-	$(MAKE) -C $@ $(MAKECMDGOALS)
+	@$(MAKE) --no-print-directory -C $@ $(MAKECMDGOALS)
 ####################    </DASH>    ##############################
 ####################     <GO>      ##############################
 .PHONY: go go-clean $(SUBDIRS:%=go-%) $(SUBDIRS:%=go-clean-%)
@@ -75,22 +83,32 @@ $(SUBDIRS):
 go-clean: $(SUBDIRS:%=go-clean-%)
 $(SUBDIRS:%=go-clean-%):
 	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertpar/main
+	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertseq/main
+	-rm $(GO_ROOT)/$(@:go-clean-%=%)/par/main
 
-go:$(SUBDIRS:%=go-%)
+go:
+	@echo -e making ... $(BLUE)GO$(NC)
+	@$(MAKE) --no-print-directory go_
+
+go_:$(SUBDIRS:%=go-%)
+
 $(SUBDIRS:%=go-%):
-	$(MAKE) -C $(GO_ROOT)/$(@:go-%=%)/expertpar main
+	@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/expertpar main
+#	-@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/expertseq main
+#	-@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/par main
 ####################     </GO>     ##############################
 ####################    <Chapel>   ##############################
 .PHONY: chpl chpl_ chpl-clean $(SUBDIRS:%=chpl-%) $(SUBDIRS:%=chpl-clean-%)
 #### ------------------------------------------------------------
 chpl:
-	@if [[ $$CC == *icc ]] ; then module swap intel gnu; fi;\
-	$(MAKE) chpl_
+	@echo -e making ... $(BLUE)Chapel$(NC);\
+	if [[ $$CC == *icc ]] ; then module swap intel gnu; fi;\
+	$(MAKE) --no-print-directory chpl_
 
 chpl_: $(SUBDIRS:%=chpl-%)
 
 $(SUBDIRS:%=chpl-%):
-	$(MAKE) -C $(CHPL_ROOT)/$(@:chpl-%=%)/expertpar main
+	@$(MAKE) --no-print-directory -C $(CHPL_ROOT)/$(@:chpl-%=%)/expertpar main
 
 chpl-clean: $(SUBDIRS:%=chpl-clean-%)
 $(SUBDIRS:%=chpl-clean-%):
@@ -100,13 +118,14 @@ $(SUBDIRS:%=chpl-clean-%):
 .PHONY: cilk cilk_ cilk-clean $(SUBDIRS:%=cilk-%) $(SUBDIRS:%=cilk-clean-%)
 #### ------------------------------------------------------------
 cilk:
-	@if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
-	$(MAKE) cilk_
+	@echo -e making ... $(BLUE)Cilk$(NC);\
+	if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
+	$(MAKE) --no-print-directory cilk_
 
 cilk_: $(SUBDIRS:%=cilk-%)
 
 $(SUBDIRS:%=cilk-%):
-	$(MAKE) -C $(CILK_ROOT)/$(@:cilk-%=%)/expertpar main
+	@$(MAKE) --no-print-directory -C $(CILK_ROOT)/$(@:cilk-%=%)/expertpar main
 
 cilk-clean: $(SUBDIRS:%=cilk-clean-%)
 $(SUBDIRS:%=cilk-clean-%):
@@ -116,13 +135,14 @@ $(SUBDIRS:%=cilk-clean-%):
 .PHONY: tbb tbb_ tbb-clean $(SUBDIRS:%=tbb-%) $(SUBDIRS:%=tbb-clean-%)
 #### ------------------------------------------------------------
 tbb:
-	@if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
-	$(MAKE) tbb_
+	@echo -e making ... $(BLUE)TBB$(NC);\
+	if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
+	$(MAKE) --no-print-directory tbb_
 
 tbb_: $(SUBDIRS:%=tbb-%)
 
 $(SUBDIRS:%=tbb-%):
-	$(MAKE) -C $(TBB_ROOT)/$(@:tbb-%=%)/expertpar main
+	@$(MAKE) --no-print-directory -C $(TBB_ROOT)/$(@:tbb-%=%)/expertpar main
 
 tbb-clean: $(SUBDIRS:%=tbb-clean-%)
 $(SUBDIRS:%=tbb-clean-%):
@@ -138,22 +158,23 @@ run-all: chpl-run go-run cilk-run tbb-run dash-run | run_results
 .PHONY: dash-run dash-run_ dash-run-randmat
 dash-run: | run_results
 	@if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
-	echo DASH ..... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh);\
+	echo "DASH ..... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh)";\
 	$(MAKE) --no-print-directory dash-run_ ;\
-	echo DASH ..... finished
+	echo "DASH ..... finished"
 
 dash-run_:
 	@echo $(rows) $(cols) > run_results/dash_randmat_out
 	@echo $(rows) $(cols) $(seed) | ./randmat/randmat >> run_results/dash_randmat_out
 	@echo $(thresh) >> run_results/dash_randmat_out
+	@./thresh/thresh < run_results/dash_randmat_out > run_results/dash_thresh_out
 
-	
+
 .PHONY: chpl-run chpl-run_ chpl-run-randmat
 chpl-run:| run_results
 	@if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
-	echo Chapel ... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh);\
+	echo "Chapel ... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh)";\
 	$(MAKE) --no-print-directory chpl-run_ ;\
-	echo Chapel ... finished
+	echo "Chapel ... finished"
 
 chpl-run_:
 	@echo $(rows) $(cols) > run_results/chpl_randmat_out
@@ -161,26 +182,26 @@ chpl-run_:
 	@echo $(thresh) >> run_results/chpl_randmat_out
 	@$(CHPL_ROOT)/thresh/expertpar/main < run_results/chpl_randmat_out > run_results/chpl_thresh_out
 
-	
+
 .PHONY: go-run go-run_ go-run-randmat
 go-run:| run_results
-	@echo Go ....... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh)
+	@echo "Go ....... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh)"
 	@$(MAKE) --no-print-directory go-run_
-	@echo Go ....... finished
+	@echo "Go ....... finished"
 
-go-run_: 
+go-run_:
 	@echo $(rows) $(cols) > run_results/go_randmat_out
 	@echo $(rows) $(cols) $(seed) | $(GO_ROOT)/randmat/expertpar/main >> run_results/go_randmat_out
 	@echo $(thresh) >> run_results/go_randmat_out
 	@$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_out
 
-	
+
 .PHONY: cilk-run cilk-run_ cilk-run-randmat
 cilk-run: |run_results
 	@if [[ $$CC == *gcc ]] ; then module swap gnu intel &> /dev/null; fi;\
-	echo Cilk ..... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh);\
+	echo "Cilk ..... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh)";\
 	$(MAKE) --no-print-directory cilk-run_ ;\
-	echo Cilk ..... finished
+	echo "Cilk ..... finished"
 
 cilk-run_:
 	@echo $(rows) $(cols) > run_results/cilk_randmat_out
@@ -192,9 +213,9 @@ cilk-run_:
 .PHONY: tbb-run tbb-run_ tbb-run-randmat
 tbb-run:| run_results
 	@if [[ $$CC == *gcc ]] ; then module swap gnu intel &> /dev/null; fi;\
-	echo TBB ...... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh);\
+	echo "TBB ...... run with: rows:$(rows), cols:$(cols), seed:$(seed), thresh:$(thresh)";\
 	$(MAKE) --no-print-directory tbb-run_ ;\
-	echo TBB ...... finished
+	echo "TBB ...... finished"
 
 tbb-run_:
 	@echo $(rows) $(cols) > run_results/tbb_randmat_out
@@ -203,52 +224,63 @@ tbb-run_:
 	@$(TBB_ROOT)/thresh/expertpar/main < run_results/tbb_randmat_out > run_results/tbb_thresh_out
 
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
 
 SUCCESS:=$(GREEN)SUCCESS$(NC)
 FAILURE:=$(RED)FAILURE$(NC)
-
+#export rows=$$(( 1 + RANDOM % 200 )) cols=$$(( 1 + RANDOM % 200 )) seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
 .PHONY: test
 test:
 	@echo How many iterations should be made? \(Enter a count and press \[Enter\]\):; read i ;\
 	echo ---------- ;\
 	for (( succ=0 , fail=0 , subsucc=0 ; i-- ; subsucc=0 )) ; do \
-	export rows=$$(( 1 + RANDOM % 200 )) cols=$$(( 1 + RANDOM % 200 )) seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
+	export rows=10 cols=9 seed=8 thresh=38;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
-		if [[ $$(diff -sw run_results/dash_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)Chapel randmat output differs from DASH!$(NC); fi;\
-		if [[ $$(diff -sw run_results/dash_randmat_out run_results/go_randmat_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)GO randmat output differs from DASH!$(NC); fi;\
-		if [[ $$(diff -sw run_results/dash_randmat_out run_results/cilk_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)Cilk randmat output differs from DASH!$(NC); fi;\
-		if [[ $$(diff -sw run_results/dash_randmat_out run_results/tbb_randmat_out)  == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)TBB randmat output differs from DASH!$(NC); fi;\
+		if [[ $$(diff -swB run_results/dash_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel randmat output differs from DASH!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/dash_randmat_out run_results/go_randmat_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO randmat output differs from DASH!"$(NC);     fi;\
+		if [[ $$(diff -swB run_results/dash_randmat_out run_results/cilk_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk randmat output differs from DASH!"$(NC);   fi;\
+		if [[ $$(diff -swB run_results/dash_randmat_out run_results/tbb_randmat_out)  == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"TBB randmat output differs from DASH!"$(NC);    fi;\
 		case $$subsucc in \
-			4) (( ++succ )) ; echo -e $(GREEN)randmat output comparison without differences.$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"randmat comparison without differences."$(NC);;\
 			*) (( ++fail )) ;;\
 		esac;\
 		subsucc=0;\
-		if [[ $$(diff -sw run_results/tbb_thresh_out run_results/go_thresh_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)GO thresh output differs from tbb!$(NC); fi;\
-		if [[ $$(diff -sw run_results/tbb_thresh_out run_results/cilk_thresh_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)Cilk thresh output differs from tbb!$(NC); fi;\
-		if [[ $$(diff -sw run_results/tbb_thresh_out run_results/chpl_thresh_out)  == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)Chapel thresh output differs from tbb!$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/go_thresh_out)    == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"GO thresh output differs from tbb!"$(NC);     fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/cilk_thresh_out)  == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"Cilk thresh output differs from tbb!"$(NC);   fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/chpl_thresh_out)  == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"Chapel thresh output differs from tbb!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/dash_thresh_out)  == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"DASH thresh output differs from tbb!"$(NC); fi;\
 		case $$subsucc in \
-			4) (( ++succ )) ; echo -e $(GREEN)thresh output comparison without differences.$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"thresh comparison without differences."$(NC);;\
 			*) (( ++fail )) ;;\
 		esac;\
+		echo --------------------------------------;\
 	done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
-	
+
 .PHONY: run-clean
 run-clean:
 	-rm -r run_results
 
 
-.PHONY: testA testB
-testA:
-	@if [[ $$(diff -sw run_results/dash_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then echo true; else echo false; fi;
-	@if [[ $$(diff -sw run_results/dash_randmat_out run_results/tbb_randmat_out) == *are\ identical* ]] ;then echo true; else echo false; fi;
+.PHONY: testgo
+testgo:
+	@$(MAKE) --no-print-directory go-thresh
+	@$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_expertpar_in_out
+	@$(GO_ROOT)/thresh/expertseq/main < run_results/go_randmat_out > run_results/go_thresh_expertseq_in_out
+	@$(GO_ROOT)/thresh/par/main       < run_results/go_randmat_out > run_results/go_thresh_par_in_out
+#Vergleiche output mit input
+	@if [[ $$(diff -swB run_results/go_randmat_out run_results/go_thresh_expertpar_in_out) == *are\ identical* ]] ;then \
+		echo -e $(GREEN)"expertpar ouput is identical to input"$(NC);     else echo -e $(RED)"expertpar output differs from input!"$(NC); fi
+	@if [[ $$(diff -swB run_results/go_randmat_out run_results/go_thresh_expertseq_in_out) == *are\ identical* ]] ;then \
+		echo -e $(GREEN)"expertseq ouput is identical to input"$(NC);     else echo -e $(RED)"expertseq output differs from input!"$(NC); fi
+	@if [[ $$(diff -swB run_results/go_randmat_out run_results/go_thresh_par_in_out) == *are\ identical* ]] ;then \
+		echo -e $(GREEN)"par ouput is identical to input"$(NC);           else echo -e $(RED)"par output differs from input!"      $(NC); fi
+#Vergleiche outputs untereinander
+	@if [[ $$(diff -swB run_results/go_thresh_expertpar_in_out run_results/go_thresh_par_in_out) == *are\ identical* ]] ;then \
+		echo -e $(GREEN)"par ouput is identical to expertpar"$(NC);       else echo -e $(RED)"par output differs from expertpar!"  $(NC); fi
+	@if [[ $$(diff -swB run_results/go_thresh_expertpar_in_out run_results/go_thresh_expertseq_in_out) == *are\ identical* ]] ;then \
+		echo -e $(GREEN)"expertpar ouput is identical to expertseq"$(NC); else echo -e $(RED)"par output differs from expertseq!"  $(NC); fi
+	@echo done
 
 
-testB:
-	@echo $$((2#1001)) $$((b=~2#1001)) $$b
-	
 ################  </Validation Test>   ##########################

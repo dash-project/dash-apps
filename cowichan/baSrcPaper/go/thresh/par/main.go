@@ -162,14 +162,27 @@ func main() {
 			for j := 0; j < ncols; j++ {
 				fmt.Scanf("%d", &matrix[i][j])
 			}
+      fmt.Scanf(" \n")
 		}
 	}
 
-	fmt.Scanf("%d", &percent)
+	fmt.Scanf("\n%d", &percent)
 
 	thresh(nrows, ncols, percent)
 
-	if !*is_bench {
+/*   //input to output for debugging
+  fmt.Printf("%d %d\n", nrows, ncols)
+  for i := 0; i < nrows; i++ {
+    for j := 0; j < ncols; j++ {
+      fmt.Printf("%d ", matrix[i][j])
+    }
+    fmt.Printf("\n")
+  }
+  fmt.Printf("%d\n", percent) */
+  
+  
+ 	if !*is_bench {
+		fmt.Printf("%d %d\n", nrows, ncols)
 		for i := 0; i < nrows; i++ {
 			for j := 0; j < ncols; j++ {
 				fmt.Printf("%d ", mask[i][j])
@@ -177,5 +190,5 @@ func main() {
 			fmt.Printf("\n")
 		}
 		fmt.Printf("\n")
-	}
+	} 
 }

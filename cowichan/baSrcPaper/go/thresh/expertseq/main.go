@@ -86,14 +86,28 @@ func main() {
 			for j := range row {
 				fmt.Scanf("%d", &row[j])
 			}
+      fmt.Scanf(" \n")
 		}
 	}
 
-	fmt.Scanf("%d", &percent)
+	fmt.Scanf("\n%d", &percent)
 
 	thresh(m, nrows, ncols, percent)
 
-	if !*is_bench {
+/*   //input to output for debugging
+  fmt.Printf("%d %d\n", nrows, ncols)
+  for i := uint32(0); i < nrows; i++ {
+    row := m.Row(i)
+    for j := uint32(0); j < ncols; j++ {
+      fmt.Printf("%d ",row[j])
+    }
+    fmt.Printf("\n")
+  }
+  fmt.Printf("%d\n", percent) */
+  
+  
+ 	if !*is_bench {
+		fmt.Printf("%d %d\n", nrows, ncols)
 		for i := uint32(0); i < nrows; i++ {
 			for j := uint32(0); j < ncols; j++ {
 				if mask[i][j] {
@@ -105,5 +119,5 @@ func main() {
 			fmt.Printf("\n")
 		}
 		fmt.Printf("\n")
-	}
+	} 
 }
