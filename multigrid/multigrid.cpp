@@ -19,7 +19,7 @@ char filename[101];
 #define WRITETOPNG(GRID) \
     dash::barrier(); \
     if ( 0 == dash::myid() ) { \
-        snprintf( filename, 100, "image%04i.png", filenumber++ ); \
+        snprintf( filename, 100, "image%04.png", filenumber++ ); \
         topng( GRID , filename, 0.0, 10.0 ); \
     } \
     dash::barrier();
@@ -43,8 +43,8 @@ class Level {
 
 public:
 
-    dash::Matrix<double,2> grid;
-    dash::experimental::HaloMatrix< dash::Matrix<double,2>, dash::experimental::HaloSpec<2> > halo;
+    dash::NArray<double,2> grid;
+    dash::experimental::HaloMatrix< dash::NArray<double,2>, dash::experimental::HaloSpec<2> > halo;
 
     Level( size_t w, size_t h, dash::Team& team, dash::TeamSpec<2> teamspec ) :
         grid( dash::SizeSpec<2>( h+2, w+2 ),
@@ -54,7 +54,7 @@ public:
 };
 
 
-void sanitycheck( const dash::Matrix<double,2>& grid  ) {
+void sanitycheck( const dash::NArray<double,2>& grid  ) {
 
     /* check if the sum of the local extents of the matrix blocks sum up to
      * the global extents, abort otherwise */
@@ -86,7 +86,7 @@ void sanitycheck( const dash::Matrix<double,2>& grid  ) {
 }
 
 
-void initgrid( dash::Matrix<double,2>& grid ) {
+void initgrid( dash::NArray<double,2>& grid ) {
 
     if ( 0 != dash::myid() ) return;
 
@@ -114,7 +114,7 @@ void initgrid( dash::Matrix<double,2>& grid ) {
 }
 
 
-void setboundary( dash::Matrix<double,2>& grid ) {
+void setboundary( dash::NArray<double,2>& grid ) {
 
     if ( 0 != dash::myid() ) return;
 
@@ -154,7 +154,7 @@ void setboundary( dash::Matrix<double,2>& grid ) {
 }
 
 
-void scaledownboundary( const dash::Matrix<double,2>& fine, dash::Matrix<double,2>& coarse ) {
+void scaledownboundary( const dash::NArray<double,2>& fine, dash::NArray<double,2>& coarse ) {
 
     assert( (coarse.extent(1)-2)*2 +2 == fine.extent(1) );
     assert( (coarse.extent(0)-2)*2 +2 == fine.extent(0) );
@@ -201,19 +201,24 @@ void scaledownboundary( const dash::Matrix<double,2>& fine, dash::Matrix<double,
 }
 
 
-void scaledown( const dash::Matrix<double,2>& fine, dash::Matrix<double,2>& coarse ) {
+void scaledown( const dash::NArray<double,2>& fine, 
+        dash::experimental::HaloMatrix< dash::NArray<double,2>, dash::experimental::HaloSpec<2> >& finehalo, 
+        dash::NArray<double,2>& coarse ) {
 
     assert( (coarse.extent(1)-2)*2 +2 == fine.extent(1) );
     assert( (coarse.extent(0)-2)*2 +2 == fine.extent(0) );
 
-    size_t w= coarse.local.extent(1);
-    size_t h= coarse.local.extent(0);
-    std::array< long int, 2 > cornerc= coarse.pattern().global( {0,0} );
+    finehalo.updateHalosAsync();
+ 
+    const std::array< long unsigned int, 2 > extentc= coarse.pattern().local_extents();
+    const std::array< long signed int, 2 >   cornerc= coarse.pattern().global( {0,0} );
+    const std::array< long unsigned int, 2 > extentf= fine.pattern().local_extents();
 
-    size_t startx= ( 0 == cornerc[1] ) ? 1 : 0;
-    size_t starty= ( 0 == cornerc[0] ) ? 1 : 0;
-    for ( size_t y= 0; y < h-1 ; y++ ) {
-        for ( size_t x= 0; x < w-1 ; x++ ) {
+    size_t startx= ( 0 == cornerc[1] % 2 ) ? 1 : 0;
+    size_t starty= ( 0 == cornerc[0] % 2 ) ? 1 : 0;
+
+    for ( size_t y= 0; y < extentc[0]-starty ; y++ ) {
+        for ( size_t x= 0; x < extentc[1]-startx ; x++ ) {
 
             coarse.local[starty+y][startx+x]= 0.25 * (
                 fine.local[starty+2*y  ][startx+2*x  ] +
@@ -222,12 +227,70 @@ void scaledown( const dash::Matrix<double,2>& fine, dash::Matrix<double,2>& coar
                 fine.local[starty+2*y+1][startx+2*x+1] );
         }
     }
+    
+    finehalo.waitHalosAsync();
 
+    
+    if ( 0 == cornerc[0] ) {
+        
+        // cout << "first row globally is boundary condition, nothing to do here" << endl;
+        
+    } else if ( 0 == cornerc[0] % 2 ) {
+        
+        cout << dash::myid() << ": first row locally is even, thus need to do scale down with halo row" << endl;
+        
+    } // else nothing to do here
+    
+    
+    if ( coarse.extent(0) == cornerc[0] + extentc[0] ) {
+    
+        // cout << "last row globally is boundary condition, nothing to do here" << endl;
+    
+    } else if ( 0 == ( cornerc[0] + extentc[0] ) % 2 ) {
+        
+        cout << dash::myid() << ": last row locally is odd (following first row in next block is even), thus need to do scale down with halo row" << endl;
+    } // else nothing to do
+    
+    if ( 0 == cornerc[1] ) {
+        
+        // cout << "first column globally is boundary condition, nothing to do here" << endl;
+        
+    } else if ( 0 == cornerc[1] % 2 ) {
+        
+        cout << dash::myid() << ": first column locally is even, thus need to do scale down with halo column" << endl;
+        
+    } // else nothing to do here
+    
+    
+    if ( coarse.extent(1) == cornerc[1] + extentc[1] ) {
+    
+        // cout << "last column globally is boundary condition, nothing to do here" << endl;
+    
+    } else if ( 1 == ( cornerc[1] + extentc[1] ) % 2 ) {
+        
+        cout << dash::myid() << ": last column locally is odd (following first column in next block is even), thus need to do scale down with halo column" << endl;
+    } // else nothing to do
+    
+    
+    
+    /* now do border elements if necessary */
+    
+    /* change to inner/outer scheme
+         - nonblocking halo exchange if needed
+         - check local indices to find start at even positions per dimension 
+         - check if first row/column needs to use halo
+         - check if last row/column needs to use halo
+     
+    */
+    
+    
     dash::barrier();
 }
 
 
-void scaleup( const dash::Matrix<double,2>& coarse, dash::Matrix<double,2>& fine ) {
+void scaleup( const dash::NArray<double,2>& coarse,
+        dash::experimental::HaloMatrix< dash::NArray<double,2>, dash::experimental::HaloSpec<2> >& coarsehalo, 
+        dash::NArray<double,2>& fine ) {
 
     assert( (coarse.extent(1)-2)*2 +2 == fine.extent(1) );
     assert( (coarse.extent(0)-2)*2 +2 == fine.extent(0) );
@@ -253,8 +316,8 @@ void scaleup( const dash::Matrix<double,2>& coarse, dash::Matrix<double,2>& fine
 }
 
 
-double smoothen( dash::Matrix<double,2>& grid,
-               dash::experimental::HaloMatrix< dash::Matrix<double,2>, dash::experimental::HaloSpec<2> >& halo ) {
+double smoothen( dash::NArray<double,2>& grid,
+        dash::experimental::HaloMatrix< dash::NArray<double,2>, dash::experimental::HaloSpec<2> >& halo ) {
 
     double res= 0.0;
 
@@ -334,7 +397,7 @@ double smoothen( dash::Matrix<double,2>& grid,
 
 
 #ifdef WITHPNGOUTPUT
-void topng( dash::Matrix<double,2>& grid, const char* filename,
+void topng( dash::NArray<double,2>& grid, const char* filename,
         const double minvalue= 0.0, const double maxvalue= 100.0 ) {
 
     if ( 0 != dash::myid() ) return;
@@ -386,7 +449,7 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
 
         WRITETOPNG( levels[i-1]->grid )
 
-        scaledown( levels[i-1]->grid, levels[i]->grid );
+        scaledown( levels[i-1]->grid, levels[i-1]->halo, levels[i]->grid );
 
         if ( 0 == dash::myid() ) {
             cout << "smoothen with residual " << res <<
@@ -395,6 +458,8 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
         }
 
         WRITETOPNG( levels[i]->grid )
+        
+        exit(1);
     }
 
     /* do a fixed number of smoothing steps until the residual on the coarsest grid is
@@ -411,7 +476,7 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
 
     for ( uint32_t i= levels.size()-1; i > 0; i-- ) {
 
-        scaleup( levels[i]->grid, levels[i-1]->grid );
+        scaleup( levels[i]->grid, levels[i]->halo, levels[i-1]->grid );
 
         WRITETOPNG( levels[i-1]->grid )
 
@@ -440,13 +505,22 @@ int main( int argc, char* argv[] ) {
     levels.reserve( howmanylevels );
 
     /* create all grid levels, starting with the finest and ending with 4x4 */
-    for ( uint32_t l= 0; l < howmanylevels-1; l++ ) {
+    for ( uint32_t l= 0; l < howmanylevels-3; l++ ) {
 
         if ( 0 == dash::myid() ) {
             cout << "level " << l << " is " << (1<<(howmanylevels-l))+2 << "x" << (1<<(howmanylevels-l))+2 << endl;
         }
-        levels.push_back( new Level( (1<<(howmanylevels-l)), (1<<(howmanylevels-l)), dash::Team::All(), teamspec ) );
+       
+        levels.push_back( new Level( (1<<(howmanylevels-l)), (1<<(howmanylevels-l)), 
+            dash::Team::All(), teamspec ) );
 
+        dash::barrier();
+        cout << "unit " << dash::myid() << " : " << 
+            levels.back()->grid.local.extent(1) << " x " <<
+            levels.back()->grid.local.extent(0) << endl;
+        dash::barrier();
+
+        
         if ( 0 == l ) {
             sanitycheck( levels[0]->grid );
             setboundary( levels[0]->grid );
