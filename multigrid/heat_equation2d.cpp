@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 
 //#ifdef DEBUG
   if (myid == 0)
-    print_matrix(&matrix);
+    print_matrix(current_matrix);
 //#endif
 
   // Output
