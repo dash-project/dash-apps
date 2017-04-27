@@ -14,7 +14,7 @@ using uint  = unsigned int;
 inline void product(         
                      const uint   nelts ,
            vector<double> const & vec,
-        dash::NArray<double, 2> & matIn,
+  const dash::NArray<double, 2> & matIn,
             dash::Array<double> & result,
                       const int   myid
     );
@@ -105,7 +105,7 @@ int main( int argc, char* argv[] )
 inline void product(         
                      const uint   nelts ,
            vector<double> const & vec,
-        dash::NArray<double, 2> & matIn,
+  const dash::NArray<double, 2> & matIn,
             dash::Array<double> & result,
                       const int   myid
     ){

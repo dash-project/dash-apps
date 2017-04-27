@@ -1,13 +1,8 @@
-# no Makefiles
-*Makefile
-
-# just Makefile in cowichan root folder should be tracked
-!/Makefile
-
-*/cowichan_randmat
-*/cowichan_thresh
-*/cowichan_winnow
-*/cowichan_outer
-*/cowichan_product
+*.o
+*/randmat
+*/thresh
+*/winnow
+*/outer
+*/product
 
 
