@@ -1,11 +1,15 @@
 include make.defs
 
 .phony: all
-all: multigrid
+all: multigrid heat_equation2d
 
 multigrid:  multigrid.cpp
 	$(CXX) -c $(INC) `libpng-config --cflags` $?
-	$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags`
+	$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
+
+heat_equation2d:  heat_equation2d.cpp
+	$(CXX) -c $(INC) $?
+	$(CXX) -o $@ $@.o $(LIB) -lhwloc -lnuma
 
 .phony: printenv
 printenv :
@@ -17,4 +21,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f multigrid halo_heat_eqn *.o *.png
+	rm -f heat_equation2d multigrid halo_heat_eqn *.o *.png

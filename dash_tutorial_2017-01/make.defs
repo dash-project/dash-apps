@@ -1,6 +1,6 @@
 
 
-DASH_ROOT = /home/knue/local/dash-0.3.0
+DASH_ROOT = /home/knue/local/dash-0.3.0_new
 #DASH_ROOT = /opt/dash
 
 DART_IMPL = mpi
