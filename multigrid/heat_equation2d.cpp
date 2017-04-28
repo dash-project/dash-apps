@@ -115,10 +115,12 @@ int main(int argc, char *argv[])
   array_t energy(ranks);
   double initEnergy = calcEnergy(&matrix, energy);
 
+  /*
   const auto &lview = halomat.getLocalView();
   auto offset = lview.extent(1);
   long inner_start = offset + 1;
   long inner_end = lview.extent(0) * (offset - 1) - 1;
+  */
 
   auto fixed_func = [&matrix_ext](const std::array<dash::default_index_t,2>& coords) {
       auto boundary = matrix_ext - 1;
