@@ -16,7 +16,7 @@ use Sort;
 config const is_bench = false;
 config const nrows = read(int),
              ncols = read(int);
-const MatrixSpace = {1..nrows, 1..ncols};
+const MatrixSpace = {0..nrows-1, 0..ncols-1};
 
 var matrix: [MatrixSpace] int;
 var mask: [MatrixSpace] bool;
@@ -28,9 +28,9 @@ var count_per_line: [1..nrows+1] int;
 proc winnow(nelts: int) {
   var n: int = 0;
   var points: [1..nelts] (int, int);
-  const ColSpace = {1..ncols};
+  const ColSpace = {0..ncols-1};
 
-  forall i in 1..nrows {
+  forall i in 0..nrows-1 {
     count_per_line[i + 1] = 0;
     for j in ColSpace {
       if (is_bench) {
@@ -39,11 +39,12 @@ proc winnow(nelts: int) {
       count_per_line[i + 1] += mask[i, j];
     }
   }
+ 
 
   var total = + scan count_per_line;
   n = total[nrows + 1];
 
-  forall i in 1..nrows {
+  forall i in 0..nrows-1 {
     var count = total[i];
     for j in ColSpace {
       if (mask[i, j]) {
@@ -53,6 +54,7 @@ proc winnow(nelts: int) {
     }
   }
 
+  
   quickSort(values[0..n]);
 
   var chunk: int = n / nelts;
@@ -67,16 +69,16 @@ proc winnow(nelts: int) {
 }
 
 proc read_matrix() {
-  for i in 1..nrows do {
-    for j in 1..ncols do {
+  for i in 0..nrows-1 do {
+    for j in 0..ncols-1 do {
       read(matrix[i, j]);
     }
   }
 }
 
 proc read_mask() {
-  for i in 1..nrows do {
-    for j in 1..ncols do {
+  for i in 0..nrows-1 do {
+    for j in 0..ncols-1 do {
       var v: int;
       read(v);
       mask[i, j] = v == 1;

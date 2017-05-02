@@ -200,6 +200,7 @@ go-run_:
 	@echo $(rows) $(cols) $(seed) | $(GO_ROOT)/randmat/expertpar/main >> run_results/go_randmat_out
 	@{ cat run_results/go_randmat_out; echo $(thresh); } | $(GO_ROOT)/thresh/expertpar/main > run_results/go_thresh_out
 	@x=$$(<run_results/go_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/go_thresh_out;
+	@cat run_results/go_randmat_out run_results/go_thresh_out | $(GO_ROOT)/winnow/expertpar/main > run_results/go_winnow_out
 # @echo $(thresh) >> run_results/go_randmat_out
 # @$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_out
 
@@ -216,6 +217,7 @@ cilk-run_:
 	@echo $(rows) $(cols) $(seed) | $(CILK_ROOT)/randmat/expertpar/main >> run_results/cilk_randmat_out
 	@{ cat run_results/cilk_randmat_out; echo $(thresh); } | $(CILK_ROOT)/thresh/expertpar/main > run_results/cilk_thresh_out
 	@x=$$(<run_results/cilk_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/cilk_thresh_out;
+	@cat run_results/cilk_randmat_out run_results/cilk_thresh_out | $(CILK_ROOT)/winnow/expertpar/main > run_results/cilk_winnow_out
 # @echo $(thresh) >> run_results/cilk_randmat_out
 # @$(CILK_ROOT)/thresh/expertpar/main < run_results/cilk_randmat_out > run_results/cilk_thresh_out
 
@@ -232,6 +234,7 @@ tbb-run_:
 	@echo $(rows) $(cols) $(seed) | $(TBB_ROOT)/randmat/expertpar/main >> run_results/tbb_randmat_out
 	@{ cat run_results/tbb_randmat_out; echo $(thresh); } | $(TBB_ROOT)/thresh/expertpar/main > run_results/tbb_thresh_out
 	@x=$$(<run_results/tbb_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/tbb_thresh_out;
+	@cat run_results/tbb_randmat_out run_results/tbb_thresh_out | $(TBB_ROOT)/winnow/expertpar/main > run_results/tbb_winnow_out
 
 
 
