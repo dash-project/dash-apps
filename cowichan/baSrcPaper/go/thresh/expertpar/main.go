@@ -155,7 +155,7 @@ func main() {
   fmt.Printf("%d\n", percent) */
 
 	if !*is_bench {
-		fmt.Printf("%d %d\n", nrows, ncols)
+		//fmt.Printf("%d %d\n", nrows, ncols)
 		for i := uint32(0); i < nrows; i++ {
 			for j := uint32(0); j < ncols; j++ {
 				if mask[i][j] {

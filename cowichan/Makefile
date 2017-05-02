@@ -165,8 +165,9 @@ dash-run: | run_results
 dash-run_:
 	@echo $(rows) $(cols) > run_results/dash_randmat_out
 	@echo $(rows) $(cols) $(seed) | ./randmat/randmat >> run_results/dash_randmat_out
-	@echo $(thresh) >> run_results/dash_randmat_out
-	@./thresh/thresh < run_results/dash_randmat_out > run_results/dash_thresh_out
+	@{ cat run_results/dash_randmat_out; echo $(thresh); } | ./thresh/thresh > run_results/dash_thresh_out
+# @echo $(thresh) >> run_results/dash_randmat_out
+# @./thresh/thresh < run_results/dash_randmat_out > run_results/dash_thresh_out
 
 
 .PHONY: chpl-run chpl-run_ chpl-run-randmat
@@ -179,8 +180,9 @@ chpl-run:| run_results
 chpl-run_:
 	@echo $(rows) $(cols) > run_results/chpl_randmat_out
 	@echo $(rows) $(cols) $(seed) | $(CHPL_ROOT)/randmat/expertpar/main >> run_results/chpl_randmat_out
-	@echo $(thresh) >> run_results/chpl_randmat_out
-	@$(CHPL_ROOT)/thresh/expertpar/main < run_results/chpl_randmat_out > run_results/chpl_thresh_out
+	@{ cat run_results/chpl_randmat_out; echo $(thresh); } | $(CHPL_ROOT)/thresh/expertpar/main > run_results/chpl_thresh_out
+# @echo $(thresh) >> run_results/chpl_randmat_out
+# @$(CHPL_ROOT)/thresh/expertpar/main < run_results/chpl_randmat_out > run_results/chpl_thresh_out
 
 
 .PHONY: go-run go-run_ go-run-randmat
@@ -192,8 +194,9 @@ go-run:| run_results
 go-run_:
 	@echo $(rows) $(cols) > run_results/go_randmat_out
 	@echo $(rows) $(cols) $(seed) | $(GO_ROOT)/randmat/expertpar/main >> run_results/go_randmat_out
-	@echo $(thresh) >> run_results/go_randmat_out
-	@$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_out
+	@{ cat run_results/go_randmat_out; echo $(thresh); } | $(GO_ROOT)/thresh/expertpar/main > run_results/go_thresh_out
+# @echo $(thresh) >> run_results/go_randmat_out
+# @$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_out
 
 
 .PHONY: cilk-run cilk-run_ cilk-run-randmat
@@ -206,8 +209,9 @@ cilk-run: |run_results
 cilk-run_:
 	@echo $(rows) $(cols) > run_results/cilk_randmat_out
 	@echo $(rows) $(cols) $(seed) | $(CILK_ROOT)/randmat/expertpar/main >> run_results/cilk_randmat_out
-	@echo $(thresh) >> run_results/cilk_randmat_out
-	@$(CILK_ROOT)/thresh/expertpar/main < run_results/cilk_randmat_out > run_results/cilk_thresh_out
+	@{ cat run_results/cilk_randmat_out; echo $(thresh); } | $(CILK_ROOT)/thresh/expertpar/main > run_results/cilk_thresh_out
+# @echo $(thresh) >> run_results/cilk_randmat_out
+# @$(CILK_ROOT)/thresh/expertpar/main < run_results/cilk_randmat_out > run_results/cilk_thresh_out
 
 
 .PHONY: tbb-run tbb-run_ tbb-run-randmat
@@ -220,38 +224,49 @@ tbb-run:| run_results
 tbb-run_:
 	@echo $(rows) $(cols) > run_results/tbb_randmat_out
 	@echo $(rows) $(cols) $(seed) | $(TBB_ROOT)/randmat/expertpar/main >> run_results/tbb_randmat_out
-	@echo $(thresh) >> run_results/tbb_randmat_out
-	@$(TBB_ROOT)/thresh/expertpar/main < run_results/tbb_randmat_out > run_results/tbb_thresh_out
+	@{ cat run_results/tbb_randmat_out; echo $(thresh); } | $(TBB_ROOT)/thresh/expertpar/main > run_results/tbb_thresh_out
 
 
 
 SUCCESS:=$(GREEN)SUCCESS$(NC)
 FAILURE:=$(RED)FAILURE$(NC)
+
+
 #export rows=$$(( 1 + RANDOM % 200 )) cols=$$(( 1 + RANDOM % 200 )) seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
+#export rows=10 cols=9 seed=8 thresh=38;\
 .PHONY: test
 test:
 	@echo How many iterations should be made? \(Enter a count and press \[Enter\]\):; read i ;\
 	echo ---------- ;\
 	for (( succ=0 , fail=0 , subsucc=0 ; i-- ; subsucc=0 )) ; do \
-	export rows=10 cols=9 seed=8 thresh=38;\
+	export rows=$$(( 1 + RANDOM % 200 )) cols=$$(( 1 + RANDOM % 200 )) seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
-		if [[ $$(diff -swB run_results/dash_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel randmat output differs from DASH!"$(NC); fi;\
-		if [[ $$(diff -swB run_results/dash_randmat_out run_results/go_randmat_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO randmat output differs from DASH!"$(NC);     fi;\
-		if [[ $$(diff -swB run_results/dash_randmat_out run_results/cilk_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk randmat output differs from DASH!"$(NC);   fi;\
-		if [[ $$(diff -swB run_results/dash_randmat_out run_results/tbb_randmat_out)  == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"TBB randmat output differs from DASH!"$(NC);    fi;\
+		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel randmat output differs from TBB!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/go_randmat_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO randmat output differs from TBB!"$(NC);     fi;\
+		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/cilk_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk randmat output differs from TBB!"$(NC);   fi;\
+		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/dash_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH randmat output differs from TBB!"$(NC);   fi;\
 		case $$subsucc in \
 			4) (( ++succ )) ; echo -e $(GREEN)"randmat comparison without differences."$(NC);;\
 			*) (( ++fail )) ;;\
 		esac;\
 		subsucc=0;\
-		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/go_thresh_out)    == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"GO thresh output differs from tbb!"$(NC);     fi;\
-		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/cilk_thresh_out)  == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"Cilk thresh output differs from tbb!"$(NC);   fi;\
-		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/chpl_thresh_out)  == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"Chapel thresh output differs from tbb!"$(NC); fi;\
-		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/dash_thresh_out)  == *are\ identical* ]] ; then (( ++subsucc )); else echo -e $(RED)"DASH thresh output differs from tbb!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/go_thresh_out)     == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO thresh output differs from TBB!"$(NC);     fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/cilk_thresh_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk thresh output differs from TBB!"$(NC);   fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/chpl_thresh_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel thresh output differs from TBB!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/dash_thresh_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH thresh output differs from TBB!"$(NC);   fi;\
 		case $$subsucc in \
 			4) (( ++succ )) ; echo -e $(GREEN)"thresh comparison without differences."$(NC);;\
 			*) (( ++fail )) ;;\
+		esac;\
+		subsucc=0;\
+		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/go_winnow_out)     == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO winnow output differs from TBB!"$(NC);     fi;\
+		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/cilk_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk winnow output differs from TBB!"$(NC);   fi;\
+		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/chpl_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel winnow output differs from TBB!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/dash_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH winnow output differs from TBB!"$(NC);   fi;\
+		case $$subsucc in \
+		4) (( ++succ )) ; echo -e $(GREEN)"winnow comparison without differences."$(NC);;\
+		*) (( ++fail )) ;;\
 		esac;\
 		echo --------------------------------------;\
 	done ;\

@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
   product(nelts);
 
   if (!is_bench) {
-    printf("%d\n", nelts, nelts);
+    printf("%d\n", nelts);
     for (int i = 0; i < nelts; i++) {
       printf("%g ", result[i]);
     }

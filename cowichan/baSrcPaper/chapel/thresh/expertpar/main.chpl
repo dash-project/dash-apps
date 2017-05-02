@@ -71,7 +71,7 @@ proc main() {
   thresh(nrows, ncols, percent);
 
   if (!is_bench) {
-    writeln(nrows, " ", ncols);
+    //writeln(nrows, " ", ncols);
 
     for i in 1..nrows {
       for j in 1..ncols {

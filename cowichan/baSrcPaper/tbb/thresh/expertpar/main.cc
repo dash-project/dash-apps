@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
   thresh(nrows, ncols, percent);
 
   if (!is_bench) {
-    printf("%d %d\n", nrows, ncols);
+    //printf("%d %d\n", nrows, ncols);
     for (int i = 0; i < nrows; i++) {
       for (int j = 0; j < ncols; j++) {
         printf("%hhu ", mask[i*ncols + j]);
