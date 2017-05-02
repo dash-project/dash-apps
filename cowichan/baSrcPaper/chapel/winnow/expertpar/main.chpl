@@ -101,7 +101,7 @@ proc main() {
     writeln(nelts);
 
     for i in 1..nelts do {
-      writeln(points[i].first);
+      writeln(points[i](1)," ", points[i](2));
     }
 
     writeln();
