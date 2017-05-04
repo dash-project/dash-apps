@@ -117,7 +117,7 @@ func main() {
 		fmt.Printf("%d %d\n", nelts, nelts)
     for _, row := range matrix {
       for _, elem := range row {
-        fmt.Printf("%g ", elem)
+        fmt.Printf("%.4f ", elem)
       }
       fmt.Printf("\n")
     }
@@ -125,7 +125,7 @@ func main() {
 
 		fmt.Printf("%d\n", nelts)
 		for i := 0; i < nelts; i++ {
-			fmt.Printf("%g ", vector[i])
+			fmt.Printf("%.4f ", vector[i])
 		}
 		fmt.Printf("\n")
 	}

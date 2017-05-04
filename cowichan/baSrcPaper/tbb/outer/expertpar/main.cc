@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     printf("%d %d\n", nelts, nelts);
     for (int i = 0; i < nelts; i++) {
       for (int j = 0; j < nelts; j++) {
-        printf("%g ", matrix[i*nelts + j]);
+        printf("%.4f ", matrix[i*nelts + j]);
       }
       printf("\n");
     }
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 
     printf("%d\n", nelts);
     for (int i = 0; i < nelts; i++) {
-      printf("%g ", vec[i]);
+      printf("%.4f ", vec[i]);
     }
     printf("\n");
   }

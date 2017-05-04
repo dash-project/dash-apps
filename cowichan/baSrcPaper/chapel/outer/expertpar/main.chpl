@@ -65,7 +65,7 @@ proc main() {
     writeln(nelts + " " + nelts);
     for i in 1..nelts do {
       for j in 1..nelts do {
-        write(matrix[i, j] + " ");
+        writef("%.4dr ", matrix[i, j]);
       }
       writeln();
     }
@@ -73,7 +73,7 @@ proc main() {
 
     writeln(nelts);
     for i in 1..nelts do {
-      write(vector[i] + " ");
+      writef("%.4dr ",vector[i]);
     }
     writeln();
   }

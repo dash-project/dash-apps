@@ -40,24 +40,13 @@ proc winnow(nelts: int) {
     }
   }
   
-/*   write("count_per_line:");
-  for i in 1..nrows+1{write(" i:", i, ", cpl:", count_per_line[i], "|");}
-  write("\n"); */
-  
-  
   var total = + scan count_per_line;
   n = total[nrows + 1];
-  
-/*   write("total:");
-  for i in 1..nrows+1{write(" i:", i, ", total:", total[i], "|");}
-  write("\n"); */
-  
 
   forall i in 0..nrows-1 {
     var count = total[i + 1];
     for j in ColSpace {
       if (mask[i, j]) {
-        //writeln("i:",i, ", j:", j, ", count:", count, ", n:", n);
         values[count] = (matrix[i, j], (i, j));
         count += 1;
       }

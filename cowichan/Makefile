@@ -83,8 +83,6 @@ $(SUBDIRS):
 go-clean: $(SUBDIRS:%=go-clean-%)
 $(SUBDIRS:%=go-clean-%):
 	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertpar/main
-	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertseq/main
-	-rm $(GO_ROOT)/$(@:go-clean-%=%)/par/main
 
 go:
 	@echo -e making ... $(BLUE)GO$(NC)
@@ -94,8 +92,6 @@ go_:$(SUBDIRS:%=go-%)
 
 $(SUBDIRS:%=go-%):
 	@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/expertpar main
-#	-@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/expertseq main
-#	-@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/par main
 ####################     </GO>     ##############################
 ####################    <Chapel>   ##############################
 .PHONY: chpl chpl_ chpl-clean $(SUBDIRS:%=chpl-%) $(SUBDIRS:%=chpl-clean-%)
@@ -254,7 +250,7 @@ FAILURE:=$(RED)FAILURE$(NC)
 test:
 	@echo How many iterations should be made? \(Enter a count and press \[Enter\]\):; read i ;\
 	echo ---------- ;\
-	for (( succ=0 , fail=0 , subsucc=0, nrows=2, ncols=2 ; i-- ; subsucc=0, ++nrows, ++ncols )) ; do \
+	for (( succ=0 , fail=0 , subsucc=0, nrows=66, ncols=66 ; i-- ; subsucc=0, ++nrows, ++ncols )) ; do \
 	export rows=$$nrows cols=$$ncols seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
