@@ -31,30 +31,39 @@ proc winnow(nelts: int) {
   const ColSpace = {0..ncols-1};
 
   forall i in 0..nrows-1 {
-    count_per_line[i + 1] = 0;
+    count_per_line[i + 2] = 0;
     for j in ColSpace {
       if (is_bench) {
         mask[i, j] = (((i - 1) * (j - 1)) % (ncols + 1)) == 1;
       }
-      count_per_line[i + 1] += mask[i, j];
+      count_per_line[i + 2] += mask[i, j];
     }
   }
- 
-
+  
+/*   write("count_per_line:");
+  for i in 1..nrows+1{write(" i:", i, ", cpl:", count_per_line[i], "|");}
+  write("\n"); */
+  
+  
   var total = + scan count_per_line;
   n = total[nrows + 1];
+  
+/*   write("total:");
+  for i in 1..nrows+1{write(" i:", i, ", total:", total[i], "|");}
+  write("\n"); */
+  
 
   forall i in 0..nrows-1 {
-    var count = total[i];
+    var count = total[i + 1];
     for j in ColSpace {
       if (mask[i, j]) {
+        //writeln("i:",i, ", j:", j, ", count:", count, ", n:", n);
         values[count] = (matrix[i, j], (i, j));
         count += 1;
       }
     }
   }
 
-  
   quickSort(values[0..n]);
 
   var chunk: int = n / nelts;
@@ -64,7 +73,7 @@ proc winnow(nelts: int) {
     ind = (i - 1) * chunk + 1;
     (_, points[i]) = values[ind];
   }
-
+  
   return points;
 }
 
@@ -95,6 +104,7 @@ proc main() {
   }
 
   read(nelts);
+  
   var points: [1..nelts] (int, int);
 
   points = winnow(nelts);

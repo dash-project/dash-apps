@@ -184,6 +184,7 @@ chpl-run_:
 	@{ cat run_results/chpl_randmat_out; echo $(thresh); } | $(CHPL_ROOT)/thresh/expertpar/main > run_results/chpl_thresh_out
 	@x=$$(<run_results/chpl_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/chpl_thresh_out;
 	@cat run_results/chpl_randmat_out run_results/chpl_thresh_out | $(CHPL_ROOT)/winnow/expertpar/main > run_results/chpl_winnow_out
+	@$(CHPL_ROOT)/outer/expertpar/main < run_results/chpl_winnow_out > run_results/chpl_outer_out
 #@{ cat run_results/chpl_randmat_out run_results/chpl_thresh_out; echo }
 # @echo $(thresh) >> run_results/chpl_randmat_out
 # @$(CHPL_ROOT)/thresh/expertpar/main < run_results/chpl_randmat_out > run_results/chpl_thresh_out
@@ -201,6 +202,7 @@ go-run_:
 	@{ cat run_results/go_randmat_out; echo $(thresh); } | $(GO_ROOT)/thresh/expertpar/main > run_results/go_thresh_out
 	@x=$$(<run_results/go_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/go_thresh_out;
 	@cat run_results/go_randmat_out run_results/go_thresh_out | $(GO_ROOT)/winnow/expertpar/main > run_results/go_winnow_out
+	@$(GO_ROOT)/outer/expertpar/main < run_results/go_winnow_out > run_results/go_outer_out
 # @echo $(thresh) >> run_results/go_randmat_out
 # @$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_out
 
@@ -218,6 +220,7 @@ cilk-run_:
 	@{ cat run_results/cilk_randmat_out; echo $(thresh); } | $(CILK_ROOT)/thresh/expertpar/main > run_results/cilk_thresh_out
 	@x=$$(<run_results/cilk_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/cilk_thresh_out;
 	@cat run_results/cilk_randmat_out run_results/cilk_thresh_out | $(CILK_ROOT)/winnow/expertpar/main > run_results/cilk_winnow_out
+	@$(CILK_ROOT)/outer/expertpar/main < run_results/cilk_winnow_out > run_results/cilk_outer_out
 # @echo $(thresh) >> run_results/cilk_randmat_out
 # @$(CILK_ROOT)/thresh/expertpar/main < run_results/cilk_randmat_out > run_results/cilk_thresh_out
 
@@ -235,6 +238,7 @@ tbb-run_:
 	@{ cat run_results/tbb_randmat_out; echo $(thresh); } | $(TBB_ROOT)/thresh/expertpar/main > run_results/tbb_thresh_out
 	@x=$$(<run_results/tbb_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/tbb_thresh_out;
 	@cat run_results/tbb_randmat_out run_results/tbb_thresh_out | $(TBB_ROOT)/winnow/expertpar/main > run_results/tbb_winnow_out
+	@$(TBB_ROOT)/outer/expertpar/main < run_results/tbb_winnow_out > run_results/tbb_outer_out
 
 
 
@@ -250,8 +254,8 @@ FAILURE:=$(RED)FAILURE$(NC)
 test:
 	@echo How many iterations should be made? \(Enter a count and press \[Enter\]\):; read i ;\
 	echo ---------- ;\
-	for (( succ=0 , fail=0 , subsucc=0 ; i-- ; subsucc=0 )) ; do \
-	export rows=10 cols=9 seed=8 thresh=38;\
+	for (( succ=0 , fail=0 , subsucc=0, nrows=2, ncols=2 ; i-- ; subsucc=0, ++nrows, ++ncols )) ; do \
+	export rows=$$nrows cols=$$ncols seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel randmat output differs from TBB!"$(NC); fi;\
@@ -279,6 +283,14 @@ test:
 		3) (( ++succ )) ; echo -e $(GREEN)"winnow comparison without differences."$(NC);;\
 		*) (( ++fail )) ;;\
 		esac;\
+		subsucc=0;\
+		if [[ $$(diff -swB run_results/tbb_outer_out run_results/go_outer_out)     == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO outer output differs from TBB!"$(NC);     fi;\
+		if [[ $$(diff -swB run_results/tbb_outer_out run_results/cilk_outer_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk outer output differs from TBB!"$(NC);   fi;\
+		if [[ $$(diff -swB run_results/tbb_outer_out run_results/chpl_outer_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel outer output differs from TBB!"$(NC); fi;\
+		case $$subsucc in \
+		3) (( ++succ )) ; echo -e $(GREEN)"outer comparison without differences."$(NC);;\
+		*) (( ++fail )) ;;\
+		esac;\
 		echo --------------------------------------;\
 	done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
@@ -286,27 +298,5 @@ test:
 .PHONY: run-clean
 run-clean:
 	-rm -r run_results
-
-
-.PHONY: testgo
-testgo:
-	@$(MAKE) --no-print-directory go-thresh
-	@$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_expertpar_in_out
-	@$(GO_ROOT)/thresh/expertseq/main < run_results/go_randmat_out > run_results/go_thresh_expertseq_in_out
-	@$(GO_ROOT)/thresh/par/main       < run_results/go_randmat_out > run_results/go_thresh_par_in_out
-#Vergleiche output mit input
-	@if [[ $$(diff -swB run_results/go_randmat_out run_results/go_thresh_expertpar_in_out) == *are\ identical* ]] ;then \
-		echo -e $(GREEN)"expertpar ouput is identical to input"$(NC);     else echo -e $(RED)"expertpar output differs from input!"$(NC); fi
-	@if [[ $$(diff -swB run_results/go_randmat_out run_results/go_thresh_expertseq_in_out) == *are\ identical* ]] ;then \
-		echo -e $(GREEN)"expertseq ouput is identical to input"$(NC);     else echo -e $(RED)"expertseq output differs from input!"$(NC); fi
-	@if [[ $$(diff -swB run_results/go_randmat_out run_results/go_thresh_par_in_out) == *are\ identical* ]] ;then \
-		echo -e $(GREEN)"par ouput is identical to input"$(NC);           else echo -e $(RED)"par output differs from input!"      $(NC); fi
-#Vergleiche outputs untereinander
-	@if [[ $$(diff -swB run_results/go_thresh_expertpar_in_out run_results/go_thresh_par_in_out) == *are\ identical* ]] ;then \
-		echo -e $(GREEN)"par ouput is identical to expertpar"$(NC);       else echo -e $(RED)"par output differs from expertpar!"  $(NC); fi
-	@if [[ $$(diff -swB run_results/go_thresh_expertpar_in_out run_results/go_thresh_expertseq_in_out) == *are\ identical* ]] ;then \
-		echo -e $(GREEN)"expertpar ouput is identical to expertseq"$(NC); else echo -e $(RED)"par output differs from expertseq!"  $(NC); fi
-	@echo done
-
 
 ################  </Validation Test>   ##########################
