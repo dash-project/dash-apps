@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
   outer(nelts);
 
   if (!is_bench) {
-    printf("%d %d\n", nelts, nelts);
+    printf("%d\n", nelts);
     for (i = 0; i < nelts; i++) {
       for (j = 0; j < nelts; j++) {
         printf("%.4f ", matrix[i*nelts + j]);
@@ -95,7 +95,6 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    printf("%d\n", nelts);
     for (i = 0; i < nelts; i++) {
       printf("%.4f ", vector[i]);
     }

@@ -62,7 +62,7 @@ proc main() {
   outer(nelts);
 
   if (!is_bench) {
-    writeln(nelts + " " + nelts);
+    writeln(nelts);
     for i in 1..nelts do {
       for j in 1..nelts do {
         writef("%.4dr ", matrix[i, j]);
@@ -71,7 +71,6 @@ proc main() {
     }
     writeln();
 
-    writeln(nelts);
     for i in 1..nelts do {
       writef("%.4dr ",vector[i]);
     }

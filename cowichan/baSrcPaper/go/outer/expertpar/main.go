@@ -114,7 +114,7 @@ func main() {
 	matrix, vector := Outer(points[0:nelts], nelts)
 
 	if !*is_bench {
-		fmt.Printf("%d %d\n", nelts, nelts)
+		fmt.Printf("%d\n", nelts)
     for _, row := range matrix {
       for _, elem := range row {
         fmt.Printf("%.4f ", elem)
@@ -123,7 +123,6 @@ func main() {
     }
 		fmt.Printf("\n")
 
-		fmt.Printf("%d\n", nelts)
 		for i := 0; i < nelts; i++ {
 			fmt.Printf("%.4f ", vector[i])
 		}
