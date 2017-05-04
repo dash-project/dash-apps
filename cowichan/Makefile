@@ -250,7 +250,7 @@ FAILURE:=$(RED)FAILURE$(NC)
 test:
 	@echo How many iterations should be made? \(Enter a count and press \[Enter\]\):; read i ;\
 	echo ---------- ;\
-	for (( succ=0 , fail=0 , subsucc=0, nrows=66, ncols=66 ; i-- ; subsucc=0, ++nrows, ++ncols )) ; do \
+	for (( succ=0 , fail=0 , subsucc=0, nrows=2, ncols=2 ; i-- ; subsucc=0, ++nrows, ++ncols )) ; do \
 	export rows=$$nrows cols=$$ncols seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
