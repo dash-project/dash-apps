@@ -181,9 +181,7 @@ chpl-run_:
 	@x=$$(<run_results/chpl_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/chpl_thresh_out;
 	@cat run_results/chpl_randmat_out run_results/chpl_thresh_out | $(CHPL_ROOT)/winnow/expertpar/main > run_results/chpl_winnow_out
 	@$(CHPL_ROOT)/outer/expertpar/main < run_results/chpl_winnow_out > run_results/chpl_outer_out
-#@{ cat run_results/chpl_randmat_out run_results/chpl_thresh_out; echo }
-# @echo $(thresh) >> run_results/chpl_randmat_out
-# @$(CHPL_ROOT)/thresh/expertpar/main < run_results/chpl_randmat_out > run_results/chpl_thresh_out
+	@$(CHPL_ROOT)/product/expertpar/main < run_results/chpl_outer_out > run_results/chpl_product_out
 
 
 .PHONY: go-run go-run_ go-run-randmat
@@ -199,8 +197,7 @@ go-run_:
 	@x=$$(<run_results/go_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/go_thresh_out;
 	@cat run_results/go_randmat_out run_results/go_thresh_out | $(GO_ROOT)/winnow/expertpar/main > run_results/go_winnow_out
 	@$(GO_ROOT)/outer/expertpar/main < run_results/go_winnow_out > run_results/go_outer_out
-# @echo $(thresh) >> run_results/go_randmat_out
-# @$(GO_ROOT)/thresh/expertpar/main < run_results/go_randmat_out > run_results/go_thresh_out
+	@$(GO_ROOT)/product/expertpar/main < run_results/go_outer_out > run_results/go_product_out
 
 
 .PHONY: cilk-run cilk-run_ cilk-run-randmat
@@ -217,8 +214,7 @@ cilk-run_:
 	@x=$$(<run_results/cilk_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/cilk_thresh_out;
 	@cat run_results/cilk_randmat_out run_results/cilk_thresh_out | $(CILK_ROOT)/winnow/expertpar/main > run_results/cilk_winnow_out
 	@$(CILK_ROOT)/outer/expertpar/main < run_results/cilk_winnow_out > run_results/cilk_outer_out
-# @echo $(thresh) >> run_results/cilk_randmat_out
-# @$(CILK_ROOT)/thresh/expertpar/main < run_results/cilk_randmat_out > run_results/cilk_thresh_out
+	@$(CILK_ROOT)/product/expertpar/main < run_results/cilk_outer_out > run_results/cilk_product_out
 
 
 .PHONY: tbb-run tbb-run_ tbb-run-randmat
@@ -235,6 +231,7 @@ tbb-run_:
 	@x=$$(<run_results/tbb_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/tbb_thresh_out;
 	@cat run_results/tbb_randmat_out run_results/tbb_thresh_out | $(TBB_ROOT)/winnow/expertpar/main > run_results/tbb_winnow_out
 	@$(TBB_ROOT)/outer/expertpar/main < run_results/tbb_winnow_out > run_results/tbb_outer_out
+	@$(TBB_ROOT)/product/expertpar/main < run_results/tbb_outer_out > run_results/tbb_product_out
 
 
 
@@ -248,12 +245,16 @@ FAILURE:=$(RED)FAILURE$(NC)
 
 .PHONY: test
 test:
-	@echo How many iterations should be made? \(Enter a count and press \[Enter\]\):; read i ;\
+	@echo Enter nrows to start with and then the iterations count:; read i ;\
 	echo ---------- ;\
-	for (( succ=0 , fail=0 , subsucc=0, nrows=2, ncols=2 ; i-- ; subsucc=0, ++nrows, ++ncols )) ; do \
-	export rows=$$nrows cols=$$ncols seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
+	for (( succ=0 , fail=0 , subsucc=0, vRows=2; vRows <= i ; ++vRows )) ; do \
+	for (( vCols=2; vCols <= i ; ++vCols )) ;                               do \
+	for (( vSeed=0; vSeed <=10; ++vSeed )) ;                                 do \
+	for (( vThresh=0; vThresh <= 10; ++vThresh )) ;                           do \
+	export rows=$$vRows cols=$$vCols seed=$$vSeed thresh=$$vThresh;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
+		subsucc=0;\
 		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/chpl_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel randmat output differs from TBB!"$(NC); fi;\
 		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/go_randmat_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO randmat output differs from TBB!"$(NC);     fi;\
 		if [[ $$(diff -swB run_results/tbb_randmat_out run_results/cilk_randmat_out) == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk randmat output differs from TBB!"$(NC);   fi;\
@@ -280,15 +281,38 @@ test:
 		*) (( ++fail )) ;;\
 		esac;\
 		subsucc=0;\
-		if [[ $$(diff -swB run_results/tbb_outer_out run_results/go_outer_out)     == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO outer output differs from TBB!"$(NC);     fi;\
-		if [[ $$(diff -swB run_results/tbb_outer_out run_results/cilk_outer_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk outer output differs from TBB!"$(NC);   fi;\
-		if [[ $$(diff -swB run_results/tbb_outer_out run_results/chpl_outer_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel outer output differs from TBB!"$(NC); fi;\
+		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/go_outer_out)       == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 1.0e-4 run_results/tbb_outer_out run_results/go_outer_out)       == *are\ equal*     ]] ;then (( ++subsucc ));\
+			else echo -e $(RED)"GO outer output differs from TBB!"$(NC);     fi;\
+		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 1.0e-4 run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\
+			else echo -e $(RED)"Cilk outer output differs from TBB!"$(NC);   fi;\
+		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 1.0e-4 run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\
+			else echo -e $(RED)"Chapel outer output differs from TBB!"$(NC); fi;\
 		case $$subsucc in \
 		3) (( ++succ )) ; echo -e $(GREEN)"outer comparison without differences."$(NC);;\
 		*) (( ++fail )) ;;\
 		esac;\
+		subsucc=0;\
+		if [[     $$(        diff -swB run_results/tbb_product_out run_results/go_product_out)   == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 1.0e-4 run_results/tbb_product_out run_results/go_product_out)   == *are\ equal*     ]] ;then (( ++subsucc ));\
+			else echo -e $(RED)"GO product output differs from TBB!"$(NC);     fi;\
+		if [[     $$(        diff -swB run_results/tbb_product_out run_results/cilk_product_out) == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 1.0e-4 run_results/tbb_product_out run_results/cilk_product_out) == *are\ equal*     ]] ;then (( ++subsucc ));\
+			else echo -e $(RED)"Cilk product output differs from TBB!"$(NC);   fi;\
+		if [[     $$(        diff -swB run_results/tbb_product_out run_results/chpl_product_out) == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 1.0e-4 run_results/tbb_product_out run_results/chpl_product_out) == *are\ equal*     ]] ;then (( ++subsucc ));\
+			else echo -e $(RED)"Chapel product output differs from TBB!"$(NC); fi;\
+		case $$subsucc in \
+		3) (( ++succ )) ; echo -e $(GREEN)"product comparison without differences."$(NC);;\
+		*) (( ++fail )) ;;\
+		esac;\
 		echo --------------------------------------;\
 	done ;\
+	 done ;\
+	  done ;\
+	   done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
 
 .PHONY: run-clean

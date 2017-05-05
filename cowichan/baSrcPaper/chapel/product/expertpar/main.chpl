@@ -45,7 +45,7 @@ proc main() {
   if (!is_bench) {
     writeln(nelts);
     for i in 1..nelts do {
-      write(result[i] + " ");
+      writef("%.4dr ", result[i]);
     }
     writeln();
   }

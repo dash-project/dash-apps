@@ -34,7 +34,7 @@ proc distance(l, r: (int, int)): real {
 proc outer(nelts: int) {
   const NeltSpace = {1..nelts};
   forall i in NeltSpace {
-    var nmax: real = -1;
+    var nmax: real = 0;
     for j in NeltSpace {
       if (i != j) {
         matrix[i, j] = distance(points[i], points[j]);

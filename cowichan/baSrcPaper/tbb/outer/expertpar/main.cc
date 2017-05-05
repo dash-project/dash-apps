@@ -48,13 +48,13 @@ void outer(int nelts) {
     range(0, nelts),
     [&,nelts](range r) {
       for (size_t i = r.begin(); i != r.end(); ++i) {
-        double nmax = -1;
+        double nmax = 0;
         for (int j = 0; j < nelts; j++) {
           if (i != j) {
             matrix[i*nelts + j] = ::distance(points[i], points[j]);
             nmax = max(nmax, matrix[i*nelts + j]);
           }
-        }
+        } 
         matrix[i*nelts + i] = nelts * nmax;
         vec[i] = ::distance(make_pair(0, 0), points[i]);
       }

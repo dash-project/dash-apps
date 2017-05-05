@@ -108,7 +108,7 @@ func main() {
 	if !*is_bench {
 		fmt.Printf("%d\n", nelts)
 		for i := 0; i < nelts; i++ {
-			fmt.Printf("%g ", result[i])
+			fmt.Printf("%.4f ", result[i])
 		}
 		fmt.Printf("\n")
 	}

@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
   if (!is_bench) {
     printf("%d\n", nelts);
     for (int i = 0; i < nelts; i++) {
-      printf("%g ", result[i]);
+      printf("%.4f ", result[i]);
     }
     printf("\n");
   }
