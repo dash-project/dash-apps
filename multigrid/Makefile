@@ -1,7 +1,7 @@
 include make.defs
 
 .phony: all
-all: multigrid heat_equation2d heat_equation2d
+all: multigrid heat_equation2d heat_equation3d
 
 multigrid:  multigrid.cpp
 	$(CXX) -c $(INC) `libpng-config --cflags` $?
