@@ -13,6 +13,7 @@
 
 module Winnow {
 use Config;
+use Sort;
 
 proc winnow(nrows: int, ncols: int, nelts: int) {
   var n: int = 0;
@@ -41,7 +42,7 @@ proc winnow(nrows: int, ncols: int, nelts: int) {
     }
   }
 
-  QuickSort(values[0..n]);
+  quickSort(values[0..n]);
 
   var chunk: int = n / nelts;
 

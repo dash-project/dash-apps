@@ -401,8 +401,9 @@ func main() {
 	result := Product(out_matrix, out_vec, winnow_nelts)
 
 	if !*is_bench {
+    fmt.Printf("%d\n", winnow_nelts)
 		for i := 0; i < winnow_nelts; i++ {
-			fmt.Printf("%.3f ", result[i])
+			fmt.Printf("%.4f ", result[i])
 		}
 		fmt.Printf("\n")
 	}

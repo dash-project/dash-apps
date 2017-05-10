@@ -53,8 +53,9 @@ int main(int argc, char** argv) {
   product(winnow_nelts);
 
   if (!is_bench) {
+    printf("%d\n", winnow_nelts);
     for (int i = 0; i < winnow_nelts; i++) {
-      printf("%g ", product_result[i]);
+      printf("%.4f ", product_result[i]);
     }
     printf("\n");
   }

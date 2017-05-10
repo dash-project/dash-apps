@@ -22,7 +22,7 @@ proc main() {
   if (!is_bench) {
     writeln(winnow_nelts);
     for i in 1..winnow_nelts do {
-      write(result[i], " ");
+      writef("%.4dr ", result[i]);
     }
     writeln();
   }
