@@ -49,7 +49,7 @@ void outer(int nelts) {
     range(0, nelts),
     [&](range r) {
       for (size_t i = r.begin(); i != r.end(); ++i) {
-        double nmax = -1;
+        double nmax = 0;
         for (int j = 0; j < nelts; j++) {
           if (i != j) {
             outer_matrix[i*nelts + j] = ::distance(winnow_points[i], winnow_points[j]);

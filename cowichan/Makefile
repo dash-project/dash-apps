@@ -124,7 +124,16 @@ $(SUBDIRS:%=cilk-%) cilk-chain:
 	@$(MAKE) --no-print-directory -C $(CILK_ROOT)/$(@:cilk-%=%)/expertpar main
 
 cilk-clean: $(SUBDIRS:%=cilk-clean-%) cilk-clean-chain
-$(SUBDIRS:%=cilk-clean-%) cilk-clean-chain:
+
+cilk-clean-chain:
+	-rm $(CILK_ROOT)/chain/expertpar/main
+	-rm $(CILK_ROOT)/chain/expertpar/randmat.o
+	-rm $(CILK_ROOT)/chain/expertpar/thresh.o
+	-rm $(CILK_ROOT)/chain/expertpar/winnow.o
+	-rm $(CILK_ROOT)/chain/expertpar/outer.o
+	-rm $(CILK_ROOT)/chain/expertpar/product.o
+
+$(SUBDIRS:%=cilk-clean-%):
 	-rm $(CILK_ROOT)/$(@:cilk-clean-%=%)/expertpar/main
 ####################    </Cilk>    ##############################
 ####################     <TBB>     ##############################
@@ -141,7 +150,16 @@ $(SUBDIRS:%=tbb-%) tbb-chain:
 	@$(MAKE) --no-print-directory -C $(TBB_ROOT)/$(@:tbb-%=%)/expertpar main
 
 tbb-clean: $(SUBDIRS:%=tbb-clean-%) tbb-clean-chain
-$(SUBDIRS:%=tbb-clean-%) tbb-clean-chain:
+
+tbb-clean-chain:
+	-rm $(TBB_ROOT)/chain/expertpar/main
+	-rm $(TBB_ROOT)/chain/expertpar/randmat.o
+	-rm $(TBB_ROOT)/chain/expertpar/thresh.o
+	-rm $(TBB_ROOT)/chain/expertpar/winnow.o
+	-rm $(TBB_ROOT)/chain/expertpar/outer.o
+	-rm $(TBB_ROOT)/chain/expertpar/product.o
+
+$(SUBDIRS:%=tbb-clean-%):
 	-rm $(TBB_ROOT)/$(@:tbb-clean-%=%)/expertpar/main
 ####################    </TBB>     ##############################
 ################   <Validation Test>   ##########################
@@ -258,7 +276,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ;       do \
 	for (( vThresh=0; vThresh <= 99; vThresh+=3 )) ;                          						               do \
 	for (( vWinnow_nelts=2; vWinnow_nelts <= 10 ; vWinnow_nelts+=4 )) ;                                   do \
-	export nRowsCols=8 seed=549 thresh=99 winnow_nelts=4;\
+	export nRowsCols=2 seed=450 thresh=0 winnow_nelts=2;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -335,9 +353,9 @@ test:
 		echo --------------------------------------;\
 		break;\
 	done ;\
-	 break;\
+	break;\
 	 done ;\
-	  break;\
+	 break;\
 	  done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
 
