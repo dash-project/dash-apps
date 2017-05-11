@@ -248,19 +248,17 @@ SUCCESS:=$(GREEN)SUCCESS$(NC)
 FAILURE:=$(RED)FAILURE$(NC)
 
 
-#export rows=$$(( 1 + RANDOM % 200 )) cols=$$(( 1 + RANDOM % 200 )) seed=$$(( 1 + RANDOM % 60 )) thresh=$$(( 10 + RANDOM % 90 ));\
-#export rows=10 cols=9 seed=8 thresh=38;\
-#export rows=$$vRows cols=$$vCols seed=$$vSeed thresh=$$vThresh;\
-# for (( vCols=2; vCols <= i ; ++vCols )) ;                               do \
-# for (( vSeed=0; vSeed <=0; ++vSeed )) ;                                 do \
-# for (( vThresh=0; vThresh <= 0; ++vThresh )) ;                           do \
+#export nRowsCols=8 seed=$$(( 1 + RANDOM % 666 )) thresh=33 winnow_nelts=10;\
+#export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
 
 .PHONY: test
 test:
-	@echo Enter nrows to start with and then the iterations count:;\
+	@echo Enter start nRowsCols and then max nRowsCols:; read start; read i;\
 	echo ---------- ;\
-	for (( succ=0 , fail=0 , subsucc=0, vNRowsCols=2; vNRowsCols <= 2 ; ++vNRowsCols )) ; do \
-	export nRowsCols=5 seed=666 thresh=50 winnow_nelts=6;\
+	for (( succ=0 , fail=0 , subsucc=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ;       do \
+	for (( vThresh=0; vThresh <= 99; vThresh+=3 )) ;                          						               do \
+	for (( vWinnow_nelts=2; vWinnow_nelts <= 10 ; vWinnow_nelts+=4 )) ;                                   do \
+	export nRowsCols=8 seed=549 thresh=99 winnow_nelts=4;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -335,7 +333,12 @@ test:
 			*) (( ++fail )) ; echo -e $(RED)"error at chain comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		echo --------------------------------------;\
+		break;\
 	done ;\
+	 break;\
+	 done ;\
+	  break;\
+	  done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
 
 .PHONY: run-clean

@@ -38,6 +38,11 @@ void thresh(int nrows, int ncols, int percent) {
   thresh_mask = (int*) malloc (sizeof(int) * nrows * ncols);
   for (int i = 0; i < 100; i++)
     histogram[i] = (int*) malloc (sizeof(int) * nrows);
+  
+  //initialize with 0 for correct result in more cases
+  for(int i = 0; i < 100; ++i){
+    for(int j = 0; j < nrows; ++j){histogram[i][j] = 0;}
+  }
 
   nmax = tbb::parallel_reduce(
       range(0, nrows), 0,
@@ -67,7 +72,7 @@ void thresh(int nrows, int ncols, int percent) {
       });
 
   tbb::parallel_for(
-      range(0, nmax + 1),
+      range(0, nmax),
       [=](range r) {
         for (size_t j = r.begin(); j != r.end(); j++) {
           for (int i = 1; i < nrows; i++) {
