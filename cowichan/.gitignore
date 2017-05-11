@@ -6,5 +6,6 @@
 */product
 **/main
 /run_results/
+/error.log
 
 
