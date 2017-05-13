@@ -276,7 +276,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ;       do \
 	for (( vThresh=0; vThresh <= 99; vThresh+=3 )) ;                          						               do \
 	for (( vWinnow_nelts=2; vWinnow_nelts <= 10 ; vWinnow_nelts+=4 )) ;                                   do \
-	export nRowsCols=2 seed=450 thresh=0 winnow_nelts=2;\
+	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -351,11 +351,8 @@ test:
 			*) (( ++fail )) ; echo -e $(RED)"error at chain comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		echo --------------------------------------;\
-		break;\
 	done ;\
-	break;\
 	 done ;\
-	 break;\
 	  done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
 

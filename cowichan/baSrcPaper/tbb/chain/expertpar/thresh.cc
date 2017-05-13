@@ -72,7 +72,7 @@ void thresh(int nrows, int ncols, int percent) {
       });
 
   tbb::parallel_for(
-      range(0, nmax),
+      range(0, nmax + 1),
       [=](range r) {
         for (size_t j = r.begin(); j != r.end(); j++) {
           for (int i = 1; i < nrows; i++) {
