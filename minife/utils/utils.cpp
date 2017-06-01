@@ -114,7 +114,15 @@ void broadcast_parameters(Parameters& params)
 //-------------------------------------------------------------
 void initialize_mpi(int argc, char** argv, int& numprocs, int& myproc)
 {
-#ifdef HAVE_MPI
+#ifdef HAVE_DART
+  dart_global_unit_t myid;
+  size_t num_units;
+  dart_init(&argc, &argv);
+  dart_myid(&myid);
+  myproc = myid.id;
+  dart_size(&num_units);
+  numprocs = num_units;
+#elif defined(HAVE_MPI)
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
