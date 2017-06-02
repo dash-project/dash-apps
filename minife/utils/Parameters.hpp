@@ -38,7 +38,7 @@ struct Parameters {
      mv_overlap_comm_comp(0), use_locking(0),
      load_imbalance(0), name(), elem_group_size(1),
      use_elem_mat_fields(1), verify_solution(0),
-     device(0),num_devices(2),skip_device(9999),numa(1)
+     device(0),num_devices(2),skip_device(9999),numa(1), print_stdout(0)
   {}
 
   int nx;
@@ -56,6 +56,7 @@ struct Parameters {
   int num_devices;
   int skip_device;
   int numa;
+  int print_stdout;
 };//struct Parameters
 
 }//namespace miniFE

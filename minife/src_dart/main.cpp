@@ -179,7 +179,10 @@ int main(int argc, char** argv) {
 
   if (myproc == 0) {
     doc.add("Total Program Time",total_time);
-    doc.generateYAML();
+    std::string yaml = doc.generateYAML();
+    if (params.print_stdout) {
+      std::cout << yaml << std::endl;
+    }
   }
 
   miniFE::finalize_mpi();
