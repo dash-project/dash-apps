@@ -44,7 +44,6 @@ template<typename MatrixType>
 void
 make_local_matrix(MatrixType& A)
 {
-  std::cout << "make_local_matrix" << std::endl;
 #ifdef HAVE_MPI
   int numprocs = 1, myproc = 0;
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -439,7 +438,11 @@ make_local_matrix(MatrixType& A)
 
   // Allocate the signaling window
   dart_gptr_t gptr;
+#ifdef DART_FULL_ALLOC
+  dart_team_memalloc_aligned_full(DART_TEAM_ALL, 1, DART_TYPE_INT, &gptr);
+#else
   dart_team_memalloc_aligned(DART_TEAM_ALL, 1, DART_TYPE_INT, &gptr);
+#endif
   A.signal_win.gptr = gptr;
   dart_team_unit_t myid;
   dart_team_myid(DART_TEAM_ALL, &myid);
@@ -451,7 +454,11 @@ make_local_matrix(MatrixType& A)
 
   // Allocate the data window
   dart_datatype_t dart_dtype = TypeTraits<Scalar>::dart_type();
+#if DART_FULL_ALLOC
+  dart_team_memalloc_aligned_full(DART_TEAM_ALL, total_recv_length, dart_dtype, &gptr);
+#else
   dart_team_memalloc_aligned(DART_TEAM_ALL, total_recv_length, dart_dtype, &gptr);
+#endif
   A.data_win.gptr = gptr;
   dart_gptr_setunit(&gptr, myid);
   dart_gptr_getaddr(gptr, &(A.data_win.baseptr));

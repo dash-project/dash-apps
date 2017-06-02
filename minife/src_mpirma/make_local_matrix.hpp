@@ -43,7 +43,6 @@ template<typename MatrixType>
 void
 make_local_matrix(MatrixType& A)
 {
-  std::cout << "make_local_matrix" << std::endl;
 #ifdef HAVE_MPI
   int numprocs = 1, myproc = 0;
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
