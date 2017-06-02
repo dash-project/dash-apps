@@ -10,14 +10,16 @@ MINIFE_MATRIX_TYPE = -DMINIFE_CSR_MATRIX
 
 #-----------------------------------------------------------------------
 
-CFLAGS = -O3 -g
+DARTROOT=$(HOME)/opt/dash-0.3.0/
+
+CFLAGS = -O3 -g -DDART_FULL_ALLOC
 CXXFLAGS = $(CFLAGS) -std=c++11
 
-CPPFLAGS = -I. -I../utils -I../fem -I$(HOME)/opt/dash-0.3.0/include $(MINIFE_TYPES) $(MINIFE_MATRIX_TYPE) \
+CPPFLAGS = -I. -I../utils -I../fem -I$(DARTROOT)/include $(MINIFE_TYPES) $(MINIFE_MATRIX_TYPE) \
 	-DHAVE_MPI -DHAVE_DART -DMPICH_IGNORE_CXX_SEEK \
 	-DMINIFE_REPORT_RUSAGE
 
-LDFLAGS = -L$(HOME)/opt/dash-0.3.0-mpich/lib
+LDFLAGS = -L$(DARTROOT)/lib
 LIBS=-ldash-mpi -ldart-mpi -ldart-base -lnuma -lhwloc
 
 CXX=mpicxx 
