@@ -109,12 +109,10 @@ void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
 
   // ... and wait for completion of neighbors
   int flag = 0;
-  sleep(1);
   do {
     const int zero = 0;
     MPI_Compare_and_swap(
       &zero, &num_neighbors, &flag, MPI_INT, rank, 0, A->signal_win.win);
-    sleep(1);
     MPI_Win_flush_all(A->signal_win.win);
   } while (flag != num_neighbors);
 
