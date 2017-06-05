@@ -583,8 +583,6 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 
   // Allocate the signaling window
   dart_gptr_t gptr;
-
-  std::cout << "["<< rank << "] allocating signal window" << std::endl;
 #ifdef DART_FULL_ALLOC
   dart_team_memalloc_aligned_full(DART_TEAM_ALL, 1, DART_TYPE_INT, &gptr);
 #else
@@ -601,7 +599,7 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 
   // Allocate the data window
 #if DART_FULL_ALLOC
-  dart_team_memalloc_aligned_full(DART_TEAM_ALL, total_recv_length, DART_TYPE_INT, &gptr);
+  dart_team_memalloc_aligned_full(DART_TEAM_ALL, total_recv_length, DART_TYPE_DOUBLE, &gptr);
 #else
   dart_team_memalloc_aligned(DART_TEAM_ALL, total_recv_length, DART_TYPE_DOUBLE, &gptr);
 #endif

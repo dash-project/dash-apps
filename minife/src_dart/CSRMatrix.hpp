@@ -33,6 +33,8 @@
 #include <algorithm>
 #ifdef HAVE_MPI
 #include <mpi.h>
+#endif
+#ifdef HAVE_DART
 #include <dash/dart/if/dart.h>
 #endif
 
