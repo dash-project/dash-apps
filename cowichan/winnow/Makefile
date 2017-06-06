@@ -1,7 +1,7 @@
-include ../make.defs
+#include ../make.defs
 
 .PHONY: all
-all: winnow
+all: main
 
 winnow: winnow.cpp
 	$(CXX) -c $(INC) $<
@@ -18,5 +18,7 @@ printenv :
 
 .PHONY: clean
 clean:
-	-rm winnow
-	-rm winnow.o
+	-rm main
+#-rm winnow
+#-rm winnow.o
+

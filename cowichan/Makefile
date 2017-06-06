@@ -182,6 +182,7 @@ dash-run_:
 	@{ cat run_results/dash_randmat_out; echo $(thresh); } | ./thresh/thresh > run_results/dash_thresh_out
 #@x=$$(<run_results/dash_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/dash_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/dash_thresh_out
+	@cat run_results/dash_randmat_out run_results/dash_thresh_out | ./winnow/main > run_results/dash_winnow_out
 # @echo $(thresh) >> run_results/dash_randmat_out
 # @./thresh/thresh < run_results/dash_randmat_out > run_results/dash_thresh_out
 
@@ -301,8 +302,9 @@ test:
 		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/go_winnow_out)     == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO winnow output differs from TBB!"$(NC);     fi;\
 		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/cilk_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk winnow output differs from TBB!"$(NC);   fi;\
 		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/chpl_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel winnow output differs from TBB!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/dash_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH winnow output differs from TBB!"$(NC); fi;\
 		case $$subsucc in \
-			3) (( ++succ )) ; echo -e $(GREEN)"winnow comparison without differences."$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"winnow comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at winnow comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		subsucc=0;\

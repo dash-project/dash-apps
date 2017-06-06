@@ -7,7 +7,7 @@
 #include <thread>
 #include "../Terminal_Color.h"
 
-#define DEBUG
+//#define DEBUG
 #define SLEEP_TIME            30 //that's the sleep time before DEBUG IO
 #define MAX_KEY               99
 #define MIN_NUM_ELEM_PER_UNIT 10
@@ -16,7 +16,10 @@
 using std::cout;
 using std::endl;
 using std::vector;
-using std::this_thread::sleep_for;
+
+#ifdef DEBUG
+  using std::this_thread::sleep_for;
+#endif
 
 using uint       = unsigned  int;
 using uchar      = unsigned char;
@@ -85,14 +88,6 @@ int main( int argc, char* argv[] )
   int myid = static_cast<int>( dash::Team::GlobalUnitID( ).id );
   
   
-  if( argc != 4 ){
-    if( 0 == myid ){ cout << "3 Parameters expected!"              << endl
-                          << "Usage: cowichan_winnow nRows nCols nElements" << endl
-                          << "Then enter the matrix and the mask." << endl;
-    }
-    dash::finalize( );
-    return 0;
-  }
   
   uint nrows = static_cast<uint>( atoi( argv[1] ) );
   uint ncols = static_cast<uint>( atoi( argv[2] ) );
