@@ -37,7 +37,6 @@
 #ifdef HAVE_DART
 #include <dash/dart/if/dart.h>
 #endif
-#define HAVE_DASH
 #ifdef HAVE_DASH
 #include <libdash.h>
 #endif

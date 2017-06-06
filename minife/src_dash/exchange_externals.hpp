@@ -114,8 +114,6 @@ begin_exchange_externals(MatrixType& A,
 
   std::vector<Scalar>& send_buffer = A.send_buffer;
 
-  dart_datatype_t dart_dtype = TypeTraits<Scalar>::dart_type();
-
   //
   // Fill up send buffer
   //
@@ -131,16 +129,17 @@ begin_exchange_externals(MatrixType& A,
 
   Scalar* s_buffer = &send_buffer[0];
 
+  auto& narray = A.data;
+
   for(int i=0; i<num_neighbors; ++i) {
     int n_send = send_length[i];
-    int neighbor = i;
+    int neighbor = neighbors[i];
     int offset_at_neighbor = A.offset[i];
     // operator<< seems broken
-//    auto out_it = A.data.row(i).begin() + A.offset[i];
-//    std::cout << out_it << std::endl;
-    std::cout << "copy_async to " << i << " at offset " << A.offset[i] << std::endl;
+//    std::cout << "size: " << A.data.size() << std::endl;
     // ends up in a DART_GPTR_NULL being passed to dart_put
-    dash::copy_async(s_buffer, s_buffer + n_send + 1, A.data.row(i).begin() + offset_at_neighbor);
+    dash::copy_async(s_buffer, s_buffer + n_send + 1,
+      narray.row(neighbor).begin() + A.offset[i]);
     s_buffer += n_send;
   }
 #endif

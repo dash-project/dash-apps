@@ -43,6 +43,10 @@
 #include <tbb/task_scheduler_init.h>
 #endif
 
+#if defined(HAVE_DASH)
+#include <libdash.h>
+#endif
+
 #include <param_utils.hpp>
 #include <Parameters.hpp>
 #include <utils.hpp>
@@ -123,6 +127,10 @@ void initialize_mpi(int argc, char** argv, int& numprocs, int& myproc)
   myproc = myid.id;
   dart_size(&num_units);
   numprocs = num_units;
+#elif defined(HAVE_DASH)
+  dash::init(&argc, &argv);
+  numprocs = dash::size();
+  myproc = dash::myid();
 #elif defined(HAVE_MPI)
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);

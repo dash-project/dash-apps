@@ -456,15 +456,15 @@ make_local_matrix(MatrixType& A)
 #endif
 
   // Allocate the data window
-  LocalOrdinal global_total_recv_length;
-  MPI_Allreduce(&total_recv_length, &global_total_recv_length, 1,
-    TypeTraits<LocalOrdinal>::mpi_type(), MPI_SUM, MPI_COMM_WORLD);
+  LocalOrdinal max_recv_length;
+  MPI_Allreduce(&total_recv_length, &max_recv_length, 1,
+    TypeTraits<LocalOrdinal>::mpi_type(), MPI_MAX, MPI_COMM_WORLD);
 
-  dash::SizeSpec<2> sizespec(numprocs, global_total_recv_length);
+  dash::SizeSpec<2> sizespec(numprocs, max_recv_length);
   dash::DistributionSpec<2> distspec(dash::BLOCKED, dash::NONE);
   dash::TeamSpec<2> teamspec_2d(numprocs, 1);
 
-  std::cout << "Allocating matrix of size " << sizespec << std::endl;
+//  std::cout << "Allocating matrix of size " << sizespec << " (" << numprocs << ", " << max_recv_length << ")" << std::endl;
   A.data.allocate(sizespec, distspec, teamspec_2d);
 #if 0
   dart_datatype_t dart_dtype = TypeTraits<Scalar>::dart_type();
