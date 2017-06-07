@@ -93,12 +93,7 @@ begin_exchange_externals(MatrixType& A,
 //  std::cout << "entering begin_exchange_externals\n";
 #ifdef HAVE_MPI
 
-
-  int numprocs = 1, myproc = 0;
-  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
-
-  if (numprocs < 2) return;
+  if (dash::size() < 2) return;
 
   typedef typename MatrixType::ScalarType Scalar;
   typedef typename MatrixType::LocalOrdinalType LocalOrdinal;
@@ -135,9 +130,6 @@ begin_exchange_externals(MatrixType& A,
     int n_send = send_length[i];
     int neighbor = neighbors[i];
     int offset_at_neighbor = A.offset[i];
-    // operator<< seems broken
-//    std::cout << "size: " << A.data.size() << std::endl;
-    // ends up in a DART_GPTR_NULL being passed to dart_put
     dash::copy_async(s_buffer, s_buffer + n_send + 1,
       narray.row(neighbor).begin() + A.offset[i]);
     s_buffer += n_send;
@@ -156,8 +148,6 @@ finish_exchange_externals(MatrixType& A, VectorType& x)
   // Complete the puts issued above
   //
 
-  dart_team_unit_t myid;
-  dart_team_myid(DART_TEAM_ALL, &myid);
   const int num_neighbors = A.neighbors.size();
   // complete put operations
   A.data.flush_all();
@@ -167,8 +157,8 @@ finish_exchange_externals(MatrixType& A, VectorType& x)
   for(int i=0; i<num_neighbors; ++i) {
     A.signal[neighbors[i]].add(1);
   }
-  auto sig = A.signal[myid.id];
-  while (sig.compare_exchange(num_neighbors, 0)) {};
+  auto sig = A.signal[dash::myid()];
+  while (!sig.compare_exchange(num_neighbors, 0)) {};
 
   typedef typename MatrixType::ScalarType Scalar;
   // copy externals to vector
