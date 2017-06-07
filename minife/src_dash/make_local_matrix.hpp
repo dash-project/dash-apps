@@ -438,22 +438,6 @@ make_local_matrix(MatrixType& A)
 
   // Allocate the signaling window
   A.signal.allocate(numprocs);
-#if 0
-  dart_gptr_t gptr;
-#ifdef DART_FULL_ALLOC
-  dart_team_memalloc_aligned_full(DART_TEAM_ALL, 1, DART_TYPE_INT, &gptr);
-#else
-  dart_team_memalloc_aligned(DART_TEAM_ALL, 1, DART_TYPE_INT, &gptr);
-#endif
-  A.signal_win.gptr = gptr;
-  dart_team_unit_t myid;
-  dart_team_myid(DART_TEAM_ALL, &myid);
-  assert(myproc == myid.id);
-  dart_gptr_setunit(&gptr, myid);
-  dart_gptr_getaddr(gptr, &(A.signal_win.baseptr));
-  *((int*)A.signal_win.baseptr) = 0;
-  A.signal_win.size = sizeof(int);
-#endif
 
   // Allocate the data window
   LocalOrdinal max_recv_length;
@@ -464,20 +448,8 @@ make_local_matrix(MatrixType& A)
   dash::DistributionSpec<2> distspec(dash::BLOCKED, dash::NONE);
   dash::TeamSpec<2> teamspec_2d(numprocs, 1);
 
-//  std::cout << "Allocating matrix of size " << sizespec << " (" << numprocs << ", " << max_recv_length << ")" << std::endl;
   A.data.allocate(sizespec, distspec, teamspec_2d);
-#if 0
-  dart_datatype_t dart_dtype = TypeTraits<Scalar>::dart_type();
-#if DART_FULL_ALLOC
-  dart_team_memalloc_aligned_full(DART_TEAM_ALL, total_recv_length, dart_dtype, &gptr);
-#else
-  dart_team_memalloc_aligned(DART_TEAM_ALL, total_recv_length, dart_dtype, &gptr);
-#endif
-  A.data_win.gptr = gptr;
-  dart_gptr_setunit(&gptr, myid);
-  dart_gptr_getaddr(gptr, &(A.data_win.baseptr));
-  A.data_win.size = sizeof(Scalar)*total_recv_length;
-#endif
+
   ////////////////////////////////////////////////////////////////////////
   // Exchange displacements
   ////////////////////////////////////////////////////////////////////////

@@ -61,10 +61,7 @@ exchange_externals(MatrixType& A,
   os << "entering exchange_externals\n";
 #endif
 
-  int numprocs = 1;
-  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-
-  if (numprocs < 2) return;
+  if (dash::size() < 2) return;
 
   // issue async puts
   begin_exchange_externals(A, x);
@@ -102,7 +99,6 @@ begin_exchange_externals(MatrixType& A,
   // Extract Matrix pieces
 
   int num_neighbors = A.neighbors.size();
-  const std::vector<LocalOrdinal>&  recv_length = A.recv_length;
   const std::vector<LocalOrdinal>&  send_length = A.send_length;
   const std::vector<int>&           neighbors   = A.neighbors;
   const std::vector<GlobalOrdinal>& elements_to_send = A.elements_to_send;

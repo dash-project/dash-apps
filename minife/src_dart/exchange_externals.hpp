@@ -93,9 +93,8 @@ begin_exchange_externals(MatrixType& A,
 #ifdef HAVE_MPI
 
 
-  int numprocs = 1, myproc = 0;
+  int numprocs = 1;
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
 
   if (numprocs < 2) return;
 
@@ -106,7 +105,6 @@ begin_exchange_externals(MatrixType& A,
   // Extract Matrix pieces
 
   int num_neighbors = A.neighbors.size();
-  const std::vector<LocalOrdinal>&  recv_length = A.recv_length;
   const std::vector<LocalOrdinal>&  send_length = A.send_length;
   const std::vector<int>&           neighbors   = A.neighbors;
   const std::vector<GlobalOrdinal>& elements_to_send = A.elements_to_send;
