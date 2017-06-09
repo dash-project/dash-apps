@@ -176,7 +176,7 @@ inline void Thresh(
   T const * src  = rand_mat.lbegin( );
   bool * i = thresh_mask.lbegin(   );
 
-  /*
+  /* //debug ausgabe von rand_mat
   int co = 0;
   while( src < rand_mat.lend()){
     cout << *src++ << " ";
@@ -185,19 +185,11 @@ inline void Thresh(
      co = 0;
     }
   }*/
-
   
   *i =  ( *(src) >= threshLclCpy);
   while ( i < thresh_mask.lend( ) - 1 ) {
     *(++i) = (*(++src) >= threshLclCpy);
   }
-
-  /*
-  uint j = 0;
-  *i = j;
-  while ( i < thresh_mask.lend() - 1 ) {
-    *++i = ++j;
-  }*/
 
   #if 0
     cout << myid << " got threshold: " << threshLclCpy << endl;
@@ -213,7 +205,7 @@ int main( int argc, char* argv[] )
   dash::init( &argc, &argv );
 
   myid = dash::myid( );
-  ReadRowsNCols();
+  ReadRowsNCols( );
 
   dash::NArray<MATRIX_T,2> rand_mat   ( in.nrows, in.ncols );
   dash::NArray<bool    ,2> thresh_mask( in.nrows, in.ncols );

@@ -183,6 +183,7 @@ dash-run_:
 #@x=$$(<run_results/dash_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/dash_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/dash_thresh_out
 	@cat run_results/dash_randmat_out run_results/dash_thresh_out | ./winnow/main > run_results/dash_winnow_out
+	@./outer/outer < run_results/dash_winnow_out > run_results/dash_outer_out
 # @echo $(thresh) >> run_results/dash_randmat_out
 # @./thresh/thresh < run_results/dash_randmat_out > run_results/dash_thresh_out
 
@@ -274,10 +275,10 @@ FAILURE:=$(RED)FAILURE$(NC)
 test:
 	@echo Enter start nRowsCols and then max nRowsCols:; read start; read i;\
 	echo ---------- ;\
-	for (( succ=0 , fail=0 , subsucc=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ;       do \
-	for (( vThresh=0; vThresh <= 99; vThresh+=3 )) ;                          						               do \
-	for (( vWinnow_nelts=2; vWinnow_nelts <= 10 ; vWinnow_nelts+=4 )) ;                                   do \
-	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
+	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
+	for (( vThresh=0; vThresh<= 100; vThresh+=1 )) ;                   do \
+	for (( vWinnow_nelts=2; vWinnow_nelts<= 15 ; vWinnow_nelts+=1 )) ; do \
+	export nRowsCols=15 seed=197 thresh=36 winnow_nelts=10;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -295,41 +296,51 @@ test:
 		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/chpl_thresh_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel thresh output differs from TBB!"$(NC); fi;\
 		if [[ $$(diff -swB run_results/tbb_thresh_out run_results/dash_thresh_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH thresh output differs from TBB!"$(NC);   fi;\
 		case $$subsucc in \
-			4) (( ++succ )) ; echo -e $(GREEN)"thresh comparison without differences."$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"thresh  comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at thresh comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		subsucc=0;\
 		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/go_winnow_out)     == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"GO winnow output differs from TBB!"$(NC);     fi;\
 		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/cilk_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Cilk winnow output differs from TBB!"$(NC);   fi;\
 		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/chpl_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"Chapel winnow output differs from TBB!"$(NC); fi;\
-		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/dash_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH winnow output differs from TBB!"$(NC); fi;\
+		if [[ $$(diff -swB run_results/tbb_winnow_out run_results/dash_winnow_out)   == *are\ identical* ]] ;then (( ++subsucc )); else echo -e $(RED)"DASH winnow output differs from TBB!"$(NC);   fi;\
 		case $$subsucc in \
-			4) (( ++succ )) ; echo -e $(GREEN)"winnow comparison without differences."$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"winnow  comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at winnow comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		subsucc=0;\
 		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/go_outer_out)       == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_outer_out run_results/go_outer_out)       == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_outer_out run_results/go_outer_out)       == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"GO outer output differs from TBB!"$(NC);     fi;\
 		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_outer_out run_results/cilk_outer_out)        == *are\ equal*  ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Cilk outer output differs from TBB!"$(NC);   fi;\
 		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Chapel outer output differs from TBB!"$(NC); fi;\
+		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/dash_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_outer_out run_results/dash_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_outer_out run_results/dash_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
+			else echo -e $(RED)"DASH outer output differs from TBB!"$(NC); fi;\
 		case $$subsucc in \
-			3) (( ++succ )) ; echo -e $(GREEN)"outer comparison without differences."$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"outer   comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at outer comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		subsucc=0;\
 		if [[     $$(        diff -swB run_results/tbb_product_out run_results/go_product_out)   == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_product_out run_results/go_product_out)   == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_product_out run_results/go_product_out)   == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"GO product output differs from TBB!"$(NC);     fi;\
 		if [[     $$(        diff -swB run_results/tbb_product_out run_results/cilk_product_out) == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_product_out run_results/cilk_product_out) == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_product_out run_results/cilk_product_out) == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Cilk product output differs from TBB!"$(NC);   fi;\
 		if [[     $$(        diff -swB run_results/tbb_product_out run_results/chpl_product_out) == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_product_out run_results/chpl_product_out) == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_product_out run_results/chpl_product_out) == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Chapel product output differs from TBB!"$(NC); fi;\
 		case $$subsucc in \
 			3) (( ++succ )) ; echo -e $(GREEN)"product comparison without differences."$(NC);;\
@@ -338,25 +349,35 @@ test:
 		subsucc=0;\
 		if [[     $$(        diff -swB run_results/tbb_product_out run_results/tbb_chain_out)   == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_product_out run_results/tbb_chain_out)   == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_product_out run_results/tbb_chain_out)   == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"TBB chain output differs from TBB Product Output!"$(NC);  fi;\
 		if [[     $$(        diff -swB run_results/tbb_chain_out run_results/go_chain_out)      == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_chain_out run_results/go_chain_out)      == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_chain_out run_results/go_chain_out)      == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"GO chain output differs from TBB chain Output!"$(NC);     fi;\
 		if [[     $$(        diff -swB run_results/tbb_chain_out run_results/cilk_chain_out)    == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_chain_out run_results/cilk_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_chain_out run_results/cilk_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Cilk chain output differs from TBB chain Output!"$(NC);   fi;\
 		if [[     $$(        diff -swB run_results/tbb_chain_out run_results/chpl_chain_out)    == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_chain_out run_results/chpl_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_chain_out run_results/chpl_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Chapel chain output differs from TBB chain Output!"$(NC); fi;\
 		case $$subsucc in \
-			4) (( ++succ )) ; echo -e $(GREEN)"chain comparison without differences."$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"chain   comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at chain comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
+		if (( warnings > 0 )) ;then\
+			echo -e $(BLUE)warnings at: $(NC) nRowsCols: $$nRowsCols  seed: $$seed thresh: $$thresh winnow_nelts: $$winnow_nelts >> error.log ;\
+			(( globWarnings += warnings )); warnings=0; fi;\
 		echo --------------------------------------;\
+		break;\
 	done ;\
+	break;\
 	 done ;\
+	 break;\
 	  done ;\
-	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail ;\
+	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 
 .PHONY: run-clean
 run-clean:

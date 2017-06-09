@@ -15,17 +15,13 @@ using std::make_pair;
 using uint  = unsigned int;
 using POI_T = int;  //this type musst be signed!
 
-template<typename T = POI_T>
-inline void outer(         
-                           uint   nelts ,
-            vector< pair<T,T> > & points,
-      dash::NArray< double, 2 > & matOut,
-            dash::Array<double> & vec,
-                            int   myid
-    );
+
+uint nelts;
+static int myid;
+
 
 template< typename T >
-void print2d( T& mat ) {
+void Print2D(const T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
     for( int j = 0; j < mat.extent(1); j++ ) {
       cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
@@ -34,12 +30,29 @@ void print2d( T& mat ) {
   }
 }
 
+
+inline void ReadNelts( ){
+  
+  dash::Shared<uint> nelts_transfer;
+
+  if(0 == myid)
+  {
+    cin >> nelts;
+
+    nelts_transfer.set(nelts);
+  }
+  nelts_transfer.barrier();
+  nelts = nelts_transfer.get();
+}
+
+
 template<typename T = POI_T>
-inline void read_vector_of_points( uint nelts, vector< pair<T,T> > & points ) {
+inline void read_vector_of_points( uint const nelts, vector< pair<T,T> > & points ) {
   for( uint i = 0; i < nelts; i++ ) {
     cin >> points[i].first >> points[i].second;
   }
 }
+
 
 template<typename T = POI_T>
 inline void broadcastInputToUnits( uint nelts, vector< pair<T,T> > & points ) {
@@ -55,22 +68,49 @@ inline void broadcastInputToUnits( uint nelts, vector< pair<T,T> > & points ) {
   if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
 }
 
+
+inline double sqr(double const x) { return x * x; }
+
+
+//calculates the distance between two points.
+template<typename T = POI_T>
+inline double distance(const pair<T, T>& x, const pair<T, T>& y) {
+  return sqrt(sqr(x.first - y.first) + sqr(x.second - y.second));
+}
+
+
+template<typename T = POI_T>
+inline void outer(
+                     uint const   nelts ,
+      vector< pair<T,T> > const & points,
+      dash::NArray< double, 2 > & matOut,
+            dash::Array<double> & vec,
+                      int const   myid
+    ){
+   // comment grow, end i and j!!!
+   uint gRow =        matOut.pattern().global({0,0})[0];
+   uint end  = gRow + matOut.pattern().local_extents()[0];
+   double nmax;
+
+   for( uint i = 0; gRow < end; ++gRow, ++i ) {
+    nmax = 0;
+    for( uint j = 0; j < nelts; ++j ) {
+      if( gRow != j) {
+        matOut.local[i][j] = distance(points[gRow], points[j]);
+        nmax = max( nmax, static_cast<double>( matOut.local[i][j] ) );
+      }
+    }
+    matOut.local[i][gRow] = nelts * nmax;
+    vec.local[i] = distance(make_pair(0,0), points[gRow]);
+  }
+}
+
 int main( int argc, char* argv[] )
 {  
   dash::init( &argc,&argv );
-  int myid = static_cast<int>( dash::Team::GlobalUnitID( ).id );
+  myid = dash::myid( );
   
-  
-  if( argc != 2 ){
-    if( 0 == myid ){ cout << "1 Parameter expected!"           << endl
-                          << "Usage: cowichan_outer nElements" << endl
-                          << "Then enter the points."          << endl;
-    }
-    dash::finalize( );
-    return 0;
-  }
-  
-  uint nelts = static_cast<uint>( atoi( argv[1] ) );
+  ReadNelts( );
   
   vector< pair<POI_T, POI_T> > points( nelts );
   dash::NArray< double, 2 >    matOut( nelts, nelts );
@@ -86,9 +126,11 @@ int main( int argc, char* argv[] )
 
   dash::barrier( );
   
+  // print output
   if( 0 == myid ){
+    cout << nelts << "\n";
     uint count = 0;
-    cout << std::showpoint << std::fixed << std::setprecision(5);
+    cout << std::showpoint << std::fixed << std::setprecision(4);
     
     for(uint i = 0; i < matOut.extent(0); ++i) {
       for(uint j = 0; j < matOut.extent(1); ++j) {
@@ -106,38 +148,4 @@ int main( int argc, char* argv[] )
   }
 
   dash::finalize( );
-}
-
-inline double sqr(double const x) {
-  return x * x;
-}
-
-template<typename T = POI_T>
-inline double distance(const pair<T, T>& x, const pair<T, T>& y) {
-  return sqrt(sqr(x.first - y.first) + sqr(x.second - y.second));
-}
-
-template<typename T = POI_T>
-inline void outer(         
-                           uint   nelts ,
-            vector< pair<T,T> > & points,
-      dash::NArray< double, 2 > & matOut,
-            dash::Array<double> & vec,
-                            int   myid
-    ){
-   uint gRow =        matOut.pattern().global({0,0})[0];
-   uint end  = gRow + matOut.pattern().local_extents()[0];
-   double nmax;
-
-   for( uint i = 0; gRow < end; ++gRow, ++i ) {
-    nmax = -1;
-    for( uint j = 0; j < nelts; ++j ) {
-      if( gRow != j) {
-        matOut.local[i][j] = distance(points[gRow], points[j]);
-        nmax = max( nmax, static_cast<double>( matOut.local[i][j] ) );
-      }
-    }
-    matOut.local[i][gRow] = nelts * nmax;
-    vec.local[i] = distance(make_pair(0,0), points[gRow]);
-  }
 }

@@ -33,20 +33,20 @@ inline void Print2D(const T& mat ) {
  * Because there's always a unit0, it reads the input parameter and
  * distributes them to the rest of the units.
  */
-inline void ReadPars(InputPar& input){
+inline void ReadPars(){
 
   dash::Shared<InputPar> input_transfer;
   
   if(0 == myid)
   {
-    cin >> input.nrows;    
-    cin >> input.ncols;
-    cin >> input.s;
+    cin >> in.nrows;    
+    cin >> in.ncols;
+    cin >> in.s;
     
-    input_transfer.set(input);
+    input_transfer.set(in);
   }
   input_transfer.barrier();
-  input = input_transfer.get();
+  in = input_transfer.get();
 }
 
 /*
@@ -89,7 +89,7 @@ int main( int argc, char* argv[] )
   dash::init( &argc,&argv );
 
   myid = dash::myid( );
-  ReadPars(in);
+  ReadPars( );
 
   dash::NArray<unsigned char, 2> rand_mat ( in.nrows, in.ncols );
 
