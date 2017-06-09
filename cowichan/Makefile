@@ -167,7 +167,12 @@ run_results:; mkdir -p run_results
 
 .PHONY: run run-all
 run: run-all
-run-all: chpl-run go-run cilk-run tbb-run dash-run | run_results
+run-all: | run_results
+	@$(MAKE) --no-print-directory tbb-run
+	@$(MAKE) --no-print-directory chpl-run
+	@$(MAKE) --no-print-directory cilk-run
+	@$(MAKE) --no-print-directory go-run
+	@$(MAKE) --no-print-directory dash-run
 
 .PHONY: dash-run dash-run_ dash-run-randmat
 dash-run: | run_results
@@ -184,8 +189,7 @@ dash-run_:
 	@echo $(winnow_nelts) >> run_results/dash_thresh_out
 	@cat run_results/dash_randmat_out run_results/dash_thresh_out | ./winnow/main > run_results/dash_winnow_out
 	@./outer/outer < run_results/dash_winnow_out > run_results/dash_outer_out
-# @echo $(thresh) >> run_results/dash_randmat_out
-# @./thresh/thresh < run_results/dash_randmat_out > run_results/dash_thresh_out
+	@./product/product < run_results/dash_outer_out > run_results/dash_product_out
 
 
 .PHONY: chpl-run chpl-run_ chpl-run-randmat
@@ -276,9 +280,9 @@ test:
 	@echo Enter start nRowsCols and then max nRowsCols:; read start; read i;\
 	echo ---------- ;\
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
-	for (( vThresh=0; vThresh<= 100; vThresh+=1 )) ;                   do \
-	for (( vWinnow_nelts=2; vWinnow_nelts<= 15 ; vWinnow_nelts+=1 )) ; do \
-	export nRowsCols=15 seed=197 thresh=36 winnow_nelts=10;\
+	for (( vThresh=0; vThresh<= 100; vThresh+=6 )) ;                   do \
+	for (( vWinnow_nelts=2; vWinnow_nelts<= 10 ; vWinnow_nelts+=4 )) ; do \
+	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -342,8 +346,12 @@ test:
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_product_out run_results/chpl_product_out) == *are\ equal*     ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.1    run_results/tbb_product_out run_results/chpl_product_out) == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Chapel product output differs from TBB!"$(NC); fi;\
+		if [[     $$(        diff -swB run_results/tbb_product_out run_results/dash_product_out) == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_product_out run_results/dash_product_out) == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_product_out run_results/dash_product_out) == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
+			else echo -e $(RED)"DASH product output differs from TBB!"$(NC); fi;\
 		case $$subsucc in \
-			3) (( ++succ )) ; echo -e $(GREEN)"product comparison without differences."$(NC);;\
+			4) (( ++succ )) ; echo -e $(GREEN)"product comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at product comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		subsucc=0;\
@@ -371,11 +379,8 @@ test:
 			echo -e $(BLUE)warnings at: $(NC) nRowsCols: $$nRowsCols  seed: $$seed thresh: $$thresh winnow_nelts: $$winnow_nelts >> error.log ;\
 			(( globWarnings += warnings )); warnings=0; fi;\
 		echo --------------------------------------;\
-		break;\
 	done ;\
-	break;\
 	 done ;\
-	 break;\
 	  done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 

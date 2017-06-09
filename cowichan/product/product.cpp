@@ -11,13 +11,9 @@ using std::vector;
 
 using uint  = unsigned int;
 
-inline void product(         
-                     const uint   nelts ,
-           vector<double> const & vec,
-  const dash::NArray<double, 2> & matIn,
-            dash::Array<double> & result,
-                      const int   myid
-    );
+uint nelts;
+static int myid;
+
 
 template< typename T >
 void print2d( T& mat ) {
@@ -29,6 +25,22 @@ void print2d( T& mat ) {
   }
 }
 
+
+inline void ReadNelts( ){
+  
+  dash::Shared<uint> nelts_transfer;
+
+  if(0 == myid)
+  {
+    cin >> nelts;
+
+    nelts_transfer.set(nelts);
+  }
+  nelts_transfer.barrier();
+  nelts = nelts_transfer.get();
+}
+
+
 inline void readMatrix(dash::NArray<double, 2> & matIn) {
     double tmp;
     for ( auto i : matIn ){
@@ -37,11 +49,13 @@ inline void readMatrix(dash::NArray<double, 2> & matIn) {
     }
 }
 
+
  inline void readVec( vector<double> & vec ) {
   for (int i = 0; i < vec.size(); i++) {
     cin >> vec[i];
   }
 }
+
 
 inline void broadcastInputToUnits(vector<double> & vec) {
   dash::team_unit_t TeamUnit0ID = dash::Team::All().myid( );
@@ -56,58 +70,11 @@ inline void broadcastInputToUnits(vector<double> & vec) {
   if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
 }
 
-int main( int argc, char* argv[] )
-{  
-  dash::init( &argc,&argv );
-  int myid = static_cast<int>( dash::Team::GlobalUnitID( ).id );
-  
-  
-  if( argc != 2 ){
-    if( 0 == myid ){ cout << "1 Parameter expected!\n"
-                          << "Usage: cowichan_product nElements\n"
-                          << "Then enter the matrix and the vector array." << endl;
-    }
-    dash::finalize( );
-    return 0;
-  }
-  
-  uint nelts = static_cast<uint>( atoi( argv[1] ) );
-  
-  dash::NArray<double, 2> matIn(nelts, nelts);
-  dash::Array <double>    result(nelts);
-  vector <double>         vec(nelts);
-  
-  //read input on unit 0
-  if( 0 == myid ) {
-    readMatrix(matIn);
-    readVec(vec);
-    cout << endl;
-  }
-  
-  //broadcast input from unit 0
-  broadcastInputToUnits(vec);
 
-  product(nelts, vec, matIn, result, myid);
-  
-  dash::barrier();
-  
-  if(0 == myid){
-    cout << nelts << "\n";
-    for(auto i : result) {
-      cout << static_cast<double>(i) << " ";
-    } cout << endl;
-  }
-  
-  dash::finalize( );
-}
-
-
-inline void product(         
-                     const uint   nelts ,
+inline void product(
            vector<double> const & vec,
-  const dash::NArray<double, 2> & matIn,
-            dash::Array<double> & result,
-                      const int   myid
+  dash::NArray<double, 2> const & matIn,
+            dash::Array<double> & result
     ){
    uint lclRows = matIn.pattern().local_extents()[0];
    double * res = result.lbegin();
@@ -133,4 +100,40 @@ inline void product(
      }
      *(res++) = sum;
    }
+}
+
+
+int main( int argc, char* argv[] )
+{  
+  dash::init( &argc,&argv );
+  myid = dash::myid( );
+  
+  ReadNelts( );
+  
+  dash::NArray<double, 2> matIn(nelts, nelts);
+  dash::Array <double>    result(nelts);
+  vector <double>         vec(nelts);
+  
+  //read input on unit 0
+  if( 0 == myid ) {
+    readMatrix(matIn);
+    readVec(vec);
+  }
+  
+  //broadcast vector input from unit 0
+  broadcastInputToUnits(vec);
+
+  product(vec, matIn, result);
+  
+  dash::barrier();
+  
+  if(0 == myid){
+    cout << nelts << "\n";
+    cout << std::showpoint << std::fixed << std::setprecision(4);
+    for(auto i : result) {
+      cout << static_cast<double>(i) << " ";
+    } cout << endl;
+  }
+  
+  dash::finalize( );
 }
