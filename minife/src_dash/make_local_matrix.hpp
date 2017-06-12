@@ -438,6 +438,7 @@ make_local_matrix(MatrixType& A)
 
   // Allocate the signaling window
   A.signal.allocate(numprocs);
+  A.signal[dash::myid()].set(0);
 
   // Allocate the data window
   LocalOrdinal max_recv_length;
