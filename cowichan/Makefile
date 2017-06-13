@@ -280,8 +280,8 @@ test:
 	@echo Enter start nRowsCols and then max nRowsCols:; read start; read i;\
 	echo ---------- ;\
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
-	for (( vThresh=0; vThresh<= 100; vThresh+=6 )) ;                   do \
-	for (( vWinnow_nelts=2; vWinnow_nelts<= 10 ; vWinnow_nelts+=4 )) ; do \
+	for (( vThresh=25; vThresh<= 75; vThresh+=6 )) ;                   do \
+	for (( vWinnow_nelts=3; vWinnow_nelts<= 11 ; vWinnow_nelts+=4 )) ; do \
 	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
@@ -319,7 +319,7 @@ test:
 			else echo -e $(RED)"GO outer output differs from TBB!"$(NC);     fi;\
 		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\
-			elif [[ $$(numdiff -a 0.1    run_results/tbb_outer_out run_results/cilk_outer_out)        == *are\ equal*  ]] ;then (( ++subsucc )); (( ++warnings ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_outer_out run_results/cilk_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Cilk outer output differs from TBB!"$(NC);   fi;\
 		if [[     $$(        diff -swB run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ identical* ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_outer_out run_results/chpl_outer_out)     == *are\ equal*     ]] ;then (( ++subsucc ));\

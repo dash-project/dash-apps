@@ -14,7 +14,7 @@ uint percent;
 
 static int myid;
 
-#define MATRIX_T int
+#define MATRIX_T uchar
 
 /*
  * This function prints the content of a 2D matrix to std::out.
@@ -29,7 +29,7 @@ inline void Print2D(const T& mat ) {
 
     for( int i = 0; i < mat.extent(0); i++ ) {
       for( int j = 0; j < mat.extent(1); j++ ) {
-	cout << static_cast<const uint>( mat(i,j) )<< " ";
+        cout << static_cast<const uint>( mat(i,j) )<< " ";
       }
       cout << "\n";
     }
@@ -37,12 +37,12 @@ inline void Print2D(const T& mat ) {
 }
 
 // unit0 reads the matrix with random values from std::in
-template<typename T>
+template<typename T = MATRIX_T>
 inline void ReadRandMat(dash::NArray<T,2>& rand_mat){
   if(0 == myid){
     T tmp;
     for ( auto i : rand_mat ){
-      scanf( "%d", &tmp );
+      scanf( "%u", &tmp );
       i = tmp;
     }
   }
@@ -88,11 +88,11 @@ inline void ReadPercentage(){
 
 template<typename T = MATRIX_T>
 inline void Thresh(
-  const dash::NArray<T   ,2>& rand_mat,
-	dash::NArray<bool,2>& thresh_mask,
-  const uint& nrows,
-  const uint& ncols,
-  const uint& percent
+  dash::NArray<T   ,2> const & rand_mat,
+	dash::NArray<bool,2>       & thresh_mask,
+                  uint const & nrows,
+                  uint const & ncols,
+                  uint const & percent
 ){
   // find max value in rand_mat
   auto max_glob = dash::max_element( rand_mat.begin( ), rand_mat.end( ) );
@@ -147,8 +147,8 @@ inline void Thresh(
     // if compiled; unit0 prints the global histogram (which resides at this point only on unit0)
     #if 0
       for( uint j = 0; j < histo.lsize( ); ++j ) {
-	if( histo.local[j] ) cout << std::setw(3)   << j
-		  << " counted: " << histo.local[j] << endl;
+        if( histo.local[j] ) cout << std::setw(3)   << j
+        << " counted: " << histo.local[j] << endl;
       }
     #endif
 
@@ -214,7 +214,6 @@ int main( int argc, char* argv[] )
   ReadPercentage();
 
   Thresh(rand_mat, thresh_mask, in.nrows, in.ncols, percent);
-
   Print2D( thresh_mask );
 
   dash::finalize( );

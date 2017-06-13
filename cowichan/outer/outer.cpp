@@ -20,13 +20,26 @@ uint nelts;
 static int myid;
 
 
-template< typename T >
-void Print2D(const T& mat ) {
-  for( int i = 0; i < mat.extent(0); i++ ) {
-    for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
+template< typename T, typename Y >
+inline void PrintOutput(T const& matOut, Y const& vec ) {
+  if( 0 == myid ){
+    cout << nelts << "\n";
+    uint count = 0;
+    cout << std::showpoint << std::fixed << std::setprecision(4);
+    
+    for(uint i = 0; i < matOut.extent(0); ++i) {
+      for(uint j = 0; j < matOut.extent(1); ++j) {
+        if(j) cout << " ";
+        cout << static_cast<double>(matOut[i][j]);
+      } cout << "\n";
     }
-    cout << endl;
+    
+    cout << "\n";
+    
+    for(uint i = 0; i < vec.size(); ++i){
+      if(i) cout << " ";
+      cout << static_cast<double>(vec[i]);
+    } cout << endl;
   }
 }
 
@@ -47,7 +60,7 @@ inline void ReadNelts( ){
 
 
 template<typename T = POI_T>
-inline void read_vector_of_points( uint const nelts, vector< pair<T,T> > & points ) {
+inline void ReadVectorOfPoints( vector< pair<T,T> > & points ) {
   for( uint i = 0; i < nelts; i++ ) {
     cin >> points[i].first >> points[i].second;
   }
@@ -55,7 +68,7 @@ inline void read_vector_of_points( uint const nelts, vector< pair<T,T> > & point
 
 
 template<typename T = POI_T>
-inline void broadcastInputToUnits( uint nelts, vector< pair<T,T> > & points ) {
+inline void BroadcastInputToUnits( vector< pair<T,T> > & points ) {
   dash::team_unit_t TeamUnit0ID = dash::Team::All().myid( );
   TeamUnit0ID.id = 0;
   dart_ret_t ret = dart_bcast(
@@ -79,13 +92,11 @@ inline double distance(const pair<T, T>& x, const pair<T, T>& y) {
 }
 
 
-template<typename T = POI_T>
-inline void outer(
-                     uint const   nelts ,
-      vector< pair<T,T> > const & points,
-      dash::NArray< double, 2 > & matOut,
-            dash::Array<double> & vec,
-                      int const   myid
+template<typename T, typename X, typename Y>
+inline void Outer(
+      T const & points,
+      X       & matOut,
+      Y       & vec
     ){
    // comment grow, end i and j!!!
    uint gRow =        matOut.pattern().global({0,0})[0];
@@ -103,6 +114,8 @@ inline void outer(
     matOut.local[i][gRow] = nelts * nmax;
     vec.local[i] = distance(make_pair(0,0), points[gRow]);
   }
+  
+  dash::barrier( );
 }
 
 int main( int argc, char* argv[] )
@@ -116,36 +129,12 @@ int main( int argc, char* argv[] )
   dash::NArray< double, 2 >    matOut( nelts, nelts );
   dash::Array < double >       vec( nelts );
   
-  //read input points on unit 0
-  if( 0 == myid ) read_vector_of_points( nelts, points );
+  //read input points on unit 0 and broadcast to all units
+  if( 0 == myid ) ReadVectorOfPoints( points );
+  BroadcastInputToUnits( points );
   
-  //broadcast input from unit 0
-  broadcastInputToUnits( nelts, points );
-
-  outer( nelts, points, matOut, vec, myid );
-
-  dash::barrier( );
-  
-  // print output
-  if( 0 == myid ){
-    cout << nelts << "\n";
-    uint count = 0;
-    cout << std::showpoint << std::fixed << std::setprecision(4);
-    
-    for(uint i = 0; i < matOut.extent(0); ++i) {
-      for(uint j = 0; j < matOut.extent(1); ++j) {
-        if(j) cout << " ";
-        cout << static_cast<double>(matOut[i][j]);
-      } cout << "\n";
-    }
-    
-    cout << "\n";
-    
-    for(uint i = 0; i < vec.size(); ++i){
-      if(i) cout << " ";
-      cout << static_cast<double>(vec[i]);
-    } cout << endl;
-  }
+  Outer( points, matOut, vec );
+  PrintOutput(matOut, vec);
 
   dash::finalize( );
 }

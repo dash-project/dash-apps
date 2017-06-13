@@ -16,12 +16,31 @@ static int myid;
 
 
 template< typename T >
-void print2d( T& mat ) {
-  for( int i = 0; i < mat.extent(0); i++ ) {
-    for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
+inline void PrintOutput( T const & result ) {
+  if(0 == myid){
+    cout << nelts << "\n";
+    cout << std::showpoint << std::fixed << std::setprecision(4);
+    for(auto i : result) {
+      cout << static_cast<double>(i) << " ";
+    } cout << endl;
+  }
+}
+
+
+template<typename T, typename X>
+inline void ReadMatrixAndVector(T& matIn, X& vec){
+  if( 0 == myid ) {
+    //Read Matrix
+    double tmp;
+    for ( auto i : matIn ){
+      cin >> tmp;
+      i = tmp;
     }
-    cout << endl;
+    
+    //Read Vector
+    for (int i = 0; i < vec.size(); i++) {
+      cin >> vec[i];
+    }
   }
 }
 
@@ -41,23 +60,7 @@ inline void ReadNelts( ){
 }
 
 
-inline void readMatrix(dash::NArray<double, 2> & matIn) {
-    double tmp;
-    for ( auto i : matIn ){
-      cin >> tmp;
-      i = tmp;
-    }
-}
-
-
- inline void readVec( vector<double> & vec ) {
-  for (int i = 0; i < vec.size(); i++) {
-    cin >> vec[i];
-  }
-}
-
-
-inline void broadcastInputToUnits(vector<double> & vec) {
+inline void BroadcastInputToUnits(vector<double> & vec) {
   dash::team_unit_t TeamUnit0ID = dash::Team::All().myid( );
   TeamUnit0ID.id = 0;
   dart_ret_t ret = dart_bcast(
@@ -71,10 +74,11 @@ inline void broadcastInputToUnits(vector<double> & vec) {
 }
 
 
-inline void product(
-           vector<double> const & vec,
-  dash::NArray<double, 2> const & matIn,
-            dash::Array<double> & result
+template<typename T, typename X, typename Y>
+inline void Product(
+     X const & vec,
+     T const & matIn,
+           Y & result
     ){
    uint lclRows = matIn.pattern().local_extents()[0];
    double * res = result.lbegin();
@@ -100,6 +104,8 @@ inline void product(
      }
      *(res++) = sum;
    }
+   
+   dash::barrier();
 }
 
 
@@ -113,27 +119,13 @@ int main( int argc, char* argv[] )
   dash::NArray<double, 2> matIn(nelts, nelts);
   dash::Array <double>    result(nelts);
   vector <double>         vec(nelts);
-  
-  //read input on unit 0
-  if( 0 == myid ) {
-    readMatrix(matIn);
-    readVec(vec);
-  }
-  
-  //broadcast vector input from unit 0
-  broadcastInputToUnits(vec);
+ 
+  //read input on unit 0 and broadcast it
+  ReadMatrixAndVector(matIn, vec);
+  BroadcastInputToUnits(vec);
 
-  product(vec, matIn, result);
-  
-  dash::barrier();
-  
-  if(0 == myid){
-    cout << nelts << "\n";
-    cout << std::showpoint << std::fixed << std::setprecision(4);
-    for(auto i : result) {
-      cout << static_cast<double>(i) << " ";
-    } cout << endl;
-  }
+  Product(vec, matIn, result);
+  PrintOutput( result );
   
   dash::finalize( );
 }

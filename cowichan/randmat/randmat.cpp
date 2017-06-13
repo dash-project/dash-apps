@@ -11,6 +11,8 @@ using uchar = unsigned char;
 struct InputPar { uint nrows, ncols, s;} in;
 static int myid;
 
+#define MATRIX_T uchar
+
 /* 
  * This function prints the content of a 2D matrix to std::out.
  * Datatypes are casted to <const uint> for readable output
@@ -63,7 +65,7 @@ inline void ReadPars(){
  */
 
 template< typename T >
-void Randmat(T& rand_mat, const uint& nrows, const uint& ncols, const uint& seed)
+inline void Randmat(T& rand_mat, const uint& nrows, const uint& ncols, const uint& seed)
 {
   const int LCG_A = 1664525, LCG_C = 1013904223;
 
@@ -91,7 +93,7 @@ int main( int argc, char* argv[] )
   myid = dash::myid( );
   ReadPars( );
 
-  dash::NArray<unsigned char, 2> rand_mat ( in.nrows, in.ncols );
+  dash::NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
 
   Randmat( rand_mat, in.nrows, in.ncols, in.s );
   Print2D( rand_mat );
