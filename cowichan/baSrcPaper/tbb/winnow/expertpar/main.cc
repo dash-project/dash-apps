@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
 
   scanf("%d", &nelts);
   points = (pair <int, int> *) malloc (sizeof (pair <int, int>) * nelts);
-  values = (pair <int, pair <int, int> > *) malloc (sizeof (pair <int, pair <int, int> >) * nelts);
+  values = (pair <int, pair <int, int> > *) malloc (sizeof (pair <int, pair <int, int> >) * nrows * ncols);
 
   winnow(nrows, ncols, nelts);
 
