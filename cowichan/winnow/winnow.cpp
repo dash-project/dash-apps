@@ -31,30 +31,6 @@ using pointRange = struct{ Point * curr, * end;           };
 using unitRange  = struct{ MTRX_TYPE begin, end;          };
 
 
-inline void winnow( uint nrows, uint ncols, uint nelts, int myid );
-
-template< typename T = MTRX_TYPE >
-inline size_t readMatricesFromStdIn
-  (
-                   uint   nrows,
-                   uint   ncols,
-          vector<Point> & pointsLocal,
-         vector<size_t> & foundLclCpy,
-    dash::Array< uint > & histo,
-                 size_t   nUnits,
-                    int   myid
-  );
-  
-inline void calcGlobDist(
-    dash::Array< uint > & histo,
-      vector<unitRange> & distr,
-                 size_t   foundAllSize,
-                 size_t   nUnits,
-                    int   myid,
-             dash::Team & team
-);
-
-
 typedef dash::CSRPattern< 1, dash::ROW_MAJOR, int > pattern_t;
 typedef typename pattern_t::size_type extent_t;
 
@@ -80,22 +56,6 @@ std::ostream& operator<<(std::ostream& os, const Point& p)
   #else
     return os << p.row << " " << p.col << endl;
   #endif
-}
-
-int main( int argc, char* argv[] )
-{  
-  dash::init( &argc,&argv );
-  int myid = static_cast<int>( dash::Team::GlobalUnitID( ).id );
-  
-  
-  
-  uint nrows = static_cast<uint>( atoi( argv[1] ) );
-  uint ncols = static_cast<uint>( atoi( argv[2] ) );
-  uint nelts = static_cast<uint>( atoi( argv[3] ) );
-  
-  winnow( nrows, ncols, nelts, myid );
-
-  dash::finalize( );
 }
 
 
@@ -134,13 +94,13 @@ inline void winnow(uint nrows, uint ncols, uint nelts, int myid){
 
 template< typename T = MTRX_TYPE >
 inline size_t readMatricesFromStdIn (
-                 uint   nrows,
-                 uint   ncols,
-        vector<Point> & pointsLocal,
-       vector<size_t> & foundLclCpy, 
-  dash::Array< uint > & histo,
-               size_t   nUnits,
-                  int   myid
+                 uint const   nrows,
+                 uint const   ncols,
+        vector<Point>       & pointsLocal,
+       vector<size_t>       & foundLclCpy, 
+  dash::Array< uint >       & histo,
+               size_t         nUnits,
+                  int const   myid
 ){
     dash::NArray<T   , 2> matrix( nrows, ncols );
     dash::NArray<bool, 2> mask  ( nrows, ncols );
@@ -322,15 +282,20 @@ inline void calcGlobDist(
 
 
 
+int main( int argc, char* argv[] )
+{  
+  dash::init( &argc,&argv );
+  int myid = static_cast<int>( dash::Team::GlobalUnitID( ).id );
+  
+  
+  
+  uint nrows = static_cast<uint>( atoi( argv[1] ) );
+  uint ncols = static_cast<uint>( atoi( argv[2] ) );
+  uint nelts = static_cast<uint>( atoi( argv[3] ) );
+  
+  winnow( nrows, ncols, nelts, myid );
 
-
-
-
-
-
-
-
-
-
+  dash::finalize( );
+}
 
 
