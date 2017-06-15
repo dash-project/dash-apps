@@ -71,10 +71,6 @@ Command line options:
 #include <unistd.h>
 #include <cstdlib>
 
-#define MAX_THREADS 32
-
-pthread_t PThreadTable[MAX_THREADS];
-
 //#include <libdash.h>
 #include "code.h"
 #include "defs.h"
@@ -495,7 +491,7 @@ void ANLinit()
 #endif
 
   CellLock.reserve(MAXLOCK);
-  for (auto u = 0; u < dash::size(); ++u) {
+  for (auto u = 0; u < MAXLOCK; ++u) {
     CellLock.emplace_back(dash::Team::All());
   }
 

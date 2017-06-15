@@ -138,7 +138,7 @@ void printtree(nodeptr n)
       std::cout << "\n";
       for (k = 0; k < NSUB; k++) {
         // printf("Child #%ld: ", k);
-        std::cout << "Child #" << k;
+        std::cout << "Child #" << k << ":";
         if (!c_val.subp[k]) {
           // printf("NONE");
           std::cout << "NONE";
@@ -146,7 +146,7 @@ void printtree(nodeptr n)
         else {
           if (Type(*(c_val.subp[k])) == CELL) {
             // nseq = SeqnumC(*(c_val.subp[k]));
-            std::cout << "C: Cost = " << Cost(*(c_val.subp[k]));
+            std::cout << "C: Cost = " << static_cast<long>(Cost(*(c_val.subp[k]))) << ", ";
             // printf("C: Cost = %ld, ", );
           }
           else {
@@ -186,7 +186,7 @@ void printtree(nodeptr n)
         auto const p_val = (*p).get();
 
         std::cout << "Body #" << p - static_cast<bodyptr>(bodytab.begin())
-                  << ", Num = " << k << ", Level = " << p_val.level;
+                  << ", Num = " << k << ", Level = " << p_val.level << ", ";
         PRTV("Pos", p_val.pos);
         std::cout << "\n";
       }
@@ -354,7 +354,7 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
           *NODE_AS_CELL(mynode) = mynode_val;
         }
         else {
-          // CASE 3: Leaf has still some free space, so add the particle
+          // CASE 1: Leaf has still some free space, so add the particle
 
           body_val.parent                   = le;
           body_val.level                    = l;
@@ -604,6 +604,7 @@ cellptr SubdivideLeaf(leafptr le, cellptr parent, long l, long ProcessId)
     }
     else {
       le = c_val.subp[index];
+      le_val = *le;
     }
     p_val.parent                      = le;
     p_val.child_num                   = le_val.num_bodies;

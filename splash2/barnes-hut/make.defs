@@ -1,6 +1,6 @@
 
 
-DASH_ROOT = $(HOME)/opt/dash-0.3.0-dev
+DASH_ROOT = $(HOME)/opt/dash-0.3.0
 
 DART_IMPL = mpi
 
@@ -16,4 +16,4 @@ CFLAGS=$(CXXFLAGS)
 CXX       = mpicxx -std=c++11
 CC       = mpicc -std=c11
 
-TARGET=BARNES-dash
+TARGET=BARNES-dash.bin

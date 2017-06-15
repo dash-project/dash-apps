@@ -25,7 +25,9 @@
 
 #define MAX_PROC 128
 #define MAX_BODIES_PER_LEAF 10
-#define MAXLOCK 2048   /* maximum number of locks on DASH */
+/* maximum number of locks: Originally 2048 but MPI does crash with such a
+ * high number */
+#define MAXLOCK 128    /* maximum number of locks on DASH */
 #define PAGE_SIZE 4096 /* in bytes */
 
 #define NSUB (1 << NDIM) /* subcells per cell */
@@ -59,19 +61,19 @@ typedef dash::GlobPtr<struct _node> nodeptr;
 typedef struct _node *nodelptr;
 
 typedef struct _node {
-  //8
-  long type;  /* code for node type: body or cell */
-  //8
-  real mass;  /* total mass of node */
-  //24
+  // 8
+  long type; /* code for node type: body or cell */
+  // 8
+  real mass; /* total mass of node */
+  // 24
   vector pos; /* position of node */
-  //8
-  long cost;  /* number of interactions computed */
-  //8
+  // 8
+  long cost; /* number of interactions computed */
+  // 8
   long level;
-  //40
+  // 40
   nodeptr parent; /* ptr to parent of this node in tree */
-  //8
+  // 8
   long child_num; /* Index that this node should be put at in parent cell */
 } node;
 
@@ -122,18 +124,18 @@ struct _body_old {
   real phi;   /* potential at body */
 };
 
-//56
+// 56
 typedef struct _body : public node {
   //-------- Unique attribute in body
-  //24
+  // 24
   vector vel; /* velocity of body */
-  //24
+  // 24
   vector acc; /* acceleration of body */
-  //8
-  real phi;   /* potential at body */
+  // 8
+  real phi; /* potential at body */
 } body;
 
-std::ostream &operator<<(std::ostream &os, const body & b);
+std::ostream &operator<<(std::ostream &os, const body &b);
 
 static_assert(sizeof(struct _body_old) == sizeof(struct _body),
               "struct _body does not satisfy standard_layout");
@@ -156,9 +158,9 @@ static_assert(sizeof(struct _body_old) == sizeof(struct _body),
 struct _cell_old {
   //-------- Common to both body and cell
   long type;
-  real mass;  /* total mass of cell */
+  real mass;      /* total mass of cell */
   real pos[NDIM]; /* cm. position of cell */
-  long cost;  /* number of interactions computed */
+  long cost;      /* number of interactions computed */
   long level;
   cellptr parent;
   long child_num; /* Index [0..8] that this node should be put */
@@ -187,7 +189,7 @@ typedef struct _cell : public node {
   nodeptr subp[NSUB];     /* descendents of cell */
 } cell;
 
-std::ostream &operator<<(std::ostream &os, const cell & c);
+std::ostream &operator<<(std::ostream &os, const cell &c);
 
 static_assert(sizeof(struct _cell) == sizeof(struct _cell_old),
               "struct _cell does not satisfy standard_layout");
@@ -195,7 +197,6 @@ static_assert(sizeof(struct _cell) == sizeof(struct _cell_old),
 //#define Subp(x) (((cellptr) (x))->subp)
 #define Subp(x) ((x).member<nodeptr>(&cell::subp))
 #define SeqnumC(x) ((x).member<long>(&cell::seqnum))
-
 
 /*
  * LEAF: structure used to represent leaf nodes of tree.
