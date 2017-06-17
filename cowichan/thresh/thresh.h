@@ -1,22 +1,30 @@
+using dash::transform;
+using dash::NArray;
+using dash::Array;
+using dash::max_element;
+using dash::BLOCKED;
+using dash::size;
+using dash::barrier;
+using dash::Shared;
 
 template<typename T = MATRIX_T>
 inline void Thresh(
-  dash::NArray<T   ,2> const & rand_mat,
-	dash::NArray<bool,2>       & thresh_mask,
-                  uint const   nrows,
-                  uint const   ncols,
-                  uint const   percent
-){
+  NArray< T   , 2 > const & rand_mat   ,
+	NArray< bool, 2 >       & thresh_mask,
+               uint const   nrows      ,
+               uint const   ncols      ,
+               uint const   percent    )
+{
   // find max value in rand_mat
-  auto max_glob = dash::max_element( rand_mat.begin( ), rand_mat.end( ) );
+  auto max_glob = max_element( rand_mat.begin( ), rand_mat.end( ) );
 
   T max = *max_glob;
 
   // get number of units running
-  size_t num_units = dash::size( );
+  size_t num_units = size( );
 
   // create global histo array and initialze with 0
-  dash::Array<uint> histo( (max + 1) * num_units, dash::BLOCKED );
+  Array<uint> histo( (max + 1) * num_units, BLOCKED );
 
   // initialize the histogram
   for( uint * i = histo.lbegin(); i < histo.lend(); ++i) {
@@ -31,22 +39,22 @@ inline void Thresh(
   /* barrier is necessary because if unit 0 is still calculating
    * while another unit starts with dash::transform there could be a race condition
    */
-  dash::barrier( );
+  barrier( );
 
   // add the values of the local histogram to the histogram of unit0
   if( 0 != myid ) {
-    dash::transform<uint>( histo.lbegin     ( ) ,
-			   histo.lend       ( ) ,
-			   histo.begin      ( ) , // points to global begin -> lbegin of unit0
-			   histo.begin      ( ) ,
-			   dash::plus<uint> ( ));
+    transform<uint>  ( histo.lbegin( ),
+    histo.lend       ( )              ,
+    histo.begin      ( )              , // points to global begin -> lbegin of unit0
+    histo.begin      ( )              ,
+    dash::plus<uint> ( )              );
   }
 
   // create new shared variable
-  dash::Shared<int> threshold;
+  Shared<int> threshold;
 
   // wait for all units to finish adding (especially unit0 should wait)
-  dash::barrier( );
+  barrier( );
 
 /*
  * In the following scope unit0 calculates the threshold for the
@@ -60,7 +68,7 @@ inline void Thresh(
     // if compiled; unit0 prints the global histogram (which resides at this point only on unit0)
     #if 0
       for( uint j = 0; j < histo.lsize( ); ++j ) {
-        if( histo.local[j] ) cout << std::setw(3)   << j
+        if( histo.local[j] ) cout << std::setw(3) << j
         << " counted: " << histo.local[j] << endl;
       }
     #endif
@@ -87,7 +95,7 @@ inline void Thresh(
   int threshLclCpy = threshold.get( );
 
   T const * src  = rand_mat.lbegin( );
-  bool * i = thresh_mask.lbegin(   );
+  bool * i = thresh_mask.lbegin   ( );
 
   /* //debug ausgabe von rand_mat
   int co = 0;
@@ -109,5 +117,5 @@ inline void Thresh(
   #endif
 
   // wait for all units finish calculating local boolean mask
-  dash::barrier( );
+  barrier( );
 }

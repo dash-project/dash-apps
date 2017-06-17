@@ -5,16 +5,14 @@
 using std::cout;
 using std::endl;
 using std::cin;
+using uint     = unsigned int ;
+using uchar    = unsigned char;
+using MATRIX_T = uchar        ;
 
-using uint  = unsigned int ;
-using uchar = unsigned char;
-
-struct InputPar { uint nrows, ncols;} in;
-uint percent;
-
+struct     InputPar { uint nrows, ncols; } in;
+uint       percent;
 static int myid;
 
-#define MATRIX_T uchar
 #include "thresh.h"
 
 /*
@@ -22,8 +20,8 @@ static int myid;
  * Datatypes are casted to <const uint> for readable output
  * (otherwise uchars would be printed as chars and not as numerics)
  */
-template<typename T>
-inline void Print2D(const T& mat ) {
+inline void Print2D( NArray< bool, 2 > const & mat )
+{
   if(0==myid){
 
     //cout << in.nrows << " " << in.ncols << "\n";
@@ -39,7 +37,8 @@ inline void Print2D(const T& mat ) {
 
 // unit0 reads the matrix with random values from std::in
 template<typename T = MATRIX_T>
-inline void ReadRandMat(dash::NArray<T,2>& rand_mat){
+inline void ReadRandMat( NArray< T, 2 > & rand_mat )
+{
   if(0 == myid){
     T tmp;
     for ( auto i : rand_mat ){
@@ -49,7 +48,7 @@ inline void ReadRandMat(dash::NArray<T,2>& rand_mat){
   }
 
   // wait for initialization of the matrix before continuing
-  dash::barrier( );
+  barrier( );
 }
 
 /*
@@ -57,9 +56,9 @@ inline void ReadRandMat(dash::NArray<T,2>& rand_mat){
  * Because there's always a unit0, it reads the input parameter and
  * distributes them to the rest of the units.
  */
-inline void ReadRowsNCols(){
-
-  dash::Shared<InputPar> input_transfer;
+inline void ReadRowsNCols( )
+{
+  Shared<InputPar> input_transfer;
 
   if(0 == myid)
   {
@@ -72,9 +71,9 @@ inline void ReadRowsNCols(){
   in = input_transfer.get();
 }
 
-inline void ReadPercentage(){
-
-  dash::Shared<uint> percent_transfer;
+inline void ReadPercentage( )
+{
+  Shared<uint> percent_transfer;
 
   if(0 == myid)
   {
@@ -94,8 +93,8 @@ int main( int argc, char* argv[] )
   myid = dash::myid( );
   ReadRowsNCols( );
 
-  dash::NArray<MATRIX_T,2> rand_mat   ( in.nrows, in.ncols );
-  dash::NArray<bool    ,2> thresh_mask( in.nrows, in.ncols );
+  NArray< MATRIX_T, 2 > rand_mat    ( in.nrows, in.ncols );
+  NArray< bool    , 2 > thresh_mask ( in.nrows, in.ncols );
 
   ReadRandMat(rand_mat);
   ReadPercentage();

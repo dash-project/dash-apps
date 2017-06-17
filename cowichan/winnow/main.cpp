@@ -14,25 +14,22 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <algorithm>
 #include <iostream>
-#include <vector>
 
 #include <libdash.h>
-#define MATRIX_T uchar
+//#define MATRIX_T uchar
 
 using uint  = unsigned int ;
 using uchar = unsigned char;
-using Point = struct{ uint row, col;};
-using namespace std;
-
-
+using POI_T = int;  //this type musst be signed!
+using MATRIX_T = uchar;
 
 struct InputPar { uint nrows, ncols; } in;
 uint nelts;
 static int myid;
 
 #include "winnow_placeholder.h"
+using std::cin;
 
 
 inline void ReadRowsNCols(){
@@ -87,18 +84,8 @@ int main(int argc, char** argv) {
   dash::NArray< bool,     2 > threshMask ( in.nrows, in.ncols );
   
   ReadMatricesAndNelts( randMat, threshMask );
-  
-  dash::Array< Point > points(nelts);
-  
-  // matrix = new vector<vector <int> >(nrows, vector<int>(ncols));
-  // mask = new vector<vector<int> >(nrows, vector<int>(ncols));
 
-  // read_matrix(nrows, ncols, matrix);
-  // read_matrix(nrows, ncols, mask);
-
-  // scanf("%d", &nelts);
-
-  // vector<pair<int, int> > points(nelts);
+  vector<pair<POI_T, POI_T> > points(nelts);
 
   if(0 == myid){
     winnow( in.nrows, in.ncols, randMat, threshMask, nelts, points );
@@ -106,7 +93,7 @@ int main(int argc, char** argv) {
     printf("%d\n", nelts);
 
     for ( auto i : points) {
-      printf("%d %d\n", static_cast<Point>(i).row, static_cast<Point>(i).col);
+      printf("%d %d\n", i.first, i.second);
     }
     printf("\n");
   }

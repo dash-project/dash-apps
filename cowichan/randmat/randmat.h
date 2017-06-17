@@ -1,36 +1,3 @@
-/* These "usings" and definitionswill be also in chain! */
-using std::cout;
-using std::endl;
-using std::cin;
-
-using uint  = unsigned int ;
-using uchar = unsigned char;
-
-struct InputPar { uint nrows, ncols, s;} in;
-static int myid;
-
-/* 
- * One unit has the job to read in the parameters.
- * Because there's always a unit0, it reads the input parameter and
- * distributes them to the rest of the units.
- */
-inline void ReadPars(){
-
-  dash::Shared<InputPar> input_transfer;
-  
-  if(0 == myid)
-  {
-    cin >> in.nrows;    
-    cin >> in.ncols;
-    cin >> in.s;
-    
-    input_transfer.set(in);
-  }
-  input_transfer.barrier();
-  in = input_transfer.get();
-}
-
-
 /*
  * The Cowichan problems require that the output is independent of the
  * numbers of processors used. For randmat() a common solution found
@@ -44,8 +11,12 @@ inline void ReadPars(){
  * parallelized.
  */
 
-template< typename T >
-inline void Randmat(T& rand_mat, const uint nrows, const uint ncols, const uint seed)
+template< typename T = MATRIX_T >
+inline void Randmat(
+  dash::NArray< T, 2 >       & rand_mat,
+                  uint const   nrows   ,
+                  uint const   ncols   ,
+                  uint const   seed    )
 {
   const int LCG_A = 1664525, LCG_C = 1013904223;
 

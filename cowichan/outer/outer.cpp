@@ -1,28 +1,21 @@
-/* #ifndef DASH_ENABLE_LOGGING
-#define DASH_ENABLE_LOGGING
-#endif */
-
 #include <libdash.h>
 
 using std::cout;
 using std::cin;
 using std::endl;
-using std::vector;
-using std::pair;
-using std::max;
-using std::make_pair;
-
+using dash::Shared;
 using uint  = unsigned int;
 using POI_T = int;  //this type musst be signed!
-
 
 uint nelts;
 static int myid;
 #include "outer.h"
 
 
-template< typename T, typename Y >
-inline void PrintOutput(T const& matOut, Y const& vec ) {
+inline void PrintOutput(
+  NArray < double, 2 > const & matOut ,
+  Array  < double    > const & vec    )
+{    
   if( 0 == myid ){
     cout << nelts << "\n";
     uint count = 0;
@@ -47,7 +40,7 @@ inline void PrintOutput(T const& matOut, Y const& vec ) {
 
 inline void ReadNelts( ){
   
-  dash::Shared<uint> nelts_transfer;
+  Shared<uint> nelts_transfer;
 
   if(0 == myid)
   {
@@ -61,25 +54,10 @@ inline void ReadNelts( ){
 
 
 template<typename T = POI_T>
-inline void ReadVectorOfPoints( vector< pair<T,T> > & points ) {
+inline void ReadVectorOfPoints( vector< pair< T,T >> & points ) {
   for( uint i = 0; i < nelts; i++ ) {
     cin >> points[i].first >> points[i].second;
   }
-}
-
-
-template<typename T = POI_T>
-inline void BroadcastInputToUnits( vector< pair<T,T> > & points ) {
-  dash::team_unit_t TeamUnit0ID = dash::Team::All().myid( );
-  TeamUnit0ID.id = 0;
-  dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( points.data( ) ),  // buf 
-                      points.size( ) * sizeof(pair<T,T>)  ,  // nelts
-                      DART_TYPE_BYTE                      ,  // dtype
-                      TeamUnit0ID                         ,  // root
-                      dash::Team::All().dart_id( )           // team
-                   );
-  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
 }
 
 
@@ -90,15 +68,15 @@ int main( int argc, char* argv[] )
   
   ReadNelts( );
   
-  vector< pair<POI_T, POI_T> > points( nelts );
-  dash::NArray< double, 2 >    matOut( nelts, nelts );
-  dash::Array < double >       vec( nelts );
+  vector< pair<POI_T, POI_T> > points( nelts        );
+  NArray < double, 2 >   matOut( nelts, nelts );
+  Array  < double    >   vec   ( nelts        );
   
   //read input points on unit 0 and broadcast to all units
   if( 0 == myid ) ReadVectorOfPoints( points );
-  BroadcastInputToUnits( points );
+  BroadcastPointsToUnits( points );
   
-  Outer( points, matOut, vec );
+  Outer( points, matOut, vec, nelts );
   PrintOutput(matOut, vec);
 
   dash::finalize( );

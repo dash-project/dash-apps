@@ -1,13 +1,23 @@
-template< typename T, typename X, typename Y>
+#include <vector>
+#include <algorithm>
+
+using std::vector;
+using std::pair;
+using std::make_pair;
+
+using Point = struct{ uint row, col;};
+using uint  = unsigned int ;
+
+
+template< typename T, typename X>
 void winnow(
-  uint const   nrows      ,
-  uint const   ncols      ,
-     T const & randMat    ,
-     X const & threshMask , 
-  uint const   nelts      ,
-     Y       & points     )
-{
-  vector<pair<int, pair<int, int> > > values;
+                        uint const   nrows      ,
+                        uint const   ncols      ,
+                           T const & randMat    ,
+                           X const & threshMask , 
+                        uint const   nelts      ,
+  vector<pair<POI_T, POI_T>>       & points     ){
+  vector< pair<MATRIX_T, pair<POI_T, POI_T>> > values;
   for (int i = 0; i < nrows; i++) {
     for (int j = 0; j < ncols; j++) {
       if (threshMask[i][j]) {
@@ -21,11 +31,8 @@ void winnow(
   size_t chunk = n / nelts;
 
   for (int i = 0; i < nelts; i++) {
-    Point pTmp = points[i];
     int index = i * chunk;
-    pTmp.row = values[index].second.first;
-    pTmp.col = values[index].second.second;
-    points[i] = pTmp;
+    points[i] = values[index].second;
   }
 
 }
