@@ -1,3 +1,7 @@
+// #ifndef DASH_ENABLE_LOGGING
+  // #define DASH_ENABLE_LOGGING
+// #endif
+
 #include <libdash.h>
 #include <iostream>
 
@@ -66,7 +70,7 @@ int main( int argc, char* argv[] )
 
   NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
 
-  Randmat( rand_mat, in.nrows, in.ncols, in.s );
+  Randmat( rand_mat, in.s );
   Print2D( rand_mat );
 
   dash::finalize( );

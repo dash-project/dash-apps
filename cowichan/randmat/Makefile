@@ -5,7 +5,7 @@ all: randmat
 #mpirun -n 4 ./$@ < main.in > rand.out2
 #diff -ws rand.out2 main.gold
 
-randmat: randmat.cpp
+randmat: randmat.cpp randmat.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB)
 

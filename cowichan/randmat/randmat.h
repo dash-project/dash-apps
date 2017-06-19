@@ -17,11 +17,12 @@ using dash::NArray;
 template< typename T = MATRIX_T >
 inline void Randmat(
   NArray< T, 2 >       & rand_mat,
-            uint const   nrows   ,
-            uint const   ncols   ,
             uint const   seed    )
 {
   const int LCG_A = 1664525, LCG_C = 1013904223;
+  
+  uint nrows = rand_mat.local.extent(0); // num of local rows
+  uint ncols = rand_mat.local.extent(1); // num of local cols
 
   auto gc   = rand_mat.pattern( ).global( {0,0} );
   uint gbeg = gc[0];  // global row of local (0,0)

@@ -1,7 +1,3 @@
-/* #ifndef DASH_ENABLE_LOGGING
-#define DASH_ENABLE_LOGGING
-#endif */
-
 #include <libdash.h>
 
 using std::cin;
@@ -50,21 +46,6 @@ inline void ReadNelts( )
 }
 
 
-inline void BroadcastInputToUnits( vector <double> & vec )
-{
-  team_unit_t TeamUnit0ID = Team::All().myid( );
-  TeamUnit0ID.id = 0;
-  dart_ret_t ret = dart_bcast(
-                      static_cast<void*>(vec.data( )),  // buf 
-                      vec.size( )                    ,  // nelts
-                      DART_TYPE_DOUBLE               ,  // dtype
-                      TeamUnit0ID                    ,  // root
-                      Team::All().dart_id( )         ); // team
-                      
-  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
-}
-
-
 int main( int argc, char* argv[] )
 {  
   dash::init( &argc,&argv );
@@ -72,16 +53,16 @@ int main( int argc, char* argv[] )
   
   ReadNelts( );
   
-  NArray < double, 2 > matIn  ( nelts, nelts);
-  Array  < double    > result ( nelts       );
-  vector < double    > vec    ( nelts       );
+  NArray < double, 2 > matIn  ( nelts, nelts );
+  Array  < double    > result ( nelts        );
+  vector < double    > vec    ( nelts        );
  
   //read input on unit 0 and broadcast it
   ReadMatrixAndVector(matIn, vec);
-  BroadcastInputToUnits(vec);
+  BroadcastOuterVecToUnits(vec);
 
-  Product(vec, matIn, result);
-  PrintOutput( result );
+  Product(vec, matIn, result, nelts );
+  PrintOutput( result, nelts );
   
   dash::finalize( );
 }
