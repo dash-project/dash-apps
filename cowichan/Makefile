@@ -282,7 +282,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
 	for (( vThresh=25; vThresh<= 75; vThresh+=6 )) ;                   do \
 	for (( vWinnow_nelts=3; vWinnow_nelts<= 11 ; vWinnow_nelts+=4 )) ; do \
-	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
+	export nRowsCols=8 seed=$$(( 1 + RANDOM % 666 )) thresh=65 winnow_nelts=20;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -379,8 +379,11 @@ test:
 			echo -e $(BLUE)warnings at: $(NC) nRowsCols: $$nRowsCols  seed: $$seed thresh: $$thresh winnow_nelts: $$winnow_nelts >> error.log ;\
 			(( globWarnings += warnings )); warnings=0; fi;\
 		echo --------------------------------------;\
+		break;\
 	done ;\
+	break;\
 	 done ;\
+	 break;\
 	  done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 

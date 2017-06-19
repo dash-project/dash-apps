@@ -39,7 +39,7 @@ inline void Outer(
       }
     }
     matOut.local[i][gRow] = nelts * nmax;
-    vec.local[i] = distance(make_pair(0,0), points[gRow]);
+    vec.local[i] = distance( make_pair(0,0), points[gRow] );
   }
   
   barrier( );

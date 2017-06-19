@@ -1,8 +1,19 @@
-template< typename T >
-inline void PrintOutput( T const & result ) {
+using std::cout;
+using std::endl;
+using std::vector;
+
+using dash::NArray;
+using dash::Array;
+using dash::team_unit_t;
+using dash::Team;
+using dash::barrier;
+
+inline void PrintOutput( Array <double> const & result )
+{
   if(0 == myid){
     cout << nelts << "\n";
     cout << std::showpoint << std::fixed << std::setprecision(4);
+    
     for(auto i : result) {
       cout << static_cast<double>(i) << " ";
     } cout << endl;
@@ -10,20 +21,19 @@ inline void PrintOutput( T const & result ) {
 }
 
 
-template<typename T, typename X, typename Y>
 inline void Product(
-     X const & vec,
-     T const & matIn,
-           Y & result
-    ){
+  vector < double    > const & vec    ,
+  NArray < double, 2 > const & matIn  ,
+  Array  < double    >       & result )
+{
    uint lclRows = matIn.pattern().local_extents()[0];
-   double * res = result.lbegin();
-   double   sum;
-   double const * mPtr;
-   double const * vPtr;
+   double         sum  ;
+   double const * mPtr ;
+   double const * vPtr ;
+   double       * res = result.lbegin();
 
    for(uint i = 0; i < lclRows; ++i){
-     sum = 0;
+     sum  = 0;
      mPtr = matIn.local.row(i).lbegin();
      vPtr = vec.data();
      
@@ -41,5 +51,5 @@ inline void Product(
      *(res++) = sum;
    }
    
-   dash::barrier();
+   barrier();
 }

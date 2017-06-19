@@ -11,12 +11,15 @@
  * parallelized.
  */
 
+using dash::barrier;
+using dash::NArray;
+ 
 template< typename T = MATRIX_T >
 inline void Randmat(
-  dash::NArray< T, 2 >       & rand_mat,
-                  uint const   nrows   ,
-                  uint const   ncols   ,
-                  uint const   seed    )
+  NArray< T, 2 >       & rand_mat,
+            uint const   nrows   ,
+            uint const   ncols   ,
+            uint const   seed    )
 {
   const int LCG_A = 1664525, LCG_C = 1013904223;
 
@@ -33,5 +36,5 @@ inline void Randmat(
       }
     }
   }
-  dash::barrier( );
+  barrier( );
 }

@@ -5,6 +5,8 @@ using std::cout;
 using std::endl;
 using std::cin;
 
+using dash::Shared;
+
 using uint     = unsigned int ;
 using uchar    = unsigned char;
 using MATRIX_T = uchar        ;
@@ -21,7 +23,7 @@ static int myid;
  */
 inline void ReadPars()
 {
-  dash::Shared<InputPar> input_transfer;
+  Shared<InputPar> input_transfer;
   
   if(0 == myid)
   {
@@ -42,7 +44,7 @@ inline void ReadPars()
  * (otherwise uchars would be printed as chars and not as numerics)
  */ 
 template< typename T = MATRIX_T >
-inline void Print2D( dash::NArray< T, 2 > const & mat )
+inline void Print2D( NArray< T, 2 > const & mat )
 {
   if(0==myid){
     for( int i = 0; i < mat.extent(0); i++ ) {
@@ -62,7 +64,7 @@ int main( int argc, char* argv[] )
   myid = dash::myid( );
   ReadPars( );
 
-  dash::NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
+  NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
 
   Randmat( rand_mat, in.nrows, in.ncols, in.s );
   Print2D( rand_mat );

@@ -4,10 +4,8 @@
 
 #include <libdash.h>
 
-using std::cout;
 using std::cin;
-using std::endl;
-using std::vector;
+using dash::Shared;
 
 using uint  = unsigned int;
 
@@ -17,8 +15,10 @@ static int myid;
 #include "product.h"
 
 
-template<typename T, typename X>
-inline void ReadMatrixAndVector(T& matIn, X& vec){
+inline void ReadMatrixAndVector(
+  NArray < double, 2> & matIn,
+  vector < double   > & vec  )
+{
   if( 0 == myid ) {
     //Read Matrix
     double tmp;
@@ -35,9 +35,9 @@ inline void ReadMatrixAndVector(T& matIn, X& vec){
 }
 
 
-inline void ReadNelts( ){
-  
-  dash::Shared<uint> nelts_transfer;
+inline void ReadNelts( )
+{
+  Shared<uint> nelts_transfer;
 
   if(0 == myid)
   {
@@ -50,16 +50,17 @@ inline void ReadNelts( ){
 }
 
 
-inline void BroadcastInputToUnits(vector<double> & vec) {
-  dash::team_unit_t TeamUnit0ID = dash::Team::All().myid( );
+inline void BroadcastInputToUnits( vector <double> & vec )
+{
+  team_unit_t TeamUnit0ID = Team::All().myid( );
   TeamUnit0ID.id = 0;
   dart_ret_t ret = dart_bcast(
                       static_cast<void*>(vec.data( )),  // buf 
                       vec.size( )                    ,  // nelts
                       DART_TYPE_DOUBLE               ,  // dtype
                       TeamUnit0ID                    ,  // root
-                      dash::Team::All().dart_id( )      // team
-                   );
+                      Team::All().dart_id( )         ); // team
+                      
   if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
 }
 
@@ -71,9 +72,9 @@ int main( int argc, char* argv[] )
   
   ReadNelts( );
   
-  dash::NArray<double, 2> matIn(nelts, nelts);
-  dash::Array <double>    result(nelts);
-  vector <double>         vec(nelts);
+  NArray < double, 2 > matIn  ( nelts, nelts);
+  Array  < double    > result ( nelts       );
+  vector < double    > vec    ( nelts       );
  
   //read input on unit 0 and broadcast it
   ReadMatrixAndVector(matIn, vec);

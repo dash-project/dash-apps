@@ -68,9 +68,9 @@ int main( int argc, char* argv[] )
   
   ReadNelts( );
   
-  vector< pair<POI_T, POI_T> > points( nelts        );
-  NArray < double, 2 >   matOut( nelts, nelts );
-  Array  < double    >   vec   ( nelts        );
+  vector < pair<POI_T, POI_T> > points( nelts        );
+  NArray < double, 2          > matOut( nelts, nelts );
+  Array  < double             > vec   ( nelts        );
   
   //read input points on unit 0 and broadcast to all units
   if( 0 == myid ) ReadVectorOfPoints( points );
