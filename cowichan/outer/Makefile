@@ -3,7 +3,7 @@ include ../make.defs
 .PHONY: all
 all: outer
 
-outer: outer.cpp
+outer: outer.cpp outer.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 

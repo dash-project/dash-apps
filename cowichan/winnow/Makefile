@@ -3,7 +3,7 @@ include ../make.defs
 .PHONY: all
 all: main
 
-main: main.cpp
+main: main.cpp winnow_placeholder.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 

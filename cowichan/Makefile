@@ -8,7 +8,7 @@ GO_ROOT   = baSrcPaper/go
 CHPL_ROOT = baSrcPaper/chapel
 CILK_ROOT = baSrcPaper/cilk
 TBB_ROOT  = baSrcPaper/tbb
-SUBDIRS   = randmat thresh winnow outer product
+SUBDIRS   = randmat thresh winnow outer product chain
 
 # Color Codes
 BLUE='\033[0;34m'
@@ -80,17 +80,17 @@ $(SUBDIRS):
 ####################     <GO>      ##############################
 .PHONY: go go-clean $(SUBDIRS:%=go-%) $(SUBDIRS:%=go-clean-%)
 #### ------------------------------------------------------------
-go-clean: $(SUBDIRS:%=go-clean-%) go-clean-chain
-$(SUBDIRS:%=go-clean-%) go-clean-chain:
+go-clean: $(SUBDIRS:%=go-clean-%)
+$(SUBDIRS:%=go-clean-%):
 	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertpar/main
 
 go:
 	@echo -e making ... $(BLUE)GO$(NC)
 	@$(MAKE) --no-print-directory go_
 
-go_:$(SUBDIRS:%=go-%) go-chain
+go_:$(SUBDIRS:%=go-%)
 
-$(SUBDIRS:%=go-%) go-chain:
+$(SUBDIRS:%=go-%):
 	@$(MAKE) --no-print-directory -C $(GO_ROOT)/$(@:go-%=%)/expertpar main
 ####################     </GO>     ##############################
 ####################    <Chapel>   ##############################
@@ -101,13 +101,13 @@ chpl:
 	if [[ $$CC == *icc ]] ; then module swap intel gnu; fi;\
 	$(MAKE) --no-print-directory chpl_
 
-chpl_: $(SUBDIRS:%=chpl-%) chpl-chain
+chpl_: $(SUBDIRS:%=chpl-%)
 
-$(SUBDIRS:%=chpl-%) chpl-chain:
+$(SUBDIRS:%=chpl-%):
 	@$(MAKE) --no-print-directory -C $(CHPL_ROOT)/$(@:chpl-%=%)/expertpar main
 
-chpl-clean: $(SUBDIRS:%=chpl-clean-%) chpl-clean-chain
-$(SUBDIRS:%=chpl-clean-%) chpl-clean-chain:
+chpl-clean: $(SUBDIRS:%=chpl-clean-%)
+$(SUBDIRS:%=chpl-clean-%):
 	-rm $(CHPL_ROOT)/$(@:chpl-clean-%=%)/expertpar/main
 ####################    </Chapel>  ##############################
 ####################     <Cilk>    ##############################
@@ -118,23 +118,18 @@ cilk:
 	if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
 	$(MAKE) --no-print-directory cilk_
 
-cilk_: $(SUBDIRS:%=cilk-%) cilk-chain
+cilk_: $(SUBDIRS:%=cilk-%)
 
-$(SUBDIRS:%=cilk-%) cilk-chain:
+$(SUBDIRS:%=cilk-%):
 	@$(MAKE) --no-print-directory -C $(CILK_ROOT)/$(@:cilk-%=%)/expertpar main
 
-cilk-clean: $(SUBDIRS:%=cilk-clean-%) cilk-clean-chain
-
-cilk-clean-chain:
-	-rm $(CILK_ROOT)/chain/expertpar/main
-	-rm $(CILK_ROOT)/chain/expertpar/randmat.o
-	-rm $(CILK_ROOT)/chain/expertpar/thresh.o
-	-rm $(CILK_ROOT)/chain/expertpar/winnow.o
-	-rm $(CILK_ROOT)/chain/expertpar/outer.o
-	-rm $(CILK_ROOT)/chain/expertpar/product.o
+cilk-clean: $(SUBDIRS:%=cilk-clean-%) cilk-clean-chain_
 
 $(SUBDIRS:%=cilk-clean-%):
 	-rm $(CILK_ROOT)/$(@:cilk-clean-%=%)/expertpar/main
+
+cilk-clean-chain_:
+	-rm $(CILK_ROOT)/chain/expertpar/*.o
 ####################    </Cilk>    ##############################
 ####################     <TBB>     ##############################
 .PHONY: tbb tbb_ tbb-clean $(SUBDIRS:%=tbb-%) $(SUBDIRS:%=tbb-clean-%)
@@ -144,23 +139,18 @@ tbb:
 	if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
 	$(MAKE) --no-print-directory tbb_
 
-tbb_: $(SUBDIRS:%=tbb-%) tbb-chain
+tbb_: $(SUBDIRS:%=tbb-%)
 
-$(SUBDIRS:%=tbb-%) tbb-chain:
+$(SUBDIRS:%=tbb-%):
 	@$(MAKE) --no-print-directory -C $(TBB_ROOT)/$(@:tbb-%=%)/expertpar main
 
-tbb-clean: $(SUBDIRS:%=tbb-clean-%) tbb-clean-chain
-
-tbb-clean-chain:
-	-rm $(TBB_ROOT)/chain/expertpar/main
-	-rm $(TBB_ROOT)/chain/expertpar/randmat.o
-	-rm $(TBB_ROOT)/chain/expertpar/thresh.o
-	-rm $(TBB_ROOT)/chain/expertpar/winnow.o
-	-rm $(TBB_ROOT)/chain/expertpar/outer.o
-	-rm $(TBB_ROOT)/chain/expertpar/product.o
+tbb-clean: $(SUBDIRS:%=tbb-clean-%) tbb-clean-chain_
 
 $(SUBDIRS:%=tbb-clean-%):
 	-rm $(TBB_ROOT)/$(@:tbb-clean-%=%)/expertpar/main
+	
+tbb-clean-chain_:
+	-rm $(TBB_ROOT)/chain/expertpar/*.o
 ####################    </TBB>     ##############################
 ################   <Validation Test>   ##########################
 run_results:; mkdir -p run_results
@@ -183,13 +173,14 @@ dash-run: | run_results
 
 dash-run_:
 	@echo $(nRowsCols) $(nRowsCols) > run_results/dash_randmat_out
-	@echo $(nRowsCols) $(nRowsCols) $(seed) | ./randmat/randmat >> run_results/dash_randmat_out
-	@{ cat run_results/dash_randmat_out; echo $(thresh); } | ./thresh/thresh > run_results/dash_thresh_out
+	@echo $(nRowsCols) $(nRowsCols) $(seed) | mpirun -n $(JOBS) ./randmat/randmat >> run_results/dash_randmat_out
+	@{ cat run_results/dash_randmat_out; echo $(thresh); } | mpirun -n $(JOBS) ./thresh/thresh > run_results/dash_thresh_out
 #@x=$$(<run_results/dash_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/dash_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/dash_thresh_out
-	@cat run_results/dash_randmat_out run_results/dash_thresh_out | ./winnow/main > run_results/dash_winnow_out
-	@./outer/outer < run_results/dash_winnow_out > run_results/dash_outer_out
-	@./product/product < run_results/dash_outer_out > run_results/dash_product_out
+	@cat run_results/dash_randmat_out run_results/dash_thresh_out | mpirun -n $(JOBS) ./winnow/main > run_results/dash_winnow_out
+	@mpirun -n $(JOBS) ./outer/outer < run_results/dash_winnow_out > run_results/dash_outer_out
+	@mpirun -n $(JOBS) ./product/product < run_results/dash_outer_out > run_results/dash_product_out
+	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | mpirun -n $(JOBS) ./chain/chain > run_results/dash_chain_out
 
 
 .PHONY: chpl-run chpl-run_ chpl-run-randmat
@@ -201,14 +192,14 @@ chpl-run:| run_results
 
 chpl-run_:
 	@echo $(nRowsCols) $(nRowsCols) > run_results/chpl_randmat_out
-	@echo $(nRowsCols) $(nRowsCols) $(seed) | $(CHPL_ROOT)/randmat/expertpar/main >> run_results/chpl_randmat_out
-	@{ cat run_results/chpl_randmat_out; echo $(thresh); } | $(CHPL_ROOT)/thresh/expertpar/main > run_results/chpl_thresh_out
+	@echo $(nRowsCols) $(nRowsCols) $(seed) | $(CHPL_ROOT)/randmat/expertpar/main --dataParTasksPerLocale=$(JOBS) >> run_results/chpl_randmat_out
+	@{ cat run_results/chpl_randmat_out; echo $(thresh); } | $(CHPL_ROOT)/thresh/expertpar/main --dataParTasksPerLocale=$(JOBS) > run_results/chpl_thresh_out
 #@x=$$(<run_results/chpl_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/chpl_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/chpl_thresh_out
-	@cat run_results/chpl_randmat_out run_results/chpl_thresh_out | $(CHPL_ROOT)/winnow/expertpar/main > run_results/chpl_winnow_out
-	@$(CHPL_ROOT)/outer/expertpar/main < run_results/chpl_winnow_out > run_results/chpl_outer_out
-	@$(CHPL_ROOT)/product/expertpar/main < run_results/chpl_outer_out > run_results/chpl_product_out
-	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | $(CHPL_ROOT)/chain/expertpar/main > run_results/chpl_chain_out
+	@cat run_results/chpl_randmat_out run_results/chpl_thresh_out | $(CHPL_ROOT)/winnow/expertpar/main --dataParTasksPerLocale=$(JOBS) > run_results/chpl_winnow_out
+	@$(CHPL_ROOT)/outer/expertpar/main --dataParTasksPerLocale=$(JOBS) < run_results/chpl_winnow_out > run_results/chpl_outer_out
+	@$(CHPL_ROOT)/product/expertpar/main --dataParTasksPerLocale=$(JOBS) < run_results/chpl_outer_out > run_results/chpl_product_out
+	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | $(CHPL_ROOT)/chain/expertpar/main --dataParTasksPerLocale=$(JOBS) > run_results/chpl_chain_out
 
 
 .PHONY: go-run go-run_ go-run-randmat
@@ -238,14 +229,14 @@ cilk-run: |run_results
 
 cilk-run_:
 	@echo $(nRowsCols) $(nRowsCols) > run_results/cilk_randmat_out
-	@echo $(nRowsCols) $(nRowsCols) $(seed) | $(CILK_ROOT)/randmat/expertpar/main >> run_results/cilk_randmat_out
-	@{ cat run_results/cilk_randmat_out; echo $(thresh); } | $(CILK_ROOT)/thresh/expertpar/main > run_results/cilk_thresh_out
+	@echo $(nRowsCols) $(nRowsCols) $(seed) | $(CILK_ROOT)/randmat/expertpar/main --nproc $(JOBS) >> run_results/cilk_randmat_out
+	@{ cat run_results/cilk_randmat_out; echo $(thresh); } | $(CILK_ROOT)/thresh/expertpar/main --nproc $(JOBS) > run_results/cilk_thresh_out
 #@x=$$(<run_results/cilk_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/cilk_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/cilk_thresh_out
-	@cat run_results/cilk_randmat_out run_results/cilk_thresh_out | $(CILK_ROOT)/winnow/expertpar/main > run_results/cilk_winnow_out
-	@$(CILK_ROOT)/outer/expertpar/main < run_results/cilk_winnow_out > run_results/cilk_outer_out
-	@$(CILK_ROOT)/product/expertpar/main < run_results/cilk_outer_out > run_results/cilk_product_out
-	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | $(CILK_ROOT)/chain/expertpar/main > run_results/cilk_chain_out
+	@cat run_results/cilk_randmat_out run_results/cilk_thresh_out | $(CILK_ROOT)/winnow/expertpar/main --nproc $(JOBS) > run_results/cilk_winnow_out
+	@$(CILK_ROOT)/outer/expertpar/main --nproc $(JOBS) < run_results/cilk_winnow_out > run_results/cilk_outer_out
+	@$(CILK_ROOT)/product/expertpar/main --nproc $(JOBS) < run_results/cilk_outer_out > run_results/cilk_product_out
+	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | $(CILK_ROOT)/chain/expertpar/main --nproc $(JOBS) > run_results/cilk_chain_out
 
 
 .PHONY: tbb-run tbb-run_ tbb-run-randmat
@@ -257,14 +248,14 @@ tbb-run:| run_results
 
 tbb-run_:
 	@echo $(nRowsCols) $(nRowsCols) > run_results/tbb_randmat_out
-	@echo $(nRowsCols) $(nRowsCols) $(seed) | $(TBB_ROOT)/randmat/expertpar/main >> run_results/tbb_randmat_out
-	@{ cat run_results/tbb_randmat_out; echo $(thresh); } | $(TBB_ROOT)/thresh/expertpar/main > run_results/tbb_thresh_out
+	@echo $(nRowsCols) $(nRowsCols) $(seed) | $(TBB_ROOT)/randmat/expertpar/main --threads $(JOBS) >> run_results/tbb_randmat_out
+	@{ cat run_results/tbb_randmat_out; echo $(thresh); } | $(TBB_ROOT)/thresh/expertpar/main --threads $(JOBS) > run_results/tbb_thresh_out
 #@x=$$(<run_results/tbb_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/tbb_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/tbb_thresh_out
-	@cat run_results/tbb_randmat_out run_results/tbb_thresh_out | $(TBB_ROOT)/winnow/expertpar/main > run_results/tbb_winnow_out
-	@$(TBB_ROOT)/outer/expertpar/main < run_results/tbb_winnow_out > run_results/tbb_outer_out
-	@$(TBB_ROOT)/product/expertpar/main < run_results/tbb_outer_out > run_results/tbb_product_out
-	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | $(TBB_ROOT)/chain/expertpar/main > run_results/tbb_chain_out
+	@cat run_results/tbb_randmat_out run_results/tbb_thresh_out | $(TBB_ROOT)/winnow/expertpar/main --threads $(JOBS) > run_results/tbb_winnow_out
+	@$(TBB_ROOT)/outer/expertpar/main --threads $(JOBS) < run_results/tbb_winnow_out > run_results/tbb_outer_out
+	@$(TBB_ROOT)/product/expertpar/main --threads $(JOBS) < run_results/tbb_outer_out > run_results/tbb_product_out
+	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | $(TBB_ROOT)/chain/expertpar/main --threads $(JOBS) > run_results/tbb_chain_out
 
 
 
@@ -272,8 +263,8 @@ SUCCESS:=$(GREEN)SUCCESS$(NC)
 FAILURE:=$(RED)FAILURE$(NC)
 
 
-#export nRowsCols=8 seed=$$(( 1 + RANDOM % 666 )) thresh=33 winnow_nelts=10;\
-#export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts;\
+# export nRowsCols=8 seed=$$(( 1 + RANDOM % 666 )) thresh=33 winnow_nelts=10 JOBS=4;\
+# export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=4;\
 
 .PHONY: test
 test:
@@ -282,7 +273,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
 	for (( vThresh=25; vThresh<= 75; vThresh+=6 )) ;                   do \
 	for (( vWinnow_nelts=3; vWinnow_nelts<= 11 ; vWinnow_nelts+=4 )) ; do \
-	export nRowsCols=8 seed=$$(( 1 + RANDOM % 666 )) thresh=65 winnow_nelts=20;\
+	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=4;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -371,19 +362,20 @@ test:
 			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_chain_out run_results/chpl_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc ));\
 			elif [[ $$(numdiff -a 0.1    run_results/tbb_chain_out run_results/chpl_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
 			else echo -e $(RED)"Chapel chain output differs from TBB chain Output!"$(NC); fi;\
+		if [[     $$(        diff -swB run_results/tbb_chain_out run_results/dash_chain_out)    == *are\ identical* ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.9e-2 run_results/tbb_chain_out run_results/dash_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc ));\
+			elif [[ $$(numdiff -a 0.1    run_results/tbb_chain_out run_results/dash_chain_out)    == *are\ equal*     ]] ;then (( ++subsucc )); (( ++warnings ));\
+			else echo -e $(RED)"DASH chain output differs from TBB chain Output!"$(NC); fi;\
 		case $$subsucc in \
-			4) (( ++succ )) ; echo -e $(GREEN)"chain   comparison without differences."$(NC);;\
+			5) (( ++succ )) ; echo -e $(GREEN)"chain   comparison without differences."$(NC);;\
 			*) (( ++fail )) ; echo -e $(RED)"error at chain comparison with: "$(NC) "nRowsCols:" $$nRowsCols " seed:" $$seed " thresh:" $$thresh " winnow_nelts:" $$winnow_nelts >> error.log ;;\
 		esac;\
 		if (( warnings > 0 )) ;then\
 			echo -e $(BLUE)warnings at: $(NC) nRowsCols: $$nRowsCols  seed: $$seed thresh: $$thresh winnow_nelts: $$winnow_nelts >> error.log ;\
 			(( globWarnings += warnings )); warnings=0; fi;\
 		echo --------------------------------------;\
-		break;\
 	done ;\
-	break;\
 	 done ;\
-	 break;\
 	  done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 

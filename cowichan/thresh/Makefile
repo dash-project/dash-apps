@@ -3,7 +3,7 @@ include ../make.defs
 .PHONY: all
 all: thresh
 
-thresh: thresh.cpp
+thresh: thresh.cpp thresh.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 

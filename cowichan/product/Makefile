@@ -3,7 +3,7 @@ include ../make.defs
 .PHONY: all
 all: product
 
-product: product.cpp
+product: product.cpp product.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 

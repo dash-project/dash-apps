@@ -1,7 +1,3 @@
-// #ifndef DASH_ENABLE_LOGGING
-  // #define DASH_ENABLE_LOGGING
-// #endif
-
 #include <libdash.h>
 #include <iostream>
 
