@@ -42,7 +42,7 @@ void hackgrav(bodyptr p, long ProcessId)
 {
   // Skip the body itself as a body cannot apply some forces to itself
   Local.pskip = p;
-  auto p_val  = static_cast<body>(*p);
+  body p_val  = *p;
   SETV(Local.pos0, p_val.pos);
   Local.phi0 = 0.0;
   CLRV(Local.acc0);
@@ -109,8 +109,8 @@ void gravsub(nodeptr p, long ProcessId)
 
 void hackwalk(long ProcessId)
 {
-  walksub(static_cast<cellptr>(G_root.get()),
-          static_cast<real>(rsize.get()) * rsize.get(), ProcessId);
+  walksub(G_root.get().get(),
+          rsize.get().get() * rsize.get().get(), ProcessId);
 }
 
 /*

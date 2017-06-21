@@ -262,10 +262,16 @@ typedef real matrix[NDIM][NDIM];
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (s); \
   }
 
-#define PRTV(name, vec) /* PRinT Vector */                         \
-  {                                                                \
-std::cout << name << " = [" << vec[0] << "," << vec[1] << "," << vec[2] << "] "; \
-}
+#define PRTV(name, vec) /* PRinT Vector */                                  \
+  {                                                                         \
+    std::cout << name << " = [" << vec[0] << "," << vec[1] << "," << vec[2] \
+              << "] ";                                                      \
+  }
+#define PRTV_SS(ss, name, vec) /* PRinT Vector */                    \
+  {                                                                  \
+    ss << name << " = [" << vec[0] << "," << vec[1] << "," << vec[2] \
+       << "] ";                                                      \
+  }
 #define PRIV(name, vec) /* PRint Integer Vector */                     \
   {                                                                    \
     fprintf(stdout, "%s = [%d,%d,%d] ", name, vec[0], vec[1], vec[2]); \

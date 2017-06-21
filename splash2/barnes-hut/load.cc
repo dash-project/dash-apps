@@ -43,10 +43,6 @@ void maketree(long ProcessId)
   }
   // The processes remotely access the root
   Local.Current_Root = G_root.get().get();
-  if (Type(*(Local.Current_Root)) == CELL) {
-    std::cout << static_cast<cell>(*NODE_AS_CELL(Local.Current_Root))
-              << std::endl;
-  }
 
   for (bodyptr *pp = Local.mybodytab; pp < Local.mybodytab + Local.mynbody;
        ++pp) {
@@ -56,11 +52,6 @@ void maketree(long ProcessId)
     if (pmass != 0.0) {
       Local.Current_Root =
           loadtree(p, static_cast<cellptr>(Local.Current_Root), ProcessId);
-
-      if (Type(*(Local.Current_Root)) == CELL) {
-        std::cout << static_cast<cell>(*NODE_AS_CELL(Local.Current_Root))
-                  << std::endl;
-      }
     }
     else {
       /*
@@ -125,40 +116,34 @@ void printtree(nodeptr n)
   leaf l_val;
   leafptr l;
   bodyptr p;
-  long nseq;
+  //long nseq;
   long const type = Type(*n);
+  std::ostringstream ss;
   switch (type) {
     case CELL:
       c     = NODE_AS_CELL(n);
       c_val = static_cast<cell>(*c);
-      nseq  = c_val.seqnum;
-      // printf("Cell : Cost = %ld, ", c_val.cost);
+      //nseq  = c_val.seqnum;
       std::cout << "Cell : Cost = " << c_val.cost << ", ";
-      PRTV("Pos", c_val.pos);
+      PRTV( "Pos", c_val.pos);
       std::cout << "\n";
       for (k = 0; k < NSUB; k++) {
-        // printf("Child #%ld: ", k);
-        std::cout << "Child #" << k << ":";
+        std::cout << "Child #" << k << ": ";
         if (!c_val.subp[k]) {
-          // printf("NONE");
           std::cout << "NONE";
         }
         else {
           if (Type(*(c_val.subp[k])) == CELL) {
-            // nseq = SeqnumC(*(c_val.subp[k]));
             std::cout << "C: Cost = " << static_cast<long>(Cost(*(c_val.subp[k]))) << ", ";
-            // printf("C: Cost = %ld, ", );
           }
           else {
             auto const leaf_val = (*NODE_AS_LEAF(c_val.subp[k])).get();
-            nseq                = leaf_val.seqnum;
-            // printf("L: # Bodies = %2ld, Cost = %ld, ", leaf_val.num_bodies,
-            //       leaf_val.cost);
+       //     nseq                = leaf_val.seqnum;
             std::cout << "L: # Bodies = " << leaf_val.num_bodies
                       << ", Cost = " << leaf_val.cost << ", ";
           }
           auto tmp = (*(c_val.subp[k])).get();
-          PRTV("Pos", tmp.pos);
+          PRTV( "Pos", tmp.pos);
         }
         std::cout << "\n";
       }
@@ -171,29 +156,24 @@ void printtree(nodeptr n)
     case LEAF:
       l     = NODE_AS_LEAF(n);
       l_val = static_cast<leaf>(*l);
-      nseq  = l_val.seqnum;
-      // printf("Leaf : # Bodies = %2ld, Cost = %ld, ", l_val.num_bodies,
-      //      l_val.cost);
+      //nseq  = l_val.seqnum;
       std::cout << "Leaf : # Bodies = " << l_val.num_bodies
-                << ", Cost = " << l_val.cost;
-      PRTV("Pos", l_val.pos);
+                << ", Cost = " << l_val.cost << " ";
+      PRTV( "Pos", l_val.pos);
       std::cout << "\n";
       for (k = 0; k < l_val.num_bodies; k++) {
         p = l_val.bodyp[k];
-        // printf("Body #%2ld: Num = %2ld, Level = %ld, ",
-        //       p - static_cast<bodyptr>(bodytab.begin()), k, Level(*p));
 
         auto const p_val = (*p).get();
 
         std::cout << "Body #" << p - static_cast<bodyptr>(bodytab.begin())
                   << ", Num = " << k << ", Level = " << p_val.level << ", ";
-        PRTV("Pos", p_val.pos);
+        PRTV( "Pos", p_val.pos);
         std::cout << "\n";
       }
       break;
     default:
       std::cerr << "Bad type\n";
-      // fprintf(stderr, "Bad type\n");
       exit(-1);
       break;
   }
@@ -215,11 +195,9 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
   leafptr le;
 
   auto body_val = static_cast<body>(*p);
-  std::cout << body_val << std::endl;
   auto root_val = static_cast<cell>(*root);
   // get integerized coords of real position in space
   intcoord(xp, body_val.pos);
-  std::cout << body_val;
   valid_root = TRUE;
   for (i = 0; i < NDIM; i++) {
     // initial root coords at first step are (0, 0, 0) and update at each
@@ -312,7 +290,6 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
       if (*qptr == nullgptr) {
         // insert particle into the cell, treat the cell as a leaf
         le = InitLeaf(static_cast<cellptr>(mynode), ProcessId);
-        std::cout << "leaf pointer: " << le << std::endl;
         auto le_val = static_cast<leaf>(*le);
 
         body_val.parent = le;
@@ -332,7 +309,6 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         // cast as a cell
         *NODE_AS_CELL(mynode) = mynode_val;
         auto const tmp        = static_cast<cell>(*NODE_AS_CELL(mynode));
-        std::cout << "tmp pointer: " << tmp.subp[kidIndex] << std::endl;
         assert(tmp.subp[kidIndex] == le);
       }
       CellLock.at(mynode_val.seqnum % MAXLOCK).unlock();
@@ -462,6 +438,9 @@ void hackcofm(long ProcessId)
   /* the cell array; i.e. reverse of the order in which they were created */
   /* this way, we look at child cells before parents       */
 
+  dash::GlobRef<cellptr> cellptr_ref = G_root.get();
+  cellptr cellptr_val = cellptr_ref.get();
+
   for (ll = Local.myleaftab + Local.mynleaf - 1; ll >= Local.myleaftab;
        ll--) {
     l          = *ll;
@@ -503,6 +482,10 @@ void hackcofm(long ProcessId)
   for (cc = Local.mycelltab + Local.myncell - 1; cc >= Local.mycelltab;
        cc--) {
     q          = *cc;
+
+    if (cellptr_val == q) {
+//      std::cout << "I am here" << std::endl;
+    }
     auto q_val = static_cast<cell>(*q);
     q_val.mass = 0.0;
     q_val.cost = 0;
@@ -513,11 +496,16 @@ void hackcofm(long ProcessId)
         while (!(static_cast<long>(AtomicDone(*r)))) {
           /* wait */
         }
-        auto const r_val = static_cast<cell>(*(NODE_AS_CELL(r)));
+        cell const r_val = *(NODE_AS_CELL(r));
+        //std::cout << "rval:\n" << r_val << std::endl;
         q_val.mass += r_val.mass;
         q_val.cost += r_val.cost;
         MULVS(tmpv, r_val.pos, r_val.mass);
-        ADDV(q_val.pos, r_val.pos, tmpv);
+        //std:: cout << "[" << tmpv[0] << ", " << tmpv[1] << ", " << tmpv[2] << "]" << std::endl;
+        ADDV(q_val.pos, q_val.pos, tmpv);
+    if (cellptr_val == q) {
+      //std::cout << "Value of q_val is::\n" << q_val << std::endl;
+    }
         AtomicDone(*r) = FALSE;
       }
     }
@@ -542,6 +530,9 @@ void hackcofm(long ProcessId)
     }
 #endif
     *q             = q_val;
+    if (cellptr_val == q) {
+      //std::cout << "Value of qval before write back is:\n" << q_val << std::endl;
+    }
     AtomicDone(*q) = TRUE;
   }
 }

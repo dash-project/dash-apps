@@ -71,7 +71,6 @@ Command line options:
 #include <unistd.h>
 #include <cstdlib>
 
-//#include <libdash.h>
 #include "code.h"
 #include "defs.h"
 #include "getparam.h"
@@ -333,9 +332,9 @@ std::ostream &operator<<(std::ostream &os, const cell &c)
 {
   os << "{"
      << "type: " << c.type << ", "
-     << "mass: " << std::setprecision(7) << std::fixed << c.mass << ", "
-     << "pos: [" << std::setprecision(5) << std::fixed << c.pos[0] << ", "
-     << c.pos[1] << ", " << c.pos[2] << "], "
+     << "mass: " << std::setprecision(7) << c.mass << ", "
+     << "pos: [" << std::scientific << c.pos[0] << ", " << c.pos[1] << ", "
+     << c.pos[2] << "], "
      << "cost: " << c.cost << ", "
      << "level: " << c.level << ", "
      << "child_num: " << c.child_num << ", "
@@ -361,7 +360,7 @@ int main(int argc, char *argv[])
   long c;
   dash::init(&argc, &argv);
 
-#if 1
+#if 0
   int wait = 1;
   while (wait)
     ;
@@ -698,10 +697,11 @@ void SlaveStart()
   while (Local.tnow < tstop_val + 0.1 * dtime_val) {
     stepsystem(ProcessId);
     if (ProcessId == 0) {
-      printtree(G_root.get().get());
-      printf("Going to next step!!!\n");
+      // printtree(G_root.get().get());
+      // printf("Going to next step!!!\n");
     }
   }
+  printtree(G_root.get().get());
 }
 
 void startrun()
@@ -809,11 +809,6 @@ void testdata()
     *iter = p;
   }
 
-  for (auto iter = bodytab.begin(); iter < bodytab.begin() + halfnbody;
-       ++iter) {
-    std::cout << static_cast<body>(*iter) << std::endl;
-  }
-
   offset = 4.0;
 
   for (auto iter = bodytab.begin() + halfnbody;
@@ -825,8 +820,6 @@ void testdata()
     p.child_num = 0;
 
     auto const cp = static_cast<body>(*(iter - halfnbody));
-    std::cout << "body: " << p << std::endl;
-    std::cout << "cp: " << cp << std::endl;
     for (i = 0; i < NDIM; i++) {
       p.pos[i] = cp.pos[i] + offset;
       p.vel[i] = cp.vel[i];
@@ -834,11 +827,6 @@ void testdata()
     ADDV(cmr, cmr, p.pos);
     ADDV(cmv, cmv, p.vel);
     *iter = p;
-  }
-
-  for (auto iter = bodytab.begin() + halfnbody;
-       iter < bodytab.begin() + nbody; ++iter) {
-    std::cout << static_cast<body>(*iter) << std::endl;
   }
 
   DIVVS(cmr, cmr, (real)nbody);
@@ -849,7 +837,6 @@ void testdata()
     SUBV(p.pos, p.pos, cmr);
     SUBV(p.vel, p.vel, cmv);
     *iter = p;
-    std::cout << p << std::endl;
   }
 }
 
@@ -943,9 +930,13 @@ void stepsystem(long ProcessId)
     treebuildstart = Timer::Now();
   }
 
+  // std::cout << "BEFORE MAKETREE:" << std::endl;
+  // printtree(G_root.get().get());
   /* load bodies into tree   */
   maketree(ProcessId);
-  printtree(G_root.get().get());
+  // std::cout << "AFTER MAKETREE:" << std::endl;
+  // printtree(G_root.get().get());
+  // std::cout << cell_ref.get();
   /*
   if ((ProcessId == 0) && (Local[ProcessId].nstep >= 2)) {
     {
@@ -967,10 +958,10 @@ void stepsystem(long ProcessId)
 
   Housekeep(ProcessId);
 
-  Cavg          = (real)Cost(G_root.get()) / nprocs;
-  Local.workMin = (long)(Cavg * ProcessId);
-  Local.workMax =
-      (long)(Cavg * (ProcessId + 1) + (ProcessId == (nprocs - 1)));
+  Cavg =
+      static_cast<real>(Cost(*(static_cast<cellptr>(G_root.get())))) / nprocs;
+  Local.workMin = Cavg * ProcessId;
+  Local.workMax = (Cavg * (ProcessId + 1) + (ProcessId == (nprocs - 1)));
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -987,7 +978,7 @@ void stepsystem(long ProcessId)
   }
 
   Local.mynbody = 0;
-  find_my_bodies(static_cast<cellptr>(G_root.get()), 0, BRC_FUC, ProcessId);
+  find_my_bodies(G_root.get().get(), 0, BRC_FUC, ProcessId);
 
   /*     B*RRIER(Global->Barcom,NPROC); */
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
@@ -1024,6 +1015,8 @@ void stepsystem(long ProcessId)
   }
 
   ComputeForces(ProcessId);
+
+  // printtree(G_root.get().get());
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -1142,7 +1135,7 @@ void stepsystem(long ProcessId)
     a_tracktime.add(trackend - trackstart);
   }
   if (ProcessId == 0) {
-    auto rsize_val = 0;
+    real rsize_val = 0;
 
     auto tmp_max   = static_cast<sh_vec>(max.get());
     vector max_vec = {tmp_max.x, tmp_max.y, tmp_max.z};
@@ -1169,10 +1162,11 @@ void stepsystem(long ProcessId)
     SETVS(min_vec, 1E99);
     SETVS(max_vec, -1E99);
     min.set({min_vec[0], min_vec[1], min_vec[2]});
-    max.set({min_vec[0], min_vec[1], min_vec[2]});
+    max.set({max_vec[0], max_vec[1], max_vec[2]});
   }
   Local.nstep++;
-  Local.tnow = Local.tnow + dtime.get();
+  Local.tnow += dtime.get();
+  // printtree(G_root.get().get());
 }
 
 void ComputeForces(long ProcessId)
@@ -1183,10 +1177,12 @@ void ComputeForces(long ProcessId)
   for (pp = Local.mybodytab; pp < Local.mybodytab + Local.mynbody; pp++) {
     p = *pp;
     DASH_ASSERT(p);
-    auto p_val = static_cast<body>(*p);
+    body p_val = *p;
     SETV(acc1, p_val.acc);
-    p_val.cost = 0;
+    Cost(*p) = 0;
     hackgrav(p, ProcessId);
+    // reload p_val since the global pointer p is modified
+    p_val = *p;
     Local.myn2bcalc += Local.myn2bterm;
     Local.mynbccalc += Local.mynbcterm;
     if (!Local.skipself) { /*   did we miss self-int?  */
@@ -1253,7 +1249,7 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
         }
         Local.mybodytab[Local.mynbody++] = l_val.bodyp[i];
       }
-      work += Cost(*(l_val.bodyp[i]));
+      work += Cost(*(l_val.bodyp[i])).get();
       if (work >= Local.workMax - .1) {
         break;
       }
@@ -1265,7 +1261,7 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
 
       auto qptr = mycell_val.subp[Child_Sequence[direction][i]];
       if (qptr) {
-        auto const cost = Cost(*qptr);
+        auto const cost = Cost(*qptr).get();
         if ((work + cost) >= (Local.workMin - .1)) {
           find_my_bodies(qptr, work, Direction_Sequence[direction][i],
                          ProcessId);
