@@ -143,6 +143,7 @@ finish_exchange_externals(MatrixType& A, VectorType& x)
   //
   // Complete the puts issued above
   //
+  constexpr const int one = 1;
 
   const int num_neighbors = A.neighbors.size();
   // complete put operations
@@ -151,8 +152,9 @@ finish_exchange_externals(MatrixType& A, VectorType& x)
   const std::vector<int>& neighbors = A.neighbors;
   // signal completion
   for(int i=0; i<num_neighbors; ++i) {
-    A.signal[neighbors[i]].add(1);
+    A.signal.async[neighbors[i]].add(&one);
   }
+  A.signal.flush_all();
   auto sig = A.signal[dash::myid()];
   while (!sig.compare_exchange(num_neighbors, 0)) {};
 

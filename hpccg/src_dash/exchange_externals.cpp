@@ -40,7 +40,7 @@ using std::endl;
 void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
 {
   // Extract Matrix pieces
-
+  constexpr const int one = 1;
   int local_nrow = A->local_nrow;
   int num_neighbors = A->num_send_neighbors;
   int * send_length = A->send_length;
@@ -80,8 +80,9 @@ void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
 
   // signal completion to neighors
   for(int i=0; i<num_neighbors; ++i) {
-    A->signal[neighbors[i]].add(1);
+    A->signal.async[neighbors[i]].add(&one);
   }
+  A->signal.flush();
 
   // ... and wait for completion of neighbors
   auto sig = A->signal[dash::myid()];
