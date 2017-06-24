@@ -678,6 +678,19 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 //    }
 //  }
 
+  int max_recv_neighbors;
+  int min_recv_neighbors;
+  int sum_recv_neighbors;
+  MPI_Reduce(&num_recv_neighbors, &max_recv_neighbors, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_recv_neighbors, &min_recv_neighbors, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_recv_neighbors, &sum_recv_neighbors, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  if (dash::myid() == 0) {
+    std::cout << "Number of neighbors:\n"
+              << "\t max: " << max_recv_neighbors << "\n"
+              << "\t min: " << min_recv_neighbors << "\n"
+              << "\t avg: " << static_cast<double>(sum_recv_neighbors) / dash::size() << std::endl;
+  }
 
   ////////////////
   // Finish up !!
