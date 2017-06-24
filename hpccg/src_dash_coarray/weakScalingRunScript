@@ -6,9 +6,9 @@
 
 test -x "./test_HPCCG" || { echo "executable not found"; exit 1; }
 
-mpirun -np 1 test_HPCCG 64 64 64  | tee weakOut_01
-mpirun -np 2 test_HPCCG 64 64 64  | tee weakOut_02
-mpirun -np 4 test_HPCCG 64 64 64  | tee weakOut_04
-mpirun -np 8 test_HPCCG 64 64 64  | tee weakOut_08
-mpirun -np 16 test_HPCCG 64 64 64 | tee weakOut_16
-mpirun -np 64 test_HPCCG 64 64 64 | tee weakOut_64
+mpirun -np 1 ./test_HPCCG 64 64 64  | tee weakOut_01
+mpirun -np 2 ./test_HPCCG 64 64 64  | tee weakOut_02
+mpirun -np 4 ./test_HPCCG 64 64 64  | tee weakOut_04
+mpirun -np 8 ./test_HPCCG 64 64 64  | tee weakOut_08
+mpirun -np 16 ./test_HPCCG 64 64 64 | tee weakOut_16
+mpirun -np 64 ./test_HPCCG 64 64 64 | tee weakOut_64
