@@ -83,7 +83,9 @@ void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
   }
 
   // ... and wait for completion of neighbors
-  A->signal.wait(num_neighbors);
+  if(num_neighbors != 0){
+    A->signal.wait(num_neighbors);
+  }
 
   // copy externals to end of vector
   double *begin = A->data.lbegin();
