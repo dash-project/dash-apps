@@ -582,8 +582,7 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
   ////////////////////////////////////////////////////////////////////////
 
   // Allocate the signaling window
-  A->signal.allocate(dash::size());
-  A->signal[dash::myid()].set(0);
+  A->signal.initialize();
 
   // Allocate the data window
   int max_recv_length;

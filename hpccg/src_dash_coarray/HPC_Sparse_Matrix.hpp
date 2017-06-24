@@ -71,9 +71,9 @@ struct HPC_Sparse_Matrix_STRUCT {
   // Two-dimensional array for data exchange
   // Dim0: Unit
   // Dim1: Per-unit data
-  dash::Coarray<double[]>        data;
+  dash::Coarray<double[]>    data;
   // Atomic operations to signal completion of data transfer
-  dash::Array<dash::Atomic<int>> signal;
+  dash::Coevent              signal;
   size_t                     total_received_elements;
 #endif
 
