@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
 
 
 #ifdef DEBUG
+  cout << "Rank " << rank << "; PID " << ::getpid() << endl;
   if (rank==0)
    {
     int junk = 0;
