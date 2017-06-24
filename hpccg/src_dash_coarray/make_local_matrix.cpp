@@ -37,11 +37,15 @@ using std::endl;
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#ifdef DEBUG
+#include <chrono>
+#include <thread>
+#endif
 #include "HPC_Sparse_Matrix.hpp"
 #include "read_HPC_row.hpp"
 #include "make_local_matrix.hpp"
 #include "mytimer.hpp"
-//#define DEBUG
+
 void make_local_matrix(HPC_Sparse_Matrix * A)
 {
   std::map< int, int > externals;
@@ -94,7 +98,6 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
     ///////////////////////////////////////////
 
   if (debug) t0 = mytimer();
-
   int *external_index = new int[max_external];
   int *external_local_index = new int[max_external];
   A->external_index = external_index;
@@ -141,6 +144,10 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 
   if (debug) {
     t0 = mytimer() - t0;
+#ifdef DEBUG
+    // prevent overlapping of output
+    std::this_thread::sleep_for(std::chrono::milliseconds{rank});
+#endif
     cout << "            Time in transform to local phase = " << t0 << endl;
     cout << "Processor " << rank << " of " << size <<
 	       ": Number of external equations = " << num_external << endl;
@@ -188,6 +195,10 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
     }
   if (debug) {
     t0 = mytimer() - t0;
+#ifdef DEBUG
+    // prevent overlapping of output
+    std::this_thread::sleep_for(std::chrono::milliseconds{rank});
+#endif
     cout << "          Time in finding processors phase = " << t0 << endl;
   }
 
@@ -248,6 +259,10 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 
   if (debug_details)
     {
+#ifdef DEBUG
+      // prevent overlapping of output
+      std::this_thread::sleep_for(std::chrono::milliseconds{rank});
+#endif
       for (i = 0; i < num_external; i++)
 	{
 	  cout << "Processor " << rank << " of " << size <<
@@ -326,6 +341,10 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 
   if (debug) {
     t0 = mytimer() - t0;
+#ifdef DEBUG
+    // prevent overlapping of output
+    std::this_thread::sleep_for(std::chrono::milliseconds{rank});
+#endif
     cout << "           Time in finding neighbors phase = " << t0 << endl;
   }
   if (debug) cout << "Processor " << rank << " of " << size <<
