@@ -70,7 +70,7 @@ void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
     int n_send = send_length[i];
     int neighbor = neighbors[i];
     int offset_at_neighbor = A->offset[i];
-    dash::copy_async(send_buffer, send_buffer + n_send + 1,
+    dash::copy_async(send_buffer, send_buffer + n_send,
       narray.row(neighbor).begin() + A->offset[i]);
     send_buffer += n_send;
   }
