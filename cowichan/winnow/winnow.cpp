@@ -1,6 +1,6 @@
-#ifndef DASH_ENABLE_LOGGING
-#define DASH_ENABLE_LOGGING
-#endif
+// #ifndef DASH_ENABLE_LOGGING
+// #define DASH_ENABLE_LOGGING
+// #endif
 
 #include <libdash.h>
 #include <chrono>
@@ -9,6 +9,7 @@
 
 //#define DEBUG
 #define SLEEP_TIME            30 //that's the sleep time before DEBUG IO
+
 #define MAX_KEY               99
 #define MIN_NUM_ELEM_PER_UNIT 10
 
@@ -28,7 +29,7 @@ using MTRX_TYPE  = uchar;
 
 using Point      = struct{ MTRX_TYPE value; uint row, col;};
 using pointRange = struct{ Point * curr, * end;           };
-using unitRange  = struct{ MTRX_TYPE begin, end;          };
+using unitRange  = struct{ MTRX_TYPE begin, end;          };  //unitValueRange
 
 
 typedef dash::CSRPattern< 1, dash::ROW_MAJOR, int > pattern_t;
@@ -120,14 +121,12 @@ inline size_t readMatricesFromStdIn (
     
     dash::barrier( );
     
-    // initialize histo with 0
-    for( uint * i = histo.lbegin(); i < histo.lend(); ++i) {
-      *i = 0;
-    }
+    // INITIALIZE histo with 0
+    for( uint * i = histo.lbegin(); i < histo.lend(); ++i) { *i = 0 ;}
     
 
     #ifdef DEBUG  // print error message if mask's and matrix's local size aren't identical
-      if( mask.lend( ) - mask.lbegin( ) != matrix.lend( ) - matrix.lbegin( )) {
+      if( mask.lsize( ) != matrix.lsize( ) ){
         cout << "On unit " << myid << " the local sizes of matrix and mask differ!\naborted on this unit" << endl;
         return -1;
       }
