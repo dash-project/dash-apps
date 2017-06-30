@@ -37,6 +37,10 @@ using std::endl;
 #include <libdash.h>
 #include "exchange_externals.hpp"
 
+#ifdef DART_WAIT_HANDLE
+#include <vector>
+#endif
+
 void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
 {
   // Extract Matrix pieces
@@ -63,19 +67,31 @@ void exchange_externals(HPC_Sparse_Matrix * A, const double *x)
   //
   // Initiate transfer to each neighbor
   //
-
   auto& narray = A->data;
+#ifdef DART_WAIT_HANDLE
+  using fut_t = decltype(dash::copy_async(send_buffer, send_buffer, narray(0).begin()));
+  std::vector<fut_t> futures;
+#endif
   for(int i=0; i<num_neighbors; ++i) {
     int n_send = send_length[i];
     int neighbor = neighbors[i];
     int offset_at_neighbor = A->offset[i];
+#ifdef DART_WAIT_HANDLE
+    futures.push_back(dash::copy_async(send_buffer, send_buffer + n_send,
+      narray(neighbor).begin() + offset_at_neighbor));
+#else
     dash::copy_async(send_buffer, send_buffer + n_send,
-      narray(neighbor).begin() + A->offset[i]);
+      narray(neighbor).begin() + offset_at_neighbor);
+#endif
     send_buffer += n_send;
   }
 
   // wait for the transfer to complete
+#ifdef DART_WAIT_HANDLE
+  for(auto & f : futures){f.wait();}
+#else
   narray.flush_all();
+#endif
 
   // signal completion to neighors
   for(int i=0; i<num_neighbors; ++i) {

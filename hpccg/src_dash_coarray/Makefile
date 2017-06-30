@@ -59,7 +59,8 @@ USE_MPI = -DUSING_MPI
 #MPI_INC = -I/usr/MPICH/SDK.gcc/include
 
 DART_INC=-I$(DART_ROOT)/include
-
+#DART_OPTIONS= -DDART_FULL_ALLOC
+DART_OPTIONS= -DDART_WAIT_HANDLE -DDART_FULL_ALLOC
 
 # 3) Specify C++ compiler optimization flags (if any)
 #    Typically some reasonably high level of optimization should be used to 
@@ -67,12 +68,15 @@ DART_INC=-I$(DART_ROOT)/include
 
 #IA32 with GCC: 
 CPP_OPT_FLAGS = -O3 -funroll-all-loops -malign-double
-#CPP_OPT_FLAGS = -O3 -ftree-vectorize -ftree-vectorizer-verbose=2
+#CPP_OPT_FLAGS = -O3 -ftree-vectorize -ftree-vectorizer-verbose=1
 # Debug mode
 #CPP_OPT_FLAGS = -g -DDEBUG
 
-CPP_STD_FLAGS = -std=c++11 -DDART_FULL_ALLOC
+#Profiling flags for gprof
+#CPP_PROF_FLAGS = -pg 
+
 CPP_STD_FLAGS = -std=c++11 
+#CPP_STD_FLAGS = -std=c++11 
 
 #
 # 4) MPI library:
@@ -89,7 +93,7 @@ CPP_STD_FLAGS = -std=c++11
 #    If you want to run the program with OpenMP, make sure USING_OMP is set
 #    to -DUSING_OMP
 
-USE_OMP = 
+#USE_OMP = 
 #USE_OMP = -DUSING_OMP
 
 #
@@ -112,7 +116,7 @@ TARGET = test_HPCCG
 
 ################### Derived Quantities (no modification required) ##############
 
-CXXFLAGS= $(CPP_OPT_FLAGS) $(CPP_STD_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC) $(DART_INC)
+CXXFLAGS= $(CPP_OPT_FLAGS) $(CPP_STD_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC) $(DART_INC) $(DART_OPTIONS) $(CPP_PROF_FLAGS)
 
 LIB_PATHS= $(SYS_LIB) $(DART_LIB)
 
@@ -125,7 +129,7 @@ TEST_CPP = main.cpp generate_matrix.cpp read_HPC_row.cpp \
 TEST_OBJ          = $(TEST_CPP:.cpp=.o)
 
 $(TARGET): $(TEST_OBJ)
-	$(LINKER) $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(TEST_OBJ) $(LIB_PATHS) -o $(TARGET)
+	$(LINKER) $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(CPP_PROF_FLAGS) $(TEST_OBJ) $(LIB_PATHS) -o $(TARGET)
 
 test:
 	@echo "Not implemented yet..."

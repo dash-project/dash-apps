@@ -120,9 +120,14 @@ int main(int argc, char *argv[])
   cout << "Rank " << rank << "; PID " << ::getpid() << endl;
   if (rank==0)
    {
-    int junk = 0;
-    cout << "Press enter to continue"<< endl;
-    std::cin >> junk;
+     int junk = 0;
+     cout << "Press enter to continue"<< endl;
+     std::cin >> junk;
+#ifdef DART_WAIT_HANDLE
+     std::cout << "Async transfer mode: Handle / futures" << std::endl;
+#else
+     std::cout << "Async transfer mode: flush on segment" << std::endl;
+#endif
    }
 
   dash::barrier();
