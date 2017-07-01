@@ -33,7 +33,7 @@ for IMPL in $(ls -d */); do
   if [[ "$IMPL" == "results/" ]]; then continue; fi 
   echo "Execute $IMPL"
   TOPDIR=$(pwd)
-  RESULTDIR="$TOPDIR/results/ibm/<procs>/$IMPL"
+  RESULTDIR="$TOPDIR/results/intel/<procs>/$IMPL"
   mkdir -p $RESULTDIR 
   # place output files in correct dir
   cd $RESULTDIR 
