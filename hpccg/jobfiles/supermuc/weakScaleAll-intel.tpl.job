@@ -1,0 +1,43 @@
+# Run HPCCG with IBM MPI on supermuc
+#!/bin/bash
+##
+#@ energy_policy_tag = hpccg 
+#@ minimize_time_to_solution = yes
+#@ job_type = MPICH 
+#@ class = micro 
+#@ node = 1
+###@ island_count= not needed for
+#### class general
+#@ island_count = 1 
+#@ total_tasks= <procs>
+## other example
+##@ tasks_per_node = 28
+#@ wall_clock_limit = 1:00:00
+#@ job_name = hpccg-weakScale-intel-<procs> 
+#@ network.MPI = sn_all,not_shared,us
+#@ initialdir = ../../
+#@ output = $(home)/log/job.$(job_name).$(jobid).out
+#@ error =  $(home)/log/job.$(job_name).$(jobid).err
+#@ notification=always
+#@ notify_user=felix.moessbauer@campus.lmu.de
+#@ queue
+. /etc/profile
+. /etc/profile.d/modules.sh
+module unload mpi.ibm
+module load mpi.intel
+module load papi
+module load hwloc
+
+for IMPL in $(ls -d */); do
+  if [[ "$IMPL" == "jobfiles/" ]]; then continue; fi 
+  if [[ "$IMPL" == "results/" ]]; then continue; fi 
+  echo "Execute $IMPL"
+  TOPDIR=$(pwd)
+  RESULTDIR="$TOPDIR/results/ibm/<procs>/$IMPL"
+  mkdir -p $RESULTDIR 
+  # place output files in correct dir
+  cd $RESULTDIR 
+  mpiexec -n <procs> $TOPDIR/$IMPL/test_HPCCG 64 64 64
+  cd $TOPDIR
+done
+
