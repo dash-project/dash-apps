@@ -227,8 +227,8 @@ int main(int argc, char *argv[])
 
 
 
-      doc.add("Number of iterations: ", niters);
-      doc.add("Final residual: ", normr);
+      doc.add("Number of iterations", niters);
+      doc.add("Final residual", normr);
       doc.add("********** Performance Summary (times in sec) ***********","");
  
       doc.add("Time Summary","");
