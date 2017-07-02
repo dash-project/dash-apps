@@ -123,60 +123,6 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
 }
 
 
- template< typename T = MATRIX_T >
-inline size_t readMatricesFromStdIn(
-                 uint const   nrows ,
-                 uint const   ncols ,
-        vector<Point>       & pointsLocal,
-       vector<size_t>       & foundLclCpy, 
-  dash::Array< uint >       & histo,
-               size_t         nUnits,
-                  int const   myid
-){
-    dash::NArray<T   , 2> matrix( nrows, ncols );
-    dash::NArray<bool, 2> mask  ( nrows, ncols );
-    dash::Array <size_t > found ( nUnits );    
-    
-    // read input matrix from stdin
-    if( 0 == myid ){
-      T tmp;
-      for ( auto i : matrix ){
-        scanf( "%d", &tmp )  , i = tmp;
-      }
-      bool tmpB;
-      for ( auto i : mask ){
-        scanf( "%d", &tmpB ) , i = tmpB;
-      }
-    }
-    
-    dash::barrier( );
-    
-    // INITIALIZE histo with 0
-    for( uint * i = histo.lbegin(); i < histo.lend(); ++i) { *i = 0 ;}
-    
-
-    //extracted to winnow
-    
-    found[myid] = pointsLocal.size();  
-
-  
-    // wait for all to set found
-  dash::barrier( );
-  dash::copy(found.begin( ), found.end( ), foundLclCpy.data( ) );
-  
-  
-  size_t foundAllSize = 0;
-  for( size_t * i = foundLclCpy.data( ); i < foundLclCpy.data( ) + nUnits; ++i ) {
-    foundAllSize += *i;
-  }
-
-  //extracted to winnow
-  // print points found local
-  
-  return foundAllSize;
-}
-
-
  inline void calcGlobDist(
   dash::Array< uint > & histo,
     vector<unitRange> & distr,
@@ -186,19 +132,10 @@ inline size_t readMatricesFromStdIn(
            dash::Team & team
 ){
   
-  if( 0 != myid ) {
-    dash::transform<uint>(
-      histo.lbegin     ( ) ,
-      histo.lend       ( ) ,
-      histo.begin      ( ) ,
-      histo.begin      ( ) ,
-      dash::plus<uint> ( )
-    );
-  }
+
   
   
-  // unit 0 have to wait for rest to finish adding their values
-  dash::barrier();
+ 
   
   if( 0 == myid ) { // calculate bucket distribution
 
@@ -289,6 +226,8 @@ inline void winnow(
   Team & team   = dash::Team::All ( );
   size_t nUnits = team.size       ( );
   
+  if(0==myid) cout << "nUnits: " << nUnits << endl;
+  
   /* create global histo array for sorting
    * size += 1 for direct Index access -> histo[2]++ counts for value 2
    * size += 1 for additional value at the end of the 
@@ -297,19 +236,22 @@ inline void winnow(
   Array<uint> histo( (MAX_KEY + 2) * nUnits, dash::BLOCKED );
   fill( histo.begin( ), histo.end( ), 0 );
   
-  uint * found = histo.lend( ) - 1;
-  
   // local found points are gathered in this vector
   vector<Point> pointsLocal;
     
   // returns a object with the global row and column of the the local coordinates {0,0}
   auto globIndex = randMat.pattern( ).global( {0,0} );
   
-  uint gRow        = globIndex[0];
-  uint gCol        = globIndex[1];
-  T const * matrEl = randMat.lbegin( );
+  uint gRow           = globIndex[0];
+  uint gCol           = globIndex[1];
+  uint       * found  = histo.lend( ) - 1;
+     T const * matrEl = randMat.lbegin( );
   
-  // read in local part of mask - matrix combination
+  
+ /* read in local part of mask - matrix combination
+  * and while doing that:
+  * generate histogram and count the values (-> found)
+  */
   for ( bool const * maskEl = threshMask.lbegin( );  maskEl < threshMask.lend( );  ++maskEl , ++matrEl, ++gCol )
   {
     if( gCol == ncols ) gCol = 0, ++gRow; // end of row -> next row in matrix/mask
@@ -332,26 +274,45 @@ inline void winnow(
     } cout << endl;
 
     __sleep(20);
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via pointsLocal:" << fmt( pointsLocal.size(),FRED , 2 )  << "\n";
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( *found            ,FRED , 2 )  << endl;
-  
-    // sleep_for(std::chrono::milliseconds(SLEEP_TIME)); 
-    // if( 0 == myid ) cout << "foundAllSize: " << fmt( foundAllSize, FRED ) << endl;
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via pointsLocal:" << fmt( pointsLocal.size()   , FRED, 2 )  << "\n";
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( *found               , FRED, 2 )  << "\n";
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": histogram.lsize:"       << fmt(found - histo.lbegin(), FRED, 2 )  << endl;
   #endif
 
+  // is here a barrier needed?
+  // if( 0 != myid ) {
+    // dash::transform<uint>(
+      // histo.lbegin     ( ) ,
+      // histo.lend       ( ) ,
+      // histo.begin      ( ) ,
+      // histo.begin      ( ) ,
+      // dash::plus<uint> ( ) );
+  // }
+  
+  
+  // // unit 0 have to wait for rest to finish adding their values
+  // dash::barrier();
+  
+  
+  // if( 0 == myid ) { // calculate bucket distribution
 
-  
-  
-  
-  
-  
-  
-  
-  /* read the matrix and boolean matrix from std in and generate a histogram and 
-   * how much elements each unit found
-   */
-  // size_t foundAllSize = readMatricesFromStdIn( nrows, ncols, pointsLocal, foundLclCpy, histo, nUnits, myid );
-
+    // /* calculate how much elements each unit should hold ideally
+     // * increment by one for safety garuantees in distribution
+     // * that is the assumption (ideal * nUnits > foundAllSize) == true
+     // */
+     
+    // #ifdef DEBUG
+       // // __sleep();
+      // // cout << "ideal number of elements per unit: " << fmt( ideal, FRED ) << endl;
+      
+      // cout << "Histogram: ";
+      // for( size_t i = 0; i < histo.lsize(); ++i ) {
+        // if( histo.local[i] ) cout << fmt( i, FCYN ) << ":" << fmt( histo.local[i], FRED ) << ", ";
+      // } 
+      // cout << endl;
+    // #endif
+     
+  // }
   
   // // in this array will be the distribution info for creating buckets
   // vector<unitRange> distr( nUnits );
