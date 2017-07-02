@@ -17,16 +17,16 @@
 #include <iostream>
 
 #include <libdash.h>
-//#define MATRIX_T uchar
 
-using uint  = unsigned int ;
-using uchar = unsigned char;
-using POI_T = int;  //this type musst be signed!
-using MATRIX_T = uchar;
+using uint     = unsigned int ;
+using uchar    = unsigned char;
+using POI_T    =          int ;  //this type musst be signed!
+using MATRIX_T =         uchar;
 
-struct InputPar { uint nrows, ncols; } in;
-uint nelts;
-static int myid;
+// static variables
+static struct InputPar { uint nrows, ncols; } in;
+static uint   nelts;
+static int    myid ;
 
 #include "winnow_placeholder.h"
 using std::cin;

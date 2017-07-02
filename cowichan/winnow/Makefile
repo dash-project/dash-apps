@@ -7,6 +7,10 @@ main: main.cpp winnow_placeholder.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 
+	
+winnow: winnow.cpp
+	$(CXX) -c $(INC) $<
+	$(CXX) -o $@ $@.o $(LIB) 
 
 .PHONY: printenv
 printenv :
@@ -20,6 +24,6 @@ printenv :
 clean:
 	-rm main
 	-rm main.o
-#-rm winnow
-#-rm winnow.o
+	-rm winnow
+	-rm winnow.o
 
