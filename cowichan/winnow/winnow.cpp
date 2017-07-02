@@ -242,10 +242,10 @@ inline void winnow(
   // returns a object with the global row and column of the the local coordinates {0,0}
   auto globIndex = randMat.pattern( ).global( {0,0} );
   
-  uint gRow           = globIndex[0];
-  uint gCol           = globIndex[1];
-  uint       * found  = histo.lend( ) - 1;
-     T const * matrEl = randMat.lbegin( );
+  uint         gRow   = globIndex[0]           ;
+  uint         gCol   = globIndex[1]           ;
+  uint       & found  = histo.local[MAX_KEY+1] ;
+     T const * matrEl = randMat.lbegin( )      ;
   
   
  /* read in local part of mask - matrix combination
@@ -259,7 +259,7 @@ inline void winnow(
     {
       pointsLocal.push_back( Point{ *matrEl, gRow, gCol } );
       ++histo.local[*matrEl];
-      (*found)++;
+      ++found;
     }
   }
   
@@ -275,8 +275,8 @@ inline void winnow(
 
     __sleep(20);
     cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via pointsLocal:" << fmt( pointsLocal.size()   , FRED, 2 )  << "\n";
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( *found               , FRED, 2 )  << "\n";
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": histogram.lsize:"       << fmt(found - histo.lbegin(), FRED, 2 )  << endl;
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( found                , FRED, 2 )  << "\n";
+    // cout << "#" << fmt( myid, FBLUE, 2 ) << ": histogram.lsize:"       << fmt(found - histo.lbegin(), FRED, 2 )  << endl;
   #endif
 
   // is here a barrier needed?
