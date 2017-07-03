@@ -8,7 +8,6 @@
 #include "../Terminal_Color.h"
 
 #define DEBUG
-//#define SLEEP_TIME            10 //that's the sleep time before DEBUG IO
 
 #define MAX_KEY               99
 #define MIN_NUM_ELEM_PER_UNIT 10
@@ -123,97 +122,6 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
 }
 
 
- inline void calcGlobDist(
-  dash::Array< uint > & histo,
-    vector<unitRange> & distr,
-               size_t   foundAllSize,
-               size_t   nUnits,
-                  int   myid,
-           dash::Team & team
-){
-  
-
-  
-  
- 
-  
-  if( 0 == myid ) { // calculate bucket distribution
-
-    /* calculate how much elements each unit should hold ideally
-     * increment by one for safety garuantees in distribution
-     * that is the assumption (ideal * nUnits > foundAllSize) == true
-     */
-    uint ideal = std::max( static_cast<size_t>( MIN_NUM_ELEM_PER_UNIT ), (foundAllSize / nUnits) + 1 );
-    
-    
-    #ifdef DEBUG
-       __sleep();
-      cout << "ideal number of elements per unit: " << fmt( ideal, FRED ) << endl;
-      
-      cout << "Histogram: ";
-      for( size_t i = 0; i < histo.lsize(); ++i ) {
-        if( histo.local[i] ) cout << fmt( i, FCYN ) << ":" << fmt( histo.local[i], FRED ) << ", ";
-      } 
-      cout << endl;
-    #endif
-    
-
-    vector<unitRange>::iterator  uRIt;
-    
-    // initialze with 0 (not sure if uchars are initialized with 0 by default, that's why i am doing this)
-    for( uRIt = distr.begin( ); uRIt < distr.end( ); ++uRIt ) {
-      uRIt->begin = 0;
-      uRIt->end   = 0;
-    }
-    
-    uRIt = distr.begin();
-    uint acc = 0;
-    size_t i;
-    
-    // actual calculation of distribution
-    for( i = 0; i < histo.lsize(); ++i ) {
-      acc += histo.local[i];
-      
-      if( acc >= ideal ){       
-      
-        uRIt->end = i;
-        
-        if( i+1 <= MAX_KEY ) (++uRIt)->begin = i+1;
-        acc = 0;
-      }
-    }
-    if( uRIt->begin > 0 ) uRIt->end = MAX_KEY;
-  } // end of unit 0 only part
-  
-  // convert own team unit ID into team unit ID with 0
-  dash::team_unit_t TeamUnit0ID = team.myid( );
-  TeamUnit0ID.id = 0;
-
-  dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( distr.data( ) ),  // buf 
-                      distr.size( ) * sizeof(unitRange)  ,  // nelem
-                      DART_TYPE_BYTE                     ,  // dtype
-                      TeamUnit0ID                        ,  // root
-                      team.dart_id( )                       // team
-                   );
-  
-  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
-
-  #ifdef DEBUG
-     __sleep();
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
-    for( auto i : distr ) {
-        cout << "Range: " 
-          << fmt( i.begin, FYEL ) 
-          << "-" 
-          << fmt( i.end, FGREEN )
-          << ", ";
-      }
-      cout << endl;
-  #endif
-}
-
-
 template<typename T = MATRIX_T, typename X = pair<POI_T, POI_T> >
 inline void winnow(
               uint const   nrows      ,
@@ -226,7 +134,7 @@ inline void winnow(
   Team & team   = dash::Team::All ( );
   size_t nUnits = team.size       ( );
   
-  if(0==myid) cout << "nUnits: " << nUnits << endl;
+  if( 0 == myid ) cout << "nUnits: " << nUnits << endl;
   
   /* create global histo array for sorting
    * size += 1 for direct Index access -> histo[2]++ counts for value 2
@@ -234,7 +142,8 @@ inline void winnow(
    * histogram -> used for counter how many values were found
    */
   Array<uint> histo( (MAX_KEY + 2) * nUnits, dash::BLOCKED );
-  fill( histo.begin( ), histo.end( ), 0 );
+  // fill( histo.begin( ), histo.end( ), 0 );
+  for(uint * it = histo.lbegin( ); it < histo.lend( ); ++it){*it = 0;}
   
   // local found points are gathered in this vector
   vector<Point> pointsLocal;
@@ -259,66 +168,124 @@ inline void winnow(
     {
       pointsLocal.push_back( Point{ *matrEl, gRow, gCol } );
       ++histo.local[*matrEl];
-      ++found;
     }
   }
-  
+  found = pointsLocal.size();
   
   #ifdef DEBUG  // print points found local
-  dash::barrier();
+    dash::barrier();  // only needed for better IO Output
     __sleep( );
     
     cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
-    for( auto it : pointsLocal) {
-      cout << it;
-    } cout << endl;
-
+    for( auto it : pointsLocal){ cout <<   it; }
+    cout << endl;
+    
     __sleep(20);
     cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via pointsLocal:" << fmt( pointsLocal.size()   , FRED, 2 )  << "\n";
     cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( found                , FRED, 2 )  << "\n";
     // cout << "#" << fmt( myid, FBLUE, 2 ) << ": histogram.lsize:"       << fmt(found - histo.lbegin(), FRED, 2 )  << endl;
   #endif
 
-  // is here a barrier needed?
-  // if( 0 != myid ) {
-    // dash::transform<uint>(
-      // histo.lbegin     ( ) ,
-      // histo.lend       ( ) ,
-      // histo.begin      ( ) ,
-      // histo.begin      ( ) ,
-      // dash::plus<uint> ( ) );
-  // }
+  // is here a barrier needed? -> to wait for completion on unit0?!
+  if( 0 != myid ) {
+    dash::transform<uint>(
+      histo.lbegin     ( ) ,
+      histo.lend       ( ) ,
+      histo.begin      ( ) ,
+      histo.begin      ( ) ,
+      dash::plus<uint> ( ) );
+  }  
   
   
-  // // unit 0 have to wait for rest to finish adding their values
-  // dash::barrier();
-  
-  
-  // if( 0 == myid ) { // calculate bucket distribution
+  // in this array will be the distribution info for creating buckets
+  vector<unitRange> distr( nUnits );
 
-    // /* calculate how much elements each unit should hold ideally
-     // * increment by one for safety garuantees in distribution
-     // * that is the assumption (ideal * nUnits > foundAllSize) == true
-     // */
+
+  // unit 0 have to wait for rest to finish adding their values
+  dash::barrier();  
+  
+  if( 0 == myid ) { // calculate bucket distribution
+
+    /* calculate how much elements each unit should hold ideally
+     * increment by one for safety garuantees in distribution
+     * that is the assumption (ideal * nUnits > foundAllSize) == true
+     */
+     uint ideal = std::max( static_cast<size_t>( MIN_NUM_ELEM_PER_UNIT ), (found / nUnits) + 1 );
      
-    // #ifdef DEBUG
-       // // __sleep();
-      // // cout << "ideal number of elements per unit: " << fmt( ideal, FRED ) << endl;
+    #ifdef DEBUG
+       __sleep();
+      cout << "ideal number of elements per unit: " << fmt( ideal, FRED ) << endl;
       
-      // cout << "Histogram: ";
-      // for( size_t i = 0; i < histo.lsize(); ++i ) {
-        // if( histo.local[i] ) cout << fmt( i, FCYN ) << ":" << fmt( histo.local[i], FRED ) << ", ";
-      // } 
-      // cout << endl;
-    // #endif
+      cout << "Histogram: ";
+      for( size_t i = 0; i < histo.lsize(); ++i ) {
+        if( histo.local[i] ) cout << fmt( i, FCYN ) << ":" << fmt( histo.local[i], FRED ) << ", ";
+      } 
+      cout << endl;
+    #endif
      
-  // }
   
-  // // in this array will be the distribution info for creating buckets
-  // vector<unitRange> distr( nUnits );
+    vector<unitRange>::iterator  uRIt;
+    
+   /* the loop for calculation of the distribution got a bit more complex
+    * because i wanted to iterate only once over the "distr" vector
+    * therefore no initialization beforehand is needed
+    */ 
+    // begin - 1 for loop logic (starting with ++)
+    uRIt = distr.begin() - 1; 
+    uint   acc    = 0;
+       T   begin  = 0;
+    uint * hisIt  = histo.lbegin();
+    
+    // actual calculation of distribution
+    for( size_t i = 0; i < histo.lsize()-1 ; ++i ) {
+      acc += *hisIt++;
+      
+      if( acc >= ideal ){
+        
+        (++uRIt)->begin = begin;
+        uRIt->end = i;
+        
+        begin = i+1;
+        acc   = 0;
+      }
+    }
+    uRIt->end = MAX_KEY;
+    
+    // set the rest to zero
+    while( ++uRIt < distr.end() ) { uRIt->begin = 0; uRIt->end = 0; }
+    
+  } // end of unit 0 only part
   
-  // /* calculate global histogram and thereof a distribution pattern */
-  // calcGlobDist( histo, distr, foundAllSize, nUnits, myid, team );
+  
+  // convert own team unit ID into team unit ID with 0
+  dash::team_unit_t TeamUnit0ID = team.myid( );
+  TeamUnit0ID.id = 0;
+
+  dart_ret_t ret = dart_bcast(
+                      static_cast<void*>( distr.data( ) ),  // buf 
+                      distr.size( ) * sizeof(unitRange)  ,  // nelem
+                      DART_TYPE_BYTE                     ,  // dtype
+                      TeamUnit0ID                        ,  // root
+                      team.dart_id( )                       // team
+                   );
+  
+  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
+
+  #ifdef DEBUG
+    __sleep();
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
+    for( auto i : distr ) {
+        cout << "Range: " 
+          << fmt( i.begin, FYEL ) 
+          << "-" 
+          << fmt( i.end, FGREEN )
+          << ", ";
+      }
+      cout << endl;
+  #endif
+  
+  
+  
   
   /* each unit creates buckets that are send to the responsible unit later */
   //createBuckets( myid,team )
