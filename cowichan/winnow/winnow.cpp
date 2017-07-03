@@ -30,13 +30,12 @@ using uchar      = unsigned char ;
 using POI_T      =          int  ;  //this type musst be signed!
 using MATRIX_T   =         uchar ;
 
-using Point      = struct{ MATRIX_T value; uint row, col; };
-using pointRange = struct{ Point * curr, * end;           };  // unused until now
-using unitRange  = struct{ MATRIX_T begin, end;           };  // unitValueRange
+using pattern_t  = dash::CSRPattern< 1, dash::ROW_MAJOR, int >;
+using extent_t   = pattern_t::size_type;
 
-
-// typedef dash::CSRPattern< 1, dash::ROW_MAJOR, int > pattern_t;
-// typedef typename pattern_t::size_type extent_t;
+using Point      = struct{ MATRIX_T value; uint row, col;   };
+using pointRange = struct{ Point * curr, * end;             };  // unused until now
+using unitRange  = struct{ MATRIX_T begin, end; uint count; };  // unitValueRange
 
 // static variables
 static struct InputPar { uint nrows, ncols; } in;
@@ -134,8 +133,9 @@ inline void winnow(
   Team & team   = dash::Team::All ( );
   size_t nUnits = team.size       ( );
   
-  if( 0 == myid ) cout << "nUnits: " << nUnits << endl;
-  
+  #ifdef DEBUG
+    if( 0 == myid ) cout << "nUnits: " << nUnits << endl;
+  #endif
   /* create global histo array for sorting
    * size += 1 for direct Index access -> histo[2]++ counts for value 2
    * size += 1 for additional value at the end of the 
@@ -225,34 +225,44 @@ inline void winnow(
      
   
     vector<unitRange>::iterator  uRIt;
+    // begin - 1 for loop logic (starting with ++)
+    uRIt = distr.begin() - 1; 
     
    /* the loop for calculation of the distribution got a bit more complex
     * because i wanted to iterate only once over the "distr" vector
     * therefore no initialization beforehand is needed
     */ 
-    // begin - 1 for loop logic (starting with ++)
-    uRIt = distr.begin() - 1; 
-    uint   acc    = 0;
-       T   begin  = 0;
-    uint * hisIt  = histo.lbegin();
+    if ( 1 == nUnits )
+    {
+      (++uRIt)->begin = 0;
+      uRIt->end       = MAX_KEY;
+      uRIt->count     = found;
     
-    // actual calculation of distribution
-    for( size_t i = 0; i < histo.lsize()-1 ; ++i ) {
-      acc += *hisIt++;
+    }else{
       
-      if( acc >= ideal ){
+      uint   acc    = 0;
+         T   begin  = 0;
+      uint * hisIt  = histo.lbegin();
+      
+      // actual calculation of distribution
+      for( size_t i = 0; i < histo.lsize()-1 ; ++i ) {
+        acc += *hisIt++;
         
-        (++uRIt)->begin = begin;
-        uRIt->end = i;
-        
-        begin = i+1;
-        acc   = 0;
+        if( acc >= ideal ){
+          
+          (++uRIt)->begin = begin;
+          uRIt->end = i;
+          uRIt->count = acc;
+          
+          begin = i+1;
+          acc   = 0;
+        }
       }
+      uRIt->count += acc;
+      uRIt->end = MAX_KEY;
     }
-    uRIt->end = MAX_KEY;
-    
     // set the rest to zero
-    while( ++uRIt < distr.end() ) { uRIt->begin = 0; uRIt->end = 0; }
+    while( ++uRIt < distr.end() ) { uRIt->begin = 0; uRIt->end = 0; uRIt->count = 0; }
     
   } // end of unit 0 only part
   
@@ -279,16 +289,66 @@ inline void winnow(
           << fmt( i.begin, FYEL ) 
           << "-" 
           << fmt( i.end, FGREEN )
+          << " c:"
+          << i.count
           << ", ";
       }
       cout << endl;
   #endif
   
+ /* create dash::Array which will hold the data to be sorted.
+  * therefore the CSRPattern of DASH will be used.
+  * this allows different local sizes!
+  */ 
+  std::vector<extent_t> local_sizes;
+  for( unitRange * uRPtr = distr.data( ); uRPtr->count > 0 && uRPtr < distr.data( ) + distr.size( ); ++uRPtr ) {
+      local_sizes.push_back( uRPtr->count );
+  }
   
+  pattern_t pattern( local_sizes );
+  Array<Point, int, pattern_t> toSort( pattern );
   
+  #ifdef DEBUG
+    dash::barrier();  // only needed for better IO Output
+    
+    __sleep();
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
+    for( auto it : local_sizes ){ cout << it << ", ";}
+    cout << endl;
+    
+    if( local_sizes.size() > myid ){
+      __sleep(20);
+      cout << "#" << fmt( myid, FBLUE, 2 )
+           << ":"
+           << " veCount: "              << fmt( local_sizes[myid], FCYN ) // careful! may not exist -> segfault chance!
+           << " lsize: "                << fmt( toSort.lsize()   , FCYN )
+           << " toSort lend - lbegin: " << fmt( toSort.lend( ) - toSort.lbegin( ), FCYN )
+           << " Pattern size: "         << fmt( pattern.size( )  , FCYN )
+           << " toSort size: "          << fmt( toSort.size  ( ) , FCYN )
+           << " sizeof(Point): "        << fmt( sizeof(Point)    , FCYN )
+           << " alignment: "            << fmt( (reinterpret_cast<size_t>(toSort.lbegin( )) % 64), FCYN )
+           << endl;
+    }
+  
+    dash::barrier();  // only needed for better IO Output
+    
+    if( local_sizes.size() > myid ){
+      __sleep();
+      uint count = 0;
+      cout << "#" << myid << ": ";
+      
+      for( Point * i = toSort.lbegin( ); i < toSort.lend( ) ; ++i ) {
+        cout << ++count << ", ";
+        i->value = myid;  // test member access
+        i->row   = myid;  // test member access
+        i->col   = myid;  // test member access
+      }
+      cout << endl;
+    }
+  #endif
   
   /* each unit creates buckets that are send to the responsible unit later */
-  //createBuckets( myid,team )
+  
   
   
 }
