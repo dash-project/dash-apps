@@ -283,7 +283,7 @@ inline void winnow(
                       TeamUnit0ID                        ,  // root
                       team.dart_id( )                    ); // team
   
-  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
+  if( DART_OK != ret ) cout << "An Error while BCAST has occured!" << endl; 
 
   #ifdef DEBUG
     __sleep();
@@ -408,8 +408,10 @@ inline void winnow(
   uint * comTable = static_cast<uint*>(  std::malloc( sizeof(uint) * nUnits * involvedUnits )  );
   uint * const comTable_end = comTable + ( nUnits * involvedUnits );
   
-  uint * poiCount = comTable;
+  uint * thisUnitsRow_begin     = new uint[involvedUnits];
+  uint * const thisUnitsRow_end = thisUnitsRow_begin + involvedUnits;
   
+  uint * poiCount = thisUnitsRow_begin;
   for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket, ++poiCount )
   {
     *poiCount = (*bucket)->size();
@@ -421,11 +423,35 @@ inline void winnow(
   __sleep();
   
   cout << "#" << fmt( myid, FBLUE, 2 ) << ": poiCount: ";
-  for( uint * poiCount = comTable; poiCount < comTable + involvedUnits; ++poiCount )
+  for( poiCount = thisUnitsRow_begin; poiCount < thisUnitsRow_end; ++poiCount )
   {
     cout << fmt( *poiCount, FRED ) << ", ";
   } cout << endl;
   #endif
+  
+  ret = dart_allgather(
+           thisUnitsRow_begin,  // sendbuf
+           comTable          ,  // recvbuf
+           involvedUnits     ,  // nelem
+           DART_TYPE_UINT    ,  // dtype
+           team.dart_id( )   ); // team
+
+  
+  if( DART_OK != ret ) cout << "An Error while allgather has occured!" << endl; 
+  
+  #ifdef DEBUG
+  dash::barrier();  // only needed for better IO Output
+  
+  __sleep();
+  counter = 0;
+  cout << "#" << fmt( myid, FBLUE, 2 ) << ": comTable:\n";
+  for( poiCount = comTable; poiCount < comTable_end; ++poiCount, ++counter )
+  {
+    if( counter == involvedUnits ) counter = 0, cout << "\n";
+    cout << fmt( *poiCount, FMAG ) << ", ";
+  } cout << endl;
+  #endif
+  
   
 }
 
