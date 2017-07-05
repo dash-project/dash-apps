@@ -469,13 +469,13 @@ inline void winnow(
   if( myid < involvedUnits && forMySelf > 0)
   {
     uint * forThisUnit = comTable + myid;
-    uint lclOffset = 0;
+    uint   lclOffset   = 0;
     
     for( int ID = 0; ID < myid; ++ID)
     {
       // lclOffset += comTable[ID * involvedUnits + myid];  //replaced by pointer logic
-      lclOffset += *(forThisUnit);
-      forThisUnit += involvedUnits;
+      lclOffset   += *(forThisUnit);
+      forThisUnit += involvedUnits ;
     }
     
     Point * lclDest = toSort.lbegin() + lclOffset;
@@ -490,16 +490,51 @@ inline void winnow(
   */
   uint myRowOffset = myid * involvedUnits;
   
-  for( int nextID = (myid + 1) % involvedUnits; nextID != myid; nextID = (nextID + 1) % involvedUnits )
+  auto baseIterator = toSort.begin( );
+  // auto globDest = baseIterator +10;
+  int nextID = (myid + 1) % involvedUnits;
+  
+  // if( 1 == myid )
+  // {
+    // auto globDest = baseIterator + 3;
+    // dash::copy( buckets[0]->data(), buckets[0]->data() + buckets[0]->size(), globDest );
+  // }
+
+  for( uint counter = 0; counter < involvedUnits; ++counter, nextID = (nextID + 1) % involvedUnits )
   {
-    if(  comTable[ myRowOffset + nextID ]  )  // if this unit has data for the next unit
+    
+    // if this unit has data for the next unit and is a remote unit (local unit was handled before)
+    if( comTable[ myRowOffset + nextID ] && nextID != myid  )
     {
-      // calculate global offset
+          uint    offsetOnUnit = 0;
+          uint    offsetToUnit = 0;
+          uint * forNextUnit   = comTable + nextID;
+      extent_t * unitsLclSize  = local_sizes.data();
+      
+      // calculate offsetToUnit
+      for( int ID = 0; ID < nextID; ++ID, ++unitsLclSize ){ offsetToUnit += *unitsLclSize; }
+      
+      
+      // calculate offsetToUnit
+      // offsetOnUnit += comTable[ID * involvedUnits + nextID];  //replaced by pointer logic
+      for( int ID = 0; ID < myid; ++ID, forNextUnit += involvedUnits ){ offsetOnUnit += *(forNextUnit); }
+      
+      
+      // cout << "nextID: " << nextID << ", offset: " << offsetOnUnit + offsetToUnit << endl;
+      // global iterator/pointer to destination:
+      auto globDest = baseIterator + offsetToUnit + offsetOnUnit;
+      // auto globDest = baseIterator + 30;
+      
+      //dash::copy / MPI_Put to target unit
+      dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
+      // break;
     }
-  }
+}
+
+  dash::barrier();
+  std::sort( toSort.lbegin( ), toSort.lend( ) );
   
-  
-  #ifdef DEBUG
+  // #ifdef DEBUG
     dash::barrier();
     if( 0 == myid )
     {
@@ -508,7 +543,7 @@ inline void winnow(
         cout << it;
       } cout << endl;
     }
-  #endif
+  // #endif
 }
 
 
