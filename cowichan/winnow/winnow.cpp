@@ -377,7 +377,7 @@ inline void winnow(
     unitRange * uRPtr = distr;
     for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++uRPtr, ++bucket )
     {
-      if( lclPt->value <= uRPtr->end )
+      if( lclPt->value <= uRPtr->end )  // if value is in Range for this unit
       {
         (*bucket)->push_back(*lclPt);
         break;
@@ -400,8 +400,32 @@ inline void winnow(
   }
   #endif
   
-  // uint comTable[nUnits][local_sizes.size()];
+ /* In comTable will be the information which unit has how many elements of type Point
+  * for other units and itself.
+  * The table can be thought of like "comTable[nUnits][local_sizes.size()]"
+  * First every unit saves the information in row[0]
+  */
+  uint * comTable = static_cast<uint*>(  std::malloc( sizeof(uint) * nUnits * involvedUnits )  );
+  uint * const comTable_end = comTable + ( nUnits * involvedUnits );
   
+  uint * poiCount = comTable;
+  
+  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket, ++poiCount )
+  {
+    *poiCount = (*bucket)->size();
+  }
+  
+  #ifdef DEBUG
+  dash::barrier();  // only needed for better IO Output
+  
+  __sleep();
+  
+  cout << "#" << fmt( myid, FBLUE, 2 ) << ": poiCount: ";
+  for( uint * poiCount = comTable; poiCount < comTable + involvedUnits; ++poiCount )
+  {
+    cout << fmt( *poiCount, FRED ) << ", ";
+  } cout << endl;
+  #endif
   
 }
 
