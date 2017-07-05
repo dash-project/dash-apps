@@ -5,7 +5,8 @@
 #include <libdash.h>
 
 #include "../Terminal_Color.h"
-#include <cstdlib>
+#include <cstdlib>  // for std::malloc
+#include <cstring>  // for std::memcpy and std::memset
 
 #define DEBUG
 
@@ -148,7 +149,8 @@ inline void winnow(
    */
   Array<uint> histo( (MAX_KEY + 2) * nUnits, dash::BLOCKED );
   // fill( histo.begin( ), histo.end( ), 0 );
-  for(uint * it = histo.lbegin( ); it < histo.lend( ); ++it){*it = 0;}
+  // for(uint * it = histo.lbegin( ); it < histo.lend( ); ++it){*it = 0;}
+  std::memset( histo.lbegin(), 0, histo.lsize() * sizeof(uint) );
   
   // local found points are gathered in this vector
   vector<Point> pointsLocal;
@@ -228,7 +230,7 @@ inline void winnow(
       } 
       cout << endl;
     #endif
-     
+    
   
     // begin - 1 for loop logic (starting with prefix ++)
     unitRange * uRPtr = distr - 1;
@@ -267,7 +269,10 @@ inline void winnow(
       uRPtr->end = MAX_KEY;
     }
     // set the rest to zero
-    while( ++uRPtr < distr_end ) { uRPtr->begin = 0; uRPtr->end = 0; uRPtr->count = 0; }
+    // while( ++uRPtr < distr_end ) { uRPtr->begin = 0; uRPtr->end = 0; uRPtr->count = 0; }
+    if( ++uRPtr < distr_end){
+      std::memset( uRPtr, 0, (distr_end - uRPtr) * sizeof(unitRange) );
+    }
     
   } // end of unit 0 only part
   
@@ -314,6 +319,8 @@ inline void winnow(
   pattern_t pattern( local_sizes );
   Array<Point, int, pattern_t> toSort( pattern );
   
+  std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point));
+  
   #ifdef DEBUG
     dash::barrier();  // only needed for better IO Output
     
@@ -326,7 +333,7 @@ inline void winnow(
       __sleep(20);
       cout << "#" << fmt( myid, FBLUE, 2 )
            << ":"
-           << " vec.size: "             << fmt( local_sizes.size(), FCYN ) // careful! may not exist -> segfault chance!
+           << " vec.size: "             << fmt( local_sizes.size(), FCYN )
            << " veCount: "              << fmt( local_sizes[myid] , FCYN ) // careful! may not exist -> segfault chance!
            << " lsize: "                << fmt( toSort.lsize()    , FCYN )
            << " toSort lend - lbegin: " << fmt( toSort.lend( ) - toSort.lbegin( ), FCYN )
@@ -395,7 +402,7 @@ inline void winnow(
   {
     cout << "#" << fmt( myid, FBLUE, 2 ) << ": bucket: " << fmt( counter, BBLUE ) << " :";
     
-    for( auto it : **bucket ){ cout << it << ", ";}
+    for( auto it : **bucket ){ cout << it;}
     cout << endl;
   }
   #endif
@@ -453,6 +460,55 @@ inline void winnow(
   #endif
   
   
+ /* only involvedUnits can have data for memcpy!
+  * and the units must have data for themselves as well
+  * logical lookup -> comTable[myid][myid] > 0
+  */
+  uint forMySelf = comTable[myid * involvedUnits + myid];
+  
+  if( myid < involvedUnits && forMySelf > 0)
+  {
+    uint * forThisUnit = comTable + myid;
+    uint lclOffset = 0;
+    
+    for( int ID = 0; ID < myid; ++ID)
+    {
+      // lclOffset += comTable[ID * involvedUnits + myid];  //replaced by pointer logic
+      lclOffset += *(forThisUnit);
+      forThisUnit += involvedUnits;
+    }
+    
+    Point * lclDest = toSort.lbegin() + lclOffset;
+    
+    std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
+    
+  }
+  
+  
+ /* copy data for other units in a circle.
+  * every units sends its data to it's "right" neighbour
+  */
+  uint myRowOffset = myid * involvedUnits;
+  
+  for( int nextID = (myid + 1) % involvedUnits; nextID != myid; nextID = (nextID + 1) % involvedUnits )
+  {
+    if(  comTable[ myRowOffset + nextID ]  )  // if this unit has data for the next unit
+    {
+      // calculate global offset
+    }
+  }
+  
+  
+  #ifdef DEBUG
+    dash::barrier();
+    if( 0 == myid )
+    {
+      cout << "toSort Array:\n";
+      for( Point it : toSort ){
+        cout << it;
+      } cout << endl;
+    }
+  #endif
 }
 
 
