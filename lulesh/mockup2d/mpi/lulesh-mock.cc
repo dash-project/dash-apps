@@ -45,6 +45,7 @@ using std::endl;
 //      values happens.
 //
 
+
 void Exchange_NodalMass(Domain& dom); 
 void Exchange_Force(Domain& dom); 
 void Exchange_PosVel(Domain& dom); 
@@ -120,7 +121,6 @@ void Exchange_PosVel(Domain& dom)
 	       Comm::Action::Replace);
 
   dom.PrintPosVel(1,1);
-
 }
 
 void Exchange_MonoQ(Domain& dom)

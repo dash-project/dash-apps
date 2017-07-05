@@ -13,6 +13,7 @@ Domain::Domain(std::array<int, 2> nElem,
   size_t size_elem = m_nElem[0]*m_nElem[1];
   size_t size_node = m_nNode[0]*m_nNode[1];
 
+  // node-centered fields
   m_x.resize(size_node);
   m_y.resize(size_node);
   m_z.resize(size_node);
@@ -27,12 +28,16 @@ Domain::Domain(std::array<int, 2> nElem,
 
   m_nodalMass.resize(size_node);
 
+  // element-centered fields
   m_delv_xi.resize(size_elem);
   m_delv_eta.resize(size_elem);
   m_delv_zeta.resize(size_elem);
 
   Index_t c = comm().col();
   Index_t r = comm().row();
+
+  // assign value based on canonical order in
+  // process grid
   Real_t val = (Real_t)r * px() + (Real_t)c;
     
   for( size_t i=0; i<size_node; ++i ) {

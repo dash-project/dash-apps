@@ -110,7 +110,9 @@ class Domain
   Index_t nNode(int dim) const { return m_nNode[dim]; }
   Index_t nElem(int dim) const { return m_nElem[dim]; }
 
-  Index_t maxEdgeSize() const { return std::max(m_nElem[0], m_nElem[1]); }
+  Index_t maxEdgeSize() const {
+    return std::max(m_nNode[0], m_nNode[1]);
+  }
 
   // perform data exchange 
   void Exchange(std::array<int,2> dim,
@@ -119,6 +121,9 @@ class Domain
 		Comm::Direction dir,
 		Comm::Action action);
 
+  void Print(int c, int r, Domain_member f,
+	     std::string str, std::array<int,2> dim);
+ 
   void PrintNodalMass(int col, int row);
   void PrintForce(int col, int row);
   void PrintPosVel(int col, int row);
