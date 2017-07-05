@@ -3,11 +3,16 @@
 // #endif
 
 #include <libdash.h>
-#include <chrono>
-#include <thread>
+
 #include "../Terminal_Color.h"
+#include <cstdlib>
 
 #define DEBUG
+
+#ifdef DEBUG
+  #include <chrono>
+  #include <thread>
+#endif
 
 #define MAX_KEY               99
 #define MIN_NUM_ELEM_PER_UNIT 10
@@ -43,7 +48,7 @@ static uint   nelts;
 static int    myid ;
 
 template< typename T >
-void print2d( T& mat ) {
+void print2d( const T& mat ) {
   for( int i = 0; i < mat.extent(0); i++ ) {
     for( int j = 0; j < mat.extent(1); j++ ) {
       cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
@@ -194,11 +199,12 @@ inline void winnow(
       histo.begin      ( ) ,
       histo.begin      ( ) ,
       dash::plus<uint> ( ) );
-  }  
+  }
   
   
   // in this array will be the distribution info for creating buckets
-  vector<unitRange> distr( nUnits );
+  unitRange * distr = static_cast<unitRange*>(  std::malloc( nUnits * sizeof(unitRange) )  );
+  unitRange * const distr_end = distr + nUnits;
 
 
   // unit 0 have to wait for rest to finish adding their values
@@ -224,19 +230,18 @@ inline void winnow(
     #endif
      
   
-    vector<unitRange>::iterator  uRIt;
-    // begin - 1 for loop logic (starting with ++)
-    uRIt = distr.begin() - 1; 
+    // begin - 1 for loop logic (starting with prefix ++)
+    unitRange * uRPtr = distr - 1;
     
    /* the loop for calculation of the distribution got a bit more complex
-    * because i wanted to iterate only once over the "distr" vector
+    * because i wanted to iterate only once over "distr"
     * therefore no initialization beforehand is needed
     */ 
     if ( 1 == nUnits )
     {
-      (++uRIt)->begin = 0;
-      uRIt->end       = MAX_KEY;
-      uRIt->count     = found;
+      (++uRPtr)->begin = 0;
+      uRPtr->end       = MAX_KEY;
+      uRPtr->count     = found;
     
     }else{
       
@@ -250,19 +255,19 @@ inline void winnow(
         
         if( acc >= ideal ){
           
-          (++uRIt)->begin = begin;
-          uRIt->end = i;
-          uRIt->count = acc;
+          (++uRPtr)->begin = begin;
+          uRPtr->end = i;
+          uRPtr->count = acc;
           
           begin = i+1;
           acc   = 0;
         }
       }
-      uRIt->count += acc;
-      uRIt->end = MAX_KEY;
+      uRPtr->count += acc;
+      uRPtr->end = MAX_KEY;
     }
     // set the rest to zero
-    while( ++uRIt < distr.end() ) { uRIt->begin = 0; uRIt->end = 0; uRIt->count = 0; }
+    while( ++uRPtr < distr_end ) { uRPtr->begin = 0; uRPtr->end = 0; uRPtr->count = 0; }
     
   } // end of unit 0 only part
   
@@ -272,25 +277,25 @@ inline void winnow(
   TeamUnit0ID.id = 0;
 
   dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( distr.data( ) ),  // buf 
-                      distr.size( ) * sizeof(unitRange)  ,  // nelem
+                      static_cast<void*>( distr )        ,  // buf 
+                      nUnits * sizeof(unitRange)         ,  // nelem
                       DART_TYPE_BYTE                     ,  // dtype
                       TeamUnit0ID                        ,  // root
-                      team.dart_id( )                       // team
-                   );
+                      team.dart_id( )                    ); // team
   
   if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
 
   #ifdef DEBUG
     __sleep();
     cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
-    for( auto i : distr ) {
+    for( unitRange * i = distr; i < distr_end; ++i )
+    {
         cout << "Range: " 
-          << fmt( i.begin, FYEL ) 
+          << fmt( i->begin, FYEL ) 
           << "-" 
-          << fmt( i.end, FGREEN )
+          << fmt( i->end, FGREEN )
           << " c:"
-          << i.count
+          << i->count
           << ", ";
       }
       cout << endl;
@@ -300,8 +305,9 @@ inline void winnow(
   * therefore the CSRPattern of DASH will be used.
   * this allows different local sizes!
   */ 
-  std::vector<extent_t> local_sizes;
-  for( unitRange * uRPtr = distr.data( ); uRPtr->count > 0 && uRPtr < distr.data( ) + distr.size( ); ++uRPtr ) {
+  vector<extent_t> local_sizes;
+  for( unitRange * uRPtr = distr; uRPtr->count > 0 && uRPtr < distr_end; ++uRPtr )
+  {
       local_sizes.push_back( uRPtr->count );
   }
   
@@ -320,35 +326,81 @@ inline void winnow(
       __sleep(20);
       cout << "#" << fmt( myid, FBLUE, 2 )
            << ":"
-           << " veCount: "              << fmt( local_sizes[myid], FCYN ) // careful! may not exist -> segfault chance!
-           << " lsize: "                << fmt( toSort.lsize()   , FCYN )
+           << " vec.size: "             << fmt( local_sizes.size(), FCYN ) // careful! may not exist -> segfault chance!
+           << " veCount: "              << fmt( local_sizes[myid] , FCYN ) // careful! may not exist -> segfault chance!
+           << " lsize: "                << fmt( toSort.lsize()    , FCYN )
            << " toSort lend - lbegin: " << fmt( toSort.lend( ) - toSort.lbegin( ), FCYN )
-           << " Pattern size: "         << fmt( pattern.size( )  , FCYN )
-           << " toSort size: "          << fmt( toSort.size  ( ) , FCYN )
-           << " sizeof(Point): "        << fmt( sizeof(Point)    , FCYN )
+           << " Pattern size: "         << fmt( pattern.size( )   , FCYN )
+           << " toSort size: "          << fmt( toSort.size  ( )  , FCYN )
+           << " sizeof(Point): "        << fmt( sizeof(Point)     , FCYN )
            << " alignment: "            << fmt( (reinterpret_cast<size_t>(toSort.lbegin( )) % 64), FCYN )
            << endl;
     }
-  
-    dash::barrier();  // only needed for better IO Output
     
-    if( local_sizes.size() > myid ){
-      __sleep();
-      uint count = 0;
-      cout << "#" << myid << ": ";
+    #if 0
+      dash::barrier();  // only needed for better IO Output
       
-      for( Point * i = toSort.lbegin( ); i < toSort.lend( ) ; ++i ) {
-        cout << ++count << ", ";
-        i->value = myid;  // test member access
-        i->row   = myid;  // test member access
-        i->col   = myid;  // test member access
+      if( local_sizes.size() > myid ){
+        __sleep();
+        uint count = 0;
+        cout << "#" << myid << ": ";
+        
+        for( Point * i = toSort.lbegin( ); i < toSort.lend( ) ; ++i ) {
+          cout << ++count << ", ";
+          i->value = myid;  // test member access
+          i->row   = myid;  // test member access
+          i->col   = myid;  // test member access
+        }
+        cout << endl;
       }
-      cout << endl;
-    }
+    #endif
   #endif
   
-  /* each unit creates buckets that are send to the responsible unit later */
   
+ /* Each unit creates buckets that are send to the responsible unit later.
+  * Note: every unit will get data from other units (e.g. if distribution specifies range 0-0)
+  * This is a array of vectors like "vector<Point> buckets[ involvedUnits ];"
+  * But on the Heap!
+  */
+  const size_t involvedUnits = local_sizes.size( );
+  
+  vector<Point> ** buckets = static_cast<vector<Point> **>(  std::malloc( involvedUnits * sizeof(vector<Point>*) )  );
+  vector<Point> ** const buckets_end = buckets + involvedUnits;
+
+  // create a vector for each bucket pointer
+  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket ){ *bucket = new vector<Point>; }
+
+
+  // iterate over pointsLocal and fill the buckets
+  for( Point const * lclPt = pointsLocal.data(); lclPt < pointsLocal.data() + pointsLocal.size(); ++lclPt )
+  {
+    unitRange * uRPtr = distr;
+    for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++uRPtr, ++bucket )
+    {
+      if( lclPt->value <= uRPtr->end )
+      {
+        (*bucket)->push_back(*lclPt);
+        break;
+      }
+    }
+  }
+  
+  #ifdef DEBUG
+  dash::barrier();  // only needed for better IO Output
+  
+  __sleep();
+  uint counter = 0;
+  
+  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket, ++counter )
+  {
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": bucket: " << fmt( counter, BBLUE ) << " :";
+    
+    for( auto it : **bucket ){ cout << it << ", ";}
+    cout << endl;
+  }
+  #endif
+  
+  // uint comTable[nUnits][local_sizes.size()];
   
   
 }
