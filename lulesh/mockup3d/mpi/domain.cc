@@ -184,8 +184,7 @@ void Domain::CheckNodalMass()
   nval[0][2][2] =     1;
   nval[1][2][2] =    dx;
   nval[2][2][2] =     1;
-  
-  
+    
   // determine actual sum over whole domain
   Real_t actual=0.0;
   for( int i=0; i<dx*dy*dz; ++i ) {

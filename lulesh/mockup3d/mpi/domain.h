@@ -21,10 +21,12 @@
     v y, rows
 
   Each process/unit is responsible for a part of the overall
-  simulation, called 'domain'. The size of the local domain is given
-  by dx (number of columns) and dy (number of rows):
+  simulation, called 'domain'. The size of the local domain 
+  is given by: 
 
-
+    - dx (number of columns)
+    - dy (number of rows)
+    - dz (number of planes):
 
 
      -     E#########################F
@@ -42,14 +44,14 @@
        X0 (left plane)             X1 (right plane)
 
 
-       A = X0Y0Z0: top-left corner (front plane)
-       B = X1Y0Z0: top-right corner (front plane)
-       C = X0Y1Z0: bottom-left corner (front plane)
-       D = X1Y1Z0: bottom-right corner (front plane)
-       E = X0Y0Z1: top-left corner (back plane)
-       F = X1Y0Z1: top-right corner (back plane)
-       G = X0Y1Z1: bottom-left corner (back plane)
-       H = X1Y1Z1: bottom-right corner (back plane)  
+     A = X0Y0Z0: top-left corner (front plane)
+     B = X1Y0Z0: top-right corner (front plane)
+     C = X0Y1Z0: bottom-left corner (front plane)
+     D = X1Y1Z0: bottom-right corner (front plane)
+     E = X0Y0Z1: top-left corner (back plane)
+     F = X1Y0Z1: top-right corner (back plane)
+     G = X0Y1Z1: bottom-left corner (back plane)
+     H = X1Y1Z1: bottom-right corner (back plane)  
        
   Note that the storage order in the above sketch is row-by-row but
   that rows correspond to the first (x) dimension, so in fact this
@@ -61,8 +63,14 @@
   implementation 'tags' as shown above are used to denote what is
   communicated.
 
-  X0, X1, Y0, Y1         denote edges
-  X0Y0, X0Y1, X1Y0, X1Y1 denote corners
+  X0, X1, Y0, Y1, Z0, Z1          : planes
+
+  X0Y0, X0Y1, X1Y0, X1Y1,  
+  X0Z0, X0Z1, X1Z0, X1Z1,  
+  Y0Z0, Y0Z1, Y1Z0, Y1Z1,         : edges
+
+  X0Y0Z0, X0Y1Z0, X1Y0Z0, X1Y1Z0
+  X0Y0Z1, X0Y1Z1, X1Y0Z1, X1Y1Z1  : corners
 
 */
 
