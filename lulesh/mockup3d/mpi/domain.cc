@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <assert.h>
 #include "domain.h"
 #include "comm.h"
 
@@ -136,4 +137,84 @@ void Domain::PrintMonoQ(int c, int r, int p)
   Print(c, r, p,
 	&Domain::delv_xi, "delv_xi",
 	nElem() );
+}
+
+void Domain::CheckNodalMass()
+{
+  int c = m_comm.col();
+  int r = m_comm.row();
+  int p = m_comm.plane();
+
+  int dx = m_nNode[0];
+  int dy = m_nNode[1];
+  int dz = m_nNode[2];
+
+  // how many values are received from each neighbor?
+  int nval[3][3][3];
+
+  // front plane
+  nval[0][0][0] =     1;
+  nval[1][0][0] =    dx;
+  nval[2][0][0] =     1;
+  nval[0][1][0] =    dy;
+  nval[1][1][0] = dx*dy;
+  nval[2][1][0] =    dy;
+  nval[0][2][0] =     1;
+  nval[1][2][0] =    dx;
+  nval[2][2][0] =     1;
+
+  // middle plane
+  nval[0][0][1] =       dz;
+  nval[1][0][1] =    dx*dz;
+  nval[2][0][1] =       dz;
+  nval[0][1][1] =    dy*dz;
+  nval[1][1][1] = dx*dy*dz;
+  nval[2][1][1] =    dy*dz;
+  nval[0][2][1] =       dz;
+  nval[1][2][1] =    dx*dz;
+  nval[2][2][1] =       dz;
+
+  // back plane
+  nval[0][0][2] =     1;
+  nval[1][0][2] =    dx; 
+  nval[2][0][2] =     1;
+  nval[0][1][2] =    dy;
+  nval[1][1][2] = dx*dy; 
+  nval[2][1][2] =    dy;
+  nval[0][2][2] =     1;
+  nval[1][2][2] =    dx;
+  nval[2][2][2] =     1;
+  
+  
+  // determine actual sum over whole domain
+  Real_t actual=0.0;
+  for( int i=0; i<dx*dy*dz; ++i ) {
+    actual += nodalMass(i);
+  }
+
+  // compute expected sum over domain by accounting
+  // for all contributions from neighboring processes
+  Real_t expected=0.0;
+  
+  for( int i=-1; i<2; ++i ) {
+    for( int j=-1; j<2; ++j ) {
+      for( int k=-1; k<2; ++k ) {
+	if( m_comm.toRank(c+i,r+j,p+k)<0 )
+	  continue;
+
+	// neighbor's assigned value
+	Real_t val = toValue(c+i,r+j,p+k);
+	expected += nval[1+i][1+j][1+k] * val;
+      }
+    }
+  }
+  
+  if( expected!=actual ) {
+    std::cout << std::flush;
+    std::cout << "CheckNodalMass failed on Rank "
+	      << myRank()
+	      << " expected: " << expected
+	      << " actual: " << actual << std::endl;
+    std::cout << std::flush;
+  }
 }

@@ -131,6 +131,11 @@ class Domain
     return maxEdgeSize()*maxEdgeSize();
   }
 
+  Real_t toValue(int c, int r, int p) {
+    if( m_comm.toRank(c,r,p)<0 ) return 0.0;
+    return (Real_t)p*px()*py() + (Real_t)r*px() + (Real_t)c;
+  }
+  
   // perform data exchange 
   void Exchange(std::array<int,3> dim,
 		std::vector<Domain_member>& fields,
@@ -145,6 +150,8 @@ class Domain
   void PrintForce(int col, int row, int plane);
   void PrintPosVel(int col, int row, int plane);
   void PrintMonoQ(int col, int row, int plane);
+
+  void CheckNodalMass();
 };
 
 

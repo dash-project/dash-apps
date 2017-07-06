@@ -87,7 +87,9 @@ void Exchange_NodalMass(Domain& dom)
 	       Comm::Direction::Both,
 	       Comm::Action::Add);
 
-  dom.PrintNodalMass(1,1,1);
+  dom.PrintNodalMass(1,1,0);
+
+  dom.CheckNodalMass();
 }
 
 void Exchange_Force(Domain& dom)
@@ -120,7 +122,7 @@ void Exchange_PosVel(Domain& dom)
 	       Comm::Direction::One,
 	       Comm::Action::Replace);
 
-  dom.PrintPosVel(1,1,1);
+  dom.PrintPosVel(1,1,0);
 }
 
 void Exchange_MonoQ(Domain& dom)
