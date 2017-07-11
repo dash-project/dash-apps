@@ -8,7 +8,7 @@
 #include <cstdlib>  // for std::malloc
 #include <cstring>  // for std::memcpy and std::memset
 
-#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
   #include <chrono>
@@ -19,29 +19,32 @@
 #define MIN_NUM_ELEM_PER_UNIT 10
 
 
-using std::cout   ;
-using std::cin    ;
-using std::endl   ;
-using std::vector ;
-using std::pair   ;
+using std::cout         ;
+using std::cin          ;
+using std::endl         ;
+using std::vector       ;
+using std::pair         ;
+                        
+using dash::Team        ;
+using dash::Array       ;
+using dash::NArray      ;
+using dash::Shared      ;
+using dash::fill        ;
+using dash::team_unit_t ;
 
-using dash::Team   ;
-using dash::Array  ;
-using dash::NArray ;
-using dash::Shared ;
-using dash::fill   ;
+using uint        = unsigned  int ;
+using uchar       = unsigned char ;
+using POI_T       =          int  ;  //this type musst be signed!
+using MATRIX_T    =         uchar ;
 
-using uint       = unsigned  int ;
-using uchar      = unsigned char ;
-using POI_T      =          int  ;  //this type musst be signed!
-using MATRIX_T   =         uchar ;
-
-using pattern_t  = dash::CSRPattern< 1, dash::ROW_MAJOR, int >;
-using extent_t   = pattern_t::size_type;
-
-using Point      = struct{ MATRIX_T value; uint row, col;   };
-using pointRange = struct{ Point * curr, * end;             };  // unused until now
-using unitRange  = struct{ MATRIX_T begin, end; uint count; };  // unitValueRange
+using value       = struct{                 uint row, col;   };  // results are stored in here
+using Point       = struct{ MATRIX_T value; uint row, col;   };  // results are created using these
+using unitRange   = struct{ MATRIX_T begin, end; uint count; };  // unitValueRange
+// using pointRange = struct{ Point * curr, * end;             };  // unused until now
+                  
+using pattern_t   = dash::CSRPattern< 1, dash::ROW_MAJOR, int >;
+using extent_t    = pattern_t::size_type;
+using res_array_t = dash::Array<value, int, pattern_t>;
 
 // static variables
 static struct InputPar { uint nrows, ncols; } in;
@@ -67,6 +70,15 @@ std::ostream& operator<<(std::ostream& os, const Point& p)
 {
   #ifdef DEBUG
     return os << "(" << fmt( p.value, FCYN ) << "," << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")-";
+  #else
+    return os << p.row << " " << p.col << "\n";
+  #endif
+}
+
+std::ostream& operator<<(std::ostream& os, const value& p)
+{
+  #ifdef DEBUG
+    return os << "(" << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")-";
   #else
     return os << p.row << " " << p.col << "\n";
   #endif
@@ -127,14 +139,14 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
 }
 
 
-template<typename T = MATRIX_T, typename X = pair<POI_T, POI_T> >
+template<typename T = MATRIX_T >
 inline void winnow(
               uint const   nrows      ,
               uint const   ncols      ,
     NArray<   T,2> const & randMat    ,
     NArray<bool,2> const & threshMask ,
               uint const   nelts      ,
-         vector<X>       & result     )
+       res_array_t       & result     )
 {  
   Team & team   = dash::Team::All ( );
   size_t nUnits = team.size       ( );
@@ -277,15 +289,18 @@ inline void winnow(
   } // end of unit 0 only part
   
   
-  // convert own team unit ID into team unit ID with 0
-  dash::team_unit_t TeamUnit0ID = team.myid( );
-  TeamUnit0ID.id = 0;
-
+ /* Distribute calculated distribution data to every unit.
+  * Distribution data consists of unitRange structs.
+  * With this every unit knows which unit is in charge for
+  * sorting a specific value range.
+  * Every unit is then creating buckets to send the values to
+  * the responsible unit.
+  */
   dart_ret_t ret = dart_bcast(
                       static_cast<void*>( distr )        ,  // buf 
                       nUnits * sizeof(unitRange)         ,  // nelem
                       DART_TYPE_BYTE                     ,  // dtype
-                      TeamUnit0ID                        ,  // root
+                      team_unit_t(0)                     ,  // root/source
                       team.dart_id( )                    ); // team
   
   if( DART_OK != ret ) cout << "An Error while BCAST has occured!" << endl; 
@@ -311,7 +326,7 @@ inline void winnow(
   * this allows different local sizes!
   */ 
   vector<extent_t> local_sizes;
-  for( unitRange * uRPtr = distr; uRPtr->count > 0 && uRPtr < distr_end; ++uRPtr )
+  for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
   {
       local_sizes.push_back( uRPtr->count );
   }
@@ -319,7 +334,8 @@ inline void winnow(
   pattern_t pattern( local_sizes );
   Array<Point, int, pattern_t> toSort( pattern );
   
-  std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point));
+  
+  //std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point)); // not necessary anymore
   
   #ifdef DEBUG
     dash::barrier();  // only needed for better IO Output
@@ -335,10 +351,10 @@ inline void winnow(
            << ":"
            << " vec.size: "             << fmt( local_sizes.size(), FCYN )
            << " veCount: "              << fmt( local_sizes[myid] , FCYN ) // careful! may not exist -> segfault chance!
-           << " lsize: "                << fmt( toSort.lsize()    , FCYN )
-           << " toSort lend - lbegin: " << fmt( toSort.lend( ) - toSort.lbegin( ), FCYN )
+           << " lsize: "                << fmt( toSort.lsize( )   , FCYN )
+           << " toSort lend - lbegin: " << fmt( toSort.lend ( ) - toSort.lbegin( ), FCYN )
            << " Pattern size: "         << fmt( pattern.size( )   , FCYN )
-           << " toSort size: "          << fmt( toSort.size  ( )  , FCYN )
+           << " toSort size: "          << fmt( toSort.size ( )   , FCYN )
            << " sizeof(Point): "        << fmt( sizeof(Point)     , FCYN )
            << " alignment: "            << fmt( (reinterpret_cast<size_t>(toSort.lbegin( )) % 64), FCYN )
            << endl;
@@ -494,48 +510,116 @@ inline void winnow(
   // auto globDest = baseIterator +10;
   int nextID = (myid + 1) % involvedUnits;
   
-  // if( 1 == myid )
-  // {
-    // auto globDest = baseIterator + 3;
-    // dash::copy( buckets[0]->data(), buckets[0]->data() + buckets[0]->size(), globDest );
-  // }
-
+  
   for( uint counter = 0; counter < involvedUnits; ++counter, nextID = (nextID + 1) % involvedUnits )
   {
     
     // if this unit has data for the next unit and is a remote unit (local unit was handled before)
     if( comTable[ myRowOffset + nextID ] && nextID != myid  )
     {
-          uint    offsetOnUnit = 0;
-          uint    offsetToUnit = 0;
+          // uint   offsetToUnit  = 0;
+          uint   offsetOnUnit  = 0;
           uint * forNextUnit   = comTable + nextID;
-      extent_t * unitsLclSize  = local_sizes.data();
+      // extent_t * unitsLclSize  = local_sizes.data();
       
-      // calculate offsetToUnit
-      for( int ID = 0; ID < nextID; ++ID, ++unitsLclSize ){ offsetToUnit += *unitsLclSize; }
+      // calculate offsetToUnit // not needed anymore since using .pattern.global(nextID, offsetOnUnit);
+      // for( int ID = 0; ID < nextID; ++ID, ++unitsLclSize ){ offsetToUnit += *unitsLclSize; }
       
       
       // calculate offsetToUnit
       // offsetOnUnit += comTable[ID * involvedUnits + nextID];  //replaced by pointer logic
       for( int ID = 0; ID < myid; ++ID, forNextUnit += involvedUnits ){ offsetOnUnit += *(forNextUnit); }
+
       
-      
-      // cout << "nextID: " << nextID << ", offset: " << offsetOnUnit + offsetToUnit << endl;
       // global iterator/pointer to destination:
-      auto globDest = baseIterator + offsetToUnit + offsetOnUnit;
-      // auto globDest = baseIterator + 30;
+      // auto globDest = baseIterator + offsetToUnit + offsetOnUnit;
+      auto globDest = baseIterator + toSort.pattern().global( team_unit_t(nextID), offsetOnUnit );
       
       //dash::copy / MPI_Put to target unit
       dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
-      // break;
     }
 }
 
   dash::barrier();
   std::sort( toSort.lbegin( ), toSort.lend( ) );
   
-  // #ifdef DEBUG
+  
+ /* calculate local sizes for result array
+  * local_sizes will be recycled therefore
+  */ 
+  local_sizes.clear();
+  size_t chunk = toSort.size( ) / nelts;
+
+   int diff       = 0     ;
+   int div        = 0     ;
+   int mod        = 0     ;
+  uint rest       = 0     ;
+  uint elemOnUnit = 0     ;
+  uint remain     = nelts ;
+  
+  for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
+  {
+    diff = uRPtr->count - rest;
+    
+    if( 0 > diff )
+    {
+      elemOnUnit  = 0            ;
+            rest -= uRPtr->count ;
+    }else
+    {
+      div        = diff / chunk ;
+      mod        = diff % chunk ;
+      
+      elemOnUnit =   div + 1   ;
+            rest = chunk - mod ;
+
+      if( remain < elemOnUnit )
+      {
+        elemOnUnit = remain;
+            remain = 0     ;
+      }else
+      {
+        remain -= elemOnUnit;
+      }
+    }
+    
+    
+    // if(0 ==myid)cout << "el:" << elemOnUnit << " r:" << rest << ", ";
+    local_sizes.push_back( elemOnUnit );
+    
+  } //if(0 ==myid)cout << endl;
+  
+  
+  // allocate result dash::Array with CSR Pattern
+  pattern_t pattern_result  ( local_sizes    );
+            result.allocate ( pattern_result );
+  
+  
+ /* generate local result.
+  * start by calculating local start index.
+  * using global indices therefore.
+  */
+  uint pos = result.pattern().global(0) * chunk - toSort.pattern().global(0);
+  
+  
+  #ifdef DEBUG
     dash::barrier();
+    
+    __sleep();
+    
+    cout << "#" << fmt( myid, FBLUE, 2 )
+         << ": chunk:" << chunk
+         << " res:" << fmt( result.pattern().global(0), FCYN, 2)
+         << " toS:" << fmt( toSort.pattern().global(0), FCYN, 2)
+         << " pos:" << fmt( pos, FCYN, 2)
+         << " lclSizesResult: ";
+    for( extent_t it : local_sizes ){ cout << it << ", "; }
+    
+    cout << endl;
+  #endif
+  
+  #ifdef DEBUG
+  dash::barrier();
     if( 0 == myid )
     {
       cout << "toSort Array:\n";
@@ -543,7 +627,25 @@ inline void winnow(
         cout << it;
       } cout << endl;
     }
-  // #endif
+  #endif
+  
+  
+  Point * src = toSort.lbegin() + pos;
+  for( value * dst = result.lbegin(); dst < result.lend(); ++dst, src += chunk )
+  {
+    dst->col = src->col;
+    dst->row = src->row;
+  }
+  
+  
+  // wait for all to finish
+  dash::barrier();
+  if( 0 == myid )
+  {
+    for( value it : result ) cout << it;
+    cout << endl;
+  }
+  
 }
 
 
@@ -553,11 +655,14 @@ int main( int argc, char* argv[] )
   dash::init( &argc,&argv );
   
   myid = dash::myid( );
-
+  
   ReadRowsNCols( );
   
   NArray< MATRIX_T, 2 > randMat    ( in.nrows, in.ncols );
   NArray< bool    , 2 > threshMask ( in.nrows, in.ncols );
+  
+  res_array_t resultPoints;
+  
 
   #ifdef DEBUG  // print error message if mask's and matrix's local size aren't identical
     if( threshMask.local_size() != randMat.local_size() )
@@ -570,9 +675,7 @@ int main( int argc, char* argv[] )
   
   ReadMatricesAndNelts( randMat, threshMask );
   
-  vector< pair<POI_T, POI_T> > result_points(nelts);
-  
-  winnow( in.nrows, in.ncols, randMat, threshMask, nelts, result_points );
+  winnow( in.nrows, in.ncols, randMat, threshMask, nelts, resultPoints );
 
   dash::finalize( );
 }

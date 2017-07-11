@@ -8,7 +8,7 @@ main: main.cpp winnow_placeholder.h
 	$(CXX) -o $@ $@.o $(LIB) 
 
 	
-winnow: winnow.cpp
+winnow: winnow.cpp ../Terminal_Color.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 
