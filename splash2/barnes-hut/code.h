@@ -72,40 +72,40 @@ typedef struct {
 
 
 //struct GlobalMemory  {  /* all this info is for the whole system */
-extern dash::Shared<long> n2bcalc; /* total number of body/cell interactions  */
-extern dash::Shared<long> nbccalc; /* total number of body/body interactions  */
-extern dash::Shared<long> selfint; /* number of self interactions             */
-extern dash::Shared<real> mtot;    /* total mass of N-body system             */
-// dash::Shared<real> etot[3];      /* binding, kinetic, potential energy */
-extern dash::Shared<sh_mat> keten; /* kinetic energy tensor                   */
-extern dash::Shared<sh_mat> peten; /* potential energy tensor                 */
-// dash::Shared<vector> cmphase[2]; /* center of mass coordinates and velocity
-// */
-extern dash::Shared<sh_vec> amvec;   /* angular momentum vector                 */
-extern dash::Shared<cellptr> G_root; /* root of the whole tree                  */
-extern dash::Shared<sh_vec> rmin;    /* lower-left corner of coordinate box     */
-extern dash::Shared<sh_vec> min;     /* temporary lower-left corner of the box  */
-extern dash::Shared<sh_vec> max;     /* temporary upper right corner of the box */
-extern dash::Shared<real> rsize;     /* side-length of integer coordinate box   */
+  extern dash::Shared<long> n2bcalc; /* total number of body/cell interactions  */
+  extern dash::Shared<long> nbccalc; /* total number of body/body interactions  */
+  extern dash::Shared<long> selfint; /* number of self interactions             */
+  extern dash::Shared<real> mtot;    /* total mass of N-body system             */
+  // dash::Shared<real> etot[3];      /* binding, kinetic, potential energy */
+  extern dash::Shared<sh_mat> keten; /* kinetic energy tensor                   */
+  extern dash::Shared<sh_mat> peten; /* potential energy tensor                 */
+  // dash::Shared<vector> cmphase[2]; /* center of mass coordinates and velocity
+  // */
+  extern dash::Shared<sh_vec> amvec;   /* angular momentum vector                 */
+  extern dash::Shared<cellptr> G_root; /* root of the whole tree                  */
+  extern dash::Shared<sh_vec> rmin;    /* lower-left corner of coordinate box     */
+  extern dash::Shared<sh_vec> min;     /* temporary lower-left corner of the box  */
+  extern dash::Shared<sh_vec> max;     /* temporary upper right corner of the box */
+  extern dash::Shared<real> rsize;     /* side-length of integer coordinate box   */
 
 //pthread_barrier_t (Barrier);
 
    /* barrier at the beginning of stepsystem  */
 #if 0
-    pthread_mutex_t (CountLock); /* Lock on the shared variables            */
-    pthread_mutex_t (NcellLock); /* Lock on the counter of array of cells for loadtree */
-    pthread_mutex_t (NleafLock);/* Lock on the counter of array of leaves for loadtree */
-    pthread_mutex_t (io_lock);
+  pthread_mutex_t (CountLock); /* Lock on the shared variables            */
+  pthread_mutex_t (NcellLock); /* Lock on the counter of array of cells for loadtree */
+  pthread_mutex_t (NleafLock);/* Lock on the counter of array of leaves for loadtree */
+  pthread_mutex_t (io_lock);
 #endif
-    /*
-    dash::Shared<unsigned long> createstart,createend,computestart,computeend;
-    dash::Shared<unsigned long> trackstart, trackend, tracktime;
-    dash::Shared<unsigned long> partitionstart, partitionend, partitiontime;
-    dash::Shared<unsigned long> treebuildstart, treebuildend, treebuildtime;
-    dash::Shared<unsigned long> forcecalcstart, forcecalcend, forcecalctime;
-    */
-    //long current_id;
-    //volatile long k; /*for memory allocation in code.C */
+  /*
+  dash::Shared<unsigned long> createstart,createend,computestart,computeend;
+  dash::Shared<unsigned long> trackstart, trackend, tracktime;
+  dash::Shared<unsigned long> partitionstart, partitionend, partitiontime;
+  dash::Shared<unsigned long> treebuildstart, treebuildend, treebuildtime;
+  dash::Shared<unsigned long> forcecalcstart, forcecalcend, forcecalctime;
+  */
+  //long current_id;
+  //volatile long k; /*for memory allocation in code.C */
 //};
 //global struct GlobalMemory *Global;
 
