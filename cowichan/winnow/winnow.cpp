@@ -8,7 +8,8 @@
 #include <cstdlib>  // for std::malloc
 #include <cstring>  // for std::memcpy and std::memset
 
-// #define DEBUG
+#define DEBUG
+#define DEBUG_DETAILED  // requires DEBUG
 
 #ifdef DEBUG
   #include <chrono>
@@ -69,7 +70,8 @@ bool operator<(const Point& lhs, const Point& rhs)
 std::ostream& operator<<(std::ostream& os, const Point& p)
 {
   #ifdef DEBUG
-    return os << "(" << fmt( p.value, FCYN ) << "," << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")-";
+    // return os << "(" << fmt( p.value, FCYN ) << "," << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")-";
+    return os << "(" << fmt( p.value, FCYN ) << "," << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")";
   #else
     return os << p.row << " " << p.col << "\n";
   #endif
@@ -77,11 +79,11 @@ std::ostream& operator<<(std::ostream& os, const Point& p)
 
 std::ostream& operator<<(std::ostream& os, const value& p)
 {
-  #ifdef DEBUG
-    return os << "(" << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")-";
-  #else
+  // #ifdef DEBUG
+    // return os << "(" << fmt( p.row, FGREEN ) << "," << fmt( p.col, FGREEN ) << ")\n";
+  // #else
     return os << p.row << " " << p.col << "\n";
-  #endif
+  // #endif
 }
 
 #ifdef DEBUG
@@ -151,9 +153,10 @@ inline void winnow(
   Team & team   = dash::Team::All ( );
   size_t nUnits = team.size       ( );
   
-  #ifdef DEBUG
+  #ifdef DEBUG_DETAILED
     if( 0 == myid ) cout << "nUnits: " << nUnits << endl;
   #endif
+  
   /* create global histo array for sorting
    * size += 1 for direct Index access -> histo[2]++ counts for value 2
    * size += 1 for additional value at the end of the 
@@ -195,14 +198,16 @@ inline void winnow(
     dash::barrier();  // only needed for better IO Output
     __sleep( );
     
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
-    for( auto it : pointsLocal){ cout <<   it; }
+    cout << "#" << fmt( myid, FBLUE, 2 )    << ": ";
+    for( auto it : pointsLocal){ cout << it << "-" ; }
     cout << endl;
     
-    __sleep(20);
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via pointsLocal:" << fmt( pointsLocal.size()   , FRED, 2 )  << "\n";
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( found                , FRED, 2 )  << "\n";
-    // cout << "#" << fmt( myid, FBLUE, 2 ) << ": histogram.lsize:"       << fmt(found - histo.lbegin(), FRED, 2 )  << endl;
+    #ifdef DEBUG_DETAILED
+      __sleep(20);
+      cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via pointsLocal:" << fmt( pointsLocal.size()   , FRED, 2 )  << "\n";
+      cout << "#" << fmt( myid, FBLUE, 2 ) << ": found via histogram  :" << fmt( found                , FRED, 2 )  << "\n";
+      // cout << "#" << fmt( myid, FBLUE, 2 ) << ": histogram.lsize:"       << fmt(found - histo.lbegin(), FRED, 2 )  << endl;
+    #endif
   #endif
 
   // is here a barrier needed? -> to wait for completion on unit0?!
@@ -341,10 +346,11 @@ inline void winnow(
     dash::barrier();  // only needed for better IO Output
     
     __sleep();
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": ";
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": local sizes: ";
     for( auto it : local_sizes ){ cout << it << ", ";}
     cout << endl;
     
+    #ifdef DEBUG_DETAILED
     if( local_sizes.size() > myid ){
       __sleep(20);
       cout << "#" << fmt( myid, FBLUE, 2 )
@@ -360,22 +366,23 @@ inline void winnow(
            << endl;
     }
     
-    #if 0
-      dash::barrier();  // only needed for better IO Output
-      
-      if( local_sizes.size() > myid ){
-        __sleep();
-        uint count = 0;
-        cout << "#" << myid << ": ";
+      #if 0
+        dash::barrier();  // only needed for better IO Output
         
-        for( Point * i = toSort.lbegin( ); i < toSort.lend( ) ; ++i ) {
-          cout << ++count << ", ";
-          i->value = myid;  // test member access
-          i->row   = myid;  // test member access
-          i->col   = myid;  // test member access
+        if( local_sizes.size() > myid ){
+          __sleep();
+          uint count = 0;
+          cout << "#" << myid << ": ";
+          
+          for( Point * i = toSort.lbegin( ); i < toSort.lend( ) ; ++i ) {
+            cout << ++count << ", ";
+            i->value = myid;  // test member access
+            i->row   = myid;  // test member access
+            i->col   = myid;  // test member access
+          }
+          cout << endl;
         }
-        cout << endl;
-      }
+      #endif
     #endif
   #endif
   
@@ -416,9 +423,9 @@ inline void winnow(
   
   for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket, ++counter )
   {
-    cout << "#" << fmt( myid, FBLUE, 2 ) << ": bucket: " << fmt( counter, BBLUE ) << " :";
+    cout << "#" << fmt( myid, FBLUE, 2 ) << ": bucket: " << fmt( counter, BBLUE ) << ": ";
     
-    for( auto it : **bucket ){ cout << it;}
+    for( auto it : **bucket ){ cout << it << "-";}
     cout << endl;
   }
   #endif
@@ -462,7 +469,7 @@ inline void winnow(
   
   if( DART_OK != ret ) cout << "An Error while allgather has occured!" << endl; 
   
-  #ifdef DEBUG
+  #ifdef DEBUG_DETAILED
   dash::barrier();  // only needed for better IO Output
   
   __sleep();
@@ -538,11 +545,48 @@ inline void winnow(
       //dash::copy / MPI_Put to target unit
       dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
     }
-}
+  }
 
   dash::barrier();
-  std::sort( toSort.lbegin( ), toSort.lend( ) );
   
+  #ifdef DEBUG_DETAILED
+    
+    __sleep();
+    
+    // if( 0 == myid )
+    // {
+      // vector<Point> testA;
+
+      // for( Point it : toSort ){ testA.push_back( it ); }
+      
+      // std::sort( testA.begin( ), testA.end( ) );
+      
+      // cout << "here comes testA:\n";
+      // for(  auto it : testA  ){ cout << it << "\n"   ; }
+      // cout << endl;
+    // }
+    
+    
+    if( 0 == myid )
+    {
+      cout << "toSort Array before sort:\n";
+      for( Point it : toSort ){
+        cout << it << "-";
+      } cout << endl;
+    }
+
+    
+    // cout << "#" << fmt( myid, FBLUE, 2 ) << ": toSort Array before sort:\n";
+    // for( Point * it = toSort.lbegin(); it < toSort.lend(); ++it ){
+      // cout << *it << "\n";
+    // } cout << endl;
+  #endif
+  
+  
+  // if( 0 < toSort.lsize() )
+  // {
+    std::stable_sort( toSort.lbegin( ), toSort.lend( ) );
+  // }
   
  /* calculate local sizes for result array
   * local_sizes will be recycled therefore
@@ -553,25 +597,38 @@ inline void winnow(
    int diff       = 0     ;
    int div        = 0     ;
    int mod        = 0     ;
+  uint countSoFar = 0     ;
+  uint lastIX     = 0     ;
+  uint resulCount = 0     ;
   uint rest       = 0     ;
   uint elemOnUnit = 0     ;
   uint remain     = nelts ;
   
+  dash::barrier();
+  __sleep;
+  
   for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
   {
-    diff = uRPtr->count - rest;
+    // diff = uRPtr->count - rest;
     
-    if( 0 > diff )
-    {
-      elemOnUnit  = 0            ;
-            rest -= uRPtr->count ;
-    }else
-    {
-      div        = diff / chunk ;
-      mod        = diff % chunk ;
+    // if( 0 > diff )
+    // {
+      // elemOnUnit  = 0            ;
+            // rest -= uRPtr->count ;
+    // }else
+    // {
+      countSoFar += uRPtr->count;
+      lastIX      = countSoFar - 1 ;
+      div         = lastIX / chunk ;
+      mod         = lastIX % chunk ;
       
-      elemOnUnit =   div + 1   ;
-            rest = chunk - mod ;
+      // if( 0 == myid ){
+        // cout << "count:" << uRPtr->count << " rest:" << rest << "\n";
+      // }
+      
+      elemOnUnit = div + 1 - resulCount ;
+      resulCount = div + 1          ;
+            rest = mod              ;
 
       if( remain < elemOnUnit )
       {
@@ -581,7 +638,7 @@ inline void winnow(
       {
         remain -= elemOnUnit;
       }
-    }
+    // }
     
     
     // if(0 ==myid)cout << "el:" << elemOnUnit << " r:" << rest << ", ";
@@ -593,59 +650,56 @@ inline void winnow(
   // allocate result dash::Array with CSR Pattern
   pattern_t pattern_result  ( local_sizes    );
             result.allocate ( pattern_result );
-  
+  uint pos = 0;
   
  /* generate local result.
   * start by calculating local start index.
   * using global indices therefore.
   */
-  uint pos = result.pattern().global(0) * chunk - toSort.pattern().global(0);
-  
+  if( 0 < result.lsize( ) )
+  {
+   /* result.pattern().global(0) -> correspond to: "how much result elements have the units before this unit"
+    * toSort.pattern().global(0) -> correspond to: "how much sorted elements have the units before this unit"
+    */
+         pos    = result.pattern().global(0) * chunk - toSort.pattern().global(0);
+    Point * src = toSort.lbegin() + pos;
+    
+    for( value * dst = result.lbegin(); dst < result.lend(); ++dst, src += chunk )
+    {
+      dst->col = src->col;
+      dst->row = src->row;
+    }
+  }
   
   #ifdef DEBUG
+    #ifdef DEBUG_DETAILED
+      dash::barrier();
+      
+      __sleep();
+      
+      cout << "#" << fmt( myid, FBLUE, 2 )
+           << ": chunk:" << chunk
+           << " res:" << fmt( result.pattern().global(0), FCYN, 2)
+           << " toS:" << fmt( toSort.pattern().global(0), FCYN, 2)
+           << " pos:" << fmt( pos, FCYN, 2)
+           << " lclSizesResult: ";
+           
+      for( extent_t it : local_sizes ){ cout << it << ", "; }
+      cout << endl;
+    #endif 
+    
     dash::barrier();
     
     __sleep();
     
-    cout << "#" << fmt( myid, FBLUE, 2 )
-         << ": chunk:" << chunk
-         << " res:" << fmt( result.pattern().global(0), FCYN, 2)
-         << " toS:" << fmt( toSort.pattern().global(0), FCYN, 2)
-         << " pos:" << fmt( pos, FCYN, 2)
-         << " lclSizesResult: ";
-    for( extent_t it : local_sizes ){ cout << it << ", "; }
-    
-    cout << endl;
-  #endif
-  
-  #ifdef DEBUG
-  dash::barrier();
     if( 0 == myid )
     {
-      cout << "toSort Array:\n";
+      cout << "toSort Array after sort:\n";
       for( Point it : toSort ){
-        cout << it;
+        cout << it << "-";
       } cout << endl;
     }
   #endif
-  
-  
-  Point * src = toSort.lbegin() + pos;
-  for( value * dst = result.lbegin(); dst < result.lend(); ++dst, src += chunk )
-  {
-    dst->col = src->col;
-    dst->row = src->row;
-  }
-  
-  
-  // wait for all to finish
-  dash::barrier();
-  if( 0 == myid )
-  {
-    for( value it : result ) cout << it;
-    cout << endl;
-  }
-  
 }
 
 
@@ -661,7 +715,7 @@ int main( int argc, char* argv[] )
   NArray< MATRIX_T, 2 > randMat    ( in.nrows, in.ncols );
   NArray< bool    , 2 > threshMask ( in.nrows, in.ncols );
   
-  res_array_t resultPoints;
+  res_array_t result;
   
 
   #ifdef DEBUG  // print error message if mask's and matrix's local size aren't identical
@@ -675,8 +729,18 @@ int main( int argc, char* argv[] )
   
   ReadMatricesAndNelts( randMat, threshMask );
   
-  winnow( in.nrows, in.ncols, randMat, threshMask, nelts, resultPoints );
-
+  winnow( in.nrows, in.ncols, randMat, threshMask, nelts, result );
+  
+  // #ifndef DEBUG
+    // wait for all to finish
+    dash::barrier();
+    
+    if( 0 == myid )
+    {
+      for( value it : result ) cout << it;
+      cout << endl;
+    }
+  // #endif
   dash::finalize( );
 }
 
