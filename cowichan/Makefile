@@ -177,7 +177,8 @@ dash-run_:
 	@{ cat run_results/dash_randmat_out; echo $(thresh); } | mpirun -n $(JOBS) ./thresh/thresh > run_results/dash_thresh_out
 #@x=$$(<run_results/dash_thresh_out); y="$${x//[^1]}"; echo $${#y} >> run_results/dash_thresh_out;	#count the '1's in the thresh output and add the number to the output
 	@echo $(winnow_nelts) >> run_results/dash_thresh_out
-	@cat run_results/dash_randmat_out run_results/dash_thresh_out | mpirun -n $(JOBS) ./winnow/main > run_results/dash_winnow_out
+#@cat run_results/dash_randmat_out run_results/dash_thresh_out | mpirun -n $(JOBS) ./winnow/main > run_results/dash_winnow_out
+	@cat run_results/dash_randmat_out run_results/dash_thresh_out | mpirun -n $(JOBS) ./winnow/winnow > run_results/dash_winnow_out
 	@mpirun -n $(JOBS) ./outer/outer < run_results/dash_winnow_out > run_results/dash_outer_out
 	@mpirun -n $(JOBS) ./product/product < run_results/dash_outer_out > run_results/dash_product_out
 	@echo $(nRowsCols) $(seed) $(thresh) $(winnow_nelts) | mpirun -n $(JOBS) ./chain/chain > run_results/dash_chain_out
@@ -273,7 +274,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
 	for (( vThresh=25; vThresh<= 75; vThresh+=6 )) ;                   do \
 	for (( vWinnow_nelts=3; vWinnow_nelts<= 11 ; vWinnow_nelts+=4 )) ; do \
-	export nRowsCols=10 seed=44 thresh=60 winnow_nelts=40 JOBS=4;\
+	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=4;\
 		$(MAKE) --no-print-directory run-all;\
 		echo comparing ... ;\
 		subsucc=0;\

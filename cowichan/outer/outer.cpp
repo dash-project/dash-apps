@@ -5,10 +5,11 @@ using std::cin;
 using std::endl;
 using dash::Shared;
 using uint  = unsigned int;
-using POI_T = int;  //this type musst be signed!
 
 uint nelts;
 static int myid;
+
+using value = struct{ int row, col; }; //hast to be signed!
 #include "outer.h"
 
 
@@ -53,10 +54,9 @@ inline void ReadNelts( ){
 }
 
 
-template<typename T = POI_T>
-inline void ReadVectorOfPoints( vector< pair< T,T >> & points ) {
+inline void ReadVectorOfPoints( vector<value> & points ) {
   for( uint i = 0; i < nelts; i++ ) {
-    cin >> points[i].first >> points[i].second;
+    cin >> points[i].row >> points[i].col;
   }
 }
 
@@ -68,9 +68,9 @@ int main( int argc, char* argv[] )
   
   ReadNelts( );
   
-  vector < pair<POI_T, POI_T> > points( nelts        );
-  NArray < double, 2          > matOut( nelts, nelts );
-  Array  < double             > vec   ( nelts        );
+  vector < value     > points( nelts        );
+  NArray < double, 2 > matOut( nelts, nelts );
+  Array  < double    > vec   ( nelts        );
   
   //read input points on unit 0 and broadcast to all units
   if( 0 == myid ) ReadVectorOfPoints( points );

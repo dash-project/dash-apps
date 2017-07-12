@@ -1,26 +1,26 @@
-using std::pair;
-using std::make_pair;
-using std::vector;
-using std::max;
-using dash::NArray;
-using dash::Array;
-using dash::team_unit_t;
+using  std::max;
+using  std::pair;
+using  std::vector;
+using  std::make_pair;
+
 using dash::Team;
+using dash::Array;
+using dash::NArray;
 using dash::barrier;
+using dash::team_unit_t;
+
 
 inline double sqr(double const x) { return x * x; }
 
 
 //calculates the distance between two points.
-template<typename T = POI_T>
-inline double distance( pair< T, T > const & x, pair< T, T > const & y ){
-  return sqrt(sqr(x.first - y.first) + sqr(x.second - y.second));
+inline double distance( value const & x, value const & y ){
+  return sqrt(sqr(x.row - y.row) + sqr(x.col - y.col));
 }
 
 
-template< typename T = POI_T>
 inline void Outer(
-  vector< pair<T, T> > const & points,
+  vector< value      > const & points,
   NArray< double, 2  >       & matOut,
   Array < double     >       & vec   ,
                   uint         nelts )
@@ -29,6 +29,9 @@ inline void Outer(
    uint gRow =        matOut.pattern().global({0,0})[0];
    uint end  = gRow + matOut.pattern().local_extents()[0];
    double nmax;
+   value zero = {0,0};
+   // zero.row = 0;
+   // zero.col = 0;
 
    for( uint i = 0; gRow < end; ++gRow, ++i ) {
     nmax = 0;
@@ -39,24 +42,22 @@ inline void Outer(
       }
     }
     matOut.local[i][gRow] = nelts * nmax;
-    vec.local[i] = distance( make_pair(0,0), points[gRow] );
+    vec.local[i] = distance( zero, points[gRow] );
   }
   
   barrier( );
 }
 
 
-template<typename T = POI_T>
-inline void BroadcastPointsToUnits( vector< pair<T,T> > & points )
+template<typename T>
+inline void BroadcastPointsToUnits( vector<T> & points )
 {
-  team_unit_t TeamUnit0ID = Team::All( ).myid( );
-  TeamUnit0ID.id = 0;
   dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( points.data( ) ),  // buf 
-                      points.size( ) * sizeof(pair<T,T>)  ,  // nelts
-                      DART_TYPE_BYTE                      ,  // dtype
-                      TeamUnit0ID                         ,  // root
-                      Team::All().dart_id( )              ); // team
+                      static_cast<void*>( points.data() ),  // buf 
+                      points.size( ) * sizeof(T)         ,  // nelts
+                      DART_TYPE_BYTE                     ,  // dtype
+                      dash::team_unit_t(0)               ,  // root
+                      dash::Team::All( ).dart_id( )      ); // team
                       
   if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
 }

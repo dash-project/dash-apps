@@ -5,7 +5,7 @@ all: chain
 #mpirun -n 4 ./$@ < main.in > rand.out2
 #diff -ws rand.out2 main.gold
 
-chain: chain.cpp
+chain: chain.cpp ../randmat/randmat.h ../thresh/thresh.h ../winnow/winnow.h ../outer/outer.h ../product/product.h
 	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB)
 
