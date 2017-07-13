@@ -9,7 +9,7 @@
 #include <fstream>
 
 #include <libdash.h>
-#include <dash/experimental/HaloMatrix.h>
+#include <dash/experimental/HaloMatrixWrapper.h>
 
 #define WITHCSVOUTPUT 1
 #ifdef WITHCSVOUTPUT
@@ -34,21 +34,21 @@ const StencilSpecT stencil_spec
 ({
     StencilT(-1,0,0), StencilT(1,0,0),
     StencilT(0,-1,0), StencilT(0,1,0),
-    StencilT(0,0,-1), StencilT(0,0,1) 
+    StencilT(0,0,-1), StencilT(0,0,1)
 });
 
 struct Level
 {
     MatrixT grid;
     HaloMatrixWrapperT halo;
-    
+
     Level( size_t w, size_t h, size_t d, dash::Team& team, TeamSpecT teamspec )
     : grid( dash::SizeSpec<3>( h+2, w+2, d+2),
             dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
-      halo( grid, stencil_spec ) 
+      halo( grid, stencil_spec )
       {}
       Level() = delete;
-      
+
       ~Level() {}
 };
 
@@ -56,7 +56,7 @@ struct Level
 void toCSV( const MatrixT& cube )
 {
     if ( 0 != dash::myid() ) return;
-    
+
     size_t d= cube.extent(2);
     size_t w= cube.extent(1);
     size_t h= cube.extent(0);
@@ -82,10 +82,10 @@ void writeToCsv( const MatrixT& cube )
 {
 #ifdef WITHCSVOUTPUT
     cube.barrier();
-    
+
     if(0 == dash::myid())
         toCSV( cube );
-    
+
     cube.barrier();
 #endif /* WITHCSVOUTPUT */
 }
@@ -134,7 +134,7 @@ void initgrid( MatrixT& grid ) {
     size_t d= grid.extent(2);
     size_t w= grid.extent(1);
     size_t h= grid.extent(0);
-    
+
     size_t sum = 0;
 
     cout << "assign values to finest level " << w << " x " << h << " x " << d << endl;
@@ -148,7 +148,7 @@ void initgrid( MatrixT& grid ) {
     }
     }
     }
-    
+
     // cold block inside of cube
     for( size_t j = 0; j < d; ++j ) {
     for( size_t i = h/5; i < h*3/4; ++i ) {
@@ -173,7 +173,7 @@ void setboundary( MatrixT& grid ) {
     size_t w= grid.extent(1);
     size_t h= grid.extent(0);
 
-    /* set entire boundary to a low value */ 
+    /* set entire boundary to a low value */
     for ( size_t z= 1; z < d; ++z ) {
         for ( size_t y= 0; y < h; ++y ) {
             for ( size_t x= 0; x < w; ++x ) {
@@ -203,7 +203,7 @@ void setboundary( MatrixT& grid ) {
     for ( size_t z= 0; z < d*1/5; ++z ) {
         for ( size_t y= h*1/5; y < h*2/5; ++y ) {
             for ( size_t x= w*4/5; x < w-1; ++x ) {
-                grid[y][x  ][0  ]= 0.0;     // front 
+                grid[y][x  ][0  ]= 0.0;     // front
                 grid[y][w-1][z]= 0.0;   // right side
             }
         }
@@ -251,7 +251,7 @@ void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
                     fine.local[starty+y*2+1][startx+x*2+1][0]);
             }
         }
-    } 
+    }
     else // cornerc[2] != 0
     {
         // back plane -- only true for case with 8 units
@@ -298,7 +298,7 @@ void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
             }
         }
     }
-    
+
     if ( cornerc[0] == 0 )
     {
         // top
@@ -346,7 +346,7 @@ void scaledown( Level& fine, Level& coarse ) {
     size_t startx= ( 0 == cornerc[1] % 2 ) ? 1 : 0;
     size_t starty= ( 0 == cornerc[0] % 2 ) ? 1 : 0;
     size_t startz= ( 0 == cornerc[2] % 2 ) ? 1 : 0;
-    
+
 
     for ( size_t z= 0; z < extentc[2]-startz; ++z ) {
         for ( size_t y= 0; y < extentc[0]-starty; ++y ) {
@@ -485,7 +485,7 @@ double smoothen( Level& level ) {
     cout << "Smoothen start" << endl;
     for ( size_t z= 1; z < ld-1; z++ ) {
         for ( size_t y= 1; y < lh-1; y++ ) {
-            
+
             // pointer movement manually
             /*const size_t d= 1;
             double* p_here= &gridlocalbegin[ d+ld*(y+lw*x) ];
@@ -506,10 +506,10 @@ double smoothen( Level& level ) {
                     level.grid.local[y  ][x-1][z  ] +   // west
                     level.grid.local[y  ][x  ][z-1] )   // close
                     / 6.0 - level.grid.local[y  ][x  ][z  ]; // centre
-                    
+
                 level.grid.local[y][x][z] = level.grid.local[y][x][z]+( c * dtheta);
                 res= std::max( res, std::fabs( dtheta ) );
-                
+
                 /*double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_far + *p_close ) / 6.0 - *p_here ;
                 *p_here += c * dtheta;
                 res= std::max( res, std::fabs( dtheta ) );
@@ -614,7 +614,7 @@ void v_cycle( vector<Level*>& levels, uint32_t inneriterations= 1 ) {
 
 int main( int argc, char* argv[] )
 {
-    
+
     dash::init(&argc, &argv);
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1);
@@ -644,16 +644,16 @@ int main( int argc, char* argv[] )
 
 
         if ( 0 == l ) {
-            sanitycheck( levels[0]->grid ); 
+            sanitycheck( levels[0]->grid );
             setboundary( levels[0]->grid );
             continue;
         }
 
-        scaledownboundary( levels[l-1]->grid, levels[l]->grid ); 
+        scaledownboundary( levels[l-1]->grid, levels[l]->grid );
     }
 
     dash::barrier();
-    
+
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the CSV files */
     initgrid( levels[0]->grid );
@@ -670,4 +670,4 @@ int main( int argc, char* argv[] )
     writeToCsv( levels.front()->grid );
 
     dash::finalize();
-} 
+}

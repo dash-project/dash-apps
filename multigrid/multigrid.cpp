@@ -7,7 +7,7 @@
 #include <cstdio>
 
 #include <libdash.h>
-#include <dash/experimental/HaloMatrix.h>
+#include <dash/experimental/HaloMatrixWrapper.h>
 
 #define WITHPNGOUTPUT 1
 #ifdef WITHPNGOUTPUT
