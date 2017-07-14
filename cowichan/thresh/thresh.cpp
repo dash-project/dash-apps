@@ -15,6 +15,8 @@ static int myid;
 
 #include "thresh.h"
 
+std::ifstream randmat_output;
+
 /*
  * This function prints the content of a 2D matrix to std::out.
  * Datatypes are casted to <const uint> for readable output
@@ -40,15 +42,12 @@ template<typename T = MATRIX_T>
 inline void ReadRandMat( NArray< T, 2 > & rand_mat )
 {
   if(0 == myid){
-    T tmp;
+    int tmp;
     for ( auto i : rand_mat ){
-      scanf( "%u", &tmp );
-      i = tmp;
+      randmat_output >> tmp;
+      i = static_cast<T>(tmp);
     }
   }
-
-  // wait for initialization of the matrix before continuing
-  barrier( );
 }
 
 /*
@@ -56,14 +55,16 @@ inline void ReadRandMat( NArray< T, 2 > & rand_mat )
  * Because there's always a unit0, it reads the input parameter and
  * distributes them to the rest of the units.
  */
-inline void ReadRowsNCols( )
+inline void ReadRowsNCols( char * argv[] )
 {
   Shared<InputPar> input_transfer;
 
   if(0 == myid)
   {
-    cin >> in.nrows;
-    cin >> in.ncols;
+    randmat_output.open(argv[1]);
+    
+    randmat_output >> in.nrows;
+    randmat_output >> in.ncols;
 
     input_transfer.set(in);
   }
@@ -77,9 +78,11 @@ inline void ReadPercentage( )
 
   if(0 == myid)
   {
-    cin >> percent;
+    randmat_output >> percent;
 
     percent_transfer.set(percent);
+    
+    randmat_output.close();
   }
   percent_transfer.barrier();
   percent = percent_transfer.get();
@@ -91,14 +94,14 @@ int main( int argc, char* argv[] )
   dash::init( &argc, &argv );
 
   myid = dash::myid( );
-  ReadRowsNCols( );
+  ReadRowsNCols( argv );
 
   NArray< MATRIX_T, 2 > rand_mat    ( in.nrows, in.ncols );
   NArray< bool    , 2 > thresh_mask ( in.nrows, in.ncols );
 
   ReadRandMat(rand_mat);
   ReadPercentage();
-
+  
   Thresh( rand_mat, thresh_mask, in.nrows, in.ncols, percent );
   Print2D( thresh_mask );
 

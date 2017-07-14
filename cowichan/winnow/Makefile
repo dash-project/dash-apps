@@ -1,12 +1,7 @@
 include ../make.defs
 
 .PHONY: all
-all: main winnow
-
-main: main.cpp winnow_placeholder.h
-	$(CXX) -c $(INC) $<
-	$(CXX) -o $@ $@.o $(LIB) 
-
+all: winnow
 	
 winnow: winnow.cpp winnow.h ../Terminal_Color.h
 	$(CXX) -c $(INC) $<

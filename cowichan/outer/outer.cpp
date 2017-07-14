@@ -12,6 +12,8 @@ static int myid;
 using value = struct{ int row, col; }; //hast to be signed!
 #include "outer.h"
 
+std::ifstream winnow_output;
+
 
 inline void PrintOutput(
   NArray < double, 2 > const & matOut ,
@@ -39,13 +41,14 @@ inline void PrintOutput(
 }
 
 
-inline void ReadNelts( ){
+inline void ReadNelts( char* argv[] ){
   
   Shared<uint> nelts_transfer;
 
   if(0 == myid)
   {
-    cin >> nelts;
+    winnow_output.open(argv[1]);
+    winnow_output >> nelts;
 
     nelts_transfer.set(nelts);
   }
@@ -55,8 +58,14 @@ inline void ReadNelts( ){
 
 
 inline void ReadVectorOfPoints( vector<value> & points ) {
-  for( uint i = 0; i < nelts; i++ ) {
-    cin >> points[i].row >> points[i].col;
+  if( 0 == myid )
+  {
+    for( uint i = 0; i < nelts; i++ ) {
+      winnow_output >> points[i].row;
+      winnow_output >> points[i].col;
+    }
+    
+    winnow_output.close();
   }
 }
 
@@ -66,14 +75,14 @@ int main( int argc, char* argv[] )
   dash::init( &argc,&argv );
   myid = dash::myid( );
   
-  ReadNelts( );
+  ReadNelts( argv );
   
   vector < value     > points( nelts        );
   NArray < double, 2 > matOut( nelts, nelts );
   Array  < double    > vec   ( nelts        );
   
   //read input points on unit 0 and broadcast to all units
-  if( 0 == myid ) ReadVectorOfPoints( points );
+  ReadVectorOfPoints( points );
   BroadcastPointsToUnits( points );
   
   Outer( points, matOut, vec, nelts );

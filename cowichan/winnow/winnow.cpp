@@ -9,20 +9,23 @@ static int    myid ;
 
 #include "winnow.h"
 
+std::ifstream raThr_output;
 
 /*
  * One unit has the job to read in the parameters.
  * Because there's always a unit0, it reads the input parameter and
  * distributes them to the rest of the units.
  */
-inline void ReadRowsNCols( )
+inline void ReadRowsNCols( char * argv[] )
 {
   Shared<InputPar> input_transfer;
 
   if(0 == myid)
   {
-    cin >> in.nrows;
-    cin >> in.ncols;
+    raThr_output.open(argv[1]);
+    
+    raThr_output >> in.nrows;
+    raThr_output >> in.ncols;
 
     input_transfer.set(in);
   }
@@ -39,16 +42,27 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
   if(0 == myid)
   {
     //read matrices
-    T tmp;
-      for ( auto i : randMat ){
-        scanf( "%u", &tmp )  , i = tmp;
+    int tmp;
+    
+      for ( auto i : randMat )
+      {
+        // scanf( "%u", &tmp )  , i = tmp;
+        raThr_output >> tmp;
+        i = static_cast<T>(tmp);
       }
+      
       bool tmpB;
-      for ( auto i : threshMask ){
-        scanf( "%u", &tmpB ) , i = tmpB;
+      
+      for ( auto i : threshMask )
+      {
+        // scanf( "%u", &tmpB ) , i = tmpB;
+        raThr_output >> tmpB;
+        i = static_cast<T>(tmpB);
       }
-    cin >> nelts;
-
+      
+    raThr_output >> nelts;
+    raThr_output.close();
+    
     nelts_transfer.set(nelts);
   }
   nelts_transfer.barrier();
@@ -62,7 +76,7 @@ int main( int argc, char* argv[] )
   
   myid = dash::myid( );
   
-  ReadRowsNCols( );
+  ReadRowsNCols( argv );
   
   NArray< MATRIX_T, 2 > randMat    ( in.nrows, in.ncols );
   NArray< bool    , 2 > threshMask ( in.nrows, in.ncols );
