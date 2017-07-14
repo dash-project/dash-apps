@@ -29,7 +29,7 @@ inline void ReadRowsNCols( )
   input_transfer.barrier();
   in = input_transfer.get();
 }
-
+ 
 
 template< typename T = MATRIX_T >
 inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMask )

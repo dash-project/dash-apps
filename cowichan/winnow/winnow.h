@@ -187,6 +187,7 @@ inline void Winnow(
   
     // begin - 1 for loop logic (starting with prefix ++)
     unitRange * uRPtr = distr;
+    uRPtr->begin      = 0;
     
    /* the loop for calculation of the distribution got a bit more complex
     * because i wanted to iterate only once over "distr"
@@ -194,15 +195,14 @@ inline void Winnow(
     */ 
     if ( 1 == nUnits )
     {
-      uRPtr->begin = 0;
-      uRPtr->end       = MAX_KEY;
-      uRPtr->count     = found;
+      uRPtr->end   = MAX_KEY;
+      uRPtr->count = found;
       
       ++uRPtr;
     }else{
-      
+         // T   begin  = 0;
+      uRPtr->count  = 0;  //needed if to few elements for acc >= ideal
       uint   acc    = 0;
-         T   begin  = 0;
       uint * hisIt  = histo.lbegin();
       
       // actual calculation of distribution
@@ -211,18 +211,26 @@ inline void Winnow(
         
         if( acc >= ideal ){
           
-          uRPtr->begin = begin;
+          // uRPtr->begin = begin;
           uRPtr->end = i;
           uRPtr->count = acc;
           
-          begin = i+1;
+          // begin = i+1;
           acc   = 0;
           
-          ++uRPtr;
+          (++uRPtr)->begin = i + 1;
+          // uRPtr->count = 0;
         }
       }
-      uRPtr->count += acc;
-      uRPtr->end = MAX_KEY;
+      if( acc >= MIN_NUM_ELEM_PER_UNIT ){ uRPtr->count = acc; }
+      else
+      { 
+        if( uRPtr == distr ){ uRPtr->count += acc; }
+        else{ (--uRPtr)->count += acc; }
+      }
+      
+      uRPtr->end   = MAX_KEY ;
+      
     }
     // set the rest to zero
     // while( ++uRPtr < distr_end ) { uRPtr->begin = 0; uRPtr->end = 0; uRPtr->count = 0; }
@@ -646,4 +654,6 @@ inline void Winnow(
       } cout << endl;
     }
   #endif
+  
+  //no frees and deletes for potential speed up through cumulative memory freeing
 }
