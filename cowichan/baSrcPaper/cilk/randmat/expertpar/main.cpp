@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   matrix = (int*) malloc (sizeof(int) * nrows * ncols);
   randmat(nrows, ncols, s);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     for (i = 0; i < nrows; i++) {
       for (j = 0; j < ncols; j++) {
         printf("%d ", matrix[i*ncols + j]);
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
       printf("\n");
     }
     printf("\n");
-  }
+  //}
 
   return 0;
 }

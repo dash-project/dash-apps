@@ -156,10 +156,10 @@ int main(int argc, char** argv) {
   count_per_line = (int *) malloc (sizeof (int) * (nrows + 1));
   memset (count_per_line, 0, sizeof (int) * (nrows + 1));
 
-  if (!is_bench) {
+  //if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  }
+  //}
 
   scanf("%d", &nelts);
   points = (pair <int, int> *) malloc (sizeof (pair <int, int>) * nelts);
@@ -167,14 +167,14 @@ int main(int argc, char** argv) {
 
   winnow(nrows, ncols, nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     printf("%d\n", nelts);
 
     for (int i = 0; i < nelts; i++) {
       printf("%d %d\n", points[i].first, points[i].second);
     }
     printf("\n");
-  }
+  //}
 
   return 0;
 }

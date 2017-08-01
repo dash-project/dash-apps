@@ -28,7 +28,7 @@ proc product(nelts: int) {
 }
 
 proc main() {
-  if (!is_bench) {
+  //if (!is_bench) {
     for i in 1..nelts do {
       for j in 1..nelts do {
         read(matrix[i, j]);
@@ -38,7 +38,7 @@ proc main() {
     for i in 1..nelts do {
       read(vector[i]);
     }
-  }
+  //}
 
   product(nelts);
 

@@ -64,10 +64,10 @@ int main(int argc, char *argv[]) {
   vector = (double*) malloc (sizeof(double) * nelts);
   result = (double*) malloc (sizeof(double) * nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     read_matrix(nelts);
     read_vector(nelts);
-  }
+  //}
 
   product(nelts);
 

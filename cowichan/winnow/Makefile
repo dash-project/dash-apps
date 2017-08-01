@@ -17,8 +17,6 @@ printenv :
 
 .PHONY: clean
 clean:
-	-rm main
-	-rm main.o
 	-rm winnow
 	-rm winnow.o
 

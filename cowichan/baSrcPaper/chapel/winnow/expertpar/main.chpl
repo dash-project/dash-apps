@@ -87,10 +87,10 @@ proc read_mask() {
 proc main() {
   var nelts: int;
 
-  if (!is_bench) {
+  //if (!is_bench) {
     read_matrix();
     read_mask();
-  }
+  //}
 
   read(nelts);
   
@@ -98,7 +98,7 @@ proc main() {
 
   points = winnow(nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     writeln(nelts);
 
     for i in 1..nelts do {
@@ -106,5 +106,5 @@ proc main() {
     }
 
     writeln();
-  }
+  //}
 }

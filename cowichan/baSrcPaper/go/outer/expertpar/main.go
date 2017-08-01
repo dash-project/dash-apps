@@ -107,13 +107,13 @@ func main() {
 	nelts = read_integer()
   points = make ([]Point, nelts)
 
-	if !*is_bench {
+	//if !*is_bench {
 		read_vector_of_points(nelts)
-	}
+	//}
 
 	matrix, vector := Outer(points[0:nelts], nelts)
 
-	if !*is_bench {
+	//if !*is_bench {
 		fmt.Printf("%d\n", nelts)
     for _, row := range matrix {
       for _, elem := range row {
@@ -127,5 +127,5 @@ func main() {
 			fmt.Printf("%.4f ", vector[i])
 		}
 		fmt.Printf("\n")
-	}
+	//}
 }

@@ -86,7 +86,7 @@ func main() {
 	fmt.Scan(&seed)
 	matrix := randmat(nrows, ncols, seed)
 
-	if !*is_bench {
+	//if !*is_bench {
 		for i := 0; i < nrows; i++ {
 			row := matrix.Row(i)
 			for j := range row {
@@ -95,5 +95,5 @@ func main() {
 			fmt.Printf("\n")
 		}
 		fmt.Printf("\n")
-	}
+	//}
 }

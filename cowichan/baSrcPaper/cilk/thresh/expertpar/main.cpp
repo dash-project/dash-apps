@@ -104,19 +104,19 @@ int main(int argc, char *argv[]) {
   matrix = (int*) malloc (sizeof(int) * ncols * nrows);
   mask = (int*) malloc (sizeof(int) * ncols * nrows);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     for (i = 0; i < nrows; i++) {
       for (j = 0; j < ncols; j++) {
         scanf("%hhu", &matrix[i*ncols + j]);
       }
     }
-  }
+  //}
 
   scanf("%d", &percent);
 
   thresh(nrows, ncols, percent);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     //printf("%d %d\n", nrows, ncols);
     for (i = 0; i < nrows; i++) {
       for (j = 0; j < ncols; j++) {
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
       printf("\n");
     }
     printf("\n");
-  }
+  //}
 
   return 0;
 }

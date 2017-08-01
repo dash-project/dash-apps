@@ -9,6 +9,9 @@ uint nelts;
 static int myid;
 
 #include "product.h"
+#include <cstring>
+
+using std::strcmp;
 
 std::ifstream outer_output;
 
@@ -50,6 +53,13 @@ int main( int argc, char* argv[] )
 {  
   dash::init( &argc,&argv );
   myid = dash::myid( );
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
   
   ReadNelts( argv );
 
@@ -62,7 +72,8 @@ int main( int argc, char* argv[] )
   BroadcastOuterVecToUnits(vec);
 
   Product(vec, matIn, result, nelts );
-  PrintOutput( result, nelts );
+  
+  if( !is_bench ){ PrintOutput( result, nelts ); }
   
   dash::finalize( );
 }

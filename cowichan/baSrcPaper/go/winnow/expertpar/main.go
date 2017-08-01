@@ -226,21 +226,21 @@ func main() {
 	for i := range mask {
 		mask[i] = make([]bool, ncols)
 	}
-	if !*is_bench {
+	//if !*is_bench {
 		read_matrix(nrows, ncols)
 		read_mask(nrows, ncols)
-	}
+	//}
 
 	nelts = int(read_integer())
 	points = make([]int, nelts)
 
 	Winnow(m, nrows, ncols, nelts)
 
-	if !*is_bench {
+	//if !*is_bench {
 		fmt.Printf("%d\n", nelts)
 		for i := 0; i < nelts; i++ {
 			fmt.Printf("%d %d\n", points[i]/ncols, points[i]%ncols)
 		}
 		fmt.Printf("\n")
-	}
+	//}
 }

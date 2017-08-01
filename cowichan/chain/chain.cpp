@@ -22,6 +22,9 @@ static int myid;
 #include "../outer/outer.h"
 #include "../product/product.h"
 
+#include <cstring>
+using std::strcmp;
+
 struct InputPar { uint nRowsCols, seed, thresh, winnow_nelts; } in;
 
 
@@ -101,7 +104,14 @@ inline void CopyFromDashToStd(
 int main( int argc, char* argv[] )
 {
   dash::init( &argc,&argv );
-
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
   myid = dash::myid( );
   ReadPars( );
 
@@ -134,7 +144,7 @@ int main( int argc, char* argv[] )
   
   Product( prod_vec, outer_mat, result, in.winnow_nelts );
   
-  PrintOutput( result, in.winnow_nelts );
+  if( !is_bench ){ PrintOutput( result, in.winnow_nelts ); }
 
   dash::finalize( );
 }

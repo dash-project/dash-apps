@@ -34,7 +34,7 @@ proc randmat() {
 proc main() {
   randmat();
 
-  if (!is_bench) {
+  //if (!is_bench) {
     // writeln(nrows, " ", ncols);
 
     for i in 1..nrows do {
@@ -44,5 +44,5 @@ proc main() {
       writeln();
     }
     writeln();
-  }
+  //}
 }

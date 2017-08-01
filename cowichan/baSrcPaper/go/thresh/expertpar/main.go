@@ -129,7 +129,7 @@ func main() {
 
 	m := WrapBytes(nrows, ncols, make([]byte, ncols*nrows))
 
-	if !*is_bench {
+	//if !*is_bench {
 		for i := uint32(0); i < nrows; i++ {
 			row := m.Row(i)
 			for j := range row {
@@ -137,7 +137,7 @@ func main() {
 			}
 		   fmt.Scanf(" \n")
 		}
-	}
+	//}
 
 	fmt.Scanf("\n%d", &percent)
 
@@ -154,7 +154,7 @@ func main() {
   }
   fmt.Printf("%d\n", percent) */
 
-	if !*is_bench {
+	//if !*is_bench {
 		//fmt.Printf("%d %d\n", nrows, ncols)
 		for i := uint32(0); i < nrows; i++ {
 			for j := uint32(0); j < ncols; j++ {
@@ -167,5 +167,5 @@ func main() {
 			fmt.Printf("\n")
 		}
 		fmt.Printf("\n")
-	}
+	//}
 }

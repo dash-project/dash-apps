@@ -86,13 +86,13 @@ int main(int argc, char** argv) {
   vec = (double *) malloc (sizeof (double) * nelts);
   points = (pair<int, int>*) malloc (sizeof (pair<int, int>) * nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     read_vector_of_points(nelts);
-  }
+  //}
 
   outer(nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     printf("%d\n", nelts);
     for (int i = 0; i < nelts; i++) {
       for (int j = 0; j < nelts; j++) {
@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
       printf("%.4f ", vec[i]);
     }
     printf("\n");
-  }
+  //}
 
   return 0;
 }

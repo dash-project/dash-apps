@@ -98,10 +98,10 @@ func main() {
   matrix = make ([]float64, nelts*nelts)
   vector = make ([]float64, nelts)
 
-	if !*is_bench {
+	//if !*is_bench {
 		read_matrix(nelts)
 		read_vector(nelts)
-	}
+	//}
 
 	result := product(matrix[0:nelts*nelts], vector[0:nelts], nelts)
 

@@ -58,19 +58,19 @@ proc thresh(nrows: int, ncols: int, percent: int) {
 proc main() {
   var percent: int;
 
-  if (!is_bench) {
+  //if (!is_bench) {
     for i in 1..nrows {
       for j in 1..ncols {
         read(matrix[i,j]);
       }
     }
-  }
+  //}
 
   read(percent);
 
   thresh(nrows, ncols, percent);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     //writeln(nrows, " ", ncols);
 
     for i in 1..nrows {
@@ -84,5 +84,5 @@ proc main() {
       writeln();
     }
     writeln();
-  }
+  //}
 }

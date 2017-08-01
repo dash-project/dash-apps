@@ -155,10 +155,10 @@ int main(int argc, char *argv[]) {
   values= (pair<int, pair<int, int> >*) 
     malloc (sizeof(pair<int, pair<int, int> >) * nrows * ncols);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  }
+  //}
 
   scanf("%d", &nelts);
 
@@ -167,13 +167,13 @@ int main(int argc, char *argv[]) {
   cilk_spawn winnow(nrows, ncols, nelts);
   cilk_sync;
 
-  if (!is_bench) {
+  //if (!is_bench) {
     printf("%d\n", nelts);
     for (i = 0; i < nelts; i++) {
       printf("%d %d\n", points[i].first, points[i].second);
     }
     printf("\n");
-  }
+  //}
   free (matrix);
   free (mask);
   free (values);

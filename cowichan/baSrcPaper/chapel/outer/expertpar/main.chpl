@@ -55,13 +55,13 @@ proc read_vector_of_points(nelts: int) {
 }
 
 proc main() {
-  if (!is_bench) {
+  //if (!is_bench) {
     read_vector_of_points(nelts);
-  }
+  //}
 
   outer(nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     writeln(nelts);
     for i in 1..nelts do {
       for j in 1..nelts do {
@@ -75,5 +75,5 @@ proc main() {
       writef("%.4dr ",vector[i]);
     }
     writeln();
-  }
+  //}
 }

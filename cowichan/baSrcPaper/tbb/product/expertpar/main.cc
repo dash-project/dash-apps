@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   vec = (double *) malloc (sizeof (double) * nelts);
   result = (double *) malloc (sizeof (double) * nelts);
 
-  if (!is_bench) {
+  //if (!is_bench) {
     for (int i = 0; i < nelts; i++) {
       for (int j = 0; j < nelts; j++) {
         cin >> matrix[i*nelts + j];
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < nelts; i++) {
       cin >> vec[i];
     }
-  }
+  //}
 
   product(nelts);
 
