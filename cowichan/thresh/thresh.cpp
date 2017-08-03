@@ -14,6 +14,8 @@ uint       percent;
 static int myid;
 
 #include "thresh.h"
+#include <time.h>
+#include <stdio.h>
 
 std::ifstream randmat_output;
 
@@ -93,6 +95,16 @@ int main( int argc, char* argv[] )
 {
   dash::init( &argc, &argv );
 
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
   myid = dash::myid( );
   ReadRowsNCols( argv );
 
@@ -102,8 +114,33 @@ int main( int argc, char* argv[] )
   ReadRandMat(rand_mat);
   ReadPercentage();
   
+  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
   Thresh( rand_mat, thresh_mask, in.nrows, in.ncols, percent );
-  Print2D( thresh_mask );
+  
+  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
 
+  if( is_bench && 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Thresh,%u, %u, %u , , %u, %.9lf\n", in.nrows, in.ncols, percent, dash::Team::All().size(), accum );
+    fclose ( fp );
+  }
+  
+  Print2D( thresh_mask );
   dash::finalize( );
 }

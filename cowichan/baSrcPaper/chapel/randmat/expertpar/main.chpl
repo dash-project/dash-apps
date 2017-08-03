@@ -14,6 +14,8 @@ config const is_bench = false;
 config const nrows = read (int(32)),
              ncols = read (int(32)),
              s     = read (int(32));
+             
+require "time.h", "stdio.h";
 
 var matrix: [1..nrows, 1..ncols] int(32);
 
@@ -32,8 +34,49 @@ proc randmat() {
 }
 
 proc main() {
+  // extern type accum = c_double;
+  extern "struct timespec" record chpl_timespec{
+    var tv_sec : c_long;
+    var tv_nsec: c_long;
+  }
+  // extern type c_file = FILE;
+  extern const CLOCK_REALTIME: int;
+  extern proc clock_gettime(clk_id : c_long, ref structPtr : chpl_timespec) :int;
+  extern proc fprintf( fPtr:int(64), fmt: c_string, vals...?numvals): int;
+  extern proc fopen(  strFile: c_string, op: c_string): int(64);
+  extern proc fclose( ptr: int(64));
+  // var c_filePtr : c_ptr(c_file);
+  var FILE_PTR : int(64);
+  var accum : c_double;
+  // extern record timespec{
+    // var tv_sec : c_long;
+    // var tv_nsec: c_long;
+  // }
+  
+  var start,stop : chpl_timespec;
+  
+  if( clock_gettime( CLOCK_REALTIME, start) == -1 ) {
+    writeln("an error in clock_gettime start has occured!");
+  }
+  
   randmat();
 
+  if( clock_gettime( CLOCK_REALTIME, stop) == -1 ) {
+    writeln("an error in clock_gettime stop has occured!");
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  if(is_bench){
+    FILE_PTR = fopen("./measurements.txt", "a");
+    
+    if( FILE_PTR == 0 ){writeln("File opening for benchmark results failed");}
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( FILE_PTR, "Chapel,Randmat,%u, %u, , , , %.9lf\n", nrows, ncols, accum ); //, locale.totalThreads()
+    fclose ( FILE_PTR );
+  }
+  
+  writeln("das ist accum:",accum);
   //if (!is_bench) {
     // writeln(nrows, " ", ncols);
 

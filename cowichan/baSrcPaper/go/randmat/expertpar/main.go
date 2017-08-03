@@ -15,7 +15,13 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
+  "bufio"
+  "os"
 )
+
+// #include <time.h>
+// #include <stdio.h>
+import "C"
 
 type ByteMatrix struct {
 	Rows, Cols int
@@ -84,8 +90,41 @@ func main() {
 	fmt.Scan(&nrows)
 	fmt.Scan(&ncols)
 	fmt.Scan(&seed)
+  
+  var start, stop C.struct_timespec
+  var accum C.double
+  
+  if( C.clock_gettime( C.CLOCK_REALTIME, &start) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
+  
 	matrix := randmat(nrows, ncols, seed)
 
+  if( C.clock_gettime( C.CLOCK_REALTIME, &stop) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
+  
+  accum = C.double( C.long(stop.tv_sec) - C.long(start.tv_sec) ) + C.double(( C.long(stop.tv_nsec) - C.long(start.tv_nsec))) / C.double(1e9);
+  
+  if *is_bench {    
+    file, err := os.OpenFile("./measurements.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+    
+    if err != nil {
+        fmt.Println("File does not exists or cannot be created")
+        os.Exit(1)
+    }
+    
+    w := bufio.NewWriter(file)
+    
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fmt.Fprintf(w, "Go,Randmat,%d, %d, , , %d,%.9f\n", nrows, ncols, runtime.GOMAXPROCS(0), accum )
+    
+    w.Flush()
+    file.Close()
+  }
+  
 	//if !*is_bench {
 		for i := 0; i < nrows; i++ {
 			row := matrix.Row(i)
@@ -96,4 +135,4 @@ func main() {
 		}
 		fmt.Printf("\n")
 	//}
-}
+} 

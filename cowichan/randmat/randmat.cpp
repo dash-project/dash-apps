@@ -15,7 +15,8 @@ struct InputPar { uint nrows, ncols, s; } in;
 static int myid;
 
 #include "randmat.h"
-
+#include <time.h>
+#include <stdio.h>
 /* 
  * One unit has the job to read in the parameters.
  * Because there's always a unit0, it reads the input parameter and
@@ -61,13 +62,48 @@ int main( int argc, char* argv[] )
 {
   dash::init( &argc,&argv );
 
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
   myid = dash::myid( );
   ReadPars( );
 
   NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
 
+  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
   Randmat( rand_mat, in.s );
-  Print2D( rand_mat );
+  
+  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
+  if( is_bench && 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Randmat,%u, %u, , , %u, %.9lf\n", in.nrows, in.ncols, dash::Team::All().size(), accum );
+    fclose ( fp );
+  }
 
+  Print2D( rand_mat );
   dash::finalize( );
 }

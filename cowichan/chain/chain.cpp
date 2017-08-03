@@ -22,6 +22,8 @@ static int myid;
 #include "../outer/outer.h"
 #include "../product/product.h"
 
+#include <time.h>
+#include <stdio.h>
 #include <cstring>
 using std::strcmp;
 
@@ -104,6 +106,9 @@ inline void CopyFromDashToStd(
 int main( int argc, char* argv[] )
 {
   dash::init( &argc,&argv );
+  
+  struct timespec start, stop;
+  double accum;
   int is_bench = 0;
   
   for (int i = 1; i < argc; i++) {
@@ -128,6 +133,10 @@ int main( int argc, char* argv[] )
   // after the run of outer "outer_vec" will be recycled/reused for the final output
   auto & result = outer_vec;
   
+  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
   
   // execute functions
   Randmat( rand_mat, in.seed );
@@ -144,7 +153,25 @@ int main( int argc, char* argv[] )
   
   Product( prod_vec, outer_mat, result, in.winnow_nelts );
   
-  if( !is_bench ){ PrintOutput( result, in.winnow_nelts ); }
+  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  if( is_bench && 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Chain,%u, %u, %u, %u, %u, %.9lf\n", in.nRowsCols, in.nRowsCols, in.thresh, in.winnow_nelts, dash::Team::All().size(), accum );
+    fclose ( fp );
+  }
 
+  if( !is_bench ){ PrintOutput( result, in.winnow_nelts ); }
   dash::finalize( );
 }

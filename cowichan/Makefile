@@ -404,7 +404,7 @@ $(LANGUAGES:%=bench-%):
 	read nRowsCols; read seed; read thresh; read winnow_nelts; read JOBS; read numberOfIterations;\
 	echo ---------- ;\
 	for (( numberOfIterations; numberOfIterations >= 1 ; --numberOfIterations )); do \
-		export nRowsCols seed thresh winnow_nelts JOBS isBench="--is_bench";\
+		export nRowsCols seed thresh winnow_nelts JOBS GOMAXPROCS=$$JOBS isBench="--is_bench";\
 		$(MAKE) --no-print-directory run-$(@:bench-%=%);\
 		echo -----------------------------------------------------------------------;\
 	done ;\

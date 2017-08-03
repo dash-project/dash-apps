@@ -8,6 +8,8 @@ static uint   nelts;
 static int    myid ;
 
 #include "winnow.h"
+#include <time.h>
+#include <stdio.h>
 
 std::ifstream raThr_output;
 
@@ -74,8 +76,17 @@ int main( int argc, char* argv[] )
 {  
   dash::init( &argc,&argv );
   
-  myid = dash::myid( );
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
   
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
+  myid = dash::myid( );
   ReadRowsNCols( argv );
   
   NArray< MATRIX_T, 2 > randMat    ( in.nrows, in.ncols );
@@ -95,8 +106,31 @@ int main( int argc, char* argv[] )
   
   ReadMatricesAndNelts( randMat, threshMask );
   
+  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
   
   Winnow( in.nrows, in.ncols, randMat, threshMask, nelts, result );
+  
+  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  if( is_bench && 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Winnow,%u, %u, , %u, %u, %.9lf\n", in.nrows, in.ncols, nelts, dash::Team::All().size(), accum );
+    fclose ( fp );
+  }
   
   // output
   if( 0 == myid )
@@ -107,7 +141,6 @@ int main( int argc, char* argv[] )
     
     cout << endl;
   }
-  
   dash::finalize( );
 }
 

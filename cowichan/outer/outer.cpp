@@ -11,6 +11,8 @@ static int myid;
 
 using value = struct{ int row, col; }; //hast to be signed!
 #include "outer.h"
+#include <time.h>
+#include <stdio.h>
 
 std::ifstream winnow_output;
 
@@ -73,8 +75,18 @@ inline void ReadVectorOfPoints( vector<value> & points ) {
 int main( int argc, char* argv[] )
 {  
   dash::init( &argc,&argv );
-  myid = dash::myid( );
   
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
+  myid = dash::myid( );
   ReadNelts( argv );
   
   vector < value     > points( nelts        );
@@ -83,10 +95,35 @@ int main( int argc, char* argv[] )
   
   //read input points on unit 0 and broadcast to all units
   ReadVectorOfPoints( points );
-  BroadcastPointsToUnits( points );
   
+  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
+  BroadcastPointsToUnits( points );
   Outer( points, matOut, vec, nelts );
-  PrintOutput(matOut, vec);
+  
+  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
+  if( is_bench && 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Outer, , , , %u, %u, %.9lf\n", nelts, dash::Team::All().size(), accum );
+    fclose ( fp );
+  }
 
+  PrintOutput(matOut, vec);
   dash::finalize( );
 }
