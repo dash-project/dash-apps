@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <utility>
 
-#include <dash/experimental/HaloMatrix.h>
+#include <dash/experimental/HaloMatrixWrapper.h>
 
 using namespace std;
 
