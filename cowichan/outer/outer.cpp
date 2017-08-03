@@ -96,7 +96,7 @@ int main( int argc, char* argv[] )
   //read input points on unit 0 and broadcast to all units
   ReadVectorOfPoints( points );
   
-  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
@@ -104,7 +104,7 @@ int main( int argc, char* argv[] )
   BroadcastPointsToUnits( points );
   Outer( points, matOut, vec, nelts );
   
-  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }

@@ -34,34 +34,28 @@ proc randmat() {
 }
 
 proc main() {
-  // extern type accum = c_double;
+  extern "struct _IO_FILE" record FILE{}
   extern "struct timespec" record chpl_timespec{
     var tv_sec : c_long;
     var tv_nsec: c_long;
   }
-  // extern type c_file = FILE;
-  extern const CLOCK_REALTIME: int;
+  extern const CLOCK_MONOTONIC_RAW: c_long;
   extern proc clock_gettime(clk_id : c_long, ref structPtr : chpl_timespec) :int;
-  extern proc fprintf( fPtr:int(64), fmt: c_string, vals...?numvals): int;
-  extern proc fopen(  strFile: c_string, op: c_string): int(64);
-  extern proc fclose( ptr: int(64));
-  // var c_filePtr : c_ptr(c_file);
-  var FILE_PTR : int(64);
-  var accum : c_double;
-  // extern record timespec{
-    // var tv_sec : c_long;
-    // var tv_nsec: c_long;
-  // }
+  extern proc fprintf( fPtr: c_ptr(FILE), fmt: c_string, vals...?numvals): int;
+  extern proc fopen(  strFile: c_string, op: c_string): c_ptr(FILE);
+  extern proc fclose( ptr: c_ptr(FILE));
   
+  var FILE_PTR : c_ptr(FILE);
+  var accum : c_double;
   var start,stop : chpl_timespec;
   
-  if( clock_gettime( CLOCK_REALTIME, start) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, start) == -1 ) {
     writeln("an error in clock_gettime start has occured!");
   }
   
   randmat();
 
-  if( clock_gettime( CLOCK_REALTIME, stop) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, stop) == -1 ) {
     writeln("an error in clock_gettime stop has occured!");
   }
   
@@ -70,13 +64,13 @@ proc main() {
   if(is_bench){
     FILE_PTR = fopen("./measurements.txt", "a");
     
-    if( FILE_PTR == 0 ){writeln("File opening for benchmark results failed");}
+    if( is_c_nil(FILE_PTR) ){writeln("File opening for benchmark results failed");}
+    
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
     fprintf( FILE_PTR, "Chapel,Randmat,%u, %u, , , , %.9lf\n", nrows, ncols, accum ); //, locale.totalThreads()
     fclose ( FILE_PTR );
   }
   
-  writeln("das ist accum:",accum);
   //if (!is_bench) {
     // writeln(nrows, " ", ncols);
 

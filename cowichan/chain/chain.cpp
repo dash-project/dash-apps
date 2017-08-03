@@ -133,7 +133,7 @@ int main( int argc, char* argv[] )
   // after the run of outer "outer_vec" will be recycled/reused for the final output
   auto & result = outer_vec;
   
-  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
@@ -153,7 +153,7 @@ int main( int argc, char* argv[] )
   
   Product( prod_vec, outer_mat, result, in.winnow_nelts );
   
-  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }

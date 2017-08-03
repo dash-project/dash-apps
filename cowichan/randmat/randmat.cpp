@@ -77,14 +77,14 @@ int main( int argc, char* argv[] )
 
   NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
 
-  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
   
   Randmat( rand_mat, in.s );
   
-  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }

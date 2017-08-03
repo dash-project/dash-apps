@@ -114,14 +114,14 @@ int main( int argc, char* argv[] )
   ReadRandMat(rand_mat);
   ReadPercentage();
   
-  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
   
   Thresh( rand_mat, thresh_mask, in.nrows, in.ncols, percent );
   
-  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }

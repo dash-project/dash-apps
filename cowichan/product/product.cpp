@@ -75,7 +75,7 @@ int main( int argc, char* argv[] )
   //read input on unit 0
   ReadMatrixAndVector(matIn, vec);
  
-  if( clock_gettime( CLOCK_REALTIME, &start) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
@@ -84,7 +84,7 @@ int main( int argc, char* argv[] )
   BroadcastOuterVecToUnits(vec);
   Product(vec, matIn, result, nelts );
   
-  if( clock_gettime( CLOCK_REALTIME, &stop) == -1 ) {
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }

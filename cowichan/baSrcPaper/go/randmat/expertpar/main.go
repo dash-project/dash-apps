@@ -94,14 +94,14 @@ func main() {
   var start, stop C.struct_timespec
   var accum C.double
   
-  if( C.clock_gettime( C.CLOCK_REALTIME, &start) == -1 ) {
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     C.perror( C.CString("clock gettime error 1") );
     return
   }
   
 	matrix := randmat(nrows, ncols, seed)
 
-  if( C.clock_gettime( C.CLOCK_REALTIME, &stop) == -1 ) {
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     C.perror( C.CString("clock gettime error 1") );
     return
   }
