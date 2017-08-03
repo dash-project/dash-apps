@@ -77,7 +77,7 @@ void Domain::exchangeAdd(HaloMatrixWrapperT halo_wrapper) {
   auto it_bend = halo_wrapper.bend();
   auto& local_view = halo_wrapper.getLocalView();
   for(auto it = halo_wrapper.bbegin(); it != it_bend; ++it) {
-    auto & coords = it.Coords();
+    auto & coords = it.coords();
 
     if(coords[0] == 0) {
       if(coords[1] == 0) {
