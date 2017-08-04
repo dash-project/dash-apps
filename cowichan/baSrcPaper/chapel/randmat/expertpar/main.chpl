@@ -67,11 +67,11 @@ proc main() {
     if( is_c_nil(FILE_PTR) ){writeln("File opening for benchmark results failed");}
     
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( FILE_PTR, "Chapel,Randmat,%u, %u, , , , %.9lf\n", nrows, ncols, accum ); //, locale.totalThreads()
+    fprintf( FILE_PTR, "Chapel,Randmat,%u, %u, , , %u, %.9lf\n", nrows, ncols, dataParTasksPerLocale, accum ); //, locale.totalThreads()
     fclose ( FILE_PTR );
   }
   
-  //if (!is_bench) {
+  if (!is_bench) {
     // writeln(nrows, " ", ncols);
 
     for i in 1..nrows do {
@@ -80,6 +80,11 @@ proc main() {
       }
       writeln();
     }
-    writeln();
-  //}
+    writeln(); 
+    
+  }
+    // writeln("numlocales:", numLocales, " runningTasks:", here.runningTasks(), " totalThreads():", here.totalThreads() );
+    // writeln("queuedTasks():", here.queuedTasks(), " blockedTasks():", here.blockedTasks(), " idleThreads():", here.idleThreads());
+    // writeln("numLocales:", numLocales, "  numPUs:", here.numPUs(true,true), " maxTaskPar:", here.maxTaskPar);
+    // writeln("dataParTasksPerLocale:",dataParTasksPerLocale );
 }

@@ -15,6 +15,8 @@
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 #include "tbb/task_scheduler_init.h"
+#include <time.h>
+#include <stdio.h>
 
 using namespace tbb;
 
@@ -43,6 +45,8 @@ void randmat(int nrows, int ncols, unsigned int s) {
 
 int main(int argc, char** argv) {
   int nrows, ncols, s;
+  struct timespec start, stop;
+  double accum;
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
@@ -57,9 +61,37 @@ int main(int argc, char** argv) {
 
   scanf("%d%d%d", &nrows, &ncols, &s);
   matrix = (unsigned char*) malloc (sizeof (unsigned char) * nrows * ncols);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
   randmat(nrows, ncols, s);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
+  if( is_bench ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "TBB,Randmat,%u, %u, , , %u, %.9lf\n", nrows, ncols, n_threads, accum );
+    printf( "TBB,Randmat,%u, %u, , , %u, %.9lf\n", nrows, ncols, n_threads, accum );
+    fclose ( fp );
+  }
+  
 
-  //if (!is_bench) {
+  if (!is_bench) {
     //printf("%d %d\n", nrows, ncols);
     for (int i = 0; i < nrows; i++) {
       for (int j = 0; j < ncols; j++) {
@@ -68,7 +100,7 @@ int main(int argc, char** argv) {
       printf("\n");
     }
     printf("\n");
-  //}
+  }
 
   return 0;
 }
