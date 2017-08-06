@@ -12,6 +12,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <time.h>
+#include <stdio.h>
 
 #include <algorithm>
 
@@ -90,6 +92,8 @@ void thresh(int nrows, int ncols, int percent) {
 
 int main(int argc, char** argv) {
   int nrows, ncols, percent;
+  struct timespec start, stop;
+  double accum;
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
@@ -107,20 +111,45 @@ int main(int argc, char** argv) {
   matrix = (unsigned char*) malloc (sizeof (unsigned char) * nrows * ncols);
   mask = (unsigned char*) malloc (sizeof (unsigned char) * nrows * ncols);
 
-  //if (!is_bench) {
+  if (!is_bench) {
     for (int i = 0; i < nrows; i++) {
       for (int j = 0; j < ncols; j++) {
         scanf("%hhu", &matrix[i*ncols + j]);
       }
     }
-  //}
+  }
 
   scanf("%d", &percent);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
 
   thresh(nrows, ncols, percent);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
 
-  //if (!is_bench) {
-    //printf("%d %d\n", nrows, ncols);
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
+  }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "TBB,Thresh,%u, %u, %u, , %u, %.9lf, isBench:%d\n", nrows, ncols, percent, n_threads, accum, is_bench );
+  fclose ( fp );
+  
+
+  if (!is_bench) {
+    // printf("%d %d\n", nrows, ncols);
     for (int i = 0; i < nrows; i++) {
       for (int j = 0; j < ncols; j++) {
         printf("%hhu ", mask[i*ncols + j]);
@@ -128,7 +157,7 @@ int main(int argc, char** argv) {
       printf("\n");
     }
     printf("\n");
-  //}
+  }
 
   return 0;
 }

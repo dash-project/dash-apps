@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <time.h>
+#include <stdio.h>
 
 #include "tbb/tbb.h"
 
@@ -69,6 +71,8 @@ void read_vector_of_points(int nelts) {
 
 int main(int argc, char** argv) {
   int nelts;
+  struct timespec start, stop;
+  double accum;
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
@@ -86,13 +90,38 @@ int main(int argc, char** argv) {
   vec = (double *) malloc (sizeof (double) * nelts);
   points = (pair<int, int>*) malloc (sizeof (pair<int, int>) * nelts);
 
-  //if (!is_bench) {
+  if (!is_bench) {
     read_vector_of_points(nelts);
-  //}
+  }
 
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
   outer(nelts);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
 
-  //if (!is_bench) {
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
+  }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "TBB,Outer, , , , %u, %u, %.9lf, isBench:%d\n", nelts, n_threads, accum, is_bench );
+  fclose ( fp );
+  
+
+  if (!is_bench) {
     printf("%d\n", nelts);
     for (int i = 0; i < nelts; i++) {
       for (int j = 0; j < nelts; j++) {
@@ -106,7 +135,7 @@ int main(int argc, char** argv) {
       printf("%.4f ", vec[i]);
     }
     printf("\n");
-  //}
+  }
 
   return 0;
 }

@@ -13,6 +13,8 @@
 
 #include <iostream>
 #include <vector>
+#include <time.h>
+#include <stdio.h>
 
 #include "tbb/tbb.h"
 
@@ -45,6 +47,8 @@ void product(int nelts) {
 
 int main(int argc, char** argv) {
   int nelts;
+  struct timespec start, stop;
+  double accum;
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
@@ -63,7 +67,7 @@ int main(int argc, char** argv) {
   vec = (double *) malloc (sizeof (double) * nelts);
   result = (double *) malloc (sizeof (double) * nelts);
 
-  //if (!is_bench) {
+  if (!is_bench) {
     for (int i = 0; i < nelts; i++) {
       for (int j = 0; j < nelts; j++) {
         cin >> matrix[i*nelts + j];
@@ -73,10 +77,35 @@ int main(int argc, char** argv) {
     for (int i = 0; i < nelts; i++) {
       cin >> vec[i];
     }
-  //}
+  }
 
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
   product(nelts);
 
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
+
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
+  }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "TBB,Product, , , , %u, %u, %.9lf, isBench:%d\n", nelts, n_threads, accum, is_bench );
+  fclose ( fp );
+  
+  
   if (!is_bench) {
     printf("%d\n", nelts);
     for (int i = 0; i < nelts; i++) {

@@ -77,18 +77,16 @@ int main(int argc, char** argv) {
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
   
-  if( is_bench ){
-    FILE* fp = fopen("./measurements.txt", "a");
-    
-    if( !fp ) {
-        perror("File opening for benchmark results failed");
-        return EXIT_FAILURE;
-    }
-    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "TBB,Randmat,%u, %u, , , %u, %.9lf\n", nrows, ncols, n_threads, accum );
-    printf( "TBB,Randmat,%u, %u, , , %u, %.9lf\n", nrows, ncols, n_threads, accum );
-    fclose ( fp );
+
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
   }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "TBB,Randmat,%u, %u, , , %u, %.9lf, isBench:%d\n", nrows, ncols, n_threads, accum, is_bench );
+  fclose ( fp );
   
 
   if (!is_bench) {

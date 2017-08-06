@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <time.h>
+#include <stdio.h>
 
 #include "tbb/tbb.h"
 
@@ -134,6 +136,8 @@ void read_mask(int nrows, int ncols) {
 
 int main(int argc, char** argv) {
   int nrows, ncols, nelts;
+  struct timespec start, stop;
+  double accum;
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
@@ -156,25 +160,50 @@ int main(int argc, char** argv) {
   count_per_line = (int *) malloc (sizeof (int) * (nrows + 1));
   memset (count_per_line, 0, sizeof (int) * (nrows + 1));
 
-  //if (!is_bench) {
+  if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  //}
+  }
 
   scanf("%d", &nelts);
   points = (pair <int, int> *) malloc (sizeof (pair <int, int>) * nelts);
   values = (pair <int, pair <int, int> > *) malloc (sizeof (pair <int, pair <int, int> >) * nrows * ncols);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
 
   winnow(nrows, ncols, nelts);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
 
-  //if (!is_bench) {
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
+  }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "TBB,Winnow,%u, %u, , %u, %u, %.9lf, isBench:%d\n", nrows, ncols, nelts, n_threads, accum, is_bench );
+  fclose ( fp );
+  
+
+  if (!is_bench) {
     printf("%d\n", nelts);
 
     for (int i = 0; i < nelts; i++) {
       printf("%d %d\n", points[i].first, points[i].second);
     }
     printf("\n");
-  //}
+  }
 
   return 0;
 }
