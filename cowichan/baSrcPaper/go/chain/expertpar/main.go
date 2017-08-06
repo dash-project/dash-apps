@@ -17,7 +17,14 @@ import (
 	"math"
 	"runtime"
 	"sort"
+  "bufio"
+  "os"
 )
+
+// #include <time.h>
+// #include <stdio.h>
+import "C"
+
 
 type ByteMatrix struct {
 	Rows, Cols int
@@ -393,12 +400,42 @@ func main() {
 	fmt.Scan(&seed)
 	fmt.Scan(&thresh_percent)
 	fmt.Scan(&winnow_nelts)
+  
+  var start, stop C.struct_timespec
+  var accum C.double
+  
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
 
 	rand_matrix := Randmat(nelts, uint32(seed))
 	mask := Thresh(rand_matrix, nelts, thresh_percent)
 	win_pts := Winnow(rand_matrix, mask, nelts, winnow_nelts)
 	out_matrix, out_vec := Outer(win_pts, winnow_nelts)
 	result := Product(out_matrix, out_vec, winnow_nelts)
+  
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
+  
+  accum = C.double( C.long(stop.tv_sec) - C.long(start.tv_sec) ) + C.double(( C.long(stop.tv_nsec) - C.long(start.tv_nsec))) / C.double(1e9);
+   
+  file, err := os.OpenFile("./measurements.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+  
+  if err != nil {
+      fmt.Println("File does not exists or cannot be created")
+      os.Exit(1)
+  }
+  
+  w := bufio.NewWriter(file)
+  
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fmt.Fprintf(w, "Go,Chain, %d, %d, %d, %d, %d,%.9f\n", nelts, nelts, thresh_percent, winnow_nelts, runtime.GOMAXPROCS(0), accum )
+  
+  w.Flush()
+  file.Close()
 
 	if !*is_bench {
     fmt.Printf("%d\n", winnow_nelts)

@@ -108,24 +108,22 @@ func main() {
   
   accum = C.double( C.long(stop.tv_sec) - C.long(start.tv_sec) ) + C.double(( C.long(stop.tv_nsec) - C.long(start.tv_nsec))) / C.double(1e9);
   
-  if *is_bench {    
-    file, err := os.OpenFile("./measurements.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-    
-    if err != nil {
-        fmt.Println("File does not exists or cannot be created")
-        os.Exit(1)
-    }
-    
-    w := bufio.NewWriter(file)
-    
-    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fmt.Fprintf(w, "Go,Randmat,%d, %d, , , %d,%.9f\n", nrows, ncols, runtime.GOMAXPROCS(0), accum )
-    
-    w.Flush()
-    file.Close()
+  file, err := os.OpenFile("./measurements.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+  
+  if err != nil {
+      fmt.Println("File does not exists or cannot be created")
+      os.Exit(1)
   }
   
-	//if !*is_bench {
+  w := bufio.NewWriter(file)
+  
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fmt.Fprintf(w, "Go,Randmat,%d, %d, , , %d,%.9f\n", nrows, ncols, runtime.GOMAXPROCS(0), accum )
+  
+  w.Flush()
+  file.Close()
+  
+	if !*is_bench {
 		for i := 0; i < nrows; i++ {
 			row := matrix.Row(i)
 			for j := range row {
@@ -134,5 +132,5 @@ func main() {
 			fmt.Printf("\n")
 		}
 		fmt.Printf("\n")
-	//}
+	}
 } 

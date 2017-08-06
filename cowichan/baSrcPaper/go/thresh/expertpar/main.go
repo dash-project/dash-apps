@@ -16,7 +16,13 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
+  "bufio"
+  "os"
 )
+
+// #include <time.h>
+// #include <stdio.h>
+import "C"
 
 var is_bench = flag.Bool("is_bench", false, "")
 
@@ -129,7 +135,7 @@ func main() {
 
 	m := WrapBytes(nrows, ncols, make([]byte, ncols*nrows))
 
-	//if !*is_bench {
+	if !*is_bench {
 		for i := uint32(0); i < nrows; i++ {
 			row := m.Row(i)
 			for j := range row {
@@ -137,24 +143,43 @@ func main() {
 			}
 		   fmt.Scanf(" \n")
 		}
-	//}
+	}
 
 	fmt.Scanf("\n%d", &percent)
 
+  var start, stop C.struct_timespec
+  var accum C.double
+  
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
+  
 	thresh(m, nrows, ncols, percent)
   
-/*   //input to output for debugging
-  fmt.Printf("%d %d\n", nrows, ncols)
-  for i := uint32(0); i < nrows; i++ {
-    row := m.Row(i)
-    for j := uint32(0); j < ncols; j++ {
-      fmt.Printf("%d ",row[j])
-    }
-    fmt.Printf("\n")
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
   }
-  fmt.Printf("%d\n", percent) */
+  
+  accum = C.double( C.long(stop.tv_sec) - C.long(start.tv_sec) ) + C.double(( C.long(stop.tv_nsec) - C.long(start.tv_nsec))) / C.double(1e9);
+  
+  file, err := os.OpenFile("./measurements.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+  
+  if err != nil {
+      fmt.Println("File does not exists or cannot be created")
+      os.Exit(1)
+  }
+  
+  w := bufio.NewWriter(file)
+  
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fmt.Fprintf(w, "Go,Thresh,%d, %d, %d, , %d,%.9f\n", nrows, ncols, percent, runtime.GOMAXPROCS(0), accum )
+  
+  w.Flush()
+  file.Close()
 
-	//if !*is_bench {
+	if !*is_bench {
 		//fmt.Printf("%d %d\n", nrows, ncols)
 		for i := uint32(0); i < nrows; i++ {
 			for j := uint32(0); j < ncols; j++ {
@@ -167,5 +192,5 @@ func main() {
 			fmt.Printf("\n")
 		}
 		fmt.Printf("\n")
-	//}
+	}
 }

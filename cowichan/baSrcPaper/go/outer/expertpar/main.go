@@ -18,7 +18,14 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+  "bufio"
+  "os"
 )
+
+// #include <time.h>
+// #include <stdio.h>
+import "C"
+
 
 var is_bench = flag.Bool("is_bench", false, "")
 
@@ -107,13 +114,43 @@ func main() {
 	nelts = read_integer()
   points = make ([]Point, nelts)
 
-	//if !*is_bench {
+	if !*is_bench {
 		read_vector_of_points(nelts)
-	//}
+	}
+  
+  var start, stop C.struct_timespec
+  var accum C.double
+  
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
 
 	matrix, vector := Outer(points[0:nelts], nelts)
+  
+  if( C.clock_gettime( C.CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    C.perror( C.CString("clock gettime error 1") );
+    return
+  }
+  
+  accum = C.double( C.long(stop.tv_sec) - C.long(start.tv_sec) ) + C.double(( C.long(stop.tv_nsec) - C.long(start.tv_nsec))) / C.double(1e9);
+    
+  file, err := os.OpenFile("./measurements.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+  
+  if err != nil {
+      fmt.Println("File does not exists or cannot be created")
+      os.Exit(1)
+  }
+  
+  w := bufio.NewWriter(file)
+  
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fmt.Fprintf(w, "Go,Outer, , , , %d, %d,%.9f\n", nelts, runtime.GOMAXPROCS(0), accum )
+  
+  w.Flush()
+  file.Close()
 
-	//if !*is_bench {
+	if !*is_bench {
 		fmt.Printf("%d\n", nelts)
     for _, row := range matrix {
       for _, elem := range row {
@@ -127,5 +164,5 @@ func main() {
 			fmt.Printf("%.4f ", vector[i])
 		}
 		fmt.Printf("\n")
-	//}
+	}
 }
