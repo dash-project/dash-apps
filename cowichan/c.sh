@@ -7,7 +7,8 @@
 #how to use:
 # cow && cd $( ./c.sh thresh 0)
 # -> leads to folder: ./baSrcPaper/chapel/thresh/expertpar
-l=(chapel go cilk tbb)
+lL=(chapel go cilk tbb)
+lP=(randmat thresh winnow outer product chain)
 
-echo ./baSrcPaper/${l[$2]}/$1/expertpar
+echo ./baSrcPaper/${lL[$1]}/${lP[$2]}/expertpar
 
