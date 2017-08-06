@@ -92,7 +92,7 @@ int main( int argc, char* argv[] )
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
   
-  if( is_bench && 0 == myid ){
+  if( 0 == myid ){
     FILE* fp = fopen("./measurements.txt", "a");
     
     if( !fp ) {
@@ -100,10 +100,10 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Randmat,%u, %u, , , %u, %.9lf\n", in.nrows, in.ncols, dash::Team::All().size(), accum );
+    fprintf( fp, "DASH,Randmat,%u, %u, , , %u, %.9lf,isBench:%d\n", in.nrows, in.ncols, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
 
-  Print2D( rand_mat );
+  if (!is_bench) { Print2D( rand_mat ); }
   dash::finalize( );
 }

@@ -160,7 +160,7 @@ int main( int argc, char* argv[] )
   
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
-  if( is_bench && 0 == myid ){
+  if( 0 == myid ){
     FILE* fp = fopen("./measurements.txt", "a");
     
     if( !fp ) {
@@ -168,7 +168,7 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Chain,%u, %u, %u, %u, %u, %.9lf\n", in.nRowsCols, in.nRowsCols, in.thresh, in.winnow_nelts, dash::Team::All().size(), accum );
+    fprintf( fp, "DASH,Chain,%u, %u, %u, %u, %u, %.9lf,isBench:%d\n", in.nRowsCols, in.nRowsCols, in.thresh, in.winnow_nelts, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
 

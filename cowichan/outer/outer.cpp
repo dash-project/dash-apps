@@ -94,7 +94,7 @@ int main( int argc, char* argv[] )
   Array  < double    > vec   ( nelts        );
   
   //read input points on unit 0 and broadcast to all units
-  ReadVectorOfPoints( points );
+  if (!is_bench) { ReadVectorOfPoints( points ); }
   
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
@@ -112,7 +112,7 @@ int main( int argc, char* argv[] )
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
   
-  if( is_bench && 0 == myid ){
+  if( 0 == myid ){
     FILE* fp = fopen("./measurements.txt", "a");
     
     if( !fp ) {
@@ -120,10 +120,10 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Outer, , , , %u, %u, %.9lf\n", nelts, dash::Team::All().size(), accum );
+    fprintf( fp, "DASH,Outer, , , , %u, %u, %.9lf,isBench:%d\n", nelts, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
 
-  PrintOutput(matOut, vec);
+  if (!is_bench) { PrintOutput(matOut, vec); }
   dash::finalize( );
 }

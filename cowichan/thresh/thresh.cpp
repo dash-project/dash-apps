@@ -111,7 +111,7 @@ int main( int argc, char* argv[] )
   NArray< MATRIX_T, 2 > rand_mat    ( in.nrows, in.ncols );
   NArray< bool    , 2 > thresh_mask ( in.nrows, in.ncols );
 
-  ReadRandMat(rand_mat);
+  if (!is_bench) { ReadRandMat(rand_mat); }
   ReadPercentage();
   
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
@@ -129,7 +129,7 @@ int main( int argc, char* argv[] )
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
 
-  if( is_bench && 0 == myid ){
+  if( 0 == myid ){
     FILE* fp = fopen("./measurements.txt", "a");
     
     if( !fp ) {
@@ -137,10 +137,10 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Thresh,%u, %u, %u , , %u, %.9lf\n", in.nrows, in.ncols, percent, dash::Team::All().size(), accum );
+    fprintf( fp, "DASH,Thresh,%u, %u, %u , , %u, %.9lf,isBench:%d\n", in.nrows, in.ncols, percent, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
   
-  Print2D( thresh_mask );
+  if (!is_bench) { Print2D( thresh_mask ); }
   dash::finalize( );
 }

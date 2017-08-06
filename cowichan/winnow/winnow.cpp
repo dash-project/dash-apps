@@ -12,6 +12,7 @@ static int    myid ;
 #include <stdio.h>
 
 std::ifstream raThr_output;
+  int is_bench = 0;
 
 /*
  * One unit has the job to read in the parameters.
@@ -43,9 +44,10 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
 
   if(0 == myid)
   {
-    //read matrices
-    int tmp;
-    
+    if (!is_bench) { 
+      //read matrices
+      int tmp;
+      
       for ( auto i : randMat )
       {
         // scanf( "%u", &tmp )  , i = tmp;
@@ -61,6 +63,7 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
         raThr_output >> tmpB;
         i = static_cast<T>(tmpB);
       }
+    }
       
     raThr_output >> nelts;
     raThr_output.close();
@@ -78,7 +81,6 @@ int main( int argc, char* argv[] )
   
   struct timespec start, stop;
   double accum;
-  int is_bench = 0;
   
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
@@ -120,7 +122,7 @@ int main( int argc, char* argv[] )
   
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
-  if( is_bench && 0 == myid ){
+  if( 0 == myid ){
     FILE* fp = fopen("./measurements.txt", "a");
     
     if( !fp ) {
@@ -128,18 +130,20 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Winnow,%u, %u, , %u, %u, %.9lf\n", in.nrows, in.ncols, nelts, dash::Team::All().size(), accum );
+    fprintf( fp, "DASH,Winnow,%u, %u, , %u, %u, %.9lf,isBench:%d\n", in.nrows, in.ncols, nelts, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
   
-  // output
-  if( 0 == myid )
-  {
-    cout << nelts << "\n";
-    
-    for( value it : result ) cout << it;
-    
-    cout << endl;
+  if (!is_bench) { 
+    // output
+    if( 0 == myid )
+    {
+      cout << nelts << "\n";
+      
+      for( value it : result ) cout << it;
+      
+      cout << endl;
+    }
   }
   dash::finalize( );
 }
