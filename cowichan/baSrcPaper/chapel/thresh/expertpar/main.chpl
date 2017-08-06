@@ -84,7 +84,7 @@ proc main() {
   }
 
   read(percent);
-  
+   
   
   if( clock_gettime( CLOCK_MONOTONIC_RAW, start) == -1 ) {
     writeln("an error in clock_gettime start has occured!");
@@ -98,15 +98,13 @@ proc main() {
   
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   
-  if(is_bench){
-    FILE_PTR = fopen("./measurements.txt", "a");
-    
-    if( is_c_nil(FILE_PTR) ){writeln("File opening for benchmark results failed");}
-    
-    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( FILE_PTR, "Chapel,Thresh,%u, %u, %u, , %u, %.9lf\n", nrows, ncols, percent, dataParTasksPerLocale, accum ); //, locale.totalThreads()
-    fclose ( FILE_PTR );
-  }
+  FILE_PTR = fopen("./measurements.txt", "a");
+  
+  if( is_c_nil(FILE_PTR) ){writeln("File opening for benchmark results failed");}
+  
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( FILE_PTR, "Chapel,Thresh,%u, %u, %u, , %u, %.9lf,isBench:%d\n", nrows, ncols, percent, dataParTasksPerLocale, is_bench, accum ); //, locale.totalThreads()
+  fclose ( FILE_PTR );
 
   if (!is_bench) {
     //writeln(nrows, " ", ncols);
