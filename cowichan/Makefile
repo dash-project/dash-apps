@@ -405,6 +405,7 @@ $(LANGUAGES:%=bench-%):
 	echo ---------- ;\
 	for (( numberOfIterations; numberOfIterations >= 1 ; --numberOfIterations )); do \
 		export nRowsCols seed thresh winnow_nelts JOBS GOMAXPROCS=$$JOBS isBench="--is_bench";\
+#//export CILK_NWORKERS=24 && echo "50000 42950 55" | ./main --is_bench --nproc 24
 		$(MAKE) --no-print-directory run-$(@:bench-%=%);\
 		echo -----------------------------------------------------------------------;\
 	done ;\

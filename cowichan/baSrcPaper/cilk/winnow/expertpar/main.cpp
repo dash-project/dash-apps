@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <algorithm>
 
@@ -139,12 +140,16 @@ void read_mask(int nrows, int ncols) {
 }
 
 int main(int argc, char *argv[]) {
-  int nrows, ncols, nelts, i;
+  int nrows, ncols, nelts, i, nproc = 0;
+  struct timespec start, stop;
+  double accum;
 
   if (argc >= 2) {
     for (int a = 0; a < argc; a++) {
       if (!strcmp(argv[a], "--is_bench")) {
         is_bench = 1;
+      } else if (!strcmp(argv[a], "--nproc")) {
+        sscanf(argv[++a], "%d", &nproc);
       }
     }
   }
@@ -153,27 +158,52 @@ int main(int argc, char *argv[]) {
   matrix = (int*) malloc (sizeof(int) * nrows * ncols);
   mask = (int*) malloc (sizeof(int) * nrows * ncols);
   values= (pair<int, pair<int, int> >*) 
-    malloc (sizeof(pair<int, pair<int, int> >) * nrows * ncols);
+  malloc (sizeof(pair<int, pair<int, int> >) * nrows * ncols);
 
-  //if (!is_bench) {
+  if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  //}
+  }
 
   scanf("%d", &nelts);
 
   count_per_line = (int*) calloc (nrows+1, sizeof(int));
 
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
   cilk_spawn winnow(nrows, ncols, nelts);
   cilk_sync;
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
 
-  //if (!is_bench) {
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
+  }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "Cilk,Winnow,%u, %u, , %u, %u, %.9lf,isBench:%d\n", nrows, ncols, nelts, nproc, accum, is_bench );
+  fclose ( fp );
+  
+
+  if (!is_bench) {
     printf("%d\n", nelts);
     for (i = 0; i < nelts; i++) {
       printf("%d %d\n", points[i].first, points[i].second);
     }
     printf("\n");
-  //}
+  }
   free (matrix);
   free (mask);
   free (values);

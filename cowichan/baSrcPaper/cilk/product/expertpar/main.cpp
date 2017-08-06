@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static int is_bench = 0;
 
@@ -49,12 +50,16 @@ void read_vector(int nelts) {
 }
 
 int main(int argc, char *argv[]) {
-  int nelts, i;
+  int nelts, i, nproc = 0;
+  struct timespec start, stop;
+  double accum;
 
   if (argc >= 2) {
     for (int a = 0; a < argc; a++){
       if (!strcmp(argv[a], "--is_bench")) {
         is_bench = 1;
+      } else if (!strcmp(argv[a], "--nproc")) {
+        sscanf(argv[++a], "%d", &nproc);
       }
     }
   }
@@ -64,12 +69,37 @@ int main(int argc, char *argv[]) {
   vector = (double*) malloc (sizeof(double) * nelts);
   result = (double*) malloc (sizeof(double) * nelts);
 
-  //if (!is_bench) {
+  if (!is_bench) {
     read_matrix(nelts);
     read_vector(nelts);
-  //}
+  }
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
 
   product(nelts);
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+
+  FILE* fp = fopen("./measurements.txt", "a");
+  
+  if( !fp ) {
+      perror("File opening for benchmark results failed");
+      return EXIT_FAILURE;
+  }
+  // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+  fprintf( fp, "Cilk,Product, , , , %u, %u, %.9lf,isBench:%d\n", nelts, nproc, accum, is_bench );
+  fclose ( fp );
+  
 
   if (!is_bench) {
     printf("%d\n", nelts);
