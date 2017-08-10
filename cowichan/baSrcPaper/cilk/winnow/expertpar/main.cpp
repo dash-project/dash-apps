@@ -160,10 +160,10 @@ int main(int argc, char *argv[]) {
   values= (pair<int, pair<int, int> >*) 
   malloc (sizeof(pair<int, pair<int, int> >) * nrows * ncols);
 
-  if (!is_bench) {
+  // if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  }
+  // }
 
   scanf("%d", &nelts);
 

@@ -161,10 +161,10 @@ run_results:; mkdir -p run_results
 runIO: runIO-all
 runIO-all: | run_results
 	@$(MAKE) --no-print-directory runIO-tbb
-	@$(MAKE) --no-print-directory runIO-chpl
-	@$(MAKE) --no-print-directory runIO-cilk
-	@$(MAKE) --no-print-directory runIO-go
-	@$(MAKE) --no-print-directory runIO-dash
+	# @$(MAKE) --no-print-directory runIO-chpl
+	# @$(MAKE) --no-print-directory runIO-cilk
+	# @$(MAKE) --no-print-directory runIO-go
+	# @$(MAKE) --no-print-directory runIO-dash
 
 .PHONY: runIO-dash runIO-dash_
 runIO-dash: | run_results
@@ -270,6 +270,7 @@ FAILURE:=$(RED)FAILURE$(NC)
 
 # export nRowsCols=8 seed=$$(( 1 + RANDOM % 666 )) thresh=33 winnow_nelts=10 JOBS=4;\
 # export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=$$JOBS;\
+# for (( JOBS=1; JOBS<=12; JOBS+=1 )) ;                                                                                        do \
 
 .PHONY: test
 test:
@@ -278,8 +279,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
 	for (( vThresh=20; vThresh<= 100; vThresh+=65 )) ;                                                                         do \
 	for (( vWinnow_nelts=$$vNRowsCols; vWinnow_nelts<= $$vNRowsCols*$$vNRowsCols ; vWinnow_nelts+=4*$$vNRowsCols)) ;            do \
-	for (( JOBS=1; JOBS<=12; JOBS+=1 )) ;                                                                                        do \
-	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=$$JOBS GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS;\
+	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=24 GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS;\
 		$(MAKE) --no-print-directory runIO-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -386,11 +386,12 @@ test:
 			(( globWarnings += warnings )); warnings=0; fi;\
 		echo -e until now:$(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 		echo --------------------------------------;\
-	done ;\
-	 break;\
+# done ;\
+   break;\
 	  done ;\
 	   break;\
 	    done ;\
+			break;\
 		   done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 
@@ -401,6 +402,7 @@ run-clean:
 ################  </Validation Test>   ##########################
 ################     <Benchmarks>      ##########################
 
+# echo $$nRowsCols $$nRowsCols $$winnow_nelts > winnow_in;\
 .PHONY: bench
 bench:
 	@echo Enter nRowsCols, seed, thresh, winnow_nelts, numberOfJobs and numberOfIterations:;\
@@ -408,21 +410,27 @@ bench:
 	echo ---------- ;\
 	for (( numberOfIterations; numberOfIterations >= 1 ; --numberOfIterations )); do \
 		export nRowsCols seed thresh winnow_nelts JOBS GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS isBench="--is_bench";\
-		if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
-		echo "DASH ..... run with: nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
+		# if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
+		# echo "DASH ..... run with: nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
 		echo $$nRowsCols $$nRowsCols $$thresh > thresh_in;\
-		echo $$nRowsCols $$nRowsCols $$winnow_nelts > winnow_in;\
 		echo $$winnow_nelts > outProd_in;\
-		echo $$nRowsCols $$nRowsCols $$seed | mpirun -n $$JOBS ./randmat/randmat $$isBench;\
-		mpirun -n $$JOBS ./thresh/thresh "thresh_in" $$isBench;\
-		mpirun -n $$JOBS ./winnow/winnow "winnow_in" $$isBench;\
-		mpirun -n $$JOBS ./outer/outer "outProd_in" $$isBench;\
-		mpirun -n $$JOBS ./product/product "outProd_in" $$isBench;\
-		echo $$nRowsCols $$seed $$thresh $$winnow_nelts | mpirun -n $$JOBS ./chain/chain $$isBench;\
-		echo "DASH ..... finished";\
+		# echo $$nRowsCols $$nRowsCols $$seed | mpirun -n $$JOBS ./randmat/randmat $$isBench;\
+		# mpirun -n $$JOBS ./thresh/thresh "thresh_in" $$isBench;\
+		# mpirun -n $$JOBS ./winnow/winnow "winnow_in" $$isBench;\
+		# mpirun -n $$JOBS ./outer/outer "outProd_in" $$isBench;\
+		# mpirun -n $$JOBS ./product/product "outProd_in" $$isBench;\
+		# echo $$nRowsCols $$seed $$thresh $$winnow_nelts | mpirun -n $$JOBS ./chain/chain $$isBench;\
+		# echo "DASH ..... finished";\
+		if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
+		echo "Chapel ... run with: nRowsCols:nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
+		echo $$nRowsCols $$nRowsCols $$seed | $(CHPL_ROOT)/randmat/expertpar/main --dataParTasksPerLocale=$$JOBS $$isBench;\
+		$(CHPL_ROOT)/thresh/expertpar/main --dataParTasksPerLocale=$$JOBS $$isBench < ./thresh_in;\
+		echo "Chapel ... finished";\
 		echo -----------------------------------------------------------------------;\
 	done ;\
 #find . -maxdepth 1  -name "*_in" -delete;\
 #export CILK_NWORKERS=24 && echo "50000 42950 55" | ./main --is_bench --nproc 24
 
 ################     </Benchmarks>     ##########################
+
+#nRowsCols:40000, seed:170, thresh:20, winnow_nelts:40000, Jobs:24, isBench:

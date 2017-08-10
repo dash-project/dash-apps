@@ -44,7 +44,7 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
 
   if(0 == myid)
   {
-    if (!is_bench) { 
+    // if (!is_bench) { 
       //read matrices
       int tmp;
       
@@ -63,7 +63,7 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
         raThr_output >> tmpB;
         i = static_cast<T>(tmpB);
       }
-    }
+    // }
       
     raThr_output >> nelts;
     raThr_output.close();

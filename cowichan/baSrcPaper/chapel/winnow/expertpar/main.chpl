@@ -106,10 +106,10 @@ proc main() {
   
   var nelts: int;
 
-  if (!is_bench) {
+  // if (!is_bench) {
     read_matrix();
     read_mask();
-  }
+  // }
 
   read(nelts);
   

@@ -233,10 +233,10 @@ func main() {
 	for i := range mask {
 		mask[i] = make([]bool, ncols)
 	}
-	if !*is_bench {
+	// if !*is_bench {
 		read_matrix(nrows, ncols)
 		read_mask(nrows, ncols)
-	}
+	// }
 
 	nelts = int(read_integer())
 	points = make([]int, nelts)
