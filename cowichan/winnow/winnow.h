@@ -282,9 +282,11 @@ inline void Winnow(
   {
       local_sizes.push_back( uRPtr->count );
   }
-  cout << local_sizes.size() << "::" << local_sizes[0] << endl;
   
-  #if 0 
+  cout << "should be 1 and is:" local_sizes.size() << "## how many elements should the array hold" << local_sizes[0] << endl;
+  
+  #define CSR
+  #ifndef CSR
     Array<Point, size_t> toSort( local_sizes[0], dash::BLOCKED );
   #else
     pattern_t pattern( local_sizes );
@@ -477,12 +479,17 @@ inline void Winnow(
       // i->col   = myid;  // test member access
     // }
     
-    Point a = { myid, myid, myid };
+    Point a = { 1, 2, 3 };
+    toSort[437700264] = a;
+    cout << "first access worked\n";
+    
     toSort[437700265] = a;
+    cout << "second access won't work on project03\n";
     
     cout << "made it3"<< endl;
     __sleep();
     
+    //this is the main reason i have a headache! memcpy doesn't work anymore... because of the access violation!
     std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
     cout << "made it4"<< endl;
     __sleep();
@@ -492,7 +499,7 @@ inline void Winnow(
  /* copy data for other units in a circle.
   * every units sends its data to it's "right" neighbour
   */
-  #if 1
+  #ifdef CSR
   uint myRowOffset = myid * involvedUnits;
   
   auto baseIterator = toSort.begin( );
