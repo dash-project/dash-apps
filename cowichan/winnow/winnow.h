@@ -283,7 +283,7 @@ inline void Winnow(
       local_sizes.push_back( uRPtr->count );
   }
   
-  cout << "should be 1 and is:" local_sizes.size() << "## how many elements should the array hold" << local_sizes[0] << endl;
+  cout << "should be 1 and is:" << local_sizes.size() << " ## how many elements should the array hold " << local_sizes[0] << endl;
   
   #define CSR
   #ifndef CSR
@@ -293,8 +293,8 @@ inline void Winnow(
     Array<Point, size_t, pattern_t> toSort( pattern );
   #endif
   
-  cout << "wahooo" << toSort.size() << endl;
-  cout << "sizeof(size_t)" << sizeof(size_t) << endl;
+  cout << "toSort.size(): " << toSort.size() << endl;
+  cout << "sizeof(size_t): " << sizeof(size_t) << endl;
   
   //std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point)); // not necessary anymore
   
@@ -470,24 +470,28 @@ inline void Winnow(
     cout << buckets[myid]->data() << endl;
     cout << buckets[myid]->data() + buckets[myid]->size() << endl;
     
-    cout << "test element access...\n";
-    // size_t counter = 0;
-    // for(Point * i = toSort.lbegin(); i < toSort.lend(); ++i, ++counter ){
-      // if( counter > 437700264 ){ cout << counter << "\n"; }
-      // i->value = myid;  // test member access
-      // i->row   = myid;  // test member access
-      // i->col   = myid;  // test member access
-    // }
-    
-    Point a = { 1, 2, 3 };
-    toSort[437700264] = a;
-    cout << "first access worked\n";
-    
-    toSort[437700265] = a;
-    cout << "second access won't work on project03\n";
-    
-    cout << "made it3"<< endl;
-    __sleep();
+    if(local_sizes[0] == 1600000000)
+    {
+      cout << "test element access...\n";
+      // size_t counter = 0;
+      // for(Point * i = toSort.lbegin(); i < toSort.lend(); ++i, ++counter ){
+        // if( counter > 437700264 ){ cout << counter << "\n"; }
+        // i->value = myid;  // test member access
+        // i->row   = myid;  // test member access
+        // i->col   = myid;  // test member access
+      // }
+      
+      Point a = { 1, 2, 3 };
+      toSort[437700264] = a;
+      cout << "first access worked\n";
+      
+      toSort[437700265] = a;
+      cout << "second access won't work on project03\n";
+      
+      cout << "made it3"<< endl;
+      __sleep();
+      
+    }
     
     //this is the main reason i have a headache! memcpy doesn't work anymore... because of the access violation!
     std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
