@@ -410,22 +410,23 @@ bench:
 	echo ---------- ;\
 	for (( numberOfIterations; numberOfIterations >= 1 ; --numberOfIterations )); do \
 		export nRowsCols seed thresh winnow_nelts JOBS GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS isBench="--is_bench";\
-		# if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
-		# echo "DASH ..... run with: nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
-		echo $$nRowsCols $$nRowsCols $$thresh > thresh_in;\
-		echo $$winnow_nelts > outProd_in;\
-		# echo $$nRowsCols $$nRowsCols $$seed | mpirun -n $$JOBS ./randmat/randmat $$isBench;\
-		# mpirun -n $$JOBS ./thresh/thresh "thresh_in" $$isBench;\
-		# mpirun -n $$JOBS ./winnow/winnow "winnow_in" $$isBench;\
-		# mpirun -n $$JOBS ./outer/outer "outProd_in" $$isBench;\
-		# mpirun -n $$JOBS ./product/product "outProd_in" $$isBench;\
-		# echo $$nRowsCols $$seed $$thresh $$winnow_nelts | mpirun -n $$JOBS ./chain/chain $$isBench;\
-		# echo "DASH ..... finished";\
 		if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
-		echo "Chapel ... run with: nRowsCols:nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
-		echo $$nRowsCols $$nRowsCols $$seed | $(CHPL_ROOT)/randmat/expertpar/main --dataParTasksPerLocale=$$JOBS $$isBench;\
-		$(CHPL_ROOT)/thresh/expertpar/main --dataParTasksPerLocale=$$JOBS $$isBench < ./thresh_in;\
-		echo "Chapel ... finished";\
+		echo "DASH ..... run with: nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
+		echo $$nRowsCols $$nRowsCols $$thresh > thresh_in;\
+		echo $$nRowsCols $$nRowsCols $$winnow_nelts > winnow_in;\
+		echo $$winnow_nelts > outProd_in;\
+		echo $$nRowsCols $$nRowsCols $$seed | mpirun -n $$JOBS ./randmat/randmat $$isBench;\
+		mpirun -n $$JOBS ./thresh/thresh "thresh_in" $$isBench;\
+		mpirun -n $$JOBS ./winnow/winnow "winnow_in" $$isBench;\
+		mpirun -n $$JOBS ./outer/outer "outProd_in" $$isBench;\
+		mpirun -n $$JOBS ./product/product "outProd_in" $$isBench;\
+		echo $$nRowsCols $$seed $$thresh $$winnow_nelts | mpirun -n $$JOBS ./chain/chain $$isBench;\
+		echo "DASH ..... finished";\
+		# if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
+		# echo "Chapel ... run with: nRowsCols:nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
+		# echo $$nRowsCols $$nRowsCols $$seed | $(CHPL_ROOT)/randmat/expertpar/main --dataParTasksPerLocale=$$JOBS $$isBench;\
+		# $(CHPL_ROOT)/thresh/expertpar/main --dataParTasksPerLocale=$$JOBS $$isBench < ./thresh_in;\
+		# echo "Chapel ... finished";\
 		echo -----------------------------------------------------------------------;\
 	done ;\
 #find . -maxdepth 1  -name "*_in" -delete;\

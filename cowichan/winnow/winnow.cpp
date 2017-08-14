@@ -44,7 +44,7 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
 
   if(0 == myid)
   {
-    // if (!is_bench) { 
+    if (!is_bench) { 
       //read matrices
       int tmp;
       
@@ -63,7 +63,7 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
         raThr_output >> tmpB;
         i = static_cast<T>(tmpB);
       }
-    // }
+    }
       
     raThr_output >> nelts;
     raThr_output.close();
@@ -72,6 +72,19 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
   }
   nelts_transfer.barrier();
   nelts = nelts_transfer.get();
+}
+
+template< typename T = MATRIX_T >
+inline void FillOnTheFly( NArray<T,2>& randMat, NArray<bool,2>& threshMask )
+{
+    uint val = MAX_KEY;
+    for( T * ptr = randMat.lbegin(); ptr < randMat.lend(); ++ptr)
+    {
+      *ptr = val--;
+      if( 0 == val ) { val = MAX_KEY; }
+    }
+ 
+    for( bool * ptr = threshMask.lbegin(); ptr < threshMask.lend(); ++ptr) { *ptr = true; }
 }
 
 
@@ -91,6 +104,7 @@ int main( int argc, char* argv[] )
   myid = dash::myid( );
   ReadRowsNCols( argv );
   
+  
   NArray< MATRIX_T, 2 > randMat    ( in.nrows, in.ncols );
   NArray< bool    , 2 > threshMask ( in.nrows, in.ncols );
   
@@ -108,6 +122,9 @@ int main( int argc, char* argv[] )
   
   ReadMatricesAndNelts( randMat, threshMask );
   
+  if (is_bench) FillOnTheFly( randMat, threshMask );
+  
+  
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
@@ -119,6 +136,7 @@ int main( int argc, char* argv[] )
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }
+
   
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
   

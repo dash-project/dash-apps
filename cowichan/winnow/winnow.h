@@ -7,10 +7,10 @@
 // #define DEBUG_DETAILED  // requires DEBUG
 
 
-#ifdef DEBUG
+// #ifdef DEBUG
   #include <chrono>
   #include <thread>
-#endif
+// #endif
 
 
 #define MAX_KEY               99
@@ -39,7 +39,7 @@ using value       = struct{ int row, col; }; //hast to be signed! - results are 
 using Point       = struct{ MATRIX_T value; uint row, col;   };  // results are created using these
 using unitRange   = struct{ MATRIX_T begin, end; uint count; };  // unitValueRange
                   
-using pattern_t   = dash::CSRPattern< 1, dash::ROW_MAJOR, int >;
+using pattern_t   = dash::CSRPattern< 1, dash::ROW_MAJOR, uint >;
 using extent_t    = pattern_t::size_type;
 using res_array_t = dash::Array<value, int, pattern_t>;
 
@@ -66,14 +66,14 @@ std::ostream& operator<<(std::ostream& os, const value& p)
 }
 
 
-#ifdef DEBUG
+// #ifdef DEBUG
   using std::this_thread::sleep_for;
   inline void __sleep( uint const baseDur = 0, uint const mult = 10 )
   {
      uint SLEEP_TIME__ = (myid + 1) * mult + baseDur;
       sleep_for(std::chrono::milliseconds(SLEEP_TIME__)); 
   }
-#endif
+// #endif
 
 
 template<typename T = MATRIX_T >
@@ -239,7 +239,7 @@ inline void Winnow(
     }
     
   } // end of unit 0 only part
-  
+    
   
  /* Distribute calculated distribution data to every unit.
   * Distribution data consists of unitRange structs.
@@ -282,10 +282,17 @@ inline void Winnow(
   {
       local_sizes.push_back( uRPtr->count );
   }
+  cout << local_sizes.size() << "::" << local_sizes[0] << endl;
   
-  pattern_t pattern( local_sizes );
-  Array<Point, int, pattern_t> toSort( pattern );
+  #if 0 
+    Array<Point, size_t> toSort( local_sizes[0], dash::BLOCKED );
+  #else
+    pattern_t pattern( local_sizes );
+    Array<Point, size_t, pattern_t> toSort( pattern );
+  #endif
   
+  cout << "wahooo" << toSort.size() << endl;
+  cout << "sizeof(size_t)" << sizeof(size_t) << endl;
   
   //std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point)); // not necessary anymore
   
@@ -428,18 +435,22 @@ inline void Winnow(
     cout << fmt( *poiCount, FMAG ) << ", ";
   } cout << endl;
   #endif
-  
+    
+  cout << "made it\n";
   
  /* only involvedUnits can have data for memcpy!
   * and the units must have data for themselves as well
   * logical lookup -> comTable[myid][myid] > 0
   */
-  uint forMySelf = comTable[myid * involvedUnits + myid];
+  size_t forMySelf = comTable[myid * involvedUnits + myid];
   
   if( myid < involvedUnits && forMySelf > 0)
   {
     uint * forThisUnit = comTable + myid;
     uint   lclOffset   = 0;
+    
+    cout << "made it2"<< endl;
+    __sleep();
     
     for( int ID = 0; ID < myid; ++ID)
     {
@@ -450,14 +461,38 @@ inline void Winnow(
     
     Point * lclDest = toSort.lbegin() + lclOffset;
     
-    std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
+    cout << "lclOffset" << lclOffset << endl;
+    cout << "lclDest vs lbegin\n" << lclDest << "\n" << toSort.lbegin() << endl;
+    cout << forMySelf << ", " << sizeof(Point) << ", " << sizeof(Point) * forMySelf << endl;
+    cout << buckets[myid]->size() << ", max:" << buckets[myid]->max_size() << endl;
+    cout << buckets[myid]->data() << endl;
+    cout << buckets[myid]->data() + buckets[myid]->size() << endl;
     
+    cout << "test element access...\n";
+    // size_t counter = 0;
+    // for(Point * i = toSort.lbegin(); i < toSort.lend(); ++i, ++counter ){
+      // if( counter > 437700264 ){ cout << counter << "\n"; }
+      // i->value = myid;  // test member access
+      // i->row   = myid;  // test member access
+      // i->col   = myid;  // test member access
+    // }
+    
+    Point a = { myid, myid, myid };
+    toSort[437700265] = a;
+    
+    cout << "made it3"<< endl;
+    __sleep();
+    
+    std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
+    cout << "made it4"<< endl;
+    __sleep();
   }
   
   
  /* copy data for other units in a circle.
   * every units sends its data to it's "right" neighbour
   */
+  #if 1
   uint myRowOffset = myid * involvedUnits;
   
   auto baseIterator = toSort.begin( );
@@ -467,7 +502,6 @@ inline void Winnow(
   
   for( uint counter = 0; counter < involvedUnits; ++counter, nextID = (nextID + 1) % involvedUnits )
   {
-    
     // if this unit has data for the next unit and is a remote unit (local unit was handled before)
     if( comTable[ myRowOffset + nextID ] && nextID != myid  )
     {
@@ -493,6 +527,7 @@ inline void Winnow(
       dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
     }
   }
+  #endif
 
   // wait before sorting to finish all puts from dash::copy
   dash::barrier();
@@ -529,7 +564,7 @@ inline void Winnow(
       // cout << *it << "\n";
     // } cout << endl;
   #endif
-  
+
   
   // if( 0 < toSort.lsize() )
   // {
