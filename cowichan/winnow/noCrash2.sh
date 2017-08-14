@@ -1,3 +1,3 @@
 #!/bin/bash
 
-make && mpirun -n 2 ./winnow "winnow_in3" --is_bench
+make && mpirun -n 2 ./winnow "winnow_in2" --is_bench
