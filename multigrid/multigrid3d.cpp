@@ -57,37 +57,65 @@ struct Level {
     ~Level() {}
 };
 
+
+/* Write out the entire state as a CSV which can be loaded and vizualized
+with for example paraview. For convenience for vozualization, make the output
+constant size regardless of the grid level. Thus interpolate coarser grids or
+reduce finer ones. */
+
+size_t resolutionForCSVd= 0;
+size_t resolutionForCSVh= 0;
+size_t resolutionForCSVw= 0;
+
+
 #ifdef WITHCSVOUTPUT
-void toCSV( const MatrixT& cube ) {
+void toCSV( const MatrixT& grid ) {
 
     if ( 0 != dash::myid() ) return;
 
-    size_t d= cube.extent(2);
-    size_t w= cube.extent(1);
-    size_t h= cube.extent(0);
+    size_t d= grid.extent(0);
+    size_t h= grid.extent(1);
+    size_t w= grid.extent(2);
 
     std::ofstream csvfile;
     csvfile.open( filename + '.' + std::to_string(filenumber++) );
-    csvfile << "x coord, y coord, z coord, heat" << "\n";
-    for ( size_t z = 0; z < d; ++z ) {
-        for ( size_t y = 0; y < h; ++y ) {
-            for ( size_t x = 0; x < w; ++x ) {
-                csvfile << x << "," << y << "," << z << "," << (double) cube[y][x][z] << "\n";
+
+    csvfile << "z coord,y coord,x coord,heat" << "\n";
+
+    /* Write according to the fixed grid size. If the real grid is even finer
+    then pick any point that matches the coordinates. If the real grid is
+    coarser, then repeat one value from the coarser grid multiple times */
+
+    size_t divd= ( resolutionForCSVd > d ) ? resolutionForCSVd/d : 1;
+    size_t divh= ( resolutionForCSVh > h ) ? resolutionForCSVh/h : 1;
+    size_t divw= ( resolutionForCSVw > w ) ? resolutionForCSVw/w : 1;
+
+    size_t muld= ( resolutionForCSVd < d ) ? d/resolutionForCSVd : 1;
+    size_t mulh= ( resolutionForCSVh < h ) ? h/resolutionForCSVh : 1;
+    size_t mulw= ( resolutionForCSVw < w ) ? w/resolutionForCSVw : 1;
+
+    for ( size_t z = 0; z < resolutionForCSVd; ++z ) {
+        for ( size_t y = 0; y < resolutionForCSVh; ++y ) {
+            for ( size_t x = 0; x < resolutionForCSVw; ++x ) {
+
+                csvfile << x << "," << y << "," << z << "," <<
+                    (double) grid[muld*z/divd][mulh*y/divh][mulw*x/divw] << "\n";
             }
         }
     }
+
     csvfile.close();
 }
 #endif /* WITHCSVOUTPUT */
 
-void writeToCsv( const MatrixT& cube ) {
+void writeToCsv( const MatrixT& grid ) {
 #ifdef WITHCSVOUTPUT
-    cube.barrier();
+    grid.barrier();
 
     if ( 0 == dash::myid() )
-        toCSV( cube );
+        toCSV( grid );
 
-    cube.barrier();
+    grid.barrier();
 #endif /* WITHCSVOUTPUT */
 }
 
@@ -565,6 +593,10 @@ int main( int argc, char* argv[] ) {
     constexpr uint32_t howmanylevels= 5;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
+
+    resolutionForCSVd= ( 1<<(howmanylevels) ) * factor_z;
+    resolutionForCSVh= ( 1<<(howmanylevels) ) * factor_y;
+    resolutionForCSVw= ( 1<<(howmanylevels) ) * factor_x;
 
     /* create all grid levels, starting with the finest and ending with 2x2 */
     for ( auto l= 0; l < howmanylevels-0; l++ ) {
