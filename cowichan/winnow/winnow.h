@@ -7,10 +7,10 @@
 // #define DEBUG_DETAILED  // requires DEBUG
 
 
-// #ifdef DEBUG
+#ifdef DEBUG
   #include <chrono>
   #include <thread>
-// #endif
+#endif
 
 
 #define MAX_KEY               99
@@ -80,8 +80,8 @@ template<typename T = MATRIX_T >
 inline void Winnow(
               uint const   nrows      ,
               uint const   ncols      ,
-    NArray<   T,2> const & randMat    ,
-    NArray<bool,2> const & threshMask ,
+          NArray<   T,2> & randMat    ,
+          NArray<bool,2> & threshMask ,
               uint const   nelts      ,
        res_array_t       & result     )
 {  
@@ -156,6 +156,9 @@ inline void Winnow(
       dash::plus<uint> ( ) );
   }
   
+  // free randMat and threshMask
+  randMat.deallocate();
+  threshMask.deallocate();
   
   // in this array will be the distribution info for creating buckets
   unitRange * distr = static_cast<unitRange*>(  std::malloc( nUnits * sizeof(unitRange) )  );
@@ -282,17 +285,11 @@ inline void Winnow(
   {
       local_sizes.push_back( uRPtr->count );
   }
-  cout << local_sizes.size() << "::" << local_sizes[0] << endl;
   
-  #if 0 
-    Array<Point, size_t> toSort( local_sizes[0], dash::BLOCKED );
-  #else
-    pattern_t pattern( local_sizes );
-    Array<Point, size_t, pattern_t> toSort( pattern );
-  #endif
   
-  cout << "wahooo" << toSort.size() << endl;
-  cout << "sizeof(size_t)" << sizeof(size_t) << endl;
+  pattern_t pattern( local_sizes );
+  Array<Point, size_t, pattern_t> toSort( pattern );
+  
   
   //std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point)); // not necessary anymore
   
@@ -369,6 +366,9 @@ inline void Winnow(
     }
   }
   
+  // pointsLocal no longer needed
+  pointsLocal.clear();
+  
   #ifdef DEBUG
   dash::barrier();  // only needed for better IO Output
   
@@ -436,7 +436,6 @@ inline void Winnow(
   } cout << endl;
   #endif
     
-  cout << "made it\n";
   
  /* only involvedUnits can have data for memcpy!
   * and the units must have data for themselves as well
@@ -449,8 +448,6 @@ inline void Winnow(
     uint * forThisUnit = comTable + myid;
     uint   lclOffset   = 0;
     
-    cout << "made it2"<< endl;
-    __sleep();
     
     for( int ID = 0; ID < myid; ++ID)
     {
@@ -460,39 +457,14 @@ inline void Winnow(
     }
     
     Point * lclDest = toSort.lbegin() + lclOffset;
-    
-    cout << "lclOffset" << lclOffset << endl;
-    cout << "lclDest vs lbegin\n" << lclDest << "\n" << toSort.lbegin() << endl;
-    cout << forMySelf << ", " << sizeof(Point) << ", " << sizeof(Point) * forMySelf << endl;
-    cout << buckets[myid]->size() << ", max:" << buckets[myid]->max_size() << endl;
-    cout << buckets[myid]->data() << endl;
-    cout << buckets[myid]->data() + buckets[myid]->size() << endl;
-    
-    cout << "test element access...\n";
-    // size_t counter = 0;
-    // for(Point * i = toSort.lbegin(); i < toSort.lend(); ++i, ++counter ){
-      // if( counter > 437700264 ){ cout << counter << "\n"; }
-      // i->value = myid;  // test member access
-      // i->row   = myid;  // test member access
-      // i->col   = myid;  // test member access
-    // }
-    
-    Point a = { myid, myid, myid };
-    toSort[437700265] = a;
-    
-    cout << "made it3"<< endl;
-    __sleep();
-    
+
     std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
-    cout << "made it4"<< endl;
-    __sleep();
   }
   
   
  /* copy data for other units in a circle.
   * every units sends its data to it's "right" neighbour
   */
-  #if 1
   uint myRowOffset = myid * involvedUnits;
   
   auto baseIterator = toSort.begin( );
@@ -527,7 +499,8 @@ inline void Winnow(
       dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
     }
   }
-  #endif
+  
+  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket ){  delete *bucket; /* = new vector<Point>; */}  
 
   // wait before sorting to finish all puts from dash::copy
   dash::barrier();
@@ -568,6 +541,7 @@ inline void Winnow(
   
   // if( 0 < toSort.lsize() )
   // {
+    
     std::stable_sort( toSort.lbegin( ), toSort.lend( ) );
 
   // }
