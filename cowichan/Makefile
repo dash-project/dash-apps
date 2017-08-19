@@ -403,13 +403,14 @@ run-clean:
 ################     <Benchmarks>      ##########################
 
 # echo $$nRowsCols $$nRowsCols $$winnow_nelts > winnow_in;\
+
 .PHONY: bench
 bench:
-	@echo Enter nRowsCols, seed, thresh, winnow_nelts, numberOfJobs and numberOfIterations:;\
-	read nRowsCols; read seed; read thresh; read winnow_nelts; read JOBS; read numberOfIterations;\
+	@echo Enter numberOfJobs and numberOfIterations:;\
+	read JOBS; read numberOfIterations;\
 	echo ---------- ;\
 	for (( numberOfIterations; numberOfIterations >= 1 ; --numberOfIterations )); do \
-		export nRowsCols seed thresh winnow_nelts JOBS GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS isBench="--is_bench";\
+		export nRowsCols=40000 seed=$$(( 1 + RANDOM % 666 )) thresh=100 winnow_nelts=40000 JOBS GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS isBench="--is_bench";\
 		if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;\
 		echo "DASH ..... run with: nRowsCols:$$nRowsCols, seed:$$seed, thresh:$$thresh, winnow_nelts:$$winnow_nelts, Jobs:$$JOBS, isBench:$$isBench";\
 		echo $$nRowsCols $$nRowsCols $$thresh > thresh_in;\
