@@ -36,9 +36,9 @@ proc winnow(nelts: int) {
   forall i in 0..nrows-1 {
     count_per_line[i + 2] = 0;
     for j in ColSpace {
-      if (is_bench) {
-        mask[i, j] = (((i - 1) * (j - 1)) % (ncols + 1)) == 1;
-      }
+      // if (is_bench) {
+        // mask[i, j] = (((i - 1) * (j - 1)) % (ncols + 1)) == 1;
+      // }
       count_per_line[i + 2] += mask[i, j];
     }
   }
@@ -46,6 +46,7 @@ proc winnow(nelts: int) {
   var total = + scan count_per_line;
   n = total[nrows + 1];
 
+  
   forall i in 0..nrows-1 {
     var count = total[i + 1];
     for j in ColSpace {
@@ -87,6 +88,16 @@ proc read_mask() {
   }
 }
 
+proc FillOnTheFly() {
+  
+  forall i in 0..nrows-1 {
+    for j in 0..ncols-1 {
+        mask[i, j]   = true;
+        matrix[i, j] = (i*ncols + j) % 100;
+    }
+  }
+}
+
 proc main() {
   extern "struct _IO_FILE" record FILE{}
   extern "struct timespec" record chpl_timespec{
@@ -106,10 +117,12 @@ proc main() {
   
   var nelts: int;
 
-  // if (!is_bench) {
+  if (!is_bench) {
     read_matrix();
     read_mask();
-  // }
+  }else{
+    FillOnTheFly();
+  }
 
   read(nelts);
   

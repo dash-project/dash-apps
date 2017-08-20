@@ -74,7 +74,7 @@ inline void Thresh(
     #endif
 
     // count defines how many values are to be hold on given percentage
-    uint count     = ( nrows * ncols * percent ) / 100;
+    uint count = ( static_cast<size_t>(nrows) * ncols * percent ) / 100;
     uint prefixsum = 0;
     int  i;
 
@@ -85,7 +85,7 @@ inline void Thresh(
 
     threshold.set( ++i );
     #if 0
-      cout << "original threshold: " << i << "perc: " << percent << endl;
+      cout << "original threshold: " << i << " - perc: " << percent << endl;
     #endif
   }
 

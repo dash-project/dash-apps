@@ -160,8 +160,8 @@ run_results:; mkdir -p run_results
 .PHONY: runIO runIO-all
 runIO: runIO-all
 runIO-all: | run_results
-	@$(MAKE) --no-print-directory runIO-tbb
-	# @$(MAKE) --no-print-directory runIO-chpl
+	# @$(MAKE) --no-print-directory runIO-tbb
+	@$(MAKE) --no-print-directory runIO-chpl
 	# @$(MAKE) --no-print-directory runIO-cilk
 	# @$(MAKE) --no-print-directory runIO-go
 	# @$(MAKE) --no-print-directory runIO-dash
@@ -279,7 +279,7 @@ test:
 	for (( succ=0 , fail=0 , subsucc=0, warnings=0, globWarnings=0, vNRowsCols=$$start; vNRowsCols <= $$i ; ++vNRowsCols )) ; do \
 	for (( vThresh=20; vThresh<= 100; vThresh+=65 )) ;                                                                         do \
 	for (( vWinnow_nelts=$$vNRowsCols; vWinnow_nelts<= $$vNRowsCols*$$vNRowsCols ; vWinnow_nelts+=4*$$vNRowsCols)) ;            do \
-	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=24 GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS;\
+	export nRowsCols=$$vNRowsCols seed=$$(( 1 + RANDOM % 666 )) thresh=$$vThresh winnow_nelts=$$vWinnow_nelts JOBS=10 GOMAXPROCS=$$JOBS CILK_NWORKERS=$$JOBS;\
 		$(MAKE) --no-print-directory runIO-all;\
 		echo comparing ... ;\
 		subsucc=0;\
@@ -398,6 +398,7 @@ test:
 .PHONY: run-clean
 run-clean:
 	-rm -r run_results
+	find . -maxdepth 1  -name "*_in" -delete
 
 ################  </Validation Test>   ##########################
 ################     <Benchmarks>      ##########################
