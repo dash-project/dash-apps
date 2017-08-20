@@ -2,7 +2,7 @@
 CHPL_ROOT=baSrcPaper/chapel
 
 probIxStart=$1; probIxEnd=$2; jobsStart=$3; jobsEnd=$4; numberOfIterations=$5;
-nRowsCols=4000
+nRowsCols=40000
 
 lP=(randmat thresh winnow outer product chain)
 lI=(randmat_in thresh_in winnow_in outProd_in outProd_in)
