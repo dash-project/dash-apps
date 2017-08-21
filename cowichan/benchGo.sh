@@ -1,0 +1,31 @@
+#!/bin/bash
+GO_ROOT=baSrcPaper/go
+
+probIxStart=$1; probIxEnd=$2; jobsStart=$3; jobsEnd=$4; numberOfIterations=$5;
+nRowsCols=4000
+
+lP=(randmat thresh winnow outer product chain)
+lI=(randmat_in thresh_in winnow_in outProd_in outProd_in)
+
+if [[ $$CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;
+
+echo $nRowsCols $nRowsCols 100 > thresh_in;\
+echo $nRowsCols $nRowsCols $nRowsCols > winnow_in;\
+echo $nRowsCols > outProd_in;\
+
+for (( IX=$probIxStart ; IX<=$probIxEnd ; ++IX )); do
+ 
+  for (( jobs=$jobsStart ; jobs<=$jobsEnd ; jobs+=4 )); do
+    for (( it=$numberOfIterations ; it >= 1 ; --it )); do
+      echo "run Chapel ${lP[$IX]} with: $jobs jobs and $nRowsCols nRowsCols. Iterations left:$it"
+      export GOMAXPROCS=$jobs
+      case $IX in
+        0) echo $nRowsCols $nRowsCols $(( 1 + RANDOM % 666 )) | $GO_ROOT/randmat/expertpar/main --is_bench;;
+        5) echo $nRowsCols $(( 1 + RANDOM % 666 )) 100 $nRowsCols | $GO_ROOT/chain/expertpar/main --is_bench;;
+        *) $GO_ROOT/${lP[$IX]}/expertpar/main --is_bench < ${lI[$IX]};;
+      esac
+    done
+  done
+
+done
+

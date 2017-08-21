@@ -143,10 +143,11 @@ func main() {
 			}
 		   fmt.Scanf(" \n")
 		}
+    fmt.Scanf("\n")
 	}
 
-	fmt.Scanf("\n%d", &percent)
-
+	fmt.Scanf("%d", &percent)
+  
   var start, stop C.struct_timespec
   var accum C.double
   
