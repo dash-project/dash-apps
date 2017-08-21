@@ -191,8 +191,8 @@ void initgrid( MatrixT& grid ) {
     grid.barrier();
 }
 
-
-void initboundary( Level& level ) {
+/* simple boundary settings where 3 sides are hot and 3 are cold */
+void initboundary_3hot3cold( Level& level ) {
 
     double gw= level.grid.extent(2);
     double gh= level.grid.extent(1);
@@ -237,6 +237,67 @@ void initboundary( Level& level ) {
         } else if ( gw == x ) {
 
             ret= 2.0;
+        }
+
+        return ret;
+    });
+
+}
+
+
+/* alternative boundary settings, the top and bottom planes have a hot circle
+in the middle */
+// void initboundary_2circles( Level& level ) {
+void initboundary( Level& level ) {
+
+    double gw= level.grid.extent(2);
+    double gh= level.grid.extent(1);
+    double gd= level.grid.extent(0);
+
+    /* This way of setting boundaries uses subsampling on the top and bottom
+    planes to determine the border values. This is another logical way that
+    may be convenient sometimes. It guarantees that the boundary values on all
+    the levels match.
+    All other sides are constant at 0.0 degrees. The top an bottom circles are
+    hot with 10.0 degrees. */
+
+    level.halo.setFixedHalos( [gd,gh,gw]( const std::array<dash::default_index_t,3>& coords ) {
+
+        dash::default_index_t z= coords[0];
+        dash::default_index_t y= coords[1];
+        dash::default_index_t x= coords[2];
+
+        double ret= 0.0;
+
+        /* for simplicity make every side uniform */
+
+        if ( -1 == z || gd == z ) {
+
+            /* radius differs on top and bottom plane */
+            double r= ( -1 == z ) ? 0.5 : 0.3;
+            double r2= r*r;
+
+            double lowvalue= 0.0;
+            double highvalue= 10.0;
+
+            double midx= 0.5;
+            double midy= 0.5;
+
+            /* At entry (x/gw,y/gh) we sample the
+            rectangle [ x/gw,(x+1)/gw ) x [ y/gw, (y+1)/gh ) with m² points. */
+            double m= 5;
+            double m2= m*m;
+
+            double sum= 0.0;
+            for ( double sy= (y+0.0)/gh; sy< (y+1.0)/gh; sy += 1.0/m/gh ) {
+                for ( double sx= (x+0.0)/gw; sx< (x+1.0)/gw; sx += 1.0/m/gw ) {
+
+                    double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
+                    sum += ( d2 <= r2 ) ? highvalue : lowvalue;
+                }
+            }
+
+            ret = sum / m2;
         }
 
         return ret;
@@ -506,7 +567,7 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
         double res= smoothen( *levels[i-1] );
 
-        writeToCsv( levels[i-1]->grid );
+        //writeToCsv( levels[i-1]->grid );
 
         scaledown( *levels[i-1], *levels[i] );
 
@@ -536,7 +597,7 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
         scaleup( *levels[i], *levels[i-1] );
 
-        writeToCsv( levels[i-1]->grid );
+        //writeToCsv( levels[i-1]->grid );
 
         double res= smoothen( *levels[i-1] );
 
@@ -590,7 +651,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 5;
+    constexpr uint32_t howmanylevels= 6;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
@@ -643,7 +704,7 @@ int main( int argc, char* argv[] ) {
 
     dash::barrier();
 
-    v_cycle( levels, 0.01 );
+    v_cycle( levels, 0.02 );
     smoothen_final( levels, 0.1 );
 
     dash::finalize();
