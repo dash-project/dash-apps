@@ -56,7 +56,7 @@ proc winnow(nelts: int) {
       }
     }
   }
-
+  
   quickSort(values[0..n]);
 
   var chunk: int = n / nelts;
@@ -91,8 +91,16 @@ proc read_mask() {
 proc FillOnTheFly() {
   
   forall i in 0..nrows-1 {
+  var b:bool = true;
+  var c:int = 0;
     for j in 0..ncols-1 {
-        mask[i, j]   = true;
+        c+=1;
+        if( c == 1 ){
+          mask[i, j]   = true;
+          c = 0;
+        }else{
+          mask[i, j]   = false;
+        }
         matrix[i, j] = (i*ncols + j) % 100;
     }
   }
