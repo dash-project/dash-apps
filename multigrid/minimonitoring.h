@@ -21,12 +21,12 @@ struct MiniMonT {
    uint16_t step; /* 0 == start, 1 == stop, other values as you like */
    std::chrono::time_point<std::chrono::high_resolution_clock> time;
    char name[NAMELEN];
-   uint32_t param; /* one extra parameter to use as desired */
+   uint64_t param; /* one extra parameter to use as desired */
 
    static std::vector<MiniMonT>* tape;
    static std::chrono::time_point<std::chrono::high_resolution_clock> inittime;
 
-   MiniMonT( uint8_t s, const char n[10], uint32_t p= 0 ) {
+   MiniMonT( uint8_t s, const char n[10], uint64_t p= 0 ) {
 
       step= s;
       time= std::chrono::high_resolution_clock::now();

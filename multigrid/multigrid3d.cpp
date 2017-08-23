@@ -9,6 +9,7 @@
 #include <libdash.h>
 #include <dash/experimental/HaloMatrixWrapper.h>
 
+#include "minimonitoring.h"
 
 #define WITHCSVOUTPUT 1
 #ifdef WITHCSVOUTPUT
@@ -16,6 +17,11 @@
 uint32_t filenumber= 0;
 
 #endif /* WITHCSVOUTPUT */
+
+
+/* for MiniMonT */
+std::vector<MiniMonT>* MiniMonT::tape;
+std::chrono::time_point<std::chrono::high_resolution_clock> MiniMonT::inittime;
 
 
 using std::cout;
@@ -90,7 +96,7 @@ void writeToCsv( const MatrixT& grid ) {
         ".csv." + std::to_string(filenumber++) );
 
     if ( 0 == dash::myid() ) {
-        csvfile << " x coord, y coord, z coord, heat" << "\n";
+        csvfile << " z coord, y coord, x coord, heat" << "\n";
     }
 
     /* Write according to the fixed grid size. If the real grid is even finer
@@ -117,9 +123,9 @@ void writeToCsv( const MatrixT& grid ) {
         for ( size_t y = 0; y < localResolutionForCSVh; ++y ) {
             for ( size_t x = 0; x < localResolutionForCSVw; ++x ) {
 
-                csvfile << setfill('0') << setw(4) << corner[2]+x << "," <<
+                csvfile << setfill('0') << setw(4) << corner[0]+z << "," <<
                     setfill('0') << setw(4) << corner[1]+y << "," <<
-                    setfill('0') << setw(4) << corner[0]+z << "," <<
+                    setfill('0') << setw(4) << corner[2]+x << "," <<
                     (double) grid.local[ muld*z/divd ][ mulh*y/divh ][ mulw*x/divw ] << "\n";
             }
         }
@@ -398,6 +404,9 @@ void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
 
 void scaledown( Level& fine, Level& coarse ) {
 
+    uint64_t param= fine.grid.local.extent(0)*fine.grid.local.extent(1)*fine.grid.local.extent(2);
+    MiniMonT::MiniMonRecord( 0, "scaledown", param );
+
     assert( coarse.grid.extent(2) * 2 == fine.grid.extent(2) );
     assert( coarse.grid.extent(1) * 2 == fine.grid.extent(1) );
     assert( coarse.grid.extent(0) * 2 == fine.grid.extent(0) );
@@ -436,10 +445,14 @@ void scaledown( Level& fine, Level& coarse ) {
         }
     }
 
+    MiniMonT::MiniMonRecord( 1, "scaledown", param );
 }
 
 
 void scaleup( Level& coarse, Level& fine ) {
+
+    uint64_t param= coarse.grid.local.extent(0)*coarse.grid.local.extent(1)*coarse.grid.local.extent(2);
+    MiniMonT::MiniMonRecord( 0, "scaleup", param );
 
     assert( coarse.grid.extent(2) * 2 == fine.grid.extent(2) );
     assert( coarse.grid.extent(1) * 2 == fine.grid.extent(1) );
@@ -478,10 +491,15 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
     }
+
+    MiniMonT::MiniMonRecord( 1, "scaleup", param );
 }
 
 
 double smoothen( Level& level ) {
+
+    uint64_t param= level.grid.local.extent(0)*level.grid.local.extent(1)*level.grid.local.extent(2);
+    MiniMonT::MiniMonRecord( 0, "smoothen", param );
 
     double res= 0.0;
 
@@ -498,6 +516,7 @@ double smoothen( Level& level ) {
     // async halo update
     level.halo.updateHalosAsync();
 
+    MiniMonT::MiniMonRecord( 0, "smooth_inner", param );
     // update inner
 
     size_t lw= level.grid.local.extent(2);
@@ -536,9 +555,16 @@ double smoothen( Level& level ) {
             }
         }
     }
+    MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
+
+    MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
 
     // wait for async halo update
     level.halo.waitHalosAsync();
+
+    MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
+
+    MiniMonT::MiniMonRecord( 0, "smooth_outer", param );
 
     auto bend = level.halo.bend();
     // update border area
@@ -565,11 +591,17 @@ double smoothen( Level& level ) {
     }
     residuals.barrier();
 
+    MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
+
+    MiniMonT::MiniMonRecord( 1, "smoothen", param );
+
     return residuals[0];
 }
 
 
 void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
+
+    MiniMonT::MiniMonRecord( 0, "v_cycle" );
 
     //writeToCsv( levels[0]->grid );
 
@@ -617,10 +649,14 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
         //writeToCsv( levels[i-1]->grid );
     }
+
+    MiniMonT::MiniMonRecord( 1, "v_cycle" );
 }
 
 
 void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
+
+    MiniMonT::MiniMonRecord( 0, "smoothfinal" );
 
     double residual= 1.0+epsilon;
     while ( residual > epsilon ) {
@@ -632,12 +668,22 @@ void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
         }
         //writeToCsv( levels.front()->grid );
     }
+
+    MiniMonT::MiniMonRecord( 1, "smoothfinal" );
 }
 
 
 int main( int argc, char* argv[] ) {
 
+    MiniMonT::MiniMonInit();
+    MiniMonT::MiniMonRecord( 0, "main" );
+
+    MiniMonT::MiniMonRecord( 0, "dash::init" );
     dash::init(&argc, &argv);
+    auto id= dash::myid();
+    MiniMonT::MiniMonRecord( 1, "dash::init" );
+
+    MiniMonT::MiniMonRecord( 0, "setup" );
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -657,13 +703,13 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 5;
+    constexpr uint32_t howmanylevels= 8;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
-    resolutionForCSVd= ( 1<<(howmanylevels) ) * factor_z;
-    resolutionForCSVh= ( 1<<(howmanylevels) ) * factor_y;
-    resolutionForCSVw= ( 1<<(howmanylevels) ) * factor_x;
+    resolutionForCSVd= ( 1<<6 ) * factor_z;
+    resolutionForCSVh= ( 1<<6 ) * factor_y;
+    resolutionForCSVw= ( 1<<6 ) * factor_x;
 
     /* create all grid levels, starting with the finest and ending with 2x2 */
     for ( auto l= 0; l < howmanylevels-0; l++ ) {
@@ -707,12 +753,19 @@ int main( int argc, char* argv[] ) {
     //writeToCsv( levels[0]->grid );
 
     dash::barrier();
+    MiniMonT::MiniMonRecord( 1, "setup" );
 
     v_cycle( levels, 0.02 );
     smoothen_final( levels, 0.1 );
 
     writeToCsv( levels[0]->grid );
 
+    MiniMonT::MiniMonRecord( 0, "dash::finalize" );
     dash::finalize();
+    MiniMonT::MiniMonRecord( 1, "dash::finalize" );
+
+    MiniMonT::MiniMonRecord( 1, "main" );
+    MiniMonT::MiniMonPrint( id, dash::Team::All().size() );
+
     return 0;
 }

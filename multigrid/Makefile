@@ -15,7 +15,7 @@ multigrid2d+minimon:  multigrid2d+minimon.cpp minimonitoring.h
 		$(CXX) -c $(INC) `libpng-config --cflags` $?
 		$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
 
-multigrid3d: multigrid3d.cpp
+multigrid3d: multigrid3d.cpp minimonitoring.h
 	$(CXX) -c $(INC) `libpng-config --cflags` $?
 	$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags`
 
