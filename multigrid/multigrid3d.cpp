@@ -14,12 +14,13 @@
 #ifdef WITHCSVOUTPUT
 
 uint32_t filenumber= 0;
-const std::string filename("image.csv");
 
 #endif /* WITHCSVOUTPUT */
 
 
 using std::cout;
+using std::setfill;
+using std::setw;
 using std::cerr;
 using std::endl;
 using std::setw;
@@ -71,16 +72,23 @@ size_t resolutionForCSVw= 0;
 #ifdef WITHCSVOUTPUT
 void toCSV( const MatrixT& grid ) {
 
-    if ( 0 != dash::myid() ) return;
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
     size_t d= grid.extent(0);
     size_t h= grid.extent(1);
     size_t w= grid.extent(2);
 
-    std::ofstream csvfile;
-    csvfile.open( filename + '.' + std::to_string(filenumber++) );
+    size_t dl= grid.local.extent(0);
+    size_t hl= grid.local.extent(1);
+    size_t wl= grid.local.extent(2);
 
-    csvfile << "z coord,y coord,x coord,heat" << "\n";
+    std::ofstream csvfile;
+    csvfile.open( "image_unit" + std::to_string(dash::myid()) +
+        ".csv." + std::to_string(filenumber++) );
+
+    if ( 0 == dash::myid() ) {
+        csvfile << " x coord, y coord, z coord, heat" << "\n";
+    }
 
     /* Write according to the fixed grid size. If the real grid is even finer
     then pick any point that matches the coordinates. If the real grid is
@@ -89,17 +97,27 @@ void toCSV( const MatrixT& grid ) {
     size_t divd= ( resolutionForCSVd > d ) ? resolutionForCSVd/d : 1;
     size_t divh= ( resolutionForCSVh > h ) ? resolutionForCSVh/h : 1;
     size_t divw= ( resolutionForCSVw > w ) ? resolutionForCSVw/w : 1;
-
     size_t muld= ( resolutionForCSVd < d ) ? d/resolutionForCSVd : 1;
     size_t mulh= ( resolutionForCSVh < h ) ? h/resolutionForCSVh : 1;
     size_t mulw= ( resolutionForCSVw < w ) ? w/resolutionForCSVw : 1;
 
-    for ( size_t z = 0; z < resolutionForCSVd; ++z ) {
-        for ( size_t y = 0; y < resolutionForCSVh; ++y ) {
-            for ( size_t x = 0; x < resolutionForCSVw; ++x ) {
+    /* this should divide witout remainder */
+    size_t localResolutionForCSVd= resolutionForCSVd * dl / d;
+    size_t localResolutionForCSVh= resolutionForCSVh * hl / h;
+    size_t localResolutionForCSVw= resolutionForCSVw * wl / w;
 
-                csvfile << x << "," << y << "," << z << "," <<
-                    (double) grid[muld*z/divd][mulh*y/divh][mulw*x/divw] << "\n";
+    corner[0]= corner[0] * resolutionForCSVd / d;
+    corner[1]= corner[1] * resolutionForCSVh / h;
+    corner[2]= corner[2] * resolutionForCSVw / w;
+
+    for ( size_t z = 0 ; z < localResolutionForCSVd; ++z ) {
+        for ( size_t y = 0; y < localResolutionForCSVh; ++y ) {
+            for ( size_t x = 0; x < localResolutionForCSVw; ++x ) {
+
+                csvfile << setfill('0') << setw(4) << corner[2]+x << "," <<
+                    setfill('0') << setw(4) << corner[1]+y << "," <<
+                    setfill('0') << setw(4) << corner[0]+z << "," <<
+                    (double) grid.local[ muld*z/divd ][ mulh*y/divh ][ mulw*x/divw ] << "\n";
             }
         }
     }
@@ -112,8 +130,7 @@ void writeToCsv( const MatrixT& grid ) {
 #ifdef WITHCSVOUTPUT
     grid.barrier();
 
-    if ( 0 == dash::myid() )
-        toCSV( grid );
+    toCSV( grid );
 
     grid.barrier();
 #endif /* WITHCSVOUTPUT */
@@ -651,7 +668,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 6;
+    constexpr uint32_t howmanylevels= 5;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
