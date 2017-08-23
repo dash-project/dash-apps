@@ -69,8 +69,11 @@ size_t resolutionForCSVh= 0;
 size_t resolutionForCSVw= 0;
 
 
+void writeToCsv( const MatrixT& grid ) {
+
 #ifdef WITHCSVOUTPUT
-void toCSV( const MatrixT& grid ) {
+
+    grid.barrier();
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
@@ -123,19 +126,9 @@ void toCSV( const MatrixT& grid ) {
     }
 
     csvfile.close();
-}
-#endif /* WITHCSVOUTPUT */
-
-void writeToCsv( const MatrixT& grid ) {
-#ifdef WITHCSVOUTPUT
-    grid.barrier();
-
-    toCSV( grid );
-
     grid.barrier();
 #endif /* WITHCSVOUTPUT */
 }
-
 
 void sanitycheck( const MatrixT& grid  ) {
 
@@ -578,13 +571,11 @@ double smoothen( Level& level ) {
 
 void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
-    writeToCsv( levels[0]->grid );
+    //writeToCsv( levels[0]->grid );
 
     for ( auto i= 1; i < levels.size(); i++ ) {
 
         double res= smoothen( *levels[i-1] );
-
-        //writeToCsv( levels[i-1]->grid );
 
         scaledown( *levels[i-1], *levels[i] );
 
@@ -596,7 +587,7 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
                 levels[i]->grid.extent(1) << "x" << levels[i]->grid.extent(0) << endl;
         }
 
-        writeToCsv( levels[i]->grid );
+        //writeToCsv( levels[i]->grid );
     }
 
     double residual= 1.0+epsilon;
@@ -607,14 +598,12 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
         if ( 0 == dash::myid() ) {
             cout << "smoothen coarsest with residual " << residual << endl;
         }
-        writeToCsv( levels.back()->grid );
+        // writeToCsv( levels.back()->grid );
     }
 
     for ( auto i= levels.size()-1; i > 0; i-- ) {
 
         scaleup( *levels[i], *levels[i-1] );
-
-        //writeToCsv( levels[i-1]->grid );
 
         double res= smoothen( *levels[i-1] );
 
@@ -626,7 +615,7 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
                 ", then smoothen with residual " << res << endl;
         }
 
-        writeToCsv( levels[i-1]->grid );
+        //writeToCsv( levels[i-1]->grid );
     }
 }
 
@@ -641,7 +630,7 @@ void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
         if ( 0 == dash::myid() ) {
             cout << "smoothen finest with residual " << residual << endl;
         }
-        writeToCsv( levels.front()->grid );
+        //writeToCsv( levels.front()->grid );
     }
 }
 
@@ -715,14 +704,14 @@ int main( int argc, char* argv[] ) {
     initgrid( levels[0]->grid );
     markunits( levels[0]->grid );
 
-    writeToCsv( levels[0]->grid );
-
-    writeToCsv( levels[0]->grid );
+    //writeToCsv( levels[0]->grid );
 
     dash::barrier();
 
     v_cycle( levels, 0.02 );
     smoothen_final( levels, 0.1 );
+
+    writeToCsv( levels[0]->grid );
 
     dash::finalize();
     return 0;
