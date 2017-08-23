@@ -350,6 +350,7 @@ void markunits( MatrixT& grid ) {
 
 }
 
+#if 0
 
 /* currently not needed */
 void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
@@ -366,7 +367,6 @@ void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
     size_t df= fine.local.extent(0);
     std::array< long int, 3 > cornerc= coarse.pattern().global( {0,0,0} );
 
-#if 0
     size_t startx= ( 0 == cornerc[1] ) ? 1 : 0;
     if ( 0 == cornerc[0] ) {
 
@@ -398,8 +398,8 @@ void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
             coarse.local[starty+y][wc-1]= 0.5 * ( fine.local[starty+2*y+0][wf-1] + fine.local[starty+2*y+1][wf-1] );
         }
     }
-#endif
 }
+#endif
 
 
 void scaledown( Level& fine, Level& coarse ) {
@@ -605,7 +605,7 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
     //writeToCsv( levels[0]->grid );
 
-    for ( auto i= 1; i < levels.size(); i++ ) {
+    for ( size_t i= 1; i < levels.size(); i++ ) {
 
         double res= smoothen( *levels[i-1] );
 
@@ -712,7 +712,7 @@ int main( int argc, char* argv[] ) {
     resolutionForCSVw= ( 1<<6 ) * factor_x;
 
     /* create all grid levels, starting with the finest and ending with 2x2 */
-    for ( auto l= 0; l < howmanylevels-0; l++ ) {
+    for ( uint32_t l= 0; l < howmanylevels-0; l++ ) {
 
         if ( 0 == dash::myid() ) {
             cout << "level " << l << " is " <<
