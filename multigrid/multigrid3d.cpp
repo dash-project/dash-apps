@@ -576,7 +576,7 @@ double smoothen( Level& level ) {
         res= std::max( res, std::fabs( dtheta ) );
     }
 
-    static dash::Array<double> residuals( dash::Team::All().size(), dash::BLOCKED );
+    static dash::Array<double> residuals( level.grid.team().size(), dash::BLOCKED, level.grid.team() );
     residuals.local[0]= res;
 
     residuals.barrier();
