@@ -497,7 +497,8 @@ void scaleup( Level& coarse, Level& fine ) {
 }
 
 
-double smoothen( Level& level ) {
+/* the parallel global residual is returned as a return parameter, but only if it is not NULL because then the expensive parallel reduction is just avoided */
+void smoothen( Level& level, double* residual_ret= NULL ) {
 
     uint64_t param= level.grid.local.extent(0)*level.grid.local.extent(1)*level.grid.local.extent(2);
     MiniMonT::MiniMonRecord( 0, "smoothen", param );
@@ -579,28 +580,44 @@ double smoothen( Level& level ) {
 
     MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
 
-    MiniMonT::MiniMonRecord( 0, "smooth_residuals", param );
+    if ( NULL != residual_ret ) {
 
-    static dash::Array<double> residuals( level.grid.team().size(), dash::BLOCKED, level.grid.team() );
-    residuals.local[0]= res;
+        MiniMonT::MiniMonRecord( 0, "smooth_residuals", param );
 
-    residuals.barrier();
+        static dash::Array<double> residuals( level.grid.team().size(), dash::BLOCKED, level.grid.team() );
+        residuals.local[0]= res;
 
-    if ( 0 != dash::myid() ) {
+    /*
+        residuals.barrier();
 
-        dash::transform<double>(
-            residuals.lbegin(), residuals.lend(), // first source
-            residuals.begin(), // second source
-            residuals.begin(), // destination
-            dash::max<double>() );
+        if ( 0 != dash::myid() ) {
+
+            dash::transform<double>(
+                residuals.lbegin(), residuals.lend(), // first source
+                residuals.begin(), // second source
+                residuals.begin(), // destination
+                dash::max<double>() );
+        }
+        residuals.barrier();
+    */
+
+        residuals.barrier();
+
+        *residual_ret= 0.0;
+        if ( 0 == dash::myid() ) {
+            for ( const double& residual : residuals ) {
+                *residual_ret= std::max( *residual_ret, residual );
+            }
+            residuals.local[0]= *residual_ret;
+        }
+        residuals.barrier();
+
+        *residual_ret= residuals[0];
+
+        MiniMonT::MiniMonRecord( 1, "smooth_residuals", param );
     }
-    residuals.barrier();
-
-    MiniMonT::MiniMonRecord( 1, "smooth_residuals", param );
 
     MiniMonT::MiniMonRecord( 1, "smoothen", param );
-
-    return residuals[0];
 }
 
 
@@ -612,16 +629,20 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
     for ( size_t i= 1; i < levels.size(); i++ ) {
 
-        double res= smoothen( *levels[i-1] );
+        /* don't care about residual here because it is always called once */
+        smoothen( *levels[i-1], NULL );
 
         scaledown( *levels[i-1], *levels[i] );
 
         if ( 0 == dash::myid() ) {
-            cout << "smoothen with residual " << res <<
-                ", then scale down " << levels[i-1]->grid.extent(2) << "x" <<
-                levels[i-1]->grid.extent(1) << "x"<< levels[i-1]->grid.extent(0) <<
-                " --> " << levels[i]->grid.extent(2) << "x" <<
-                levels[i]->grid.extent(1) << "x" << levels[i]->grid.extent(0) << endl;
+            cout << "smoothen, then scale down " <<
+                levels[i-1]->grid.extent(2) << "x" <<
+                levels[i-1]->grid.extent(1) << "x" <<
+                levels[i-1]->grid.extent(0) <<
+                " --> " <<
+                levels[i]->grid.extent(2) << "x" <<
+                levels[i]->grid.extent(1) << "x" <<
+                levels[i]->grid.extent(0) << endl;
         }
 
         //writeToCsv( levels[i]->grid );
@@ -630,7 +651,8 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
     double residual= 1.0+epsilon;
     while ( residual > epsilon ) {
 
-        residual= smoothen( *levels.back() );
+        /* need global residual for iteration count */
+        smoothen( *levels.back(), &residual );
 
         if ( 0 == dash::myid() ) {
             cout << "smoothen coarsest with residual " << residual << endl;
@@ -642,14 +664,19 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
         scaleup( *levels[i], *levels[i-1] );
 
-        double res= smoothen( *levels[i-1] );
+        /* don't care about residual here because it is always called once */
+        smoothen( *levels[i-1], NULL );
 
         if ( 0 == dash::myid() ) {
-            cout << "scale up " << levels[i]->grid.extent(2) << "x" <<
-                levels[i]->grid.extent(1) << "x" << levels[i]->grid.extent(0) <<
-                " --> " << levels[i-1]->grid.extent(2) << "x" <<
-                levels[i-1]->grid.extent(1) << "x" << levels[i-1]->grid.extent(0) <<
-                ", then smoothen with residual " << res << endl;
+            cout << "scale up " <<
+                levels[i]->grid.extent(2) << "x" <<
+                levels[i]->grid.extent(1) << "x" <<
+                levels[i]->grid.extent(0) <<
+                " --> " <<
+                levels[i-1]->grid.extent(2) << "x" <<
+                levels[i-1]->grid.extent(1) << "x" <<
+                levels[i-1]->grid.extent(0) <<
+                ", then smoothen" << endl;
         }
 
         //writeToCsv( levels[i-1]->grid );
@@ -666,7 +693,7 @@ void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
     double residual= 1.0+epsilon;
     while ( residual > epsilon ) {
 
-        residual= smoothen( *levels.front() );
+        smoothen( *levels.front(), &residual );
 
         if ( 0 == dash::myid() ) {
             cout << "smoothen finest with residual " << residual << endl;
