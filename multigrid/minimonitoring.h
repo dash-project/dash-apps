@@ -26,7 +26,7 @@ struct MiniMonT {
    static std::vector<MiniMonT>* tape;
    static std::chrono::time_point<std::chrono::high_resolution_clock> inittime;
 
-   MiniMonT( uint8_t s, const char n[10], uint64_t p= 0 ) {
+   MiniMonT( uint8_t s, const char n[10], uint64_t p= 1 ) {
 
       step= s;
       time= std::chrono::high_resolution_clock::now();
@@ -41,7 +41,7 @@ struct MiniMonT {
       inittime= std::chrono::high_resolution_clock::now();
    }
 
-   static void MiniMonRecord( uint8_t s, const char n[10], uint32_t p= 0 ) {
+   static void MiniMonRecord( uint8_t s, const char n[10], uint32_t p= 1 ) {
 
       tape->push_back( MiniMonT( s, n, p ) );
    }
