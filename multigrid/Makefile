@@ -16,8 +16,8 @@ multigrid2d+minimon:  multigrid2d+minimon.cpp minimonitoring.h
 		$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
 
 multigrid3d: multigrid3d.cpp minimonitoring.h
-	$(CXX) -c $(INC) `libpng-config --cflags` $?
-	$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags`
+	$(CXX) -march=native -c $(INC) `libpng-config --cflags` $?
+	$(CXX) -march=native -o $@ $@.o $(LIB) `libpng-config --ldflags`  -lrt -lnuma
 
 heat_equation2d:  heat_equation2d.cpp
 	$(CXX) -c $(INC) $?
