@@ -703,13 +703,13 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 8;
+    constexpr uint32_t howmanylevels= 7;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
-    resolutionForCSVd= ( 1<<6 ) * factor_z;
-    resolutionForCSVh= ( 1<<6 ) * factor_y;
-    resolutionForCSVw= ( 1<<6 ) * factor_x;
+    resolutionForCSVd= ( 1<<5 ) * factor_z;
+    resolutionForCSVh= ( 1<<5 ) * factor_y;
+    resolutionForCSVw= ( 1<<5 ) * factor_x;
 
     /* create all grid levels, starting with the finest and ending with 2x2 */
     for ( uint32_t l= 0; l < howmanylevels-0; l++ ) {
