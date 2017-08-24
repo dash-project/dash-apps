@@ -179,6 +179,7 @@ void initgrid( MatrixT& grid ) {
     complicated but it should demonstrate the possibility to trade
     convenience against performance. */
 
+/* this is toxic on a distributed machine!
     if ( 0 == dash::myid() ) {
 
 
@@ -203,7 +204,7 @@ void initgrid( MatrixT& grid ) {
         }
 
     }
-
+*/
     grid.barrier();
 }
 
@@ -576,6 +577,10 @@ double smoothen( Level& level ) {
         res= std::max( res, std::fabs( dtheta ) );
     }
 
+    MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
+
+    MiniMonT::MiniMonRecord( 0, "smooth_residuals", param );
+
     static dash::Array<double> residuals( level.grid.team().size(), dash::BLOCKED, level.grid.team() );
     residuals.local[0]= res;
 
@@ -591,7 +596,7 @@ double smoothen( Level& level ) {
     }
     residuals.barrier();
 
-    MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
+    MiniMonT::MiniMonRecord( 1, "smooth_residuals", param );
 
     MiniMonT::MiniMonRecord( 1, "smoothen", param );
 
@@ -703,7 +708,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 7;
+    constexpr uint32_t howmanylevels= 9;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
