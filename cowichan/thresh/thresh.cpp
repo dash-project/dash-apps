@@ -4,174 +4,143 @@
 
 using std::cout;
 using std::endl;
+using std::cin;
+using uint     = unsigned int ;
+using uchar    = unsigned char;
+using MATRIX_T = uchar        ;
 
-typedef unsigned int  uint;
-typedef unsigned char uchar;
+struct     InputPar { uint nrows, ncols; } in;
+uint       percent;
+static int myid;
 
-#define MTRX_TYPE uchar
+#include "thresh.h"
+#include <time.h>
+#include <stdio.h>
 
+std::ifstream randmat_output;
 
-template< typename T = MTRX_TYPE >
-inline void thresh(uint nrows, uint ncols, uint percent, int myid);
+/*
+ * This function prints the content of a 2D matrix to std::out.
+ * Datatypes are casted to <const uint> for readable output
+ * (otherwise uchars would be printed as chars and not as numerics)
+ */
+inline void Print2D( NArray< bool, 2 > const & mat )
+{
+  if(0==myid){
 
+    //cout << in.nrows << " " << in.ncols << "\n";
 
-template< typename T >
-void print2d( T& mat ) {
-  for( int i = 0; i < mat.extent(0); i++ ) {
-    for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
+    for( int i = 0; i < mat.extent(0); i++ ) {
+      for( int j = 0; j < mat.extent(1); j++ ) {
+        cout << static_cast<const uint>( mat(i,j) )<< " ";
+      }
+      cout << "\n";
     }
-    cout << endl;
   }
+}
+
+// unit0 reads the matrix with random values from std::in
+template<typename T = MATRIX_T>
+inline void ReadRandMat( NArray< T, 2 > & rand_mat )
+{
+  if(0 == myid){
+    int tmp;
+    for ( auto i : rand_mat ){
+      randmat_output >> tmp;
+      i = static_cast<T>(tmp);
+    }
+  }
+}
+
+/*
+ * One unit has the job to read in the parameters.
+ * Because there's always a unit0, it reads the input parameter and
+ * distributes them to the rest of the units.
+ */
+inline void ReadRowsNCols( char * argv[] )
+{
+  Shared<InputPar> input_transfer;
+
+  if(0 == myid)
+  {
+    randmat_output.open(argv[1]);
+    
+    randmat_output >> in.nrows;
+    randmat_output >> in.ncols;
+
+    input_transfer.set(in);
+  }
+  input_transfer.barrier();
+  in = input_transfer.get();
+}
+
+inline void ReadPercentage( )
+{
+  Shared<uint> percent_transfer;
+
+  if(0 == myid)
+  {
+    randmat_output >> percent;
+
+    percent_transfer.set(percent);
+    
+    randmat_output.close();
+  }
+  percent_transfer.barrier();
+  percent = percent_transfer.get();
 }
 
 
 int main( int argc, char* argv[] )
-{  
+{
   dash::init( &argc, &argv );
-  int myid = static_cast<int>( dash::myid( ) );
+
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
   
-  if( argc != 4 ){
-    if( 0 == myid ){ cout << "3 Parameters expected!"         << endl
-                    << "Usage: cowichan_thresh nRows nCols percentage" << endl
-                    << "Then enter the matrix."               << endl;
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
     }
-    dash::finalize( );
-    return 0;
   }
   
-  uint nrows   = static_cast<uint>( atoi( argv[1] ) );
-  uint ncols   = static_cast<uint>( atoi( argv[2] ) );
-  uint percent = static_cast<uint>( atoi( argv[3] ) );
-  
-  thresh( nrows, ncols, percent, myid );
+  myid = dash::myid( );
+  ReadRowsNCols( argv );
 
+  NArray< MATRIX_T, 2 > rand_mat    ( in.nrows, in.ncols );
+  NArray< bool    , 2 > thresh_mask ( in.nrows, in.ncols );
+
+  if (!is_bench) { ReadRandMat(rand_mat); }
+  ReadPercentage();
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
+  Thresh( rand_mat, thresh_mask, in.nrows, in.ncols, percent );
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+
+  if( 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Thresh,%u, %u, %u , , %u, %.9lf,isBench:%d\n", in.nrows, in.ncols, percent, dash::Team::All().size(), accum, is_bench );
+    fclose ( fp );
+  }
+  
+  if (!is_bench) { Print2D( thresh_mask ); }
   dash::finalize( );
 }
-
-
-template<typename T = MTRX_TYPE>
-inline void thresh(uint nrows, uint ncols, uint percent, int myid){
-
-  dash::NArray<T   , 2> matSrc( nrows, ncols );
-  dash::NArray<bool, 2> mask  ( nrows, ncols );
-  
-  // read input matrix from stdin
-  if( 0 == myid ){
-    T tmp;
-    for ( auto i : matSrc ){
-      scanf( "%d", &tmp );
-      i = tmp;
-    }
-  }
-  
-  // wait for initialization of the matrix before calculating maximum
-  dash::barrier( );
-  
-  // find max value in matSrc
-  auto maxGlobIt = dash::max_element( matSrc.begin( ), matSrc.end( ) );
-  T max          = *maxGlobIt;
-  T maxPO        =  max + 1  ;   //max plus one
-  
-  // get number of units running
-  size_t num_units = dash::size( );
-  
-  // create global histo array and initialze with 0
-  dash::Array<uint> histo( maxPO * num_units, dash::BLOCKED );
-  for( uint * i = histo.lbegin(); i < histo.lend(); ++i) {
-    *i = 0;
-  }
-  
-  for( T * i = matSrc.lbegin( ); i < matSrc.lend( ); ++i ) {
-    ++histo.local[*i];
-  }
-  
-  /* barrier is necessary because if unit 0 is still calculating
-     while another unit starts with dash::transform there could be a race condition */
-  dash::barrier( );
-  
-  // add the values of the local histogram to the histogram of unit 0
-  if( 0 != myid ) {
-    dash::transform<uint>( histo.lbegin     ( ) ,
-                           histo.lend       ( ) ,
-                           histo.begin      ( ) ,
-                           histo.begin      ( ) ,
-                           dash::plus<uint> ( ));
-  }
-  
-  // wait for all units to finish adding
-  dash::barrier( );
-  
-  // create new shared variable
-  dash::Shared<int> threshold;
-  
-  if( 0 == myid ) {
-    
-    #if 0
-      for( uint j = 0; j < histo.lsize( ); ++j ) {
-        if( histo.local[j] ) cout << std::setw(3)   << j 
-                  << " counted: " << histo.local[j] << endl;
-      }
-    #endif
-
-    uint count     = ( nrows * ncols * percent ) / 100;
-    uint prefixsum = 0;
-    int  i;
-
-    // find threshold
-    for( i = max; i >= 0 && prefixsum <= count; --i ) {
-      prefixsum += histo.local[i];
-    }
-    
-    threshold.set( ++i );
-    #if 0
-      cout << "original threshold: " << i << endl;
-    #endif
-  }
-  
-  // wait for Unit 0 to finish and flush
-  threshold.barrier( );
-
-  {
-  int threshLclCpy = threshold.get( );
-  
-    T * src  = matSrc.lbegin( );
-    bool * i = mask.lbegin(   );
-    
-        *i =   *src >= threshLclCpy;      
-    while ( i < mask.lend( ) ) {
-      *++i = *++src >= threshLclCpy;
-    }
-  #if 0
-    cout << myid << " got threshold: " << threshLclCpy << endl;
-  #endif
-  }
-  
-  // wait for all units finish calculating local boolean mask
-  dash::barrier( );
-  if( 0 == myid ) {
-    cout << "----------------------------" << endl;
-    print2d(mask);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,0 +1,39 @@
+Source repository for the paper "Benchmarking Usability and
+Performance of Multicore Languages". A technical report is available
+at http://arxiv.org/abs/1302.2837.
+
+Each language directory contains the sources of 6 programs, each in a
+sequential and a parallel version, and before and after expert
+review. The programs solve the following problems:
+
+Program 1: Random matrix generation (randmat) This program fills a
+matrix I with pseudo-random integers, given a seed. The output must be
+independent of the number of threads/cores.
+
+Program 2: Histogram thresholding (thresh) Given an integer matrix I
+and a target percentage p, this program constructs a boolean matrix B
+such that B_ij is set if, and only if, no more than p percent of the
+values in I are bigger than I_ij.
+
+Program 3: Weighted point selection (winnow) Each location where a
+mask B (a boolean matrix) is true becomes a candidate point, with a
+weight equal to the integer value in an integer matrix I at that
+location and x and y coordinates equal to its row and column indices.
+The program sorts these candidate points into increasing order by
+weight, and selects nelts evenly-spaced points to create the result
+vector X.
+
+Program 4: Outer product (outer) This program turns a vector X
+containing point positions into a dense, symmetric, diagonally
+dominant matrix A by calculating the distances between each pair of
+points. The diagonal of the matrix is set to the maximum element in
+the respective row times the number of elements of the row. It also
+constructs a real vector V whose values are the distance of each point
+from the origin.
+
+Program 5: Matrix-vector product (product) Given a matrix A and a
+vector V, this program calculates the product A V.
+
+Program 6: Chaining (chain) This problem chains all of the previous
+problems together.
+

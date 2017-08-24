@@ -1,14 +1,14 @@
 include ../make.defs
 
-.phony: all
+.PHONY: all
 all: thresh
 
-thresh: thresh.cpp
-	$(CXX) -c $(INC) $?
+thresh: thresh.cpp thresh.h
+	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 
 
-.phony: printenv
+.PHONY: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
@@ -16,7 +16,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
-	rm -f thresh
-	rm -f thresh.o
+	-rm thresh
+	-rm thresh.o

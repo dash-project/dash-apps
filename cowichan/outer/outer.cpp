@@ -1,94 +1,30 @@
-/* #ifndef DASH_ENABLE_LOGGING
-#define DASH_ENABLE_LOGGING
-#endif */
-
 #include <libdash.h>
 
 using std::cout;
 using std::cin;
 using std::endl;
-using std::vector;
-using std::pair;
-using std::max;
-using std::make_pair;
-
+using dash::Shared;
 using uint  = unsigned int;
-using POI_T = int;  //this type musst be signed!
 
-template<typename T = POI_T>
-inline void outer(         
-                           uint   nelts ,
-            vector< pair<T,T> > & points,
-      dash::NArray< double, 2 > & matOut,
-            dash::Array<double> & vec,
-                            int   myid
-    );
+uint nelts;
+static int myid;
 
-template< typename T >
-void print2d( T& mat ) {
-  for( int i = 0; i < mat.extent(0); i++ ) {
-    for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
-    }
-    cout << endl;
-  }
-}
+using value = struct{ int row, col; }; //hast to be signed!
+#include "outer.h"
+#include <time.h>
+#include <stdio.h>
 
-template<typename T = POI_T>
-inline void read_vector_of_points( uint nelts, vector< pair<T,T> > & points ) {
-  for( uint i = 0; i < nelts; i++ ) {
-    cin >> points[i].first >> points[i].second;
-  }
-}
+std::ifstream winnow_output;
 
-template<typename T = POI_T>
-inline void broadcastInputToUnits( uint nelts, vector< pair<T,T> > & points ) {
-  dash::team_unit_t TeamUnit0ID = dash::Team::All().myid( );
-  TeamUnit0ID.id = 0;
-  dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( points.data( ) ),  // buf 
-                      points.size( ) * sizeof(pair<T,T>)  ,  // nelts
-                      DART_TYPE_BYTE                      ,  // dtype
-                      TeamUnit0ID                         ,  // root
-                      dash::Team::All().dart_id( )           // team
-                   );
-  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
-}
 
-int main( int argc, char* argv[] )
-{  
-  dash::init( &argc,&argv );
-  int myid = static_cast<int>( dash::Team::GlobalUnitID( ).id );
-  
-  
-  if( argc != 2 ){
-    if( 0 == myid ){ cout << "1 Parameter expected!"           << endl
-                          << "Usage: cowichan_outer nElements" << endl
-                          << "Then enter the points."          << endl;
-    }
-    dash::finalize( );
-    return 0;
-  }
-  
-  uint nelts = static_cast<uint>( atoi( argv[1] ) );
-  
-  vector< pair<POI_T, POI_T> > points( nelts );
-  dash::NArray< double, 2 >    matOut( nelts, nelts );
-  dash::Array < double >       vec( nelts );
-  
-  //read input points on unit 0
-  if( 0 == myid ) read_vector_of_points( nelts, points );
-  
-  //broadcast input from unit 0
-  broadcastInputToUnits( nelts, points );
-
-  outer( nelts, points, matOut, vec, myid );
-
-  dash::barrier( );
-  
+inline void PrintOutput(
+  NArray < double, 2 > const & matOut ,
+  Array  < double    > const & vec    )
+{    
   if( 0 == myid ){
+    cout << nelts << "\n";
     uint count = 0;
-    cout << std::showpoint << std::fixed << std::setprecision(5);
+    cout << std::showpoint << std::fixed << std::setprecision(4);
     
     for(uint i = 0; i < matOut.extent(0); ++i) {
       for(uint j = 0; j < matOut.extent(1); ++j) {
@@ -104,40 +40,90 @@ int main( int argc, char* argv[] )
       cout << static_cast<double>(vec[i]);
     } cout << endl;
   }
-
-  dash::finalize( );
 }
 
-inline double sqr(double const x) {
-  return x * x;
-}
 
-template<typename T = POI_T>
-inline double distance(const pair<T, T>& x, const pair<T, T>& y) {
-  return sqrt(sqr(x.first - y.first) + sqr(x.second - y.second));
-}
+inline void ReadNelts( char* argv[] ){
+  
+  Shared<uint> nelts_transfer;
 
-template<typename T = POI_T>
-inline void outer(         
-                           uint   nelts ,
-            vector< pair<T,T> > & points,
-      dash::NArray< double, 2 > & matOut,
-            dash::Array<double> & vec,
-                            int   myid
-    ){
-   uint gRow =        matOut.pattern().global({0,0})[0];
-   uint end  = gRow + matOut.pattern().local_extents()[0];
-   double nmax;
+  if(0 == myid)
+  {
+    winnow_output.open(argv[1]);
+    winnow_output >> nelts;
 
-   for( uint i = 0; gRow < end; ++gRow, ++i ) {
-    nmax = -1;
-    for( uint j = 0; j < nelts; ++j ) {
-      if( gRow != j) {
-        matOut.local[i][j] = distance(points[gRow], points[j]);
-        nmax = max( nmax, static_cast<double>( matOut.local[i][j] ) );
-      }
-    }
-    matOut.local[i][gRow] = nelts * nmax;
-    vec.local[i] = distance(make_pair(0,0), points[gRow]);
+    nelts_transfer.set(nelts);
   }
+  nelts_transfer.barrier();
+  nelts = nelts_transfer.get();
+}
+
+
+inline void ReadVectorOfPoints( vector<value> & points ) {
+  if( 0 == myid )
+  {
+    for( uint i = 0; i < nelts; i++ ) {
+      winnow_output >> points[i].row;
+      winnow_output >> points[i].col;
+    }
+    
+    winnow_output.close();
+  }
+}
+
+
+int main( int argc, char* argv[] )
+{  
+  dash::init( &argc,&argv );
+  
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
+  myid = dash::myid( );
+  ReadNelts( argv );
+  
+  vector < value     > points( nelts        );
+  NArray < double, 2 > matOut( nelts, nelts );
+  Array  < double    > vec   ( nelts        );
+  
+  //read input points on unit 0 and broadcast to all units
+  if (!is_bench) { ReadVectorOfPoints( points ); }
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
+  BroadcastPointsToUnits( points );
+  Outer( points, matOut, vec, nelts );
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
+  if( 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH,Outer, , , , %u, %u, %.9lf,isBench:%d\n", nelts, dash::Team::All().size(), accum, is_bench );
+    fclose ( fp );
+  }
+
+  if (!is_bench) { PrintOutput(matOut, vec); }
+  dash::finalize( );
 }

@@ -1,0 +1,245 @@
+Wed Mar 21 09:45:40 2012 -0300 first commit
+Wed Mar 21 20:10:34 2012 -0300 cpp-randmat start
+Wed Mar 21 20:19:50 2012 -0300 cpp-randmat done
+Wed Mar 21 20:31:14 2012 -0300 chapel-randmat-seq started
+Wed Mar 21 20:32:04 2012 -0300 ignoring .fuse_hidden*
+Wed Mar 21 20:32:38 2012 -0300 Merge branch 'master' into chapel-randmat-seq
+Wed Mar 21 21:10:31 2012 -0300 chapel-randmat-seq working
+Wed Mar 21 21:11:15 2012 -0300 ignoring .*.swp
+Wed Mar 21 21:11:31 2012 -0300 Merge branch 'master' into chapel-randmat-seq
+Wed Mar 21 21:28:53 2012 -0300 chapel-randmat-seq done
+Wed Mar 21 21:30:29 2012 -0300 cpp-randmat restart
+Wed Mar 21 21:39:22 2012 -0300 cpp-randmat done
+Wed Mar 21 21:39:46 2012 -0300 Merge branch 'chapel-randmat-seq'
+Wed Mar 21 21:55:46 2012 -0300 chapel-randmat-par start
+Wed Mar 21 21:59:53 2012 -0300 chapel-randmat-par done
+Thu Mar 22 17:14:13 2012 -0300 cilk-randmat-seq start
+Thu Mar 22 17:29:47 2012 -0300 cilk-randmat-seq done
+Thu Mar 22 17:40:45 2012 -0300 cilk-randmat-par start
+Thu Mar 22 18:10:07 2012 -0300 cilk-randmat-par working
+Thu Mar 22 18:20:50 2012 -0300 cilk-randmat-par working split
+Thu Mar 22 18:33:50 2012 -0300 cilk-randmat-par done
+Thu Mar 22 18:34:51 2012 -0300 cilk-randmat-seq restart
+Thu Mar 22 18:37:05 2012 -0300 cilk-randmat-seq done free matrix
+Thu Mar 22 18:37:15 2012 -0300 Merge branch 'cilk-randmat-seq'
+Thu Mar 22 19:51:45 2012 -0300 erlang-randmat-seq start
+Thu Mar 22 20:34:26 2012 -0300 erlang-randmat-seq done
+Thu Mar 22 20:37:04 2012 -0300 erlang-randmat-par start
+Thu Mar 22 21:58:35 2012 -0300 erlang-randmat-par done
+Sat Mar 24 20:28:39 2012 -0300 go-randmat-seq start
+Sat Mar 24 20:53:44 2012 -0300 go-randmat-seq done
+Sat Mar 24 20:55:19 2012 -0300 go-randmat-par start
+Sat Mar 24 21:12:21 2012 -0300 go-randmat-par done
+Sat Mar 24 21:14:28 2012 -0300 go-randmat-seq restart-done add missing files
+Sat Mar 24 21:14:37 2012 -0300 Merge branch 'go-randmat-seq'
+Sat Mar 24 21:51:09 2012 -0300 scoop-randmat-seq start
+Sat Mar 24 23:05:34 2012 -0300 scoop-randmat-seq done
+Sun Mar 25 18:14:21 2012 -0300 scoop-randmat-par start
+Sun Mar 25 19:25:11 2012 -0300 scoop-randmat-par done
+Sun Mar 25 19:57:24 2012 -0300 tbb-randmat-seq start
+Sun Mar 25 20:03:45 2012 -0300 tbb-randmat-seq done
+Sun Mar 25 20:25:26 2012 -0300 tbb-randmat-par start
+Sun Mar 25 20:43:27 2012 -0300 tbb-randmat-par done
+Sat Apr 14 15:58:19 2012 -0300 cpp-thresh start
+Sat Apr 14 16:28:17 2012 -0300 cpp-thresh done
+Sat Apr 14 16:35:06 2012 -0300 chapel-thresh-seq start
+Sat Apr 14 16:59:38 2012 -0300 chapel-thresh-seq done
+Sat Apr 14 17:03:00 2012 -0300 chapel-thresh-par start
+Sat Apr 14 18:07:32 2012 -0300 chapel-thresh-par done
+Sat Apr 14 18:14:34 2012 -0300 cilk-thresh-seq start
+Sat Apr 14 18:38:14 2012 -0300 cilk-thresh-seq done
+Sat Apr 14 18:44:28 2012 -0300 cilk-thresh-par start
+Sat Apr 14 19:52:39 2012 -0300 cilk-thresh-par reduce2d max
+Sat Apr 14 20:27:08 2012 -0300 cilk-thresh-par fill_histogram
+Sat Apr 14 20:34:14 2012 -0300 cilk-thresh-par pause
+Sat Apr 14 21:21:10 2012 -0300 cilk-thresh-par resume
+Sat Apr 14 21:39:34 2012 -0300 cilk-thresh-par prefixsum
+Sat Apr 14 21:48:15 2012 -0300 cilk-thresh-par binary_search
+Sat Apr 14 22:16:06 2012 -0300 cilk-thresh-par fill_mask
+Sat Apr 14 22:40:41 2012 -0300 cillk-thresh-par ReduceState
+Sat Apr 14 23:02:25 2012 -0300 cilk-thresh-par done
+Sun Apr 15 17:17:47 2012 -0300 erlang-thresh-seq start
+Sun Apr 15 17:28:20 2012 -0300 erlang-thresh-seq read_matrix
+Sun Apr 15 17:54:51 2012 -0300 erlang-thresh-seq max_matrix
+Sun Apr 15 18:29:49 2012 -0300 erlang-thresh-seq fill_histogram
+Sun Apr 15 18:35:26 2012 -0300 erlang-thresh-seq get_threshold
+Sun Apr 15 18:40:47 2012 -0300 erlang-thresh-seq done
+Sun Apr 15 18:44:27 2012 -0300 erlang-thresh-par start
+Sun Apr 15 20:03:30 2012 -0300 erlang-thresh-par reduce2d
+Sun Apr 15 20:16:50 2012 -0300 erlang-thresh-par reduce2d_with_filter
+Sun Apr 15 21:09:39 2012 -0300 erlang-thresh-par done
+Mon Apr 16 12:08:10 2012 -0300 go-thresh-seq start
+Mon Apr 16 12:28:15 2012 -0300 go-thresh-seq done
+Mon Apr 16 12:29:50 2012 -0300 go-thresh-par start
+Mon Apr 16 13:03:24 2012 -0300 go-thresh-par reduce2d
+Mon Apr 16 13:11:31 2012 -0300 go-thresh-par reduce2d with aggregator
+Mon Apr 16 13:21:15 2012 -0300 go-thresh-par reduce2d with aggregator
+Mon Apr 16 14:05:25 2012 -0300 git-thresh-par split
+Mon Apr 16 14:17:33 2012 -0300 go-thresh-par done
+Mon Apr 16 15:07:48 2012 -0300 scoop-thresh-seq start
+Mon Apr 16 16:22:53 2012 -0300 scoop-thresh-seq read_integer
+Mon Apr 16 17:00:57 2012 -0300 scoop-thresh-seq done
+Mon Apr 16 19:00:44 2012 -0300 scoop-thresh-par start
+Mon Apr 16 19:55:56 2012 -0300 scoop-thresh-par testing assynchrony
+Mon Apr 16 20:07:17 2012 -0300 scoop-thresh-par still_synchronous
+Mon Apr 16 20:11:33 2012 -0300 scoop-thresh-par pause
+Mon Apr 16 20:17:24 2012 -0300 tbb-thresh-seq start
+Mon Apr 16 20:18:00 2012 -0300 tbb-thresh-seq done
+Mon Apr 16 20:18:43 2012 -0300 Merge branch 'master' into scoop-thresh-par
+Mon Apr 16 20:19:38 2012 -0300 tbb-thresh-par start
+Mon Apr 16 20:39:38 2012 -0300 tbb-thresh-par pause
+Tue Apr 17 15:07:49 2012 -0300 scoop-thresh-par restart
+Tue Apr 17 15:29:46 2012 -0300 scoop-thresh-par asynchrony
+Tue Apr 17 19:24:16 2012 -0300 scoop-thresh-par pause
+Wed Apr 18 12:14:25 2012 -0300 scoop-thresh-par restart
+Wed Apr 18 12:37:22 2012 -0300 scoop-thresh-par matrix as array of array
+Wed Apr 18 13:28:53 2012 -0300 scoop-thresh-par pause
+Wed Apr 18 14:20:10 2012 -0300 tbb-thresh-par restart
+Wed Apr 18 15:19:47 2012 -0300 tbb-thresh-par reduce2d
+Wed Apr 18 16:07:26 2012 -0300 tbb-thresh-par pause
+Thu Apr 19 16:01:20 2012 -0300 scoop-thresh-par restart
+Thu Apr 19 16:58:56 2012 -0300 scoop-thresh-par pause
+Fri Apr 20 11:07:02 2012 -0300 tbb-thresh-par restart
+Fri Apr 20 11:37:15 2012 -0300 tbb-thresh-par parallel_scan
+Fri Apr 20 11:41:07 2012 -0300 tbb-thresh-par done
+Fri Apr 20 11:41:59 2012 -0300 Merge branch 'scoop-thresh-par'
+Fri Apr 20 13:14:03 2012 -0300 scoop-thresh-par restart
+Fri Apr 20 13:54:14 2012 -0300 scoop-thresh-par using across
+Fri Apr 20 15:07:42 2012 -0300 scoop-thresh-par with_filter
+Fri Apr 20 15:12:53 2012 -0300 scoop-thresh-par refac
+Fri Apr 20 16:13:04 2012 -0300 scoop-thresh-par pause
+Fri Apr 20 16:13:59 2012 -0300 scoop-thresh-par restart-done
+Fri Apr 20 16:14:19 2012 -0300 Merge branch 'scoop-thresh-par'
+Mon Apr 30 12:40:05 2012 -0300 cpp-winnow start
+Mon Apr 30 13:02:18 2012 -0300 cpp-winnow done
+Mon Apr 30 13:03:50 2012 -0300 chapel-winnow-seq start
+Mon Apr 30 13:24:42 2012 -0300 chapel-winnow-seq done
+Mon Apr 30 13:25:58 2012 -0300 chapel-winnow-par start
+Mon Apr 30 14:13:05 2012 -0300 chapl-winnow-par sequential_sort
+Mon Apr 30 14:16:18 2012 -0300 chapel-winnow-par done
+Mon Apr 30 14:18:02 2012 -0300 cilk-winnow-seq start
+Mon Apr 30 14:37:29 2012 -0300 cilk-winnow-seq done
+Mon Apr 30 14:38:18 2012 -0300 cilk-winnow-par start
+Mon Apr 30 14:43:35 2012 -0300 cilk-winnow-par using reduce2d
+Mon Apr 30 15:22:38 2012 -0300 cilk-winnow-par fill_values
+Mon Apr 30 15:47:01 2012 -0300 cilk-winnow-par parallel_sort
+Mon Apr 30 15:52:32 2012 -0300 cilk-winnow-par done
+Mon Apr 30 16:14:12 2012 -0300 erlang-winnow-seq start
+Mon Apr 30 16:54:08 2012 -0300 erlang-winnow-seq done
+Mon Apr 30 16:55:15 2012 -0300 erlang-winnow-par start
+Mon Apr 30 17:48:53 2012 -0300 erlang-winnow-par parfor
+Mon Apr 30 18:02:51 2012 -0300 erlang-winnow-par parsort
+Mon Apr 30 18:06:28 2012 -0300 erlang-winnow-par done
+Tue May 1 13:12:12 2012 -0300 go-winnow-seq start
+Tue May 1 13:59:50 2012 -0300 go-winnow-seq done
+Tue May 1 14:04:39 2012 -0300 go-winnow-par start
+Tue May 1 14:38:08 2012 -0300 go-winnow-par done
+Tue May 1 14:40:03 2012 -0300 scoop-winnow-seq start
+Tue May 1 15:51:15 2012 -0300 scoop-winnow-seq done
+Tue May 1 15:53:45 2012 -0300 scoop-winnow-par start
+Tue May 1 16:04:40 2012 -0300 scoop-winnow-par using separate
+Tue May 1 16:33:58 2012 -0300 scoop-winnow-par parfor
+Tue May 1 16:47:34 2012 -0300 scoop-winnow-par tuple_sorter
+Tue May 1 17:54:07 2012 -0300 scoop-winnow-par almost parallel sort
+Tue May 1 18:43:19 2012 -0300 scoop-winnow-par quit parallel sort
+Tue May 1 19:04:05 2012 -0300 scoop-winnow-par done
+Tue May 1 19:39:26 2012 -0300 tbb-winnow-seq start
+Tue May 1 19:41:50 2012 -0300 tbb-winnow-seq done
+Tue May 1 19:42:33 2012 -0300 tbb-winnow-par start
+Tue May 1 19:54:08 2012 -0300 tbb-winnow-par done
+Tue May 1 20:47:54 2012 -0300 cpp-outer start
+Tue May 1 21:14:07 2012 -0300 cpp-outer done
+Tue May 1 21:16:27 2012 -0300 chapel-outer-seq start
+Tue May 1 21:35:12 2012 -0300 chapel-outer-seq done
+Tue May 1 21:36:17 2012 -0300 chapel-outer-par start
+Tue May 1 21:37:17 2012 -0300 chapel-outer-par done
+Tue May 1 21:38:20 2012 -0300 cilk-outer-seq start
+Tue May 1 21:54:59 2012 -0300 cilk-outer-seq done
+Tue May 1 21:55:56 2012 -0300 cilk-outer-par start
+Tue May 1 22:02:02 2012 -0300 cilk-outer-par done
+Tue May 1 22:02:46 2012 -0300 erlang-outer-seq start
+Tue May 1 22:27:12 2012 -0300 erlang-outer-seq done
+Wed May 2 10:47:07 2012 -0300 erlang-outer-par start
+Wed May 2 11:02:59 2012 -0300 erlang-outer-par done
+Wed May 2 11:04:38 2012 -0300 go-outer-seq start
+Wed May 2 11:23:24 2012 -0300 go-outer-seq done
+Wed May 2 11:23:24 2012 -0300 go-outer-seq restart-done
+Wed May 2 11:27:21 2012 -0300 go-outer-seq merged
+Wed May 2 12:32:58 2012 -0300 go-outer-par start
+Wed May 2 12:35:35 2012 -0300 go-outer-par done
+Wed May 2 12:36:46 2012 -0300 scoop-outer-seq start
+Wed May 2 13:11:02 2012 -0300 scoop-outer-seq pause
+Wed May 2 13:12:14 2012 -0300 tbb-outer-seq start
+Wed May 2 13:13:34 2012 -0300 tbb-outer-seq done
+Wed May 2 13:14:21 2012 -0300 tbb-outer-par start
+Wed May 2 13:16:46 2012 -0300 tbb-outer-par done
+Wed May 2 15:56:47 2012 -0300 cpp-product start
+Wed May 2 16:11:19 2012 -0300 cpp-product done
+Wed May 2 16:15:50 2012 -0300 chapel-product-seq start
+Wed May 2 16:23:35 2012 -0300 chapel-product-seq done
+Wed May 2 16:24:17 2012 -0300 chapel-product-par start
+Wed May 2 16:25:49 2012 -0300 chapel-product-par done
+Wed May 2 16:27:00 2012 -0300 cilk-product-seq start
+Wed May 2 16:32:57 2012 -0300 cilk-product-seq done
+Wed May 2 16:34:18 2012 -0300 cilk-product-par start
+Wed May 2 16:38:50 2012 -0300 cilk-product-par done
+Wed May 2 16:41:06 2012 -0300 erlang-product-seq start
+Wed May 2 16:55:04 2012 -0300 erlang-product-seq done
+Wed May 2 16:55:48 2012 -0300 erlang-product-par start
+Wed May 2 16:58:42 2012 -0300 erlang-product-par done
+Wed May 2 17:01:22 2012 -0300 go-product-seq start
+Wed May 2 17:07:01 2012 -0300 go-product-seq done
+Wed May 2 17:07:40 2012 -0300 go-product-par start
+Wed May 2 17:08:59 2012 -0300 go-product-par done
+Wed May 2 17:10:00 2012 -0300 tbb-product-seq start
+Wed May 2 17:10:45 2012 -0300 tbb-product-seq done
+Wed May 2 17:11:24 2012 -0300 tbb-product-par start
+Wed May 2 17:13:32 2012 -0300 tbb-product-par done
+Wed May 2 17:16:59 2012 -0300 cpp-chain start
+Wed May 2 17:54:23 2012 -0300 cpp-chain done
+Wed May 2 18:46:12 2012 -0300 chapel-chain start
+Wed May 2 19:18:58 2012 -0300 chapel-chain done
+Wed May 2 19:20:38 2012 -0300 cilk-chain start
+Wed May 2 19:52:25 2012 -0300 cilk-chain compiles
+Wed May 2 20:33:27 2012 -0300 cilk-chain done
+Wed May 2 20:35:14 2012 -0300 erlang-chain start
+Wed May 2 20:43:33 2012 -0300 erlang-chain compiles
+Wed May 2 20:56:56 2012 -0300 erlang-chain done
+Wed May 2 21:04:07 2012 -0300 go-chain start
+Wed May 2 21:28:43 2012 -0300 go-chain pause
+Thu May 3 09:00:23 2012 -0300 go-chain restart
+Thu May 3 09:30:01 2012 -0300 go-chain done
+Thu May 3 09:33:08 2012 -0300 tbb-chain start
+Thu May 3 09:35:18 2012 -0300 tbb-chain files
+Thu May 3 09:54:49 2012 -0300 tbb-chain done
+Thu May 3 09:58:05 2012 -0300 chapel-chain start
+Thu May 3 10:05:10 2012 -0300 chapel-chain done
+Thu May 3 10:06:05 2012 -0300 cilk-chain start
+Thu May 3 10:17:22 2012 -0300 cilk-chain done
+Thu May 3 10:18:40 2012 -0300 cpp-chain start
+Thu May 3 10:21:38 2012 -0300 cpp-chain done
+Thu May 3 10:22:23 2012 -0300 erlang-chain start
+Thu May 3 10:32:12 2012 -0300 erlang-chain done
+Thu May 3 10:34:05 2012 -0300 go-chain start
+Thu May 3 10:42:39 2012 -0300 go-chain done
+Thu May 3 10:44:08 2012 -0300 tbb-chain start
+Thu May 3 10:52:04 2012 -0300 tbb-chain done
+Sat May 5 19:28:21 2012 -0300 comments
+Mon May 7 18:45:37 2012 -0300 scoop-thresh-par restart
+Mon May 7 19:00:04 2012 -0300 scoop-thresh-par done
+Mon May 7 19:35:50 2012 -0300 scoop-winnow-par start
+Mon May 7 19:37:42 2012 -0300 scoop-outer-seq start
+Mon May 7 20:00:52 2012 -0300 scoop-outer-seq done
+Mon May 7 20:01:33 2012 -0300 scoop-winnow-par done
+Mon May 7 20:02:03 2012 -0300 Merge branch 'scoop-winnow-par'
+Mon May 7 20:02:50 2012 -0300 scoop-outer-par start
+Mon May 7 20:34:37 2012 -0300 scoop-outer-par done
+Mon May 7 20:38:21 2012 -0300 scoop-product-seq start
+Mon May 7 20:51:40 2012 -0300 scoop-product-seq done
+Mon May 7 20:52:43 2012 -0300 scoop-product-par start
+Mon May 7 21:12:12 2012 -0300 scoop-product-par done
+Mon May 7 21:14:20 2012 -0300 scoop-chain start
+Mon May 7 21:31:21 2012 -0300 scoop-chain pause
+Tue May 8 08:59:59 2012 -0300 scoop-chain restart
+Tue May 8 10:17:10 2012 -0300 scoop-chain compiles
+Tue May 8 10:23:45 2012 -0300 scoop-chain done
