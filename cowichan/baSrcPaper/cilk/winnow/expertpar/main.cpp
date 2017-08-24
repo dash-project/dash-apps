@@ -38,9 +38,9 @@ int reduce_sum (int nrows, int ncols) {
   cilk_for (int q  = 0; q < nrows; ++q) {
     int tmp_sum = 0;
     for (int i = 0; i < ncols; ++i) {
-      if (is_bench) {
-        mask[q*ncols + i] = ((nrows * i) % (ncols + 1)) == 1;
-      }
+      // if (is_bench) {
+        // mask[q*ncols + i] = ((nrows * i) % (ncols + 1)) == 1;
+      // }
       tmp_sum += mask[q * ncols + i];
     } 
     count_per_line[q+1] = tmp_sum;
@@ -111,6 +111,8 @@ void winnow(int nrows, int ncols, int nelts) {
   fill_values(0, nrows, ncols);
 
   sort(values, values + n);
+  
+  // printf("winEl:%i\n",n);
 
   chunk = n / nelts;
   free (count_per_line);
@@ -139,8 +141,23 @@ void read_mask(int nrows, int ncols) {
   }
 }
 
+inline void FillOnTheFly( int nrows, int ncols, int thresh ){
+  int threshInverse = 100 / thresh;
+  
+  cilk_for( int ix = 0; ix < nrows*ncols; ++ix ){
+    if( (ix % threshInverse) == 0 )
+    {
+      mask[ix] = 1;
+    }else{
+      mask[ix] = 0;
+    }
+    
+    matrix[ix] = ix % 100;
+  }
+}
+
 int main(int argc, char *argv[]) {
-  int nrows, ncols, nelts, i, nproc = 0;
+  int nrows, ncols, nelts, i, thresh, nproc = 0;
   struct timespec start, stop;
   double accum;
 
@@ -160,14 +177,20 @@ int main(int argc, char *argv[]) {
   values= (pair<int, pair<int, int> >*) 
   malloc (sizeof(pair<int, pair<int, int> >) * nrows * ncols);
 
-  // if (!is_bench) {
+  if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  // }
+  }
 
   scanf("%d", &nelts);
 
   count_per_line = (int*) calloc (nrows+1, sizeof(int));
+  
+  if(is_bench)
+  {
+    scanf("%d", &thresh);
+    FillOnTheFly( nrows, ncols, thresh );
+  }
 
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
@@ -193,7 +216,7 @@ int main(int argc, char *argv[]) {
       return EXIT_FAILURE;
   }
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( fp, "Cilk,Winnow,%u, %u, , %u, %u, %.9lf,isBench:%d\n", nrows, ncols, nelts, nproc, accum, is_bench );
+  fprintf( fp, "Cilk,Winnow,%i, %i, %i, %i, %i, %.9lf,isBench:%d\n", nrows, ncols, thresh, nelts, nproc, accum, is_bench );
   fclose ( fp );
   
 

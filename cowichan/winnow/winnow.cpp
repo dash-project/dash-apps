@@ -5,6 +5,7 @@ using uint = unsigned int;
 // static variables
 static struct InputPar { uint nrows, ncols; } in;
 static uint   nelts;
+static uint   thresh;
 static int    myid ;
 
 #include "winnow.h"
@@ -41,6 +42,7 @@ template< typename T = MATRIX_T >
 inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMask )
 {
   Shared<uint> nelts_transfer;
+  Shared<uint> thresh_transfer;
 
   if(0 == myid)
   {
@@ -66,25 +68,48 @@ inline void ReadMatricesAndNelts( NArray<T,2>& randMat, NArray<bool,2>& threshMa
     }
       
     raThr_output >> nelts;
+    if(is_bench) raThr_output >> thresh;
     raThr_output.close();
     
+    thresh_transfer.set(thresh);
     nelts_transfer.set(nelts);
   }
   nelts_transfer.barrier();
   nelts = nelts_transfer.get();
+  thresh = thresh_transfer.get();
 }
 
 template< typename T = MATRIX_T >
 inline void FillOnTheFly( NArray<T,2>& randMat, NArray<bool,2>& threshMask )
 {
-    uint val = MAX_KEY;
-    for( T * ptr = randMat.lbegin(); ptr < randMat.lend(); ++ptr)
-    {
-      *ptr = val--;
-      if( 0 == val ) { val = MAX_KEY; }
+  auto gR = randMat.pattern( ).global( {0,0} );
+  auto gT = threshMask.pattern( ).global( {0,0} );
+  
+  uint i = gR[0];  // global row of local (0,0)
+  uint j = 0;
+  // cout << "ich hab:" << i << "\n";
+  
+  for( T * ptr = randMat.lbegin(); ptr < randMat.lend(); ++ptr)
+  {
+    *ptr = (i*in.ncols+j) % 100;
+    if(++j == in.ncols) {++i;j=0;}
+  }
+  
+  uint threshInverse = 100 / thresh;
+  i =  gT[0];  // global row of local (0,0)
+  j = 0;
+  
+  for( bool * ptr = threshMask.lbegin(); ptr < threshMask.lend(); ++ptr) 
+  {
+    if(( ( i*in.ncols+j) % threshInverse ) == 0) {
+      *ptr = true;
+    }else{
+      *ptr = false;
     }
- 
-    for( bool * ptr = threshMask.lbegin(); ptr < threshMask.lend(); ++ptr) { *ptr = true; }
+    if(++j == in.ncols) {++i;j=0;}
+  }
+   
+  dash::barrier();
 }
 
 
@@ -124,7 +149,6 @@ int main( int argc, char* argv[] )
   
   if (is_bench) FillOnTheFly( randMat, threshMask );
   
-  
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
@@ -148,7 +172,7 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Winnow,%u, %u, , %u, %u, %.9lf,isBench:%d\n", in.nrows, in.ncols, nelts, dash::Team::All().size(), accum, is_bench );
+    fprintf( fp, "DASH,Winnow,%u, %u, %u, %u, %u, %.9lf,isBench:%d\n", in.nrows, in.ncols, thresh, nelts, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
   

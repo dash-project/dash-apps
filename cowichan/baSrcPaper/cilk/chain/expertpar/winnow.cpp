@@ -39,9 +39,9 @@ int reduce_sum (int nrows, int ncols) {
   cilk_for (int q  = 0; q < nrows; ++q) {
     int tmp_sum = 0;
     for (int i = 0; i < ncols; ++i) {
-      if (is_bench) {
-        thresh_mask[q*ncols + i] = ((nrows * i) % (ncols + 1)) == 1;
-      }
+      // if (is_bench) {
+        // thresh_mask[q*ncols + i] = ((nrows * i) % (ncols + 1)) == 1;
+      // }
       tmp_sum += thresh_mask[q * ncols + i];
     } 
     count_per_line[q+1] = tmp_sum;
@@ -116,6 +116,8 @@ void winnow(int nrows, int ncols, int nelts) {
   fill_values(0, nrows, ncols);
 
   sort(values, values + n);
+  
+  // printf("winEl:%i\n",n);
 
   chunk = n / nelts;
 

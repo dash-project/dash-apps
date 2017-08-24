@@ -175,6 +175,7 @@ inline void Winnow(
      * that is the assumption (ideal * nUnits > foundAllSize) == true
      */
      uint ideal = std::max( static_cast<size_t>( MIN_NUM_ELEM_PER_UNIT ), (found / nUnits) + 1 );
+     // cout << "elements:" << found << "\n";
      
     #ifdef DEBUG
        __sleep();

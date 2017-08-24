@@ -77,7 +77,8 @@ void thresh(int nrows, int ncols, int percent) {
   fill_histogram(nrows, ncols);
   merge_histogram();
 
-  count = (nrows * ncols * percent) / 100;
+  count = (static_cast<size_t>(nrows) * ncols * percent) / 100;
+  // printf("threshCount%i\n", count);
 
   prefixsum = 0;
   threshold = nmax;

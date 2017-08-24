@@ -83,7 +83,9 @@ func thresh(m *ByteMatrix, nrows, ncols, percent uint32) {
 		}
 	}
 
-	count := (nrows * ncols * percent) / 100
+	count := (uint64(nrows) * uint64(ncols) * uint64(percent)) / 100
+  // fmt.Printf("%d\n",count)
+  
 	prefixsum := 0
 	threshold := 99
 

@@ -78,6 +78,13 @@ func ArrayLess(array []byte, x, y int) bool {
 	return x < y
 }
 
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
 func WinnowMerge(points chan WinnowPoints) {
 	var merged WinnowPoints
 	x := <-points
@@ -141,9 +148,9 @@ func Winnow(m *ByteMatrix, nrows, ncols, winnow_nelts int) {
 			for i := range values_work {
 				for j := 0; j < ncols; j++ {
 					idx := i*ncols + j
-					if *is_bench {
-						mask[i][j] = ((i * j) % (ncols + 1)) == 1
-					}
+					// if *is_bench {
+						// mask[i][j] = ((i * j) % (ncols + 1)) == 1
+					// }
 					if mask[i][j] {
 						local_indexes = append(local_indexes, idx)
 					}
@@ -163,6 +170,8 @@ func Winnow(m *ByteMatrix, nrows, ncols, winnow_nelts int) {
 	}
 
 	values = <-values_done
+  
+  // fmt.Printf("len:%d\n", values.Len())
 
 	chunk := values.Len() / winnow_nelts
 
@@ -217,8 +226,47 @@ func read_mask(nrows, ncols int) {
 	}
 }
 
+func FillOnTheFly(nrows, ncols, thresh int) {
+  NP := runtime.GOMAXPROCS(0)
+  sem := make(chan bool, NP);
+  
+  var chunkSize int = (nrows + NP - 1) / NP
+  var threshInverse = 100 / thresh
+  
+  // fmt.Printf("%d\n", threshInverse)
+  
+  for n := 0; n < NP; n++ {
+    go func(n int){
+    
+      var ix int
+      var start int = n * chunkSize
+      var end int = min( start + chunkSize, nrows)
+      
+      for i := start; i < end; i++ {
+        for j := 0; j < ncols; j++ {
+        
+          if ((i*ncols+j) % threshInverse ) == 0 {
+            mask[i][j] = true 
+          }else{
+            mask[i][j] = false
+          }
+          
+          ix = i*ncols+j
+          matrix[ix] = byte(ix % 100)
+        }
+      }
+      
+      sem <- true
+    }(n)
+  }
+  
+  // behaves like a barrier
+  for n := 0; n < NP; n++ { <-sem }
+}
+
 func main() {
-	var nrows, ncols, nelts int
+	var nrows, ncols, nelts, thresh int
+  thresh=0
 
   flag.Parse()
 
@@ -233,12 +281,19 @@ func main() {
 	for i := range mask {
 		mask[i] = make([]bool, ncols)
 	}
-	// if !*is_bench {
+  
+	if !*is_bench {
 		read_matrix(nrows, ncols)
 		read_mask(nrows, ncols)
-	// }
+	}
 
 	nelts = int(read_integer())
+  
+  if *is_bench {
+    thresh = int(read_integer())
+    FillOnTheFly( nrows, ncols, thresh )
+  }
+  
 	points = make([]int, nelts)
   
   var start, stop C.struct_timespec
@@ -268,7 +323,7 @@ func main() {
   w := bufio.NewWriter(file)
   
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fmt.Fprintf(w, "Go,Winnow,%d, %d, , %d, %d,%.9f,isBench:%t\n", nrows, ncols, nelts, runtime.GOMAXPROCS(0), accum, *is_bench )
+  fmt.Fprintf(w, "Go,Winnow,%d, %d, %d, %d, %d,%.9f,isBench:%t\n", nrows, ncols, thresh, nelts, runtime.GOMAXPROCS(0), accum, *is_bench )
   
   w.Flush()
   file.Close()

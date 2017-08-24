@@ -160,11 +160,11 @@ run_results:; mkdir -p run_results
 .PHONY: runIO runIO-all
 runIO: runIO-all
 runIO-all: | run_results
-	# @$(MAKE) --no-print-directory runIO-tbb
+	@$(MAKE) --no-print-directory runIO-tbb
 	@$(MAKE) --no-print-directory runIO-chpl
-	# @$(MAKE) --no-print-directory runIO-cilk
-	# @$(MAKE) --no-print-directory runIO-go
-	# @$(MAKE) --no-print-directory runIO-dash
+	@$(MAKE) --no-print-directory runIO-cilk
+	@$(MAKE) --no-print-directory runIO-go
+	@$(MAKE) --no-print-directory runIO-dash
 
 .PHONY: runIO-dash runIO-dash_
 runIO-dash: | run_results
@@ -387,11 +387,8 @@ test:
 		echo -e until now:$(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 		echo --------------------------------------;\
 # done ;\
-   break;\
 	  done ;\
-	   break;\
 	    done ;\
-			break;\
 		   done ;\
 	echo -e $(GREEN)successes$(NC):$$succ $(RED)failures$(NC):$$fail $(BLUE)warnings$(NC):$$globWarnings;\
 

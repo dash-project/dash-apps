@@ -24,6 +24,7 @@
 #include "tbb/parallel_scan.h"
 #include "tbb/task_scheduler_init.h"
 #include "tbb/parallel_reduce.h"
+#include "tbb/tbb.h"
 
 using namespace std;
 using namespace tbb;
@@ -74,9 +75,9 @@ void winnow(int nrows, int ncols, int nelts) {
       for (size_t i = r.begin(); i != r.end(); i++) {
         int cur = 0;
         for (int j = 0; j < ncols; j++) {
-          if (is_bench) {
-            thresh_mask[i*ncols + j] = ((i * j) % (ncols + 1)) == 1;
-          }
+          // if (is_bench) {
+            // thresh_mask[i*ncols + j] = ((i * j) % (ncols + 1)) == 1;
+          // }
           cur += thresh_mask[i*ncols + j];
         }
         result += count_per_line[i + 1] = cur;
@@ -108,10 +109,12 @@ void winnow(int nrows, int ncols, int nelts) {
         }
       });
 
-  sort(values, values + count);
+  tbb::parallel_sort(values, values + count);
 
   size_t n = count;
   size_t chunk = n / nelts;
+  
+  // printf("winEL:%i\n",n);
 
   for (int i = 0; i < nelts; i++) {
     int index = i * chunk;

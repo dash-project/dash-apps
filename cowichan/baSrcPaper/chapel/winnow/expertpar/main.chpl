@@ -45,6 +45,8 @@ proc winnow(nelts: int) {
    
   var total = + scan count_per_line;
   n = total[nrows + 1];
+  
+  // writeln("inWinEl:", n);
 
   
   forall i in 0..nrows-1 {
@@ -88,20 +90,18 @@ proc read_mask() {
   }
 }
 
-proc FillOnTheFly() {
+proc FillOnTheFly(thresh:int) {
+  var threshInverse = 100 / thresh;
   
   forall i in 0..nrows-1 {
-  var b:bool = true;
-  var c:int = 0;
     for j in 0..ncols-1 {
-        c+=1;
-        if( c == 1 ){
-          mask[i, j]   = true;
-          c = 0;
-        }else{
-          mask[i, j]   = false;
-        }
-        matrix[i, j] = (i*ncols + j) % 100;
+      var ix :int = i*ncols+j;
+      if(( ix % threshInverse )  == 0 ){
+        mask[i, j]   = true;
+      }else{
+        mask[i, j]   = false;
+      }
+      matrix[i, j] = ix % 100;
     }
   }
 }
@@ -123,16 +123,19 @@ proc main() {
   var accum : c_double;
   var start,stop : chpl_timespec;
   
-  var nelts: int;
+  var nelts,thresh: int;
 
   if (!is_bench) {
     read_matrix();
     read_mask();
-  }else{
-    FillOnTheFly();
   }
 
   read(nelts);
+  
+  if(is_bench){
+    read(thresh);
+    FillOnTheFly(thresh);
+  }
   
   var points: [1..nelts] (int, int);
   
@@ -153,7 +156,7 @@ proc main() {
   if( is_c_nil(FILE_PTR) ){writeln("File opening for benchmark results failed");}
   
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( FILE_PTR, "Chapel,Winnow,%u, %u, , %u, %u, %.9lf,isBench:%d\n", nrows, ncols, nelts, dataParTasksPerLocale, is_bench, accum ); //, locale.totalThreads()
+  fprintf( FILE_PTR, "Chapel,Winnow,%u, %u, %i, %u, %u, %.9lf,isBench:%d\n", nrows, ncols, thresh, nelts, dataParTasksPerLocale, is_bench, accum ); //, locale.totalThreads()
   fclose ( FILE_PTR );
 
   if (!is_bench) {

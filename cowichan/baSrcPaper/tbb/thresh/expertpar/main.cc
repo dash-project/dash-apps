@@ -69,7 +69,8 @@ void thresh(int nrows, int ncols, int percent) {
         v.h[i] += x.h[i];
     });
 
-  int count = (nrows * ncols * percent) / 100;
+  int count = (static_cast<size_t>(nrows) * ncols * percent) / 100;
+  // printf("thresh:%i\n",count);
 
   int prefixsum = 0;
   int threshold = nmax;

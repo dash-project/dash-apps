@@ -31,6 +31,8 @@ proc winnow(nrows: int, ncols: int, nelts: int) {
 
   var total = + scan count_per_line;
   n = total[nrows + 1];
+  
+  // writeln("inWinEl:", n);
 
   forall i in RowSpace {
     var count = total[i];

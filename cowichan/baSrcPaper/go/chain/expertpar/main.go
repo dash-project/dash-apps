@@ -127,7 +127,9 @@ func Thresh(m *ByteMatrix, nelts, percent int) (mask []bool) {
 		}
 	}
 
-	count := (nelts * nelts * percent) / 100
+	count := int((uint64(nelts) * uint64(nelts) * uint64(percent)) / 100)
+  // fmt.Printf("thesh%d\n",count)
+  
 	prefixsum := 0
 	threshold := 99
 
@@ -279,6 +281,7 @@ func Winnow(m *ByteMatrix, mask []bool, nelts, winnow_nelts int) (points []Point
 	}
 
 	values = <-values_done
+  // fmt.Printf("len:%d\n", values.Len())
 
 	chunk := values.Len() / winnow_nelts
 

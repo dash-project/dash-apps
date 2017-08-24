@@ -42,6 +42,7 @@ proc thresh(nrows: int, ncols: int, percent: int) {
   }
 
   var count: int = (nrows * ncols * percent) / 100;
+  // writeln("thresh:",count);
 
   var prefixsum: int = 0;
   var threshold: int = nmax;

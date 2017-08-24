@@ -69,9 +69,9 @@ void winnow(int nrows, int ncols, int nelts) {
       for (size_t i = r.begin(); i != r.end(); i++) {
         int cur = 0;
         for (int j = 0; j < ncols; j++) {
-          if (is_bench) {
-            mask[i*ncols + j] = ((i * j) % (ncols + 1)) == 1;
-          }
+          // if (is_bench) {
+            // mask[i*ncols + j] = ((i * j) % (ncols + 1)) == 1;
+          // }
           cur += mask[i*ncols + j];
         }
         result += count_per_line[i + 1] = cur;
@@ -108,6 +108,8 @@ void winnow(int nrows, int ncols, int nelts) {
   size_t n = count;
   size_t chunk = n / nelts;
 
+  // printf("winEL:%i\n",n);
+  
   for (int i = 0; i < nelts; i++) {
     int index = i * chunk;
     points[i] = values[index].second;
@@ -134,8 +136,23 @@ void read_mask(int nrows, int ncols) {
   }
 }
 
+inline void FillOnTheFly( int nrows, int ncols, int thresh ){
+  int threshInverse = 100 / thresh;
+  
+  tbb::parallel_for( int(0), (nrows*ncols), [&](int ix){
+    if( (ix % threshInverse) == 0 )
+    {
+      mask[ix] = 1;
+    }else{
+      mask[ix] = 0;
+    }
+    
+    matrix[ix] = ix % 100;
+  } );
+}
+
 int main(int argc, char** argv) {
-  int nrows, ncols, nelts;
+  int nrows, ncols, nelts, thresh;
   struct timespec start, stop;
   double accum;
 
@@ -160,14 +177,21 @@ int main(int argc, char** argv) {
   count_per_line = (int *) malloc (sizeof (int) * (nrows + 1));
   memset (count_per_line, 0, sizeof (int) * (nrows + 1));
 
-  // if (!is_bench) {
+  if (!is_bench) {
     read_matrix(nrows, ncols);
     read_mask(nrows, ncols);
-  // }
+  }
 
   scanf("%d", &nelts);
   points = (pair <int, int> *) malloc (sizeof (pair <int, int>) * nelts);
   values = (pair <int, pair <int, int> > *) malloc (sizeof (pair <int, pair <int, int> >) * nrows * ncols);
+  
+  
+  if(is_bench)
+  {
+    scanf("%d", &thresh);
+    FillOnTheFly( nrows, ncols, thresh );
+  }
   
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
     perror( "clock gettime error 1" );
@@ -192,7 +216,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
   }
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( fp, "TBB,Winnow,%u, %u, , %u, %u, %.9lf, isBench:%d\n", nrows, ncols, nelts, n_threads, accum, is_bench );
+  fprintf( fp, "TBB,Winnow,%i, %i, %i, %i, %i, %.9lf, isBench:%d\n", nrows, ncols, thresh, nelts, n_threads, accum, is_bench );
   fclose ( fp );
   
 
