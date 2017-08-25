@@ -30,7 +30,7 @@ for (( IX=$probIxStart ; IX<=$probIxEnd ; ++IX )); do
     export GOMAXPROCS=$jobs
     for (( it=$numberOfIterations ; it >= 1 ; --it )); do
       # echo "run Go ${lP[$IX]} with: jobs:$jobs nRowsCols:$nRowsCols thresh:$thresh win_nelts:$winnowNelts ItsLeft:$it"
-      printf "run...$GREEN GO$NC     ${BCOLORS[$IX]}%7s$NC->jobs:$CYAN$jobs$NC nRowsCols:$CYAN%5u$NC thresh:$CYAN%3u$NC win_nelts:$CYAN%5u$NC ItsLeft:$CYAN$it$NC\n" ${lP[$IX]} $nRowsCols $thresh $winnowNelts
+      printf "run...$GREEN GO$NC     ${BCOLORS[$IX]}%7s$NC->jobs:$CYAN%2u$NC nRowsCols:$CYAN%5u$NC thresh:$CYAN%3u$NC win_nelts:$CYAN%5u$NC ItsLeft:$CYAN$it$NC\n" ${lP[$IX]} $jobs $nRowsCols $thresh $winnowNelts
       case $IX in
         0) echo $nRowsCols $nRowsCols $(( 1 + RANDOM % 666 )) | $GO_ROOT/randmat/expertpar/main --is_bench;;
         5) echo $nRowsCols $(( 1 + RANDOM % 666 )) $thresh $winnowNelts | $GO_ROOT/chain/expertpar/main --is_bench;;

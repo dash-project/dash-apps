@@ -30,7 +30,7 @@ for (( IX=$probIxStart ; IX<=$probIxEnd ; ++IX )); do
     export CILK_NWORKERS=$jobs
     for (( it=$numberOfIterations ; it >= 1 ; --it )); do
       # echo -e "run$BLUE Cilk$NC ${BCOLORS[$IX]}${lP[$IX]}$NC with: jobs:$CYAN$jobs$NC nRowsCols:$CYAN$nRowsCols$NC thresh:$CYAN$thresh$NC win_nelts:$CYAN$winnowNelts$NC ItsLeft:$CYAN$it$NC"
-      printf "run...$BLUE Cilk$NC   ${BCOLORS[$IX]}%7s$NC->jobs:$CYAN$jobs$NC nRowsCols:$CYAN%5u$NC thresh:$CYAN%3u$NC win_nelts:$CYAN%5u$NC ItsLeft:$CYAN$it$NC\n" ${lP[$IX]} $nRowsCols $thresh $winnowNelts
+      printf "run...$BLUE Cilk$NC   ${BCOLORS[$IX]}%7s$NC->jobs:$CYAN%2u$NC nRowsCols:$CYAN%5u$NC thresh:$CYAN%3u$NC win_nelts:$CYAN%5u$NC ItsLeft:$CYAN$it$NC\n" ${lP[$IX]} $jobs $nRowsCols $thresh $winnowNelts
       case $IX in
         0) echo $nRowsCols $nRowsCols $(( 1 + RANDOM % 666 )) | $CILK_ROOT/randmat/expertpar/main --nproc $jobs --is_bench;;
         5) echo $nRowsCols $(( 1 + RANDOM % 666 )) $thresh $winnowNelts | $CILK_ROOT/chain/expertpar/main --nproc $jobs --is_bench;;
