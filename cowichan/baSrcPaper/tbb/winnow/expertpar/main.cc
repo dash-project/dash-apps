@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
   }
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( fp, "TBB,Winnow,%i, %i, %i, %i, %i, %.9lf, isBench:%d\n", nrows, ncols, thresh, nelts, n_threads, accum, is_bench );
+  fprintf( fp, "TBB   ,Winnow ,%5i,%5i,%3i,%5i,%2i,%.9lf, isBench:%d\n", nrows, ncols, thresh, nelts, n_threads, accum, is_bench );
   fclose ( fp );
   
 

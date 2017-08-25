@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
   }
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( fp, "TBB,Outer, , , , %u, %u, %.9lf, isBench:%d\n", nelts, n_threads, accum, is_bench );
+  fprintf( fp, "TBB   ,Outer  ,     ,     ,   ,%5u,%2u,%.9lf, isBench:%d\n", nelts, n_threads, accum, is_bench );
   fclose ( fp );
   
 

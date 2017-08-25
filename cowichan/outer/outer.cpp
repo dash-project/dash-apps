@@ -120,7 +120,7 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH,Outer, , , , %u, %u, %.9lf,isBench:%d\n", nelts, dash::Team::All().size(), accum, is_bench );
+    fprintf( fp, "DASH  ,Outer  ,     ,     ,   ,%5u,%2u,%.9lf,isBench:%d\n", nelts, dash::Team::All().size(), accum, is_bench );
     fclose ( fp );
   }
 

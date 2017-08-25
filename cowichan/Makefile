@@ -87,8 +87,9 @@ $(SUBDIRS:%=go-clean-%):
 	-rm $(GO_ROOT)/$(@:go-clean-%=%)/expertpar/main
 
 go:
-	@echo -e making ... $(BLUE)GO$(NC)
-	@$(MAKE) --no-print-directory go_
+	@echo -e making ... $(BLUE)GO$(NC);\
+	if [[ $$CC == *icc ]] ; then module swap intel gnu; fi;\
+	$(MAKE) --no-print-directory go_
 
 go_:$(SUBDIRS:%=go-%)
 

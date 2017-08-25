@@ -177,7 +177,7 @@ func main() {
   w := bufio.NewWriter(file)
   
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fmt.Fprintf(w, "Go,Thresh,%d, %d, %d, , %d,%.9f,isBench:%t\n", nrows, ncols, percent, runtime.GOMAXPROCS(0), accum, *is_bench )
+  fmt.Fprintf(w, "Go    ,Thresh ,%5d,%5d,%3d,     ,%2d,%.9f,isBench:%t\n", nrows, ncols, percent, runtime.GOMAXPROCS(0), accum, *is_bench )
   
   w.Flush()
   file.Close()

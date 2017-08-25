@@ -67,7 +67,7 @@ proc main() {
   if( is_c_nil(FILE_PTR) ){writeln("File opening for benchmark results failed");}
   
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( FILE_PTR, "Chapel,Randmat,%u, %u, , , %u, %.9lf,isBench:%d\n", nrows, ncols, dataParTasksPerLocale, accum, is_bench ); //, locale.totalThreads()
+  fprintf( FILE_PTR, "Chapel,Randmat,%5u,%5u,   ,     ,%2u,%.9lf,isBench:%d\n", nrows, ncols, dataParTasksPerLocale, accum, is_bench ); //, locale.totalThreads()
   fclose ( FILE_PTR );
 
   

@@ -10,6 +10,11 @@ nRowsCols=$6
 thresh=$7
 winnowNelts=$8
 
+CYAN='\033[0;36m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+BCOLORS=('\033[0;41m' '\033[0;42m' '\033[0;43m' '\033[0;44m' '\033[0;45m' '\033[0;46m')
+
 lP=(randmat thresh winnow outer product chain)
 lI=(randmat_in thresh_in winnow_in outProd_in outProd_in)
 
@@ -24,7 +29,8 @@ for (( IX=$probIxStart ; IX<=$probIxEnd ; ++IX )); do
   for (( jobs=$jobsStart ; jobs<=$jobsEnd ; jobs+=1 )); do
     export CILK_NWORKERS=$jobs
     for (( it=$numberOfIterations ; it >= 1 ; --it )); do
-      echo "run Cilk ${lP[$IX]} with: jobs:$jobs nRowsCols:$nRowsCols thresh:$thresh win_nelts:$winnowNelts ItsLeft:$it"
+      # echo -e "run$BLUE Cilk$NC ${BCOLORS[$IX]}${lP[$IX]}$NC with: jobs:$CYAN$jobs$NC nRowsCols:$CYAN$nRowsCols$NC thresh:$CYAN$thresh$NC win_nelts:$CYAN$winnowNelts$NC ItsLeft:$CYAN$it$NC"
+      printf "run...$BLUE Cilk$NC   ${BCOLORS[$IX]}%7s$NC->jobs:$CYAN$jobs$NC nRowsCols:$CYAN%5u$NC thresh:$CYAN%3u$NC win_nelts:$CYAN%5u$NC ItsLeft:$CYAN$it$NC\n" ${lP[$IX]} $nRowsCols $thresh $winnowNelts
       case $IX in
         0) echo $nRowsCols $nRowsCols $(( 1 + RANDOM % 666 )) | $CILK_ROOT/randmat/expertpar/main --nproc $jobs --is_bench;;
         5) echo $nRowsCols $(( 1 + RANDOM % 666 )) $thresh $winnowNelts | $CILK_ROOT/chain/expertpar/main --nproc $jobs --is_bench;;

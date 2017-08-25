@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
   }
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( fp, "TBB,Chain, %u, %u, %u, %u, %u, %.9lf, isBench:%d\n", nelts, nelts, thresh_percent, winnow_nelts, n_threads, accum, is_bench );
+  fprintf( fp, "TBB   ,Chain  ,%5u,%5u,%3u,%5u,%2u,%.9lf, isBench:%d\n", nelts, nelts, thresh_percent, winnow_nelts, n_threads, accum, is_bench );
   fclose ( fp );
   
   

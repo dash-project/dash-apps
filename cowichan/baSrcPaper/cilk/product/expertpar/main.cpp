@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
       return EXIT_FAILURE;
   }
   // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-  fprintf( fp, "Cilk,Product, , , , %u, %u, %.9lf,isBench:%d\n", nelts, nproc, accum, is_bench );
+  fprintf( fp, "Cilk  ,Product,     ,     ,   ,%5u,%2u,%.9lf,isBench:%d\n", nelts, nproc, accum, is_bench );
   fclose ( fp );
   
 
