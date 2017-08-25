@@ -1,14 +1,14 @@
 include ../make.defs
 
-.phony: all
+.PHONY: all
 all: outer
 
-outer:  outer.cpp
-	$(CXX) -c $(INC) $?
+outer: outer.cpp outer.h
+	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 
 
-.phony: printenv
+.PHONY: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
@@ -16,7 +16,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
-	rm -f outer
-	rm -f outer.o
+	-rm outer
+	-rm outer.o
