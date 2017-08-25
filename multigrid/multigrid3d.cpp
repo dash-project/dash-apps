@@ -429,6 +429,7 @@ void scaledown( Level& fine, Level& coarse ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
+    /* slow
     for ( size_t z= 0; z < extentc[0]; z++ ) {
         for ( size_t y= 0; y < extentc[1]; y++ ) {
             for ( size_t x= 0; x < extentc[2]; x++ ) {
@@ -442,6 +443,35 @@ void scaledown( Level& fine, Level& coarse ) {
                     fine.grid.local[2*z+1][2*y  ][2*x+1] +
                     fine.grid.local[2*z+1][2*y+1][2*x  ] +
                     fine.grid.local[2*z+1][2*y+1][2*x+1] );
+            }
+        }
+    }
+    */
+
+    for ( size_t z= 0; z < extentc[0] ; z++ ) {
+        for ( size_t y= 0; y < extentc[1] ; y++ ) {
+
+            const size_t x= 0;
+            double* p_coarse= &coarse.grid.local[z][y][x];
+
+            double* p_000= &fine.grid.local[2*z+0][2*y+0][x];
+            double* p_010= &fine.grid.local[2*z+0][2*y+1][x];
+            double* p_100= &fine.grid.local[2*z+1][2*y+0][x];
+            double* p_110= &fine.grid.local[2*z+1][2*y+1][x];
+
+            for ( size_t x= 0; x < extentc[2]; x++ ) {
+
+                *p_coarse= 1.0 / 8.0 * (
+                    *(p_000+0) + *(p_000+1) +
+                    *(p_010+0) + *(p_010+1) +
+                    *(p_100+0) + *(p_100+1) +
+                    *(p_110+0) + *(p_110+1) );
+
+                p_coarse++;
+                p_000 += 2;
+                p_010 += 2;
+                p_100 += 2;
+                p_110 += 2;
             }
         }
     }
@@ -476,6 +506,7 @@ void scaleup( Level& coarse, Level& fine ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
+    /* slow
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
             for ( size_t x= 0; x < extentc[2]; x++ ) {
@@ -489,6 +520,39 @@ void scaleup( Level& coarse, Level& fine ) {
                 fine.grid.local[2*z+1][2*y  ][2*x+1]= t;
                 fine.grid.local[2*z+1][2*y+1][2*x  ]= t;
                 fine.grid.local[2*z+1][2*y+1][2*x+1]= t;
+            }
+        }
+    }
+    */
+
+    for ( size_t z= 0; z < extentc[0] ; z++ ) {
+        for ( size_t y= 0; y < extentc[1] ; y++ ) {
+
+            const size_t x= 0;
+            double* p_coarse= &coarse.grid.local[z][y][x];
+
+            double* p_000= &fine.grid.local[2*z+0][2*y+0][x];
+            double* p_010= &fine.grid.local[2*z+0][2*y+1][x];
+            double* p_100= &fine.grid.local[2*z+1][2*y+0][x];
+            double* p_110= &fine.grid.local[2*z+1][2*y+1][x];
+
+            for ( size_t x= 0; x < extentc[2]; x++ ) {
+
+                *(p_000+0)= *p_coarse;
+                *(p_000+1)= *p_coarse;
+                *(p_010+0)= *p_coarse;
+                *(p_010+1)= *p_coarse;
+                *(p_100+0)= *p_coarse;
+                *(p_100+1)= *p_coarse;
+                *(p_110+0)= *p_coarse;
+                *(p_110+1)= *p_coarse;
+
+
+                p_coarse++;
+                p_000 += 2;
+                p_010 += 2;
+                p_100 += 2;
+                p_110 += 2;
             }
         }
     }
@@ -532,6 +596,9 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 
     for ( size_t z= 1; z < ld-1; z++ ) {
         for ( size_t y= 1; y < lh-1; y++ ) {
+
+            /* this should eventually be done with Alpaka or Kokkos to look
+            much nicer but still be fast */
 
             const size_t x= 1;
             double* p_here=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x) ];
