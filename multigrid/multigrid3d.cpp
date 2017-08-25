@@ -780,7 +780,7 @@ int main( int argc, char* argv[] ) {
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the PNG images */
     initgrid( levels[0]->grid );
-    markunits( levels[0]->grid );
+    //markunits( levels[0]->grid );
 
     //writeToCsv( levels[0]->grid );
 
