@@ -735,7 +735,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 9;
+    constexpr uint32_t howmanylevels= 8;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
@@ -752,6 +752,12 @@ int main( int argc, char* argv[] ) {
                 (1<<(howmanylevels-l))*factor_y << "x" <<
                 (1<<(howmanylevels-l))*factor_x << endl;
         }
+
+        /* do not try to allocate >= 8GB per core -- try to prevent myself
+        from running too big a simulation on my laptop */
+        assert( (1<<(howmanylevels-l))*factor_z *
+            (1<<(howmanylevels-l))*factor_y *
+            (1<<(howmanylevels-l))*factor_x < dash::Team::All().size() * (1<<27) );
 
         levels.push_back(
             new Level( (1<<(howmanylevels-l))*factor_z ,
