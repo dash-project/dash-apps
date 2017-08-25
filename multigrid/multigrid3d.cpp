@@ -302,18 +302,31 @@ void initboundary( Level& level ) {
 
             /* At entry (x/gw,y/gh) we sample the
             rectangle [ x/gw,(x+1)/gw ) x [ y/gw, (y+1)/gh ) with m² points. */
-            double m= 5;
-            double m2= m*m;
+            uint32_t m= 5;
+            uint32_t m2= m*m;
 
             double sum= 0.0;
-            for ( double sy= (y+0.0)/gh; sy< (y+1.0)/gh; sy += 1.0/m/gh ) {
-                for ( double sx= (x+0.0)/gw; sx< (x+1.0)/gw; sx += 1.0/m/gw ) {
+/*
+            for ( uint32_t iy= 0; iy < m; iy++ ) {
+                for ( uint32_t ix= 0; ix < m; ix++ ) {
+
+                    double sx= (x+ix/m)/gw;
+                    double sy= (y+iy/m)/gh;
 
                     double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
                     sum += ( d2 <= r2 ) ? highvalue : lowvalue;
                 }
             }
+*/
+/**/
+            for ( double sy= (y+0.0)/gh; sy< (y+1.0-0.1)/gh; sy += 1.0/m/gh ) {
+                for ( double sx= (x+0.0)/gw; sx< (x+1.0-0.1)/gw; sx += 1.0/m/gw ) {
 
+                    double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
+                    sum += ( d2 <= r2 ) ? highvalue : lowvalue;
+                }
+            }
+/**/
             ret = sum / m2;
         }
 
@@ -429,35 +442,16 @@ void scaledown( Level& fine, Level& coarse ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
-    /* slow
-    for ( size_t z= 0; z < extentc[0]; z++ ) {
-        for ( size_t y= 0; y < extentc[1]; y++ ) {
-            for ( size_t x= 0; x < extentc[2]; x++ ) {
-
-                coarse.grid.local[z][y][x]= 1.0 / 8.0 * (
-                    fine.grid.local[2*z  ][2*y  ][2*x  ] +
-                    fine.grid.local[2*z  ][2*y  ][2*x+1] +
-                    fine.grid.local[2*z  ][2*y+1][2*x  ] +
-                    fine.grid.local[2*z  ][2*y+1][2*x+1] +
-                    fine.grid.local[2*z+1][2*y  ][2*x  ] +
-                    fine.grid.local[2*z+1][2*y  ][2*x+1] +
-                    fine.grid.local[2*z+1][2*y+1][2*x  ] +
-                    fine.grid.local[2*z+1][2*y+1][2*x+1] );
-            }
-        }
-    }
-    */
-
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
 
             const size_t x= 0;
             double* p_coarse= &coarse.grid.local[z][y][x];
 
-            double* p_000= &fine.grid.local[2*z+0][2*y+0][x];
-            double* p_010= &fine.grid.local[2*z+0][2*y+1][x];
-            double* p_100= &fine.grid.local[2*z+1][2*y+0][x];
-            double* p_110= &fine.grid.local[2*z+1][2*y+1][x];
+            double* p_000= &fine.grid.local[2*z+0][2*y+0][2*x];
+            double* p_010= &fine.grid.local[2*z+0][2*y+1][2*x];
+            double* p_100= &fine.grid.local[2*z+1][2*y+0][2*x];
+            double* p_110= &fine.grid.local[2*z+1][2*y+1][2*x];
 
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
@@ -506,35 +500,16 @@ void scaleup( Level& coarse, Level& fine ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
-    /* slow
-    for ( size_t z= 0; z < extentc[0] ; z++ ) {
-        for ( size_t y= 0; y < extentc[1] ; y++ ) {
-            for ( size_t x= 0; x < extentc[2]; x++ ) {
-
-                double t= coarse.grid.local[z][y][x];
-                fine.grid.local[2*z  ][2*y  ][2*x  ]= t;
-                fine.grid.local[2*z  ][2*y  ][2*x+1]= t;
-                fine.grid.local[2*z  ][2*y+1][2*x  ]= t;
-                fine.grid.local[2*z  ][2*y+1][2*x+1]= t;
-                fine.grid.local[2*z+1][2*y  ][2*x  ]= t;
-                fine.grid.local[2*z+1][2*y  ][2*x+1]= t;
-                fine.grid.local[2*z+1][2*y+1][2*x  ]= t;
-                fine.grid.local[2*z+1][2*y+1][2*x+1]= t;
-            }
-        }
-    }
-    */
-
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
 
             const size_t x= 0;
             double* p_coarse= &coarse.grid.local[z][y][x];
 
-            double* p_000= &fine.grid.local[2*z+0][2*y+0][x];
-            double* p_010= &fine.grid.local[2*z+0][2*y+1][x];
-            double* p_100= &fine.grid.local[2*z+1][2*y+0][x];
-            double* p_110= &fine.grid.local[2*z+1][2*y+1][x];
+            double* p_000= &fine.grid.local[2*z+0][2*y+0][2*x];
+            double* p_010= &fine.grid.local[2*z+0][2*y+1][2*x];
+            double* p_100= &fine.grid.local[2*z+1][2*y+0][2*x];
+            double* p_110= &fine.grid.local[2*z+1][2*y+1][2*x];
 
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
@@ -546,7 +521,6 @@ void scaleup( Level& coarse, Level& fine ) {
                 *(p_100+1)= *p_coarse;
                 *(p_110+0)= *p_coarse;
                 *(p_110+1)= *p_coarse;
-
 
                 p_coarse++;
                 p_000 += 2;
