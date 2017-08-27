@@ -136,6 +136,48 @@ void writeToCsv( const MatrixT& grid ) {
 #endif /* WITHCSVOUTPUT */
 }
 
+void writeToCsvFullGrid( const MatrixT& grid ) {
+
+#ifdef WITHCSVOUTPUT
+
+    grid.barrier();
+
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
+
+    size_t d= grid.extent(0);
+    size_t h= grid.extent(1);
+    size_t w= grid.extent(2);
+
+    size_t dl= grid.local.extent(0);
+    size_t hl= grid.local.extent(1);
+    size_t wl= grid.local.extent(2);
+
+    std::ofstream csvfile;
+    csvfile.open( "image_unit" + std::to_string(dash::myid()) +
+        ".csv." + std::to_string(filenumber++) );
+
+    if ( 0 == dash::myid() ) {
+        csvfile << " z coord, y coord, x coord, heat" << "\n";
+    }
+
+    for ( size_t z = 0 ; z < dl; ++z ) {
+        for ( size_t y = 0; y < hl; ++y ) {
+            for ( size_t x = 0; x < wl; ++x ) {
+
+                csvfile << setfill('0') << setw(4) << corner[0]+z << "," <<
+                    setfill('0') << setw(4) << corner[1]+y << "," <<
+                    setfill('0') << setw(4) << corner[2]+x << "," <<
+                    (double) grid.local[ z ][ y ][ x ] << "\n";
+            }
+        }
+    }
+
+    csvfile.close();
+    grid.barrier();
+#endif /* WITHCSVOUTPUT */
+}
+
+
 void sanitycheck( const MatrixT& grid  ) {
 
     /* check if the sum of the local extents of the matrix blocks sum up to
@@ -291,7 +333,8 @@ void initboundary( Level& level ) {
         if ( -1 == z || gd == z ) {
 
             /* radius differs on top and bottom plane */
-            double r= ( -1 == z ) ? 0.5 : 0.3;
+            //double r= ( -1 == z ) ? 0.4 : 0.3;
+            double r= 0.4;
             double r2= r*r;
 
             double lowvalue= 0.0;
@@ -306,7 +349,7 @@ void initboundary( Level& level ) {
             uint32_t m2= m*m;
 
             double sum= 0.0;
-/*
+/**/
             for ( uint32_t iy= 0; iy < m; iy++ ) {
                 for ( uint32_t ix= 0; ix < m; ix++ ) {
 
@@ -317,16 +360,20 @@ void initboundary( Level& level ) {
                     sum += ( d2 <= r2 ) ? highvalue : lowvalue;
                 }
             }
-*/
 /**/
+#if 0
             for ( double sy= (y+0.0)/gh; sy< (y+1.0-0.1)/gh; sy += 1.0/m/gh ) {
                 for ( double sx= (x+0.0)/gw; sx< (x+1.0-0.1)/gw; sx += 1.0/m/gw ) {
-
+/*
                     double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
                     sum += ( d2 <= r2 ) ? highvalue : lowvalue;
+*/
+                    /* alternative setting */
+                    double d= fabs(sx-midx) + fabs(sy-midy);
+                    sum += ( d <= r ) ? highvalue : lowvalue;
                 }
             }
-/**/
+#endif /* 0 */
             ret = sum / m2;
         }
 
@@ -339,7 +386,7 @@ void initboundary( Level& level ) {
 void markunits( MatrixT& grid ) {
 
     /* Mark unit bordery by setting the first local rows and columns */
-
+/*
     size_t w= grid.local.extent(2);
     size_t h= grid.local.extent(1);
     size_t d= grid.local.extent(0);
@@ -361,7 +408,7 @@ void markunits( MatrixT& grid ) {
             grid.local[0][j][k] = 9.0;
         }
     }
-
+*/
 }
 
 #if 0
@@ -575,6 +622,7 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
             much nicer but still be fast */
 
             const size_t x= 1;
+            /*
             double* p_here=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x) ];
             double* p_east=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x+1) ];
             double* p_west=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x-1) ];
@@ -582,6 +630,15 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
             double* p_south= &gridlocalbegin[ ( (z)*lh+(y+1))*lw+(x) ];
             double* p_up=    &gridlocalbegin[ ( (z-1)*lh+(y))*lw+(x) ];
             double* p_down=  &gridlocalbegin[ ( (z+1)*lh+(y))*lw+(x) ];
+            */
+
+            double* p_here=  &level.grid.local[z  ][y  ][x  ];
+            double* p_east=  &level.grid.local[z  ][y  ][x+1];
+            double* p_west=  &level.grid.local[z  ][y  ][x-1];
+            double* p_north= &level.grid.local[z  ][y+1][x  ];
+            double* p_south= &level.grid.local[z  ][y-1][x  ];
+            double* p_up=    &level.grid.local[z+1][y  ][x  ];
+            double* p_down=  &level.grid.local[z-1][y  ][x  ];
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
@@ -776,7 +833,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 8;
+    constexpr uint32_t howmanylevels= 6;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
@@ -834,10 +891,10 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels, 0.02 );
-    smoothen_final( levels, 0.1 );
+    v_cycle( levels, 0.001 );
+    smoothen_final( levels, 0.001 );
 
-    writeToCsv( levels[0]->grid );
+    writeToCsvFullGrid( levels[0]->grid );
 
     MiniMonT::MiniMonRecord( 0, "dash::finalize" );
     dash::finalize();
