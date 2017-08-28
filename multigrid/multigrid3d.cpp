@@ -345,36 +345,24 @@ void initboundary( Level& level ) {
 
             /* At entry (x/gw,y/gh) we sample the
             rectangle [ x/gw,(x+1)/gw ) x [ y/gw, (y+1)/gh ) with m² points. */
-            uint32_t m= 5;
-            uint32_t m2= m*m;
+            int32_t m= 5;
+            int32_t m2= m*m;
 
             double sum= 0.0;
+            double weight= 0.0;
 /**/
-            for ( uint32_t iy= 0; iy < m; iy++ ) {
-                for ( uint32_t ix= 0; ix < m; ix++ ) {
+            for ( int32_t iy= -m+1; iy < m; iy++ ) {
+                for ( int32_t ix= -m+1; ix < m; ix++ ) {
 
-                    double sx= (x+ix/m)/gw;
-                    double sy= (y+iy/m)/gh;
+                    double sx= (x+ix/m)/(gw-1);
+                    double sy= (y+iy/m)/(gh-1);
 
                     double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
                     sum += ( d2 <= r2 ) ? highvalue : lowvalue;
+                    weight += 1.0;
                 }
             }
-/**/
-#if 0
-            for ( double sy= (y+0.0)/gh; sy< (y+1.0-0.1)/gh; sy += 1.0/m/gh ) {
-                for ( double sx= (x+0.0)/gw; sx< (x+1.0-0.1)/gw; sx += 1.0/m/gw ) {
-/*
-                    double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
-                    sum += ( d2 <= r2 ) ? highvalue : lowvalue;
-*/
-                    /* alternative setting */
-                    double d= fabs(sx-midx) + fabs(sy-midy);
-                    sum += ( d <= r ) ? highvalue : lowvalue;
-                }
-            }
-#endif /* 0 */
-            ret = sum / m2;
+            ret = sum / weight;
         }
 
         return ret;
@@ -583,7 +571,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
 
 /* the parallel global residual is returned as a return parameter, but only if it is not NULL because then the expensive parallel reduction is just avoided */
-void smoothen( Level& level, double* residual_ret= NULL ) {
+void smoothen( Level& level, uint32_t iter, double* residual_ret= NULL ) {
 
     uint64_t param= level.grid.local.extent(0)*level.grid.local.extent(1)*level.grid.local.extent(2);
     MiniMonT::MiniMonRecord( 0, "smoothen", param );
@@ -615,46 +603,73 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
 
-    for ( size_t z= 1; z < ld-1; z++ ) {
-        for ( size_t y= 1; y < lh-1; y++ ) {
 
-            /* this should eventually be done with Alpaka or Kokkos to look
-            much nicer but still be fast */
+    if ( 0 == iter % 2 ) {
 
-            const size_t x= 1;
-            /*
-            double* p_here=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x) ];
-            double* p_east=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x+1) ];
-            double* p_west=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x-1) ];
-            double* p_north= &gridlocalbegin[ ( (z)*lh+(y-1))*lw+(x) ];
-            double* p_south= &gridlocalbegin[ ( (z)*lh+(y+1))*lw+(x) ];
-            double* p_up=    &gridlocalbegin[ ( (z-1)*lh+(y))*lw+(x) ];
-            double* p_down=  &gridlocalbegin[ ( (z+1)*lh+(y))*lw+(x) ];
-            */
+        for ( size_t z= 1; z < ld-1; z++ ) {
+            for ( size_t y= 1; y < lh-1; y++ ) {
 
-            double* p_here=  &level.grid.local[z  ][y  ][x  ];
-            double* p_east=  &level.grid.local[z  ][y  ][x+1];
-            double* p_west=  &level.grid.local[z  ][y  ][x-1];
-            double* p_north= &level.grid.local[z  ][y+1][x  ];
-            double* p_south= &level.grid.local[z  ][y-1][x  ];
-            double* p_up=    &level.grid.local[z+1][y  ][x  ];
-            double* p_down=  &level.grid.local[z-1][y  ][x  ];
+                /* this should eventually be done with Alpaka or Kokkos to look
+                much nicer but still be fast */
 
-            for ( size_t x= 1; x < lw-1; x++ ) {
+                const size_t x= 1;
+                double* p_here=  &level.grid.local[z  ][y  ][x  ];
+                double* p_east=  &level.grid.local[z  ][y  ][x+1];
+                double* p_west=  &level.grid.local[z  ][y  ][x-1];
+                double* p_north= &level.grid.local[z  ][y+1][x  ];
+                double* p_south= &level.grid.local[z  ][y-1][x  ];
+                double* p_up=    &level.grid.local[z+1][y  ][x  ];
+                double* p_down=  &level.grid.local[z-1][y  ][x  ];
 
-                double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
-                *p_here += c * dtheta;
-                res= std::max( res, std::fabs( dtheta ) );
-                p_here++;
-                p_east++;
-                p_west++;
-                p_north++;
-                p_south++;
-                p_up++;
-                p_down++;
+                for ( size_t x= 1; x < lw-1; x++ ) {
+
+                    double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
+                    *p_here += c * dtheta;
+                    res= std::max( res, std::fabs( dtheta ) );
+                    p_here++;
+                    p_east++;
+                    p_west++;
+                    p_north++;
+                    p_south++;
+                    p_up++;
+                    p_down++;
+                }
+            }
+        }
+    } else {
+        for ( size_t z= ld-2; z >=1; z-- ) {
+            for ( size_t y= lh-2; y >= 1; y-- ) {
+
+                /* this should eventually be done with Alpaka or Kokkos to look
+                much nicer but still be fast */
+
+                const size_t x= lw-2;
+                double* p_here=  &level.grid.local[z  ][y  ][x  ];
+                double* p_east=  &level.grid.local[z  ][y  ][x+1];
+                double* p_west=  &level.grid.local[z  ][y  ][x-1];
+                double* p_north= &level.grid.local[z  ][y+1][x  ];
+                double* p_south= &level.grid.local[z  ][y-1][x  ];
+                double* p_up=    &level.grid.local[z+1][y  ][x  ];
+                double* p_down=  &level.grid.local[z-1][y  ][x  ];
+
+                for ( size_t x= lw-2; x >= 1; x-- ) {
+
+                    double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
+                    *p_here += c * dtheta;
+                    res= std::max( res, std::fabs( dtheta ) );
+                    p_here--;
+                    p_east--;
+                    p_west--;
+                    p_north--;
+                    p_south--;
+                    p_up--;
+                    p_down--;
+                }
             }
         }
     }
+
+
     MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
@@ -719,7 +734,7 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 }
 
 
-void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
+void v_cycle( vector<Level*>& levels, uint32_t iter, double epsilon= 0.01 ) {
 
     MiniMonT::MiniMonRecord( 0, "v_cycle" );
 
@@ -727,8 +742,9 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
     for ( size_t i= 1; i < levels.size(); i++ ) {
 
-        /* don't care about residual here because it is always called once */
-        smoothen( *levels[i-1], NULL );
+        for ( uint32_t j= 0; j < iter; j++ ) {
+            smoothen( *levels[i-1], j, NULL );
+        }
 
         scaledown( *levels[i-1], *levels[i] );
 
@@ -747,10 +763,11 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
     }
 
     double residual= 1.0+epsilon;
+    uint32_t j= 0;
     while ( residual > epsilon ) {
 
         /* need global residual for iteration count */
-        smoothen( *levels.back(), &residual );
+        smoothen( *levels.back(), j++, &residual );
 
         if ( 0 == dash::myid() ) {
             cout << "smoothen coarsest with residual " << residual << endl;
@@ -762,8 +779,9 @@ void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
 
         scaleup( *levels[i], *levels[i-1] );
 
-        /* don't care about residual here because it is always called once */
-        smoothen( *levels[i-1], NULL );
+        for ( uint32_t j= 0; j < iter; j++ ) {
+            smoothen( *levels[i-1], j, NULL );
+        }
 
         if ( 0 == dash::myid() ) {
             cout << "scale up " <<
@@ -789,9 +807,10 @@ void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
     MiniMonT::MiniMonRecord( 0, "smoothfinal" );
 
     double residual= 1.0+epsilon;
+    uint32_t j= 0;
     while ( residual > epsilon ) {
 
-        smoothen( *levels.front(), &residual );
+        smoothen( *levels.front(), j++, &residual );
 
         if ( 0 == dash::myid() ) {
             cout << "smoothen finest with residual " << residual << endl;
@@ -833,7 +852,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 6;
+    constexpr uint32_t howmanylevels= 5;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
@@ -875,7 +894,6 @@ int main( int argc, char* argv[] ) {
             sanitycheck( levels[0]->grid );
         }
 
-        /* disabled for now */
         initboundary( *levels[l] );
     }
 
@@ -891,8 +909,8 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels, 0.001 );
-    smoothen_final( levels, 0.001 );
+    v_cycle( levels, 6, 0.0001 );
+    smoothen_final( levels, 0.1 );
 
     writeToCsvFullGrid( levels[0]->grid );
 
