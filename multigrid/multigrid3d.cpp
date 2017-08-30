@@ -852,13 +852,49 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 9;
+    uint32_t howmanylevels= 5;
+
+    if ( argc > 1 ) {
+
+        if ( 0 == strncmp( "-h", argv[1], 2  ) ||
+                0 == strncmp( "--help", argv[1], 6 ) ) {
+
+            if ( 0 == dash::myid() ) {
+
+                cout << "call me as [mpirun] '" << argv[0] << "' [-h|--help] [number-of-levels=5]" << endl;
+            }
+            exit(0);
+
+        } else {
+
+            /* otherwise interpret as number of grid levels to employ */
+            howmanylevels= atoi( argv[1] );
+        }
+    }
+
+    assert( howmanylevels > 2 );
+    assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
+
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
     resolutionForCSVd= ( 1<<5 ) * factor_z;
     resolutionForCSVh= ( 1<<5 ) * factor_y;
     resolutionForCSVw= ( 1<<5 ) * factor_x;
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "run '" << argv[0] << "' with " << dash::Team::All().size() << " units "
+            "for with grids from " <<
+            factor_z << "x" <<
+            factor_y << "x" <<
+            factor_x <<
+            " to " <<
+            (1<<(howmanylevels))*factor_z << "x" <<
+            (1<<(howmanylevels))*factor_y << "x" <<
+            (1<<(howmanylevels))*factor_x <<
+            endl << endl;
+    }
 
     /* create all grid levels, starting with the finest and ending with 2x2 */
     for ( uint32_t l= 0; l < howmanylevels-0; l++ ) {
