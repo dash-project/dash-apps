@@ -7,3 +7,6 @@ for i in image_unit0.csv.*; do
     sort -m "image_unit"*".csv."$NUM > "image.csv."$NUM
     rm "image_unit"*".csv."$NUM
 done
+
+cat trace0*.csv >trace_.csv
+rm -Rf trace0*.csv
