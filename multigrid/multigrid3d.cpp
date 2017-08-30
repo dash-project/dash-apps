@@ -852,7 +852,7 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 5;
+    constexpr uint32_t howmanylevels= 9;
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
@@ -912,7 +912,7 @@ int main( int argc, char* argv[] ) {
     v_cycle( levels, 6, 0.0001 );
     smoothen_final( levels, 0.1 );
 
-    writeToCsvFullGrid( levels[0]->grid );
+    writeToCsv( levels[0]->grid );
 
     MiniMonT::MiniMonRecord( 0, "dash::finalize" );
     dash::finalize();
