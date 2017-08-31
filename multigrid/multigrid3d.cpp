@@ -734,71 +734,79 @@ void smoothen( Level& level, uint32_t iter, double* residual_ret= NULL ) {
 }
 
 
-void v_cycle( vector<Level*>& levels, uint32_t iter, double epsilon= 0.01 ) {
+/* recursive version */
+void v_cycle( vector<Level*>::const_iterator it, vector<Level*>::const_iterator itend,
+        uint32_t numiter, double epsilon= 0.01 ) {
 
-    MiniMonT::MiniMonRecord( 0, "v_cycle" );
-
-    //writeToCsv( levels[0]->grid );
-
-    for ( size_t i= 1; i < levels.size(); i++ ) {
-
-        for ( uint32_t j= 0; j < iter; j++ ) {
-            smoothen( *levels[i-1], j, NULL );
-        }
-
-        scaledown( *levels[i-1], *levels[i] );
-
-        if ( 0 == dash::myid() ) {
-            cout << "smoothen, then scale down " <<
-                levels[i-1]->grid.extent(2) << "x" <<
-                levels[i-1]->grid.extent(1) << "x" <<
-                levels[i-1]->grid.extent(0) <<
-                " --> " <<
-                levels[i]->grid.extent(2) << "x" <<
-                levels[i]->grid.extent(1) << "x" <<
-                levels[i]->grid.extent(0) << endl;
-        }
-
-        //writeToCsv( levels[i]->grid );
+    if ( 0 == dash::myid() ) {
+        cout << "v-cycle on  " <<
+                    (*it)->grid.extent(2) << "x" <<
+                    (*it)->grid.extent(1) << "x" <<
+                    (*it)->grid.extent(0) << endl;
     }
 
-    double residual= 1.0+epsilon;
-    uint32_t j= 0;
-    while ( residual > epsilon ) {
+    vector<Level*>::const_iterator itnext( it );
+    itnext++;
 
-        /* need global residual for iteration count */
-        smoothen( *levels.back(), j++, &residual );
+    /* reached end of recursion? */
+    if ( itend == itnext ) {
 
-        if ( 0 == dash::myid() ) {
-            cout << "smoothen coarsest with residual " << residual << endl;
+        /* smoothen completely  */
+        double residual= 1.0+epsilon;
+        uint32_t j= 0;
+        while ( residual > epsilon ) {
+
+            /* need global residual for iteration count */
+            smoothen( **it, j++, &residual );
+
+            if ( 0 == dash::myid() ) {
+                cout << "v-cycle, smoothen coarsest with residual " << residual << endl;
+            }
+            // writeToCsv( levels.back()->grid );
         }
-        // writeToCsv( levels.back()->grid );
+
+        return;
     }
 
-    for ( auto i= levels.size()-1; i > 0; i-- ) {
-
-        scaleup( *levels[i], *levels[i-1] );
-
-        for ( uint32_t j= 0; j < iter; j++ ) {
-            smoothen( *levels[i-1], j, NULL );
-        }
-
-        if ( 0 == dash::myid() ) {
-            cout << "scale up " <<
-                levels[i]->grid.extent(2) << "x" <<
-                levels[i]->grid.extent(1) << "x" <<
-                levels[i]->grid.extent(0) <<
-                " --> " <<
-                levels[i-1]->grid.extent(2) << "x" <<
-                levels[i-1]->grid.extent(1) << "x" <<
-                levels[i-1]->grid.extent(0) <<
-                ", then smoothen" << endl;
-        }
-
-        //writeToCsv( levels[i-1]->grid );
+    /* smoothen somewhat with fixed number of iterations */
+    for ( uint32_t j= 0; j < numiter; j++ ) {
+        smoothen( **it, j, NULL );
     }
 
-    MiniMonT::MiniMonRecord( 1, "v_cycle" );
+    /* scale down */
+    if ( 0 == dash::myid() ) {
+        cout << "scale down " <<
+            (*it)->grid.extent(2) << "x" <<
+            (*it)->grid.extent(1) << "x" <<
+            (*it)->grid.extent(0) <<
+            " --> " <<
+            (*itnext)->grid.extent(2) << "x" <<
+            (*itnext)->grid.extent(1) << "x" <<
+            (*itnext)->grid.extent(0) << endl;
+    }
+    scaledown( **it, **itnext );
+
+    /* recurse  */
+    v_cycle( itnext, itend, numiter, epsilon );
+
+    /* scale up */
+    if ( 0 == dash::myid() ) {
+        cout << "scale up " <<
+            (*itnext)->grid.extent(2) << "x" <<
+            (*itnext)->grid.extent(1) << "x" <<
+            (*itnext)->grid.extent(0) <<
+            " --> " <<
+            (*it)->grid.extent(2) << "x" <<
+            (*it)->grid.extent(1) << "x" <<
+            (*it)->grid.extent(0) << endl;
+    }
+    scaleup( **itnext, **it );
+
+
+    /* smoothen somewhat with fixed number of iterations */
+    for ( uint32_t j= 0; j < numiter; j++ ) {
+        smoothen( **it, j, NULL );
+    }
 }
 
 
@@ -945,7 +953,7 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels, 6, 0.0001 );
+    v_cycle( levels.begin(), levels.end(), 6, 0.0001 );
     smoothen_final( levels, 0.1 );
 
     writeToCsv( levels[0]->grid );
