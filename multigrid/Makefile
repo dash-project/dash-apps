@@ -37,4 +37,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon halo_heat_eqn *.o *.png *.csv.*
+	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon halo_heat_eqn *.o *.png *.csv.* *.gch

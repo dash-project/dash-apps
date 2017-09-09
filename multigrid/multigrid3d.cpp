@@ -136,6 +136,48 @@ void writeToCsv( const MatrixT& grid ) {
 #endif /* WITHCSVOUTPUT */
 }
 
+void writeToCsvFullGrid( const MatrixT& grid ) {
+
+#ifdef WITHCSVOUTPUT
+
+    grid.barrier();
+
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
+
+    size_t d= grid.extent(0);
+    size_t h= grid.extent(1);
+    size_t w= grid.extent(2);
+
+    size_t dl= grid.local.extent(0);
+    size_t hl= grid.local.extent(1);
+    size_t wl= grid.local.extent(2);
+
+    std::ofstream csvfile;
+    csvfile.open( "image_unit" + std::to_string(dash::myid()) +
+        ".csv." + std::to_string(filenumber++) );
+
+    if ( 0 == dash::myid() ) {
+        csvfile << " z coord, y coord, x coord, heat" << "\n";
+    }
+
+    for ( size_t z = 0 ; z < dl; ++z ) {
+        for ( size_t y = 0; y < hl; ++y ) {
+            for ( size_t x = 0; x < wl; ++x ) {
+
+                csvfile << setfill('0') << setw(4) << corner[0]+z << "," <<
+                    setfill('0') << setw(4) << corner[1]+y << "," <<
+                    setfill('0') << setw(4) << corner[2]+x << "," <<
+                    (double) grid.local[ z ][ y ][ x ] << "\n";
+            }
+        }
+    }
+
+    csvfile.close();
+    grid.barrier();
+#endif /* WITHCSVOUTPUT */
+}
+
+
 void sanitycheck( const MatrixT& grid  ) {
 
     /* check if the sum of the local extents of the matrix blocks sum up to
@@ -291,7 +333,8 @@ void initboundary( Level& level ) {
         if ( -1 == z || gd == z ) {
 
             /* radius differs on top and bottom plane */
-            double r= ( -1 == z ) ? 0.5 : 0.3;
+            //double r= ( -1 == z ) ? 0.4 : 0.3;
+            double r= 0.4;
             double r2= r*r;
 
             double lowvalue= 0.0;
@@ -302,19 +345,24 @@ void initboundary( Level& level ) {
 
             /* At entry (x/gw,y/gh) we sample the
             rectangle [ x/gw,(x+1)/gw ) x [ y/gw, (y+1)/gh ) with m² points. */
-            double m= 5;
-            double m2= m*m;
+            int32_t m= 5;
+            int32_t m2= m*m;
 
             double sum= 0.0;
-            for ( double sy= (y+0.0)/gh; sy< (y+1.0)/gh; sy += 1.0/m/gh ) {
-                for ( double sx= (x+0.0)/gw; sx< (x+1.0)/gw; sx += 1.0/m/gw ) {
+            double weight= 0.0;
+/**/
+            for ( int32_t iy= -m+1; iy < m; iy++ ) {
+                for ( int32_t ix= -m+1; ix < m; ix++ ) {
+
+                    double sx= (x+ix/m)/(gw-1);
+                    double sy= (y+iy/m)/(gh-1);
 
                     double d2= (sx-midx)*(sx-midx) + (sy-midy)*(sy-midy);
                     sum += ( d2 <= r2 ) ? highvalue : lowvalue;
+                    weight += 1.0;
                 }
             }
-
-            ret = sum / m2;
+            ret = sum / weight;
         }
 
         return ret;
@@ -326,7 +374,7 @@ void initboundary( Level& level ) {
 void markunits( MatrixT& grid ) {
 
     /* Mark unit bordery by setting the first local rows and columns */
-
+/*
     size_t w= grid.local.extent(2);
     size_t h= grid.local.extent(1);
     size_t d= grid.local.extent(0);
@@ -348,7 +396,7 @@ void markunits( MatrixT& grid ) {
             grid.local[0][j][k] = 9.0;
         }
     }
-
+*/
 }
 
 #if 0
@@ -429,19 +477,30 @@ void scaledown( Level& fine, Level& coarse ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
-    for ( size_t z= 0; z < extentc[0]; z++ ) {
-        for ( size_t y= 0; y < extentc[1]; y++ ) {
+    for ( size_t z= 0; z < extentc[0] ; z++ ) {
+        for ( size_t y= 0; y < extentc[1] ; y++ ) {
+
+            const size_t x= 0;
+            double* p_coarse= &coarse.grid.local[z][y][x];
+
+            double* p_000= &fine.grid.local[2*z+0][2*y+0][2*x];
+            double* p_010= &fine.grid.local[2*z+0][2*y+1][2*x];
+            double* p_100= &fine.grid.local[2*z+1][2*y+0][2*x];
+            double* p_110= &fine.grid.local[2*z+1][2*y+1][2*x];
+
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
-                coarse.grid.local[z][y][x]= 1.0 / 8.0 * (
-                    fine.grid.local[2*z  ][2*y  ][2*x  ] +
-                    fine.grid.local[2*z  ][2*y  ][2*x+1] +
-                    fine.grid.local[2*z  ][2*y+1][2*x  ] +
-                    fine.grid.local[2*z  ][2*y+1][2*x+1] +
-                    fine.grid.local[2*z+1][2*y  ][2*x  ] +
-                    fine.grid.local[2*z+1][2*y  ][2*x+1] +
-                    fine.grid.local[2*z+1][2*y+1][2*x  ] +
-                    fine.grid.local[2*z+1][2*y+1][2*x+1] );
+                *p_coarse= 1.0 / 8.0 * (
+                    *(p_000+0) + *(p_000+1) +
+                    *(p_010+0) + *(p_010+1) +
+                    *(p_100+0) + *(p_100+1) +
+                    *(p_110+0) + *(p_110+1) );
+
+                p_coarse++;
+                p_000 += 2;
+                p_010 += 2;
+                p_100 += 2;
+                p_110 += 2;
             }
         }
     }
@@ -478,17 +537,31 @@ void scaleup( Level& coarse, Level& fine ) {
 
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
+
+            const size_t x= 0;
+            double* p_coarse= &coarse.grid.local[z][y][x];
+
+            double* p_000= &fine.grid.local[2*z+0][2*y+0][2*x];
+            double* p_010= &fine.grid.local[2*z+0][2*y+1][2*x];
+            double* p_100= &fine.grid.local[2*z+1][2*y+0][2*x];
+            double* p_110= &fine.grid.local[2*z+1][2*y+1][2*x];
+
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
-                double t= coarse.grid.local[z][y][x];
-                fine.grid.local[2*z  ][2*y  ][2*x  ]= t;
-                fine.grid.local[2*z  ][2*y  ][2*x+1]= t;
-                fine.grid.local[2*z  ][2*y+1][2*x  ]= t;
-                fine.grid.local[2*z  ][2*y+1][2*x+1]= t;
-                fine.grid.local[2*z+1][2*y  ][2*x  ]= t;
-                fine.grid.local[2*z+1][2*y  ][2*x+1]= t;
-                fine.grid.local[2*z+1][2*y+1][2*x  ]= t;
-                fine.grid.local[2*z+1][2*y+1][2*x+1]= t;
+                *(p_000+0)= *p_coarse;
+                *(p_000+1)= *p_coarse;
+                *(p_010+0)= *p_coarse;
+                *(p_010+1)= *p_coarse;
+                *(p_100+0)= *p_coarse;
+                *(p_100+1)= *p_coarse;
+                *(p_110+0)= *p_coarse;
+                *(p_110+1)= *p_coarse;
+
+                p_coarse++;
+                p_000 += 2;
+                p_010 += 2;
+                p_100 += 2;
+                p_110 += 2;
             }
         }
     }
@@ -498,7 +571,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
 
 /* the parallel global residual is returned as a return parameter, but only if it is not NULL because then the expensive parallel reduction is just avoided */
-void smoothen( Level& level, double* residual_ret= NULL ) {
+void smoothen( Level& level, uint32_t iter, double* residual_ret= NULL ) {
 
     uint64_t param= level.grid.local.extent(0)*level.grid.local.extent(1)*level.grid.local.extent(2);
     MiniMonT::MiniMonRecord( 0, "smoothen", param );
@@ -530,33 +603,73 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
 
-    for ( size_t z= 1; z < ld-1; z++ ) {
-        for ( size_t y= 1; y < lh-1; y++ ) {
 
-            const size_t x= 1;
-            double* p_here=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x) ];
-            double* p_east=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x+1) ];
-            double* p_west=  &gridlocalbegin[ ( (z)*lh+(y))*lw+(x-1) ];
-            double* p_north= &gridlocalbegin[ ( (z)*lh+(y-1))*lw+(x) ];
-            double* p_south= &gridlocalbegin[ ( (z)*lh+(y+1))*lw+(x) ];
-            double* p_up=    &gridlocalbegin[ ( (z-1)*lh+(y))*lw+(x) ];
-            double* p_down=  &gridlocalbegin[ ( (z+1)*lh+(y))*lw+(x) ];
+    if ( 0 == iter % 2 ) {
 
-            for ( size_t x= 1; x < lw-1; x++ ) {
+        for ( size_t z= 1; z < ld-1; z++ ) {
+            for ( size_t y= 1; y < lh-1; y++ ) {
 
-                double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
-                *p_here += c * dtheta;
-                res= std::max( res, std::fabs( dtheta ) );
-                p_here++;
-                p_east++;
-                p_west++;
-                p_north++;
-                p_south++;
-                p_up++;
-                p_down++;
+                /* this should eventually be done with Alpaka or Kokkos to look
+                much nicer but still be fast */
+
+                const size_t x= 1;
+                double* p_here=  &level.grid.local[z  ][y  ][x  ];
+                double* p_east=  &level.grid.local[z  ][y  ][x+1];
+                double* p_west=  &level.grid.local[z  ][y  ][x-1];
+                double* p_north= &level.grid.local[z  ][y+1][x  ];
+                double* p_south= &level.grid.local[z  ][y-1][x  ];
+                double* p_up=    &level.grid.local[z+1][y  ][x  ];
+                double* p_down=  &level.grid.local[z-1][y  ][x  ];
+
+                for ( size_t x= 1; x < lw-1; x++ ) {
+
+                    double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
+                    *p_here += c * dtheta;
+                    res= std::max( res, std::fabs( dtheta ) );
+                    p_here++;
+                    p_east++;
+                    p_west++;
+                    p_north++;
+                    p_south++;
+                    p_up++;
+                    p_down++;
+                }
+            }
+        }
+    } else {
+        for ( size_t z= ld-2; z >=1; z-- ) {
+            for ( size_t y= lh-2; y >= 1; y-- ) {
+
+                /* this should eventually be done with Alpaka or Kokkos to look
+                much nicer but still be fast */
+
+                const size_t x= lw-2;
+                double* p_here=  &level.grid.local[z  ][y  ][x  ];
+                double* p_east=  &level.grid.local[z  ][y  ][x+1];
+                double* p_west=  &level.grid.local[z  ][y  ][x-1];
+                double* p_north= &level.grid.local[z  ][y+1][x  ];
+                double* p_south= &level.grid.local[z  ][y-1][x  ];
+                double* p_up=    &level.grid.local[z+1][y  ][x  ];
+                double* p_down=  &level.grid.local[z-1][y  ][x  ];
+
+                for ( size_t x= lw-2; x >= 1; x-- ) {
+
+                    double dtheta = ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
+                    *p_here += c * dtheta;
+                    res= std::max( res, std::fabs( dtheta ) );
+                    p_here--;
+                    p_east--;
+                    p_west--;
+                    p_north--;
+                    p_south--;
+                    p_up--;
+                    p_down--;
+                }
             }
         }
     }
+
+
     MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
@@ -584,7 +697,7 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 
         MiniMonT::MiniMonRecord( 0, "smooth_residuals", param );
 
-        static dash::Array<double> residuals( level.grid.team().size(), dash::BLOCKED, level.grid.team() );
+        /*static*/ dash::Array<double> residuals( level.grid.team().size(), dash::BLOCKED, level.grid.team() );
         residuals.local[0]= res;
 
     /*
@@ -621,68 +734,139 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 }
 
 
-void v_cycle( vector<Level*>& levels, double epsilon= 0.01 ) {
+/* recursive version */
+void v_cycle( vector<Level*>::const_iterator it, vector<Level*>::const_iterator itend,
+        uint32_t numiter, double epsilon= 0.01 ) {
 
-    MiniMonT::MiniMonRecord( 0, "v_cycle" );
+    if ( 0 == dash::myid() ) {
+        cout << "v-cycle on  " <<
+                    (*it)->grid.extent(2) << "x" <<
+                    (*it)->grid.extent(1) << "x" <<
+                    (*it)->grid.extent(0) << endl;
+    }
 
-    //writeToCsv( levels[0]->grid );
+    vector<Level*>::const_iterator itnext( it );
+    itnext++;
 
-    for ( size_t i= 1; i < levels.size(); i++ ) {
+    /* reached end of recursion? */
+    if ( itend == itnext ) {
 
-        /* don't care about residual here because it is always called once */
-        smoothen( *levels[i-1], NULL );
+        /* smoothen completely  */
 
-        scaledown( *levels[i-1], *levels[i] );
+        double residual= 1.0+epsilon;
+        uint32_t j= 0;
+        while ( residual > epsilon ) {
 
-        if ( 0 == dash::myid() ) {
-            cout << "smoothen, then scale down " <<
-                levels[i-1]->grid.extent(2) << "x" <<
-                levels[i-1]->grid.extent(1) << "x" <<
-                levels[i-1]->grid.extent(0) <<
+            /* need global residual for iteration count */
+            smoothen( **it, j++, &residual );
+
+            if ( 0 == dash::myid() ) {
+                cout << "v-cycle, smoothen coarsest with residual " << residual << endl;
+            }
+            // writeToCsv( levels.back()->grid );
+        }
+
+        return;
+    }
+
+    /* stepped on the dummy level? ... which is there to signal that it is not
+    the end of the parallel recursion on the coarsest level but a subteam is
+    going on to solve the coarser levels but this unit is not in that subteam.
+    ... sounds complicated, is complicated, change only if you know what you
+    are doing. */
+    if ( NULL == *itnext ) {
+
+        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
+        (*it)->grid.team().barrier();
+
+cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
+        return;
+    }
+
+    /* stepped on a transfer level? */
+    if ( (*it)->grid.team().size() != (*itnext)->grid.team().size() ) {
+
+        /* only the members of the reduced team need to work, all others do siesta. */
+        //if ( 0 == (*itnext)->grid.team().position() )
+        assert( 0 == (*itnext)->grid.team().position() );
+        {
+
+            cout << "transfer to " <<
+                (*it)->grid.extent(2) << "x" <<
+                (*it)->grid.extent(1) << "x" <<
+                (*it)->grid.extent(0) << " with " << (*it)->grid.team().size() << " units "
                 " --> " <<
-                levels[i]->grid.extent(2) << "x" <<
-                levels[i]->grid.extent(1) << "x" <<
-                levels[i]->grid.extent(0) << endl;
+                (*itnext)->grid.extent(2) << "x" <<
+                (*itnext)->grid.extent(1) << "x" <<
+                (*itnext)->grid.extent(0) << " with " << (*itnext)->grid.team().size() << " units " << endl;
+
+            v_cycle( itnext, itend, numiter, epsilon );
+
+
+            cout << "transfer back " <<
+            (*itnext)->grid.extent(2) << "x" <<
+            (*itnext)->grid.extent(1) << "x" <<
+            (*itnext)->grid.extent(0) << " with " << (*itnext)->grid.team().size() << " units "
+            " --> " <<
+            (*it)->grid.extent(2) << "x" <<
+            (*it)->grid.extent(1) << "x" <<
+            (*it)->grid.extent(0) << " with " << (*it)->grid.team().size() << " units " <<  endl;
+
+    /*
+            dash::Team& previousteam= levels.back()->grid.team();
+            dash::Team& currentteam= ( 3 == l ) ? previousteam.split(4) : previousteam;
+    */
         }
 
-        //writeToCsv( levels[i]->grid );
+        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
+        (*it)->grid.team().barrier();
+
+
+cout << "all meet again here: I'm active unit " << dash::myid() << endl;
+        return;
     }
 
-    double residual= 1.0+epsilon;
-    while ( residual > epsilon ) {
 
-        /* need global residual for iteration count */
-        smoothen( *levels.back(), &residual );
+    /* normal recursion */
 
-        if ( 0 == dash::myid() ) {
-            cout << "smoothen coarsest with residual " << residual << endl;
-        }
-        // writeToCsv( levels.back()->grid );
+    /* smoothen somewhat with fixed number of iterations */
+    for ( uint32_t j= 0; j < numiter; j++ ) {
+        smoothen( **it, j, NULL );
     }
 
-    for ( auto i= levels.size()-1; i > 0; i-- ) {
-
-        scaleup( *levels[i], *levels[i-1] );
-
-        /* don't care about residual here because it is always called once */
-        smoothen( *levels[i-1], NULL );
-
-        if ( 0 == dash::myid() ) {
-            cout << "scale up " <<
-                levels[i]->grid.extent(2) << "x" <<
-                levels[i]->grid.extent(1) << "x" <<
-                levels[i]->grid.extent(0) <<
-                " --> " <<
-                levels[i-1]->grid.extent(2) << "x" <<
-                levels[i-1]->grid.extent(1) << "x" <<
-                levels[i-1]->grid.extent(0) <<
-                ", then smoothen" << endl;
-        }
-
-        //writeToCsv( levels[i-1]->grid );
+    /* scale down */
+    if ( 0 == dash::myid() ) {
+        cout << "scale down " <<
+            (*it)->grid.extent(2) << "x" <<
+            (*it)->grid.extent(1) << "x" <<
+            (*it)->grid.extent(0) <<
+            " --> " <<
+            (*itnext)->grid.extent(2) << "x" <<
+            (*itnext)->grid.extent(1) << "x" <<
+            (*itnext)->grid.extent(0) << endl;
     }
+    scaledown( **it, **itnext );
 
-    MiniMonT::MiniMonRecord( 1, "v_cycle" );
+    /* recurse  */
+    v_cycle( itnext, itend, numiter, epsilon );
+
+    /* scale up */
+    if ( 0 == dash::myid() ) {
+        cout << "scale up " <<
+            (*itnext)->grid.extent(2) << "x" <<
+            (*itnext)->grid.extent(1) << "x" <<
+            (*itnext)->grid.extent(0) <<
+            " --> " <<
+            (*it)->grid.extent(2) << "x" <<
+            (*it)->grid.extent(1) << "x" <<
+            (*it)->grid.extent(0) << endl;
+    }
+    scaleup( **itnext, **it );
+
+    /* smoothen somewhat with fixed number of iterations */
+    for ( uint32_t j= 0; j < numiter; j++ ) {
+        smoothen( **it, j, NULL );
+    }
 }
 
 
@@ -691,9 +875,10 @@ void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
     MiniMonT::MiniMonRecord( 0, "smoothfinal" );
 
     double residual= 1.0+epsilon;
+    uint32_t j= 0;
     while ( residual > epsilon ) {
 
-        smoothen( *levels.front(), &residual );
+        smoothen( *levels.front(), j++, &residual );
 
         if ( 0 == dash::myid() ) {
             cout << "smoothen finest with residual " << residual << endl;
@@ -735,7 +920,30 @@ int main( int argc, char* argv[] ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    constexpr uint32_t howmanylevels= 8;
+    uint32_t howmanylevels= 5;
+
+    if ( argc > 1 ) {
+
+        if ( 0 == strncmp( "-h", argv[1], 2  ) ||
+                0 == strncmp( "--help", argv[1], 6 ) ) {
+
+            if ( 0 == dash::myid() ) {
+
+                cout << "call me as [mpirun] '" << argv[0] << "' [-h|--help] [number-of-levels=5]" << endl;
+            }
+            exit(0);
+
+        } else {
+
+            /* otherwise interpret as number of grid levels to employ */
+            howmanylevels= atoi( argv[1] );
+        }
+    }
+
+    assert( howmanylevels > 2 );
+    assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
+
+
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
@@ -743,60 +951,159 @@ int main( int argc, char* argv[] ) {
     resolutionForCSVh= ( 1<<5 ) * factor_y;
     resolutionForCSVw= ( 1<<5 ) * factor_x;
 
-    /* create all grid levels, starting with the finest and ending with 2x2 */
-    for ( uint32_t l= 0; l < howmanylevels-0; l++ ) {
+    if ( 0 == dash::myid() ) {
 
-        if ( 0 == dash::myid() ) {
-            cout << "level " << l << " is " <<
-                (1<<(howmanylevels-l))*factor_z << "x" <<
-                (1<<(howmanylevels-l))*factor_y << "x" <<
-                (1<<(howmanylevels-l))*factor_x << endl;
-        }
-
-        /* do not try to allocate >= 8GB per core -- try to prevent myself
-        from running too big a simulation on my laptop */
-        assert( (1<<(howmanylevels-l))*factor_z *
-            (1<<(howmanylevels-l))*factor_y *
-            (1<<(howmanylevels-l))*factor_x < dash::Team::All().size() * (1<<27) );
-
-        levels.push_back(
-            new Level( (1<<(howmanylevels-l))*factor_z ,
-                        (1<<(howmanylevels-l))*factor_y ,
-                        (1<<(howmanylevels-l))*factor_x ,
-            dash::Team::All(), teamspec ) );
-
-        dash::barrier();
-        /*
-        cout << "unit " << dash::myid() << " : " <<
-            levels.back()->grid.local.extent(1) << " x " <<
-            levels.back()->grid.local.extent(0) << endl;
-        dash::barrier();
-        */
-
-        if ( 0 == l ) {
-            sanitycheck( levels[0]->grid );
-        }
-
-        /* disabled for now */
-        initboundary( *levels[l] );
+        cout << "run '" << argv[0] << "' with " << dash::Team::All().size() << " units "
+            "for with grids from " <<
+            factor_z << "x" <<
+            factor_y << "x" <<
+            factor_x <<
+            " to " <<
+            (1<<(howmanylevels))*factor_z << "x" <<
+            (1<<(howmanylevels))*factor_y << "x" <<
+            (1<<(howmanylevels))*factor_x <<
+            endl << endl;
     }
 
-    dash::barrier();
+    /* create all grid levels, starting with the finest and ending with 2x2,
+    The finest level is outside the loop because it is always done by dash::Team::All() */
+
+    if ( 0 == dash::myid() ) {
+        cout << "finest level: " <<
+            (1<<(howmanylevels))*factor_z << "x" <<
+            (1<<(howmanylevels))*factor_y << "x" <<
+            (1<<(howmanylevels))*factor_x << endl;
+    }
+
+    levels.push_back( new Level(
+        (1<<(howmanylevels))*factor_z ,
+        (1<<(howmanylevels))*factor_y ,
+        (1<<(howmanylevels))*factor_x ,
+        dash::Team::All(), teamspec ) );
+
+    initboundary( *levels.back() );
+
+    sanitycheck( levels.back()->grid );
+
+
+    dash::Team::All().barrier();
+
+
+    for ( uint32_t l= 1; l < howmanylevels; l++ ) {
+
+
+        /*
+        DART_LOCALITY_SCOPE_NODE
+        DART_LOCALITY_SCOPE_MODULE
+        DART_LOCALITY_SCOPE_NUMA
+        DART_LOCALITY_SCOPE_CORE
+        auto & split_team = dash::Team::All().locality_split( DART_LOCALITY_SCOPE_CORE, 2 );
+        */
+
+        dash::Team& previousteam= levels.back()->grid.team();
+        dash::Team& currentteam= ( 3 == l ) ? previousteam.split(4) : previousteam;
+
+        TeamSpecT localteamspec( currentteam.size(), 1, 1 );
+        localteamspec.balance_extents();
+
+        if ( 0 == currentteam.position() ) {
+
+            if ( previousteam.size() != currentteam.size() ) {
+
+                /* the team working on the following grid layers has just
+                been reduced. Therefore, we add an additional grid with the
+                same size as the previous one but for the reduced team. Then,
+                copying the data from the domain of the larger team to the
+                domain of the smaller team is easy. */
+
+                if ( 0 == currentteam.myid() ) {
+                    cout << "transfer level " << l-1 << " is " <<
+                        (1<<(howmanylevels-l+1))*factor_z << "x" <<
+                        (1<<(howmanylevels-l+1))*factor_y << "x" <<
+                        (1<<(howmanylevels-l+1))*factor_x <<
+                        " distributed over " << currentteam.size() << " units " << endl;
+                }
+
+                levels.push_back(
+                    new Level( (1<<(howmanylevels-l+1))*factor_z ,
+                                (1<<(howmanylevels-l+1))*factor_y ,
+                                (1<<(howmanylevels-l+1))*factor_x ,
+                    currentteam, localteamspec ) );
+            }
+
+            /*
+            cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
+            */
+
+            if ( 0 == currentteam.myid() ) {
+                cout << "compute level " << l << " is " <<
+                    (1<<(howmanylevels-l))*factor_z << "x" <<
+                    (1<<(howmanylevels-l))*factor_y << "x" <<
+                    (1<<(howmanylevels-l))*factor_x <<
+                    " distributed over " << currentteam.size() << " units " << endl;
+            }
+
+            /* do not try to allocate >= 8GB per core -- try to prevent myself
+            from running too big a simulation on my laptop */
+            assert( (1<<(howmanylevels-l))*factor_z *
+                (1<<(howmanylevels-l))*factor_y *
+                (1<<(howmanylevels-l))*factor_x < currentteam.size() * (1<<27) );
+
+            levels.push_back(
+                new Level( (1<<(howmanylevels-l))*factor_z ,
+                            (1<<(howmanylevels-l))*factor_y ,
+                            (1<<(howmanylevels-l))*factor_x ,
+                currentteam, localteamspec ) );
+
+            currentteam.barrier();
+
+            /*
+            cout << "unit " << dash::myid() << " : " <<
+                levels.back()->grid.local.extent(1) << " x " <<
+                levels.back()->grid.local.extent(0) << endl;
+            dash::barrier();
+            */
+
+            initboundary( *levels.back() );
+
+        } else {
+
+            /*
+            cout << "waiting unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
+            */
+
+            /* this is a passive unit not takin part in the subteam that
+            handles the coarser grids. insert a dummy entry in the vector
+            of levels to signal that this is not the coarsest level globally. */
+            levels.push_back( NULL );
+
+            break;
+        }
+    }
+
+    /* here all units and all teams meet again, those that were active for the coarsest
+    levels and those that were dormant */
+    dash::Team::All().barrier();
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
-    but we do it for demonstration in the PNG images */
-    initgrid( levels[0]->grid );
+    but we do it for demonstration in the graphical output */
+    initgrid( levels.front()->grid );
+
     //markunits( levels[0]->grid );
 
     //writeToCsv( levels[0]->grid );
 
-    dash::barrier();
+    dash::Team::All().barrier();
+
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels, 0.02 );
-    smoothen_final( levels, 0.1 );
+    v_cycle( levels.begin(), levels.end(), 6, 0.0001 );
+    dash::Team::All().barrier();
+    smoothen_final( levels, 0.01 );
 
-    writeToCsv( levels[0]->grid );
+    dash::Team::All().barrier();
+
+    writeToCsv( levels.front()->grid );
 
     MiniMonT::MiniMonRecord( 0, "dash::finalize" );
     dash::finalize();
