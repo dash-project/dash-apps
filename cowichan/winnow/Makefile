@@ -1,14 +1,13 @@
 include ../make.defs
 
-.phony: all
+.PHONY: all
 all: winnow
-
-winnow: winnow.cpp
-	$(CXX) -c $(INC) $?
+	
+winnow: winnow.cpp winnow.h ../Terminal_Color.h
+	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 
-
-.phony: printenv
+.PHONY: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
@@ -16,7 +15,8 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
-	rm -f winnow
-	rm -f winnow.o
+	-rm winnow
+	-rm winnow.o
+

@@ -1,14 +1,14 @@
 include ../make.defs
 
-.phony: all
+.PHONY: all
 all: product
 
-product:  product.cpp
-	$(CXX) -c $(INC) $?
+product: product.cpp product.h
+	$(CXX) -c $(INC) $<
 	$(CXX) -o $@ $@.o $(LIB) 
 
 
-.phony: printenv
+.PHONY: printenv
 printenv :
 	@echo "CXX           = $(CXX)"
 	@echo "DART_IMPL     = $(DART_IMPL)"
@@ -16,7 +16,7 @@ printenv :
 	@echo "INC           = $(INC)"
 	@echo "LIB           = $(LIB)"
 
-.phony: clean
+.PHONY: clean
 clean:
-	rm -f product
-	rm -f product.o
+	-rm product
+	-rm product.o

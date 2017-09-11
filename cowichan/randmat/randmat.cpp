@@ -3,80 +3,107 @@
 
 using std::cout;
 using std::endl;
+using std::cin;
 
+using dash::Shared;
 
-template< typename T >
-void print2d( T& mat ) {
-  for( int i = 0; i < mat.extent(0); i++ ) {
-    for( int j = 0; j < mat.extent(1); j++ ) {
-      cout << std::setw(3) << static_cast<uint>( mat(i,j) )<< " ";
-    }
-    cout << endl;
+using uint     = unsigned int ;
+using uchar    = unsigned char;
+using MATRIX_T = uchar        ;
+
+struct InputPar { uint nrows, ncols, s; } in;
+static int myid;
+
+#include "randmat.h"
+#include <time.h>
+#include <stdio.h>
+/* 
+ * One unit has the job to read in the parameters.
+ * Because there's always a unit0, it reads the input parameter and
+ * distributes them to the rest of the units.
+ */
+inline void ReadPars()
+{
+  Shared<InputPar> input_transfer;
+  
+  if(0 == myid)
+  {
+    cin >> in.nrows;    
+    cin >> in.ncols;
+    cin >> in.s    ;
+    
+    input_transfer.set(in);
   }
+  input_transfer.barrier();
+  in = input_transfer.get();
 }
 
-//
-// The Cowichan problems require that the output is independent of the
-// numbers of processors used. For randmat() a common solution found
-// in other implementations is to use a simple linear congruential
-// random number generator (LCG) with a separate deterministic seed
-// for each row and to parallelize over the rows of the matrix. This
-// is also how the DASH solution below works.
-//
-// A potential alternative would be to use a counter-based random
-// number generation scheme (e.g. random123) that can be easily
-// parallelized.
-//
 
-template< typename T >
-void randmat( dash::NArray<T, 2>& mat, uint seed )
+/* 
+ * This function prints the content of a 2D matrix to std::out.
+ * Datatypes are casted to <const uint> for readable output
+ * (otherwise uchars would be printed as chars and not as numerics)
+ */ 
+template< typename T = MATRIX_T >
+inline void Print2D( NArray< T, 2 > const & mat )
 {
-  const int LCG_A = 1664525, LCG_C = 1013904223;
-
-  int nrows = mat.local.extent( 0 ); // num of local rows
-  int ncols = mat.local.extent( 1 ); // num of local cols
-
-  auto gc   = mat.pattern( ).global( {0,0} );
-  uint gbeg = gc[0];  // global row of local (0,0)
-
-  if( 0 < mat.local_size( ) ){
-    for( uint i = 0; i < nrows; ++i ) {
-      uint s = seed + gbeg + i;
-
-      for( int j = 0; j < ncols; ++j ) {
-        s = LCG_A * s + LCG_C;
-        mat.lbegin( )[i*ncols + j] = ( (unsigned)s ) % 100;
+  if(0==myid){
+    for( int i = 0; i < mat.extent(0); i++ ) {
+      for( int j = 0; j < mat.extent(1); j++ ) {
+        cout << std::setw(3) << static_cast<const uint>( mat(i,j) )<< " ";
       }
-    }
+      cout << endl;
+    } cout << endl;
   }
 }
 
 
 int main( int argc, char* argv[] )
 {
-  typedef unsigned int uint;
-
   dash::init( &argc,&argv );
 
-  auto myid = dash::myid( );
+  struct timespec start, stop;
+  double accum;
+  int is_bench = 0;
+  
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--is_bench")) {
+      is_bench = 1;
+    }
+  }
+  
+  myid = dash::myid( );
+  ReadPars( );
 
-  if( argc != 4 ) {
-    if( 0 == myid )    cout << "3 Parameters expected!" << endl
-		      << "Usage: cowichan_randmat nrows ncols seed" << endl;
-    dash::finalize( );
-    return 0;
+  NArray<MATRIX_T, 2> rand_mat ( in.nrows, in.ncols );
+
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &start) == -1 ) {
+    perror( "clock gettime error 1" );
+    exit( EXIT_FAILURE );
+  }
+  
+  Randmat( rand_mat, in.s );
+  
+  if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
+    perror( "clock gettime error 2" );
+    exit( EXIT_FAILURE );
+  }
+  
+  accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
+  
+  
+  if( 0 == myid ){
+    FILE* fp = fopen("./measurements.txt", "a");
+    
+    if( !fp ) {
+        perror("File opening for benchmark results failed");
+        return EXIT_FAILURE;
+    }
+    // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
+    fprintf( fp, "DASH  ,Randmat,%5u,%5u,   ,     ,%2u,%.9lf,isBench:%d\n", in.nrows, in.ncols, dash::Team::All().size(), accum, is_bench );
+    fclose ( fp );
   }
 
-  uint nrows = static_cast<uint>( atoi( argv[1] ) );
-  uint ncols = static_cast<uint>( atoi( argv[2] ) );
-  uint s     = static_cast<uint>( atoi( argv[3] ) );
-
-  dash::NArray<unsigned char, 2> mat( nrows, ncols );
-
-  randmat( mat, s );
-
-  dash::barrier( );
-  if( myid==0 ) print2d( mat );
-
+  if (!is_bench) { Print2D( rand_mat ); }
   dash::finalize( );
 }

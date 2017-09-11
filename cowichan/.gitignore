@@ -4,5 +4,13 @@
 */winnow
 */outer
 */product
+*/chain
+**/main
+/run_results/
+/error.log
+/tests/
+/*_hard_in
+*_in
+measurements.txt
 
 

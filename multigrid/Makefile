@@ -15,9 +15,9 @@ multigrid2d+minimon:  multigrid2d+minimon.cpp minimonitoring.h
 		$(CXX) -c $(INC) `libpng-config --cflags` $?
 		$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
 
-multigrid3d: multigrid3d.cpp
-	$(CXX) -c $(INC) `libpng-config --cflags` $?
-	$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags`
+multigrid3d: multigrid3d.cpp minimonitoring.h
+	$(CXX) -march=native -c $(INC) `libpng-config --cflags` $?
+	$(CXX) -march=native -o $@ $@.o $(LIB) `libpng-config --ldflags`  -lrt -lnuma
 
 heat_equation2d:  heat_equation2d.cpp
 	$(CXX) -c $(INC) $?
@@ -37,4 +37,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon halo_heat_eqn *.o *.png *.csv.*
+	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon halo_heat_eqn *.o *.png *.csv.* *.gch
