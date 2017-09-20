@@ -190,6 +190,39 @@ void setboundary( Level& level ) {
     });
 }
 
+void scaleDownBoundary( Level& fine, Level& coarse) {
+
+    /* do initialization only from unit 0 with global accesses.
+    This is not the fastest way and a parallel routine would not be too
+    complicated but it should demonstrate the possibility to trade
+    convenience against performance. */
+
+
+    coarse.halo.setFixedHalos([&coarse, &fine](const std::array<dash::default_index_t,2>& coords) {
+      size_t w= coarse.grid.extent(1);
+      size_t h= coarse.grid.extent(0);
+      auto coords_fine = coords;
+      for(auto& coord : coords_fine) {
+        if(coord > 0)
+          coord *= 2;
+      }
+
+      auto* element_center = fine.halo.haloElementAt(coords_fine);
+      assert(element_center != nullptr);
+
+      auto coords_fine_next = coords_fine;
+      if (coords[0] == -1 || coords[0] == h)
+        coords_fine[1] += 1;
+      else
+        coords_fine[0] += 1;
+
+      auto* element_next = fine.halo.haloElementAt(coords_fine);
+      assert(element_next != nullptr);
+
+      return (*element_center + *element_next) / 2;
+    });
+}
+
 void scaledown( Level& fine, Level& coarse ) {
 
     assert( (coarse.grid.extent(1))*2 == fine.grid.extent(1) );
@@ -311,6 +344,7 @@ double smoothen( Level& level ) {
     auto gridlocalbegin = level.grid.lbegin();
 
     // async halo update
+    //dash::barrier();
     level.halo.updateHalosAsync();
 
     // update inner
@@ -361,19 +395,23 @@ double smoothen( Level& level ) {
 
     residuals.barrier();
 
-    if ( 0 != dash::myid() ) {
+    double resid_max = 0.0;
+    if(0 == dash::myid()) {
+      for(const double& residual : residuals)
+        resid_max = std::max(resid_max, residual);
+    }
+
+    /*if ( 0 != dash::myid() ) {
 
         dash::transform<double>(
             residuals.lbegin(), residuals.lend(), // first source
             residuals.begin(), // second source
             residuals.begin(), // destination
             dash::max<double>() );
-    }
+    }*/
+    //residuals.barrier();
 
-    residuals.barrier();
-
-    /* only unit 0 returns global residual */
-    return residuals.local[0];
+    return resid_max;
 }
 
 
@@ -458,10 +496,14 @@ int main( int argc, char* argv[] ) {
         dash::barrier();
 
 
-        if ( 0 == l )
+        if ( 0 == l ) {
             sanitycheck( levels[0]->grid );
+            setboundary( *levels[l] );
+            continue;
+        }
 
-        setboundary( *levels[l] );
+        scaleDownBoundary(*levels[l-1], *levels[l]);
+
     }
 
     dash::barrier();
@@ -473,6 +515,7 @@ int main( int argc, char* argv[] ) {
     dash::barrier();
     v_cycle( levels, 10 );
 
+    dash::barrier();
     double res= smoothen( *levels.front() );
     if ( 0 == dash::myid() ) {
         cout << "final residual " << res << endl;
