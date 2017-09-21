@@ -25,38 +25,34 @@ inline void Outer(
   Array < double     >       & vec   ,
                   uint         nelts )
 {
-   // comment grow, end i and j!!!
+   /* "gRow" represents the global row number of the local matrix data
+    * the first local row has the initial global row number of "gRow"
+    * "end" holds the global row number exakt one past the last row 
+    * number which is local at this unit.
+    * "matP" will be used to linear iterate over the local data
+    * "matBegin" will be used to access local data via []operator
+    */
    auto gRow =        matOut.pattern().global({0,0})[0];
    auto end  = gRow + matOut.pattern().local_extents()[0];
 
    double nmax;
    value zero = {0,0};
-   // zero.row = 0;
-   // zero.col = 0;
+   
    auto matBegin = matOut.lbegin();
-
    auto matP = matOut.lbegin();
-   decltype(gRow) c = 0;
 
-   cout << "gRow:" << gRow << "\nend:" << end << "\n";
 
    for( decltype(gRow) i = 0; gRow < end; ++gRow, ++i ) {
 
     nmax = 0;
 
-    for( uint j = 0; j < nelts; ++j ) {
+    for( decltype(gRow) j = 0; j < nelts; ++j,++matP ) {
       if( gRow != j) {
-        //matOut.local[i][j] = distance(points[gRow], points[j]);
         *matP = distance(points[gRow], points[j]);
-
-        nmax = max( nmax, *matP );
+        nmax  = max( nmax, *matP );
       }
-      ++matP;
-      ++c;
     }
 
-    //matOut.local[i][gRow] = nelts * nmax;
-    //if(c >= 100000000) {cout << "made it\n";c=0;}
     matBegin[i*nelts+gRow] = nelts * nmax;
     vec.local[i] = distance( zero, points[gRow] );
   }
