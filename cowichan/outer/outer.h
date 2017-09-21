@@ -26,40 +26,41 @@ inline void Outer(
                   uint         nelts )
 {
    // comment grow, end i and j!!!
-   uint gRow =        matOut.pattern().global({0,0})[0];
-   uint end  = gRow + matOut.pattern().local_extents()[0];
+   auto gRow =        matOut.pattern().global({0,0})[0];
+   auto end  = gRow + matOut.pattern().local_extents()[0];
+
    double nmax;
    value zero = {0,0};
    // zero.row = 0;
    // zero.col = 0;
-   double * matP;
-   double * matBegin = matOut.lbegin();
+   auto matBegin = matOut.lbegin();
 
-   matP = matOut.lbegin();
-   uint c = 0;
-   
+   auto matP = matOut.lbegin();
+   decltype(gRow) c = 0;
+
    cout << "gRow:" << gRow << "\nend:" << end << "\n";
-   
-   for( uint i = 0; gRow < end; ++gRow, ++i ) {
-     
+
+   for( decltype(gRow) i = 0; gRow < end; ++gRow, ++i ) {
+
     nmax = 0;
-    
+
     for( uint j = 0; j < nelts; ++j ) {
       if( gRow != j) {
         //matOut.local[i][j] = distance(points[gRow], points[j]);
         *matP = distance(points[gRow], points[j]);
-        
+
         nmax = max( nmax, *matP );
       }
       ++matP;
       ++c;
     }
+
     //matOut.local[i][gRow] = nelts * nmax;
     //if(c >= 100000000) {cout << "made it\n";c=0;}
     matBegin[i*nelts+gRow] = nelts * nmax;
     vec.local[i] = distance( zero, points[gRow] );
   }
-  
+
   barrier( );
 }
 
@@ -68,11 +69,11 @@ template<typename T>
 inline void BroadcastPointsToUnits( vector<T> & points )
 {
   dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( points.data() ),  // buf 
+                      static_cast<void*>( points.data() ),  // buf
                       points.size( ) * sizeof(T)         ,  // nelts
                       DART_TYPE_BYTE                     ,  // dtype
                       dash::team_unit_t(0)               ,  // root
                       dash::Team::All( ).dart_id( )      ); // team
-                      
-  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl; 
+
+  if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl;
 }
