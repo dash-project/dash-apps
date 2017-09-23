@@ -3,10 +3,13 @@ project(pattern-visualizer)
 
 ## Adjust to your needs
 
+## Copy webserver stuff
+file(COPY frontend DESTINATION .)
+
 ## DART Implementation
 set(DASH_DART_IMPL "MPI")
 ## Project Sources
-set(SOURCES "main")
+set(SOURCES "src/main")
 
 set(CXX_FLAGS "-O3 -Ofast")
 

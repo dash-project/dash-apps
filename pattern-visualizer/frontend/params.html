@@ -3,22 +3,20 @@
 <head>
 <title>Flexible Parameters</title>
 <meta charset="UTF-8" />
-<link rel="stylesheet" href="flexibleParams.css" type="text/css">
+<link rel="stylesheet" href="flexibleParams/flexibleParams.css" type="text/css">
 </head>
 <body>
 <form id="container" action="pattern.php" method="GET">
 <input type="submit" value="Abschicken" /><br />
 </form>
-<script type="text/javascript" src="logrange.js"></script>
-<script type="text/javascript" src="flexibleParams.js"></script>
-<script type="text/javascript" src="flexibleParams_examples.js"></script>
+<script type="text/javascript" src="flexibleParams/logrange.js"></script>
+<script type="text/javascript" src="flexibleParams/flexibleParams.js"></script>
+<script type="text/javascript" src="tmpParams.js"></script>
 <script type="text/javascript">
-var params;
-param = ex01;
-//param = ex02;
+//param = ex01; // todo
 
 if(history.state != null) {
-    param = history.state;
+  param = history.state;
 }
 
 var root = flexibleParams.createParam(param);
