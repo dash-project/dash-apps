@@ -3,8 +3,11 @@ project(pattern-visualizer)
 
 ## Adjust to your needs
 
-## Copy webserver stuff
-file(COPY frontend DESTINATION .)
+set(INSTALL_PREFIX "$ENV{HOME}/public_html/${PROJECT_NAME}"
+    CACHE STRING "Installation path")
+
+## Install path
+set(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX})
 
 ## DART Implementation
 set(DASH_DART_IMPL "MPI")
@@ -40,6 +43,19 @@ string(TOLOWER ${DASH_DART_IMPL} DASH_DART_IMPL_LC)
 ## set dependencies and build options
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${DASH_LIBRARIES})
+
+## Install
+file(COPY htdocs DESTINATION .)
+add_custom_command(
+  TARGET ${PROJECT_NAME}
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_BINARY_DIR}/htdocs/
+)
+
+install(DIRECTORY htdocs/
+        DESTINATION .)
+install(TARGETS ${PROJECT_NAME}
+        DESTINATION .)
 
 ## Print summary
 message("Sources:         ${SOURCES}")
