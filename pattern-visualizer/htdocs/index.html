@@ -1,28 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Flexible Parameters</title>
+<title>Pattern Visualizer</title>
 <meta charset="UTF-8" />
 <link rel="stylesheet" href="flexibleParams/flexibleParams.css" type="text/css">
 </head>
 <body>
-<form id="container" action="pattern.php" method="GET">
+<div>
+<form id="params" action="pattern.php" method="GET">
 <input type="submit" value="Abschicken" /><br />
 </form>
+<div class="flexibleParams_end" style="clear: both"></div>
+</div>
+<div id="result"></div>
 <script type="text/javascript" src="flexibleParams/logrange.js"></script>
 <script type="text/javascript" src="flexibleParams/flexibleParams.js"></script>
-<script type="text/javascript" src="tmpParams.js"></script>
+<script type="text/javascript" src="params.js"></script>
 <script type="text/javascript">
-//param = ex01; // todo
-
-if(history.state != null) {
-  param = history.state;
-}
-
-var root = flexibleParams.createParam(param);
-document.getElementById("container").appendChild(root);
-
-window.addEventListener("beforeunload",function(e) { flexibleParams.storeParamValues(param,root,true,true); history.replaceState(param,"") });
+loadParams();
 </script>
 </body>
 </html>
