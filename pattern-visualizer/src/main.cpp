@@ -12,7 +12,8 @@
 #include <cstddef>
 #include <cmath>
 
-#include <libdash.h>
+#include <dash/Pattern.h>
+#include <dash/algorithm/SUMMA.h>
 
 #include <dash/tools/PatternVisualizer.h>
 
