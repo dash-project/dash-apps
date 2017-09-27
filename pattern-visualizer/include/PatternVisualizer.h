@@ -157,7 +157,9 @@ public:
     replace_all(title, ">", "&gt;");
 
     os << "<svg xmlns=\"http://www.w3.org/2000/svg\"";
-    os << " xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n";
+    os << " xmlns:xlink=\"http://www.w3.org/1999/xlink\"";
+    os << " width=\""  << sz.grid_width * sz.gridx + 2*sz.grid_base + 2*24 + 100 << "\"";
+    os << " height=\"" << sz.grid_height * sz.gridy + 2*sz.grid_base + 2*44 + 0 <<"\">\n";
 
     // typeset title line
     os << "<text x=\"10\" y=\"15\" ";
