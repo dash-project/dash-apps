@@ -11,7 +11,7 @@ function sendPOST() {
     var parser = new DOMParser();
     var result = parser.parseFromString(svgText,"image/svg+xml");
     console.log(result);
-    displayResult(result.activeElement);
+    displayResult(result.documentElement);
   });
   req.addEventListener("error", function(e) {
     var errorMsg = "Error loading visualized pattern, try again";
