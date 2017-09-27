@@ -15,7 +15,7 @@
 #include <dash/Pattern.h>
 #include <dash/algorithm/SUMMA.h>
 
-#include <dash/tools/PatternVisualizer.h>
+#include <PatternVisualizer.h>
 
 #include <dash/util/PatternMetrics.h>
 
