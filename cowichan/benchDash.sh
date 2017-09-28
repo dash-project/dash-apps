@@ -18,12 +18,11 @@ BCOLORS=('\033[0;41m' '\033[0;42m' '\033[0;43m' '\033[0;44m' '\033[0;45m' '\033[
 lP=(randmat thresh winnow outer product chain)
 lI=(randmat_in thresh_in winnow_in outProd_in outProd_in)
 
-#if [[ $CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;
-if [[ $CC == *gcc ]] ; then module swap gnu intel &> /dev/null; fi;
+if [[ $CC == *icc ]] ; then module swap intel gnu &> /dev/null; fi;
 
 echo $nRowsCols $nRowsCols $thresh > thresh_in
 echo $nRowsCols $nRowsCols $winnowNelts $thresh > winnow_in
-echo $winnowNelts > outProd_in
+echo $nRowsCols > outProd_in
 
 for (( IX=$probIxStart ; IX<=$probIxEnd ; ++IX )); do
  

@@ -52,7 +52,7 @@ printenv:
 ####################   <Top Level Targets>   ####################
 .PHONY: all clean all-clean
 #### ------------------------------------------------------------
-all: dash-intel go chpl cilk tbb
+all: dash-gnu go chpl cilk tbb
 
 clean: dash-clean go-clean chpl-clean cilk-clean tbb-clean run-clean
 all-clean: clean
