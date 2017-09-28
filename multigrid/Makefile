@@ -19,6 +19,10 @@ multigrid3d: multigrid3d.cpp minimonitoring.h
 	$(CXX) -march=native -c $(INC) $?
 	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
 
+multigrid3d_elastic: multigrid3d_elastic.cpp minimonitoring.h
+	$(CXX) -march=native -c $(INC) $?
+	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+
 heat_equation2d:  heat_equation2d.cpp
 	$(CXX) -c $(INC) $?
 	$(CXX) -o $@ $@.o $(LIB) -lhwloc -lnuma
