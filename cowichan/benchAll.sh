@@ -5,20 +5,61 @@ probIxStart=0
 probIxEnd=5
 jobsStart=1
 jobsEnd=24
-numberOfIterations=5
+numberOfIterations=10
 nRowsCols=(100 400 4000 40000)
 thresh=(10 25 50 75 100)
 winnowNelts=(100 400 4000 40000)
 
 
-for (( nRowsColsIX=0 ; nRowsColsIX<4 ; ++nRowsColsIX )); do
-  for (( threshIX=0 ; threshIX<5 ; ++threshIX )); do
-    for (( winnowNeltsIX=0 ; winnowNeltsIX<4 ; ++winnowNeltsIX )); do
-      ./benchDash.sh $probIxStart $probIxEnd $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
-      ./benchTBB.sh $probIxStart $probIxEnd $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
-      ./benchChapel.sh $probIxStart $probIxEnd $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
-      ./benchCilk.sh $probIxStart $probIxEnd $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
-      ./benchGo.sh $probIxStart $probIxEnd $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
-    done
-  done
+# #bench winnows and chains
+# for (( nRowsColsIX=3 ; nRowsColsIX<4 ; ++nRowsColsIX )); do
+  # for (( threshIX=3 ; threshIX<5 ; ++threshIX )); do
+    # for (( winnowNeltsIX=0 ; winnowNeltsIX<4 ; ++winnowNeltsIX )); do
+      # #bench winnows
+      # ./benchDash.sh 2 2 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchTBB.sh 2 2 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchChapel.sh 2 2 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchCilk.sh 2 2 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchGo.sh 2 2 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # #bench chains
+      # ./benchDash.sh 5 5 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchTBB.sh 5 5 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchChapel.sh 5 5 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchCilk.sh 5 5 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+      # ./benchGo.sh 5 5 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} ${winnowNelts[$winnowNeltsIX]}
+    # done
+  # done
+# done
+
+
+# #bench randmats
+# for (( nRowsColsIX=2 ; nRowsColsIX<4 ; ++nRowsColsIX )); do
+  # ./benchDash.sh 0 0 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} 0 0
+  # ./benchTBB.sh 0 0 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} 0 0
+  # ./benchChapel.sh 0 0 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} 0 0
+  # ./benchCilk.sh 0 0 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} 0 0
+  # ./benchGo.sh 0 0 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} 0 0
+# done
+
+# #bench threshs
+# tmp=2
+# for (( nRowsColsIX=2 ; nRowsColsIX<4 ; ++nRowsColsIX )); do
+  # for (( threshIX=tmp ; threshIX<5 ; ++threshIX )); do
+  # tmp=0
+    # ./benchDash.sh 1 1 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} 0
+    # ./benchTBB.sh 1 1 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} 0
+    # ./benchChapel.sh 1 1 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} 0
+    # ./benchCilk.sh 1 1 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} 0
+    # ./benchGo.sh 1 1 $jobsStart $jobsEnd $numberOfIterations ${nRowsCols[$nRowsColsIX]} ${thresh[$threshIX]} 0
+  # done
+# done
+
+
+#bench outers and products
+for (( winnowNeltsIX=0 ; winnowNeltsIX<4 ; ++winnowNeltsIX )); do
+    ./benchDash.sh 3 4 $jobsStart $jobsEnd $numberOfIterations 0 0 ${winnowNelts[$winnowNeltsIX]}
+    ./benchTBB.sh 3 4 $jobsStart $jobsEnd $numberOfIterations 0 0 ${winnowNelts[$winnowNeltsIX]}
+    ./benchChapel.sh 3 4 $jobsStart $jobsEnd $numberOfIterations 0 0 ${winnowNelts[$winnowNeltsIX]}
+    ./benchCilk.sh 3 4 $jobsStart $jobsEnd $numberOfIterations 0 0 ${winnowNelts[$winnowNeltsIX]}
+    ./benchGo.sh 3 4 $jobsStart $jobsEnd $numberOfIterations 0 0 ${winnowNelts[$winnowNeltsIX]}
 done
