@@ -74,7 +74,6 @@ size_t resolutionForCSVd= 0;
 size_t resolutionForCSVh= 0;
 size_t resolutionForCSVw= 0;
 
-
 /* write out the current state of the given grid as CSV so that Paraview can
 read and visualize it as a structured grid. Use a fixed size for the grid as
 defined by the previous three global variables. So an animations of the
@@ -356,74 +355,77 @@ void markunits( MatrixT& grid ) {
 
     for ( size_t i = 0; i < d; ++i ) {
         for ( size_t j = 0; j < h; ++j ) {
-            grid.local[i][j][0] = 9.0;
+            grid.local[i][j][0] = 1.0;
         }
     }
 
     for ( size_t i = 0; i < d; ++i ) {
         for ( size_t k = 0; k < w; ++k ) {
-            grid.local[i][0][k] = 9.0;
+            grid.local[i][0][k] = 1.0;
         }
     }
 
     for ( size_t j = 0; j < h; ++j ) {
         for ( size_t k = 0; k < w; ++k ) {
-            grid.local[0][j][k] = 9.0;
+            grid.local[0][j][k] = 1.0;
         }
     }
 
 }
 
-#if 0
 
 /* currently not needed */
-void scaledownboundary( const MatrixT& fine, MatrixT& coarse ) {
+void scaledownboundary( Level& fine, Level& coarse ) {
 
-    assert( (coarse.extent(2)-2)*2 +2 == fine.extent(2) );
-    assert( (coarse.extent(1)-2)*2 +2 == fine.extent(1) );
-    assert( (coarse.extent(0)-2)*2 +2 == fine.extent(0) );
+    assert( coarse.grid.extent(2)*2 == fine.grid.extent(2) );
+    assert( coarse.grid.extent(1)*2 == fine.grid.extent(1) );
+    assert( coarse.grid.extent(0)*2 == fine.grid.extent(0) );
 
-    size_t wc= coarse.local.extent(2);
-    size_t hc= coarse.local.extent(1);
-    size_t dc= coarse.local.extent(0);
-    size_t wf= fine.local.extent(2);
-    size_t hf= fine.local.extent(1);
-    size_t df= fine.local.extent(0);
-    std::array< long int, 3 > cornerc= coarse.pattern().global( {0,0,0} );
+    size_t wc= coarse.grid.local.extent(2);
+    size_t hc= coarse.grid.local.extent(1);
+    size_t dc= coarse.grid.local.extent(0);
+    size_t wf= fine.grid.local.extent(2);
+    size_t hf= fine.grid.local.extent(1);
+    size_t df= fine.grid.local.extent(0);
 
-    size_t startx= ( 0 == cornerc[1] ) ? 1 : 0;
-    if ( 0 == cornerc[0] ) {
+    coarse.halo.setFixedHalos( [&fine,&coarse]( const std::array<dash::default_index_t,3>& coord ) {
 
-        /* if boundary in front */
-        for ( size_t x= 0; x < wc-1; x++ ) {
-            coarse.local[0][startx+x]= 0.5 * (double) ( fine.local[0][startx+2*x+0] + fine.local[0][startx+2*x+1] );
+        auto coordf= coord;
+        for( auto& c : coordf ) {
+            if ( c > 0 ) c *= 2;
         }
 
-    } else {
+        if ( -1 == coord[0] || coarse.grid.extent(0) == coord[0] ) {
 
-        /* else boundary in the end -- this is only true for the restructed case with 4 units */
-        for ( size_t x= 0; x < wc-1; x++ ) {
-            coarse.local[hc-1][startx+x]= 0.5 * ( fine.local[hf-1][startx+2*x+0] + fine.local[hf-1][startx+2*x+1] );
+            /* z plane */
+            return 0.25 * (
+                *fine.halo.haloElementAt( { coordf[0], coordf[1]+0, coordf[2]+0 } ) +
+                *fine.halo.haloElementAt( { coordf[0], coordf[1]+0, coordf[2]+1 } ) +
+                *fine.halo.haloElementAt( { coordf[0], coordf[1]+1, coordf[2]+0 } ) +
+                *fine.halo.haloElementAt( { coordf[0], coordf[1]+1, coordf[2]+1 } ) );
+
+        } else if ( -1 == coord[1] || coarse.grid.extent(1) == coord[1] ) {
+
+            /* y plane */
+            return 0.25 * (
+                *fine.halo.haloElementAt( { coordf[0]+0, coordf[1], coordf[2]+0 } ) +
+                *fine.halo.haloElementAt( { coordf[0]+0, coordf[1], coordf[2]+1 } ) +
+                *fine.halo.haloElementAt( { coordf[0]+1, coordf[1], coordf[2]+0 } ) +
+                *fine.halo.haloElementAt( { coordf[0]+1, coordf[1], coordf[2]+1 } ) );
+
+        } else /* if ( -1 == coord[2] || coarse.grid.extent(2) == coord[2] ) */ {
+
+            /* x plane */
+            return 0.25 * (
+                *fine.halo.haloElementAt( { coordf[0]+0, coordf[1]+0, coordf[2] } ) +
+                *fine.halo.haloElementAt( { coordf[0]+0, coordf[1]+1, coordf[2] } ) +
+                *fine.halo.haloElementAt( { coordf[0]+1, coordf[1]+0, coordf[2] } ) +
+                *fine.halo.haloElementAt( { coordf[0]+1, coordf[1]+1, coordf[2] } ) );
+
         }
-    }
+    } );
 
-    size_t starty= ( 0 == cornerc[0] ) ? 1 : 0;
-    if ( 0 == cornerc[1] ) {
-
-        /* if boundary in front */
-        for ( size_t y= 0; y < hc-1; y++ ) {
-            coarse.local[starty+y][0]= 0.5 * ( fine.local[starty+2*y+0][0] + fine.local[starty+2*y+1][0] );
-        }
-
-    } else {
-
-        /* else boundary in the end -- this is only true for the restructed case with 4 units */
-        for ( size_t y= 0; y < hc-1; y++ ) {
-            coarse.local[starty+y][wc-1]= 0.5 * ( fine.local[starty+2*y+0][wf-1] + fine.local[starty+2*y+1][wf-1] );
-        }
-    }
 }
-#endif
 
 
 void scaledown( Level& fine, Level& coarse ) {
@@ -903,6 +905,7 @@ int main( int argc, char* argv[] ) {
         (1<<(howmanylevels))*factor_x ,
         dash::Team::All(), teamspec ) );
 
+    /* only do initgrid on the finest level, use caledownboundary for all others */
     initboundary( *levels.back() );
     sanitycheck( levels.back()->grid );
 
@@ -924,13 +927,18 @@ int main( int argc, char* argv[] ) {
             (1<<(howmanylevels-l))*factor_y *
             (1<<(howmanylevels-l))*factor_x < dash::Team::All().size() * (1<<27) );
 
+        Level& previouslevel= *levels.back();
+
         levels.push_back(
             new Level( (1<<(howmanylevels-l))*factor_z ,
                         (1<<(howmanylevels-l))*factor_y ,
                         (1<<(howmanylevels-l))*factor_x ,
             dash::Team::All(), teamspec ) );
 
-        initboundary( *levels.back() );
+        /* scaledown boundary instead of initializing it from the same
+        procedure, because this is very prone to subtle mistakes which
+        makes the entire multigrid algorithm misbehave. */
+        scaledownboundary( previouslevel, *levels.back() );
 
         dash::barrier();
     }
@@ -952,6 +960,8 @@ int main( int argc, char* argv[] ) {
     MiniMonT::MiniMonRecord( 1, "setup" );
 
     v_cycle( levels.begin(), levels.end(), 10, 0.0001 );
+    dash::Team::All().barrier();
+    v_cycle( levels.begin(), levels.end(), 10, 0.00001 );
     dash::Team::All().barrier();
 
     smoothen_final( levels, 0.001 );
