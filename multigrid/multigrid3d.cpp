@@ -66,7 +66,7 @@ struct Level {
 
 
 /* Write out the entire state as a CSV which can be loaded and vizualized
-with for example paraview. For convenience for vozualization, make the output
+with for example paraview. For convenience for vizualization, make the output
 constant size regardless of the grid level. Thus interpolate coarser grids or
 reduce finer ones. */
 
@@ -75,6 +75,10 @@ size_t resolutionForCSVh= 0;
 size_t resolutionForCSVw= 0;
 
 
+/* write out the current state of the given grid as CSV so that Paraview can
+read and visualize it as a structured grid. Use a fixed size for the grid as
+defined by the previous three global variables. So an animations of the
+multigrid procedure is possible. */
 void writeToCsv( const MatrixT& grid ) {
 
 #ifdef WITHCSVOUTPUT
@@ -136,6 +140,8 @@ void writeToCsv( const MatrixT& grid ) {
 #endif /* WITHCSVOUTPUT */
 }
 
+
+/* write out the grid in its actual size */
 void writeToCsvFullGrid( const MatrixT& grid ) {
 
 #ifdef WITHCSVOUTPUT
@@ -213,40 +219,9 @@ void sanitycheck( const MatrixT& grid  ) {
 
 void initgrid( MatrixT& grid ) {
 
-    /* init to 0 first! */
+    /* not strictly necessary but it also avoids NAN values */
     dash::fill( grid.begin(), grid.end(), 5.0 );
 
-    /* do initialization only from unit 0 with global accesses.
-    This is not the fastest way and a parallel routine would not be too
-    complicated but it should demonstrate the possibility to trade
-    convenience against performance. */
-
-/* this is toxic on a distributed machine!
-    if ( 0 == dash::myid() ) {
-
-
-        size_t w= grid.extent(2);
-        size_t h= grid.extent(1);
-        size_t d= grid.extent(0);
-
-        for ( size_t i = d*1/5; i < d*4/5; ++i ) {
-            for ( size_t j = h/4; j < h/2; ++j ) {
-                for ( size_t k = w*4/6; k < w*5/6; ++k ) {
-                    grid[i][j][k] = 8.0;
-                }
-            }
-        }
-
-        for ( size_t i = d*1/5; i < d*4/5; ++i ) {
-            for ( size_t j = h/5; j < h*3/4; ++j ) {
-                for ( size_t k = w*1/5; k < w*1/3; ++k ) {
-                    grid[i][j][k] = 2.0;
-                }
-            }
-        }
-
-    }
-*/
     grid.barrier();
 }
 
@@ -350,7 +325,7 @@ void initboundary( Level& level ) {
 
             double sum= 0.0;
             double weight= 0.0;
-/**/
+
             for ( int32_t iy= -m+1; iy < m; iy++ ) {
                 for ( int32_t ix= -m+1; ix < m; ix++ ) {
 
@@ -374,7 +349,7 @@ void initboundary( Level& level ) {
 void markunits( MatrixT& grid ) {
 
     /* Mark unit bordery by setting the first local rows and columns */
-/*
+
     size_t w= grid.local.extent(2);
     size_t h= grid.local.extent(1);
     size_t d= grid.local.extent(0);
@@ -396,7 +371,7 @@ void markunits( MatrixT& grid ) {
             grid.local[0][j][k] = 9.0;
         }
     }
-*/
+
 }
 
 #if 0
@@ -570,7 +545,8 @@ void scaleup( Level& coarse, Level& fine ) {
 }
 
 
-/* the parallel global residual is returned as a return parameter, but only if it is not NULL because then the expensive parallel reduction is just avoided */
+/* the parallel global residual is returned as a return parameter, but only
+if it is not NULL because then the expensive parallel reduction is just avoided */
 void smoothen( Level& level, uint32_t iter, double* residual_ret= NULL ) {
 
     uint64_t param= level.grid.local.extent(0)*level.grid.local.extent(1)*level.grid.local.extent(2);
@@ -602,7 +578,6 @@ void smoothen( Level& level, uint32_t iter, double* residual_ret= NULL ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
-
 
     if ( 0 == iter % 2 ) {
 
@@ -668,7 +643,6 @@ void smoothen( Level& level, uint32_t iter, double* residual_ret= NULL ) {
             }
         }
     }
-
 
     MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
 
@@ -761,71 +735,13 @@ void v_cycle( vector<Level*>::const_iterator it, vector<Level*>::const_iterator 
             smoothen( **it, j++, &residual );
 
             if ( 0 == dash::myid() ) {
-                cout << "v-cycle, smoothen coarsest with residual " << residual << endl;
+                cout << j << ": smoothen coarsest with residual " << residual << endl;
             }
-            // writeToCsv( levels.back()->grid );
         }
+        writeToCsv( (*it)->grid );
 
         return;
     }
-
-    /* stepped on the dummy level? ... which is there to signal that it is not
-    the end of the parallel recursion on the coarsest level but a subteam is
-    going on to solve the coarser levels but this unit is not in that subteam.
-    ... sounds complicated, is complicated, change only if you know what you
-    are doing. */
-    if ( NULL == *itnext ) {
-
-        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
-        (*it)->grid.team().barrier();
-
-cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
-        return;
-    }
-
-    /* stepped on a transfer level? */
-    if ( (*it)->grid.team().size() != (*itnext)->grid.team().size() ) {
-
-        /* only the members of the reduced team need to work, all others do siesta. */
-        //if ( 0 == (*itnext)->grid.team().position() )
-        assert( 0 == (*itnext)->grid.team().position() );
-        {
-
-            cout << "transfer to " <<
-                (*it)->grid.extent(2) << "x" <<
-                (*it)->grid.extent(1) << "x" <<
-                (*it)->grid.extent(0) << " with " << (*it)->grid.team().size() << " units "
-                " --> " <<
-                (*itnext)->grid.extent(2) << "x" <<
-                (*itnext)->grid.extent(1) << "x" <<
-                (*itnext)->grid.extent(0) << " with " << (*itnext)->grid.team().size() << " units " << endl;
-
-            v_cycle( itnext, itend, numiter, epsilon );
-
-
-            cout << "transfer back " <<
-            (*itnext)->grid.extent(2) << "x" <<
-            (*itnext)->grid.extent(1) << "x" <<
-            (*itnext)->grid.extent(0) << " with " << (*itnext)->grid.team().size() << " units "
-            " --> " <<
-            (*it)->grid.extent(2) << "x" <<
-            (*it)->grid.extent(1) << "x" <<
-            (*it)->grid.extent(0) << " with " << (*it)->grid.team().size() << " units " <<  endl;
-
-    /*
-            dash::Team& previousteam= levels.back()->grid.team();
-            dash::Team& currentteam= ( 3 == l ) ? previousteam.split(4) : previousteam;
-    */
-        }
-
-        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
-        (*it)->grid.team().barrier();
-
-
-cout << "all meet again here: I'm active unit " << dash::myid() << endl;
-        return;
-    }
-
 
     /* normal recursion */
 
@@ -833,6 +749,8 @@ cout << "all meet again here: I'm active unit " << dash::myid() << endl;
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it, j, NULL );
     }
+
+    writeToCsv( (*it)->grid );
 
     /* scale down */
     if ( 0 == dash::myid() ) {
@@ -846,6 +764,7 @@ cout << "all meet again here: I'm active unit " << dash::myid() << endl;
             (*itnext)->grid.extent(0) << endl;
     }
     scaledown( **it, **itnext );
+    writeToCsv( (*it)->grid );
 
     /* recurse  */
     v_cycle( itnext, itend, numiter, epsilon );
@@ -862,11 +781,13 @@ cout << "all meet again here: I'm active unit " << dash::myid() << endl;
             (*it)->grid.extent(0) << endl;
     }
     scaleup( **itnext, **it );
+    writeToCsv( (*it)->grid );
 
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it, j, NULL );
     }
+    writeToCsv( (*it)->grid );
 }
 
 
@@ -881,7 +802,7 @@ void smoothen_final( vector<Level*>& levels, double epsilon= 0.01 ) {
         smoothen( *levels.front(), j++, &residual );
 
         if ( 0 == dash::myid() ) {
-            cout << "smoothen finest with residual " << residual << endl;
+            cout << j << ": smoothen finest with residual " << residual << endl;
         }
         //writeToCsv( levels.front()->grid );
     }
@@ -969,10 +890,11 @@ int main( int argc, char* argv[] ) {
     The finest level is outside the loop because it is always done by dash::Team::All() */
 
     if ( 0 == dash::myid() ) {
-        cout << "finest level: " <<
+        cout << "finest level is " <<
             (1<<(howmanylevels))*factor_z << "x" <<
             (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x << endl;
+            (1<<(howmanylevels))*factor_x <<
+            " distributed over " << dash::Team::All().size() << " units " << endl;
     }
 
     levels.push_back( new Level(
@@ -982,103 +904,35 @@ int main( int argc, char* argv[] ) {
         dash::Team::All(), teamspec ) );
 
     initboundary( *levels.back() );
-
     sanitycheck( levels.back()->grid );
 
-
-    dash::Team::All().barrier();
-
+    dash::barrier();
 
     for ( uint32_t l= 1; l < howmanylevels; l++ ) {
 
-
-        /*
-        DART_LOCALITY_SCOPE_NODE
-        DART_LOCALITY_SCOPE_MODULE
-        DART_LOCALITY_SCOPE_NUMA
-        DART_LOCALITY_SCOPE_CORE
-        auto & split_team = dash::Team::All().locality_split( DART_LOCALITY_SCOPE_CORE, 2 );
-        */
-
-        dash::Team& previousteam= levels.back()->grid.team();
-        dash::Team& currentteam= ( 3 == l ) ? previousteam.split(4) : previousteam;
-
-        TeamSpecT localteamspec( currentteam.size(), 1, 1 );
-        localteamspec.balance_extents();
-
-        if ( 0 == currentteam.position() ) {
-
-            if ( previousteam.size() != currentteam.size() ) {
-
-                /* the team working on the following grid layers has just
-                been reduced. Therefore, we add an additional grid with the
-                same size as the previous one but for the reduced team. Then,
-                copying the data from the domain of the larger team to the
-                domain of the smaller team is easy. */
-
-                if ( 0 == currentteam.myid() ) {
-                    cout << "transfer level " << l-1 << " is " <<
-                        (1<<(howmanylevels-l+1))*factor_z << "x" <<
-                        (1<<(howmanylevels-l+1))*factor_y << "x" <<
-                        (1<<(howmanylevels-l+1))*factor_x <<
-                        " distributed over " << currentteam.size() << " units " << endl;
-                }
-
-                levels.push_back(
-                    new Level( (1<<(howmanylevels-l+1))*factor_z ,
-                                (1<<(howmanylevels-l+1))*factor_y ,
-                                (1<<(howmanylevels-l+1))*factor_x ,
-                    currentteam, localteamspec ) );
-            }
-
-            /*
-            cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
-            */
-
-            if ( 0 == currentteam.myid() ) {
-                cout << "compute level " << l << " is " <<
-                    (1<<(howmanylevels-l))*factor_z << "x" <<
-                    (1<<(howmanylevels-l))*factor_y << "x" <<
-                    (1<<(howmanylevels-l))*factor_x <<
-                    " distributed over " << currentteam.size() << " units " << endl;
-            }
-
-            /* do not try to allocate >= 8GB per core -- try to prevent myself
-            from running too big a simulation on my laptop */
-            assert( (1<<(howmanylevels-l))*factor_z *
-                (1<<(howmanylevels-l))*factor_y *
-                (1<<(howmanylevels-l))*factor_x < currentteam.size() * (1<<27) );
-
-            levels.push_back(
-                new Level( (1<<(howmanylevels-l))*factor_z ,
-                            (1<<(howmanylevels-l))*factor_y ,
-                            (1<<(howmanylevels-l))*factor_x ,
-                currentteam, localteamspec ) );
-
-            currentteam.barrier();
-
-            /*
-            cout << "unit " << dash::myid() << " : " <<
-                levels.back()->grid.local.extent(1) << " x " <<
-                levels.back()->grid.local.extent(0) << endl;
-            dash::barrier();
-            */
-
-            initboundary( *levels.back() );
-
-        } else {
-
-            /*
-            cout << "waiting unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
-            */
-
-            /* this is a passive unit not takin part in the subteam that
-            handles the coarser grids. insert a dummy entry in the vector
-            of levels to signal that this is not the coarsest level globally. */
-            levels.push_back( NULL );
-
-            break;
+        if ( 0 == dash::myid() ) {
+            cout << "compute level " << l << " is " <<
+                (1<<(howmanylevels-l))*factor_z << "x" <<
+                (1<<(howmanylevels-l))*factor_y << "x" <<
+                (1<<(howmanylevels-l))*factor_x <<
+                " distributed over " << dash::Team::All().size() << " units " << endl;
         }
+
+        /* do not try to allocate >= 8GB per core -- try to prevent myself
+        from running too big a simulation on my laptop */
+        assert( (1<<(howmanylevels-l))*factor_z *
+            (1<<(howmanylevels-l))*factor_y *
+            (1<<(howmanylevels-l))*factor_x < dash::Team::All().size() * (1<<27) );
+
+        levels.push_back(
+            new Level( (1<<(howmanylevels-l))*factor_z ,
+                        (1<<(howmanylevels-l))*factor_y ,
+                        (1<<(howmanylevels-l))*factor_x ,
+            dash::Team::All(), teamspec ) );
+
+        initboundary( *levels.back() );
+
+        dash::barrier();
     }
 
     /* here all units and all teams meet again, those that were active for the coarsest
@@ -1089,18 +943,18 @@ int main( int argc, char* argv[] ) {
     but we do it for demonstration in the graphical output */
     initgrid( levels.front()->grid );
 
-    //markunits( levels[0]->grid );
+    markunits( levels[0]->grid );
 
-    //writeToCsv( levels[0]->grid );
+    //writeToCsv( levels.front()->grid );
 
     dash::Team::All().barrier();
 
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels.begin(), levels.end(), 6, 0.0001 );
+    v_cycle( levels.begin(), levels.end(), 10, 0.0001 );
     dash::Team::All().barrier();
-    smoothen_final( levels, 0.01 );
 
+    smoothen_final( levels, 0.001 );
     dash::Team::All().barrier();
 
     writeToCsv( levels.front()->grid );
