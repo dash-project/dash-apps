@@ -126,7 +126,7 @@ begin_exchange_externals(MatrixType& A,
     int n_send = send_length[i];
     int neighbor = neighbors[i];
     int offset_at_neighbor = A.offset[i];
-    dash::copy_async(s_buffer, s_buffer + n_send + 1,
+    dash::copy_async(s_buffer, s_buffer + n_send,
       narray.row(neighbor).begin() + A.offset[i]);
     s_buffer += n_send;
   }
