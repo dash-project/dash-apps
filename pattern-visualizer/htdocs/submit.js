@@ -12,11 +12,11 @@ function sendPOST() {
     var result = parser.parseFromString(svgText,"image/svg+xml");
     var exportLink = document.createElement("a");
     exportLink.setAttribute("href","data:image/svg+xml;base64,"+window.btoa(svgText));
-    exportLink.setAttribute("target","_blank")
+    exportLink.setAttribute("download","pattern.svg");
+    exportLink.setAttribute("target","_blank");
     exportLink.appendChild(document.createTextNode("Export as svg"));
     var imageDiv = document.createElement("div");
     imageDiv.appendChild(result.documentElement);
-    console.log(result);
     displayResult([exportLink,imageDiv]);
   });
   req.addEventListener("error", function(e) {

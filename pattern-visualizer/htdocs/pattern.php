@@ -9,17 +9,20 @@ function getByName($name, $group) {
   return NULL;
 }
 
-$params = json_decode(file_get_contents("php://input"));
-$dimGroup = getByName("dim_group",$params);
+$params_json = file_get_contents("php://input");
+if(strlen($params_json) > 0) {
+  $params = json_decode($params_json);
+  $dimGroup = getByName("dim_group",$params);
 
-$pattern = " -s ".getByName("pattern",$params)->value->name;
-$size    = " -n ".getByName("size",$dimGroup)->value[0]." ".getByName("size",$dimGroup)->value[1];
-$units   = " -u ".getByName("units",$dimGroup)->value[0]." ".getByName("units",$dimGroup)->value[1];
-$tile    = " -t ".getByName("tile",$dimGroup)->value[0]." ".getByName("tile",$dimGroup)->value[1];
-$blocked = (strcmp(getByName("blocked_display",$params)->value,"true") == 0)?" -b":"";
-$balance = (strcmp(getByName("balance_extents",$params)->value,"true") == 0)?" -e":"";
+  $pattern = " -s ".getByName("pattern",$params)->value->name;
+  $size    = " -n ".getByName("size",$dimGroup)->value[0]." ".getByName("size",$dimGroup)->value[1];
+  $units   = " -u ".getByName("units",$dimGroup)->value[0]." ".getByName("units",$dimGroup)->value[1];
+  $tile    = " -t ".getByName("tile",$dimGroup)->value[0]." ".getByName("tile",$dimGroup)->value[1];
+  $blocked = (getByName("blocked_display",$params)->value)?" -b":"";
+  $balance = (getByName("balance_extents",$params)->value)?" -e":"";
 
-header("Content-Type: image/svg+xml");
-//echo "./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile;
-passthru("./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile);
+  header("Content-Type: image/svg+xml");
+  //echo "./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile;
+  passthru("./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile);
+}
 ?>
