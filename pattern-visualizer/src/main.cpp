@@ -95,6 +95,9 @@ void print_example(
        << endl;
 
   if (params.cout) {
+    std::cout << "{\"success\": true, \"name\": \"" << pattern_file << "\", ";
+    std::cout <<  "\"svg\": \"attached\"}" << std::endl;
+    // TODO rewrite when pv returns JSON
     pv.draw_pattern(std::cout, params.blocked_display);
   } else {
     cerr << "Image file:"
@@ -254,6 +257,9 @@ int main(int argc, char* argv[])
 
     } catch (std::exception & excep) {
       cerr << excep.what() << endl;
+      if (params.cout) {
+        std::cout << "{\"success\": false, \"error\": \"" << excep.what() << "\"}" << std::endl;
+      }
     }
   }
 

@@ -21,7 +21,7 @@ if(strlen($params_json) > 0) {
   $blocked = (getByName("blocked_display",$params)->value)?" -b":"";
   $balance = (getByName("balance_extents",$params)->value)?" -e":"";
 
-  header("Content-Type: image/svg+xml");
+  header("Content-Type: text/plain");
   //echo "./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile;
   passthru("./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile);
 }
