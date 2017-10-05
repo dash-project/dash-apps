@@ -1,3 +1,3 @@
 
-$CXX ./main.cc --std=c++11 -o locplot.bin
+$CXX ./main.cc --std=c++11 -g -o locplot.bin
 
