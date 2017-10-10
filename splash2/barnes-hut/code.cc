@@ -699,21 +699,13 @@ void SlaveStart()
 
   find_my_initial_bodies(bodytab, nbody, ProcessId);
 
-  stepsystem(ProcessId);
-  printtree(G_root.get().get());
-#if 0
   /* main loop */
   auto const tstop_val = tstop.get();
   auto const dtime_val = dtime.get();
-  //while (Local.tnow < tstop_val + 0.1 * dtime_val) {
+  while (Local.tnow < tstop_val + 0.1 * dtime_val) {
     stepsystem(ProcessId);
-    if (ProcessId == 0) {
-      // printtree(G_root.get().get());
-      // printf("Going to next step!!!\n");
-    }
-  //}
+  }
   printtree(G_root.get().get());
-#endif
 }
 
 void startrun()
