@@ -119,7 +119,6 @@ void hackwalk(long ProcessId)
 
 void walksub(nodeptr n, real dsq, long ProcessId)
 {
-  nodeptr* nn;
   leafptr l;
   bodyptr p;
   long i;
@@ -129,7 +128,7 @@ void walksub(nodeptr n, real dsq, long ProcessId)
       auto const n_val = static_cast<cell>(*NODE_AS_CELL(n));
 
       for (auto nn = n_val.subp; nn < n_val.subp + NSUB; nn++) {
-        if (*nn) {
+        if (*nn != nodeptr(nullptr)) {
           walksub(*nn, dsq / 4.0, ProcessId);
         }
       }
