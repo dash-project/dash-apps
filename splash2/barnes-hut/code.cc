@@ -705,7 +705,7 @@ void SlaveStart()
   while (Local.tnow < tstop_val + 0.1 * dtime_val) {
     stepsystem(ProcessId);
   }
-  printtree(G_root.get().get());
+  if (ProcessId == 0) printtree(G_root.get().get());
 }
 
 void startrun()
