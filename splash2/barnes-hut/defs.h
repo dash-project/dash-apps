@@ -179,7 +179,7 @@ struct _cell_old {
 typedef struct _cell : public node {
   //-------- Unique attribute in cell
   long processor; /* Used by partition code */
-  // Not really used!!! So no problem in DASH
+  // Not really used, so no problem in DASH
   struct _cell *next, *prev; /* Used in the partition array */
   long seqnum; // seqnum for locks
 #ifdef QUADPOLE
