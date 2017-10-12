@@ -181,7 +181,7 @@ typedef struct _cell : public node {
   long processor; /* Used by partition code */
   // Not really used!!! So no problem in DASH
   struct _cell *next, *prev; /* Used in the partition array */
-  long seqnum;
+  long seqnum; // seqnum for locks
 #ifdef QUADPOLE
   matrix quad; /* quad. moment of cell */
 #endif

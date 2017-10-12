@@ -159,7 +159,7 @@ void walksub(nodeptr n, real dsq, long ProcessId)
 
 bool subdivp(nodeptr const p, real dsq, long ProcessId)
 {
-  DASH_ASSERT(p);
+  ASSERT(p);
   auto const p_val = static_cast<node>(*p);
   SUBV(Local.dr, p_val.pos, Local.pos0);
   DOTVP(Local.drsq, Local.dr, Local.dr);

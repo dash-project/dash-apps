@@ -7,7 +7,7 @@ DART_IMPL = mpi
 INC=-I$(DASH_ROOT)/include
 LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lpthread -lhwloc -lnuma -lpapi
 
-CXXFLAGS= -g -O0 -Wall
+CXXFLAGS= -g -O0 -Wall -Wno-sign-compare
 
 CFLAGS=$(CXXFLAGS)
 

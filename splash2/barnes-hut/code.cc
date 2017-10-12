@@ -71,6 +71,8 @@ Command line options:
 #include <unistd.h>
 #include <cstdlib>
 
+#include <algorithm>
+
 #include "code.h"
 #include "defs.h"
 #include "getparam.h"
@@ -85,7 +87,7 @@ typedef struct dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
  * DEFINITIONS OF EXTERN GLOBAL VARIABLES      *
 ***********************************************/
 string             headline;
-long               nbody;
+size_t               nbody;
 dash::Shared<real> dtime;   /* timestep for leapfrog integrator */
 dash::Shared<real> dtout;   /* time between data outputs */
 dash::Shared<real> tstop;   /* time to stop calculation */
@@ -99,9 +101,9 @@ dash::Shared<real> dthf;    /* half time step */
 
 dash::Shared<long> maxcell;
 dash::Shared<long> maxleaf;
-long               maxmybody;
-long               maxmycell;
-long               maxmyleaf;
+size_t               maxmybody;
+size_t               maxmycell;
+size_t               maxmyleaf;
 dash::Shared<long> n2bcalc; /* total number of body/cell interactions  */
 dash::Shared<long> nbccalc; /* total number of body/body interactions  */
 dash::Shared<long> selfint; /* number of self interactions             */
@@ -378,18 +380,26 @@ int main(int argc, char *argv[])
         exit = EXIT_SUCCESS;
         break;
       default:
-        if (dash::myid() == 0) Help();
-        fprintf(stderr, "Only valid option is \"-h\".\n");
+        if (dash::myid() == 0) {
+          Help();
+          std::cerr << "Only valid option is \"-h\".\n";
+        }
         exit = EXIT_FAILURE;
         break;
     }
+  }
+
+  if (argv[1][0] == '-') {
+    if (dash::myid() == 0)
+      std::cerr << "argument for nbody is a negative number!\n";
+
+    exit = EXIT_FAILURE;
   }
 
   if (exit != 2) {
     dash::finalize();
     return exit;
   }
-
   nbody = ::std::atoi(argv[1]);
 
   if (argc > 2) {
@@ -401,7 +411,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  LOG_MESSAGE("Before ANLinit");
   ANLinit();  // Prepare all global data structures
 
   if (dash::myid() == 0) {
@@ -461,7 +470,7 @@ int main(int argc, char *argv[])
         "RESTTIME      = %12lu\t%5.2f\n",
         tracktime.get().get() - partitiontime.get().get() -
             treebuildtime.get().get() - forcecalctime.get().get(),
-        ((tracktime.get().get() - partitiontime.get().get() -
+        static_cast<double>((tracktime.get().get() - partitiontime.get().get() -
           treebuildtime.get().get() - forcecalctime.get().get())) /
             track);
   }
@@ -560,8 +569,6 @@ void ANLinit()
  */
 void init_root()
 {
-  long i;
-
   // The root is always the first cell
   //
   celltab.local[0].type   = CELL;
@@ -571,9 +578,7 @@ void init_root()
 
   G_root.set(static_cast<cellptr>(celltab.begin()));
   // The root has initially no children
-  for (i = 0; i < NSUB; i++) {
-    celltab.local[0].subp[i] = cellptr{};
-  }
+  std::fill(celltab.local[0].subp, celltab.local[0].subp + NSUB, cellptr{});
   Local.mynumcell = 1;
 }
 
@@ -604,12 +609,10 @@ long Log_base_2(long number)
 #endif
 void tab_init()
 {
-  long i;
-
   /*allocate/cell space */
   if (dash::myid() == 0) {
     auto const fleaves_val = static_cast<double>(fleaves.get());
-    DASH_ASSERT(fleaves_val);
+    ASSERT(fleaves_val);
     auto const maxleaf_val =
         static_cast<long>(static_cast<double>(fleaves.get()) * nbody);
     maxleaf.set(maxleaf_val);
@@ -965,7 +968,7 @@ void stepsystem(long ProcessId)
   Cavg =
       static_cast<real>(Cost(*(static_cast<cellptr>(G_root.get())))) / nprocs;
   Local.workMin = Cavg * ProcessId;
-  Local.workMax = (Cavg * (ProcessId + 1) + (ProcessId == (nprocs - 1)));
+  Local.workMax = (Cavg * (ProcessId + 1) + (ProcessId == static_cast<long>(nprocs - 1)));
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -1180,7 +1183,7 @@ void ComputeForces(long ProcessId)
 
   for (pp = Local.mybodytab; pp < Local.mybodytab + Local.mynbody; pp++) {
     p = *pp;
-    DASH_ASSERT(p);
+    ASSERT(p);
     body p_val = *p;
     SETV(acc1, p_val.acc);
     Cost(*p) = 0;
@@ -1210,7 +1213,8 @@ void ComputeForces(long ProcessId)
 void find_my_initial_bodies(
     dash::Array<body> &btab, long nbody, long ProcessId)
 {
-  long extra, offset, i;
+  long extra, offset;
+  size_t i;
 
   Local.mynbody = nbody / bodytab.team().size();
   extra         = nbody % bodytab.team().size();
@@ -1225,12 +1229,13 @@ void find_my_initial_bodies(
     offset = (Local.mynbody + 1) * extra +
              (ProcessId - extra) * Local.mynbody;
              */
+    //local to global index mapping
     offset = bodytab.pattern().global(0);
   }
 
-  DASH_ASSERT(Local.mynbody <= btab.lsize());
+  ASSERT(Local.mynbody <= btab.lsize());
 
-  // TODO: use dash transform
+  // TODO: use dash::copy() --> global to local copy
   for (i = 0; i < Local.mynbody; i++) {
     Local.mybodytab[i] = static_cast<bodyptr>(bodytab.begin() + offset + i);
   }

@@ -60,7 +60,7 @@ void maketree(long ProcessId)
               ProcessId, (long)p);
       {pthread_mutex_unlock(&(Global->io_lock));};
       */
-      DASH_ASSERT(false);
+      ASSERT(false);
     }
   }
   dash::barrier();
@@ -311,8 +311,10 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         *qptr = le;
         // cast as a cell
         *NODE_AS_CELL(mynode) = mynode_val;
+#ifdef ENABLE_ASSERTIONS
         auto const tmp        = static_cast<cell>(*NODE_AS_CELL(mynode));
-        assert(tmp.subp[kidIndex] == le);
+        ASSERT(tmp.subp[kidIndex] == le);
+#endif
       }
       CellLock.at(mynode_val.seqnum % MAXLOCK).unlock();
       /* unlock the parent cell */
@@ -328,7 +330,10 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         auto le_val = static_cast<leaf>(*le);
         if (le_val.num_bodies == MAX_BODIES_PER_LEAF) {
           // CASE 2: Subdivide the Tree
-          // mynode_val.subp[kidIndex]) = SubdivideLeaf(le, mynode, l, ProcessId)
+          // mynode_val.subp[kidIndex]) = SubdivideLeaf(le, mynode, l,
+          // ProcessId)
+          // TODO: is this really correct or does it not loose some updates to
+          // mynode in SubdivideLeaf
           *qptr                 = SubdivideLeaf(le, mynode, l, ProcessId);
           *NODE_AS_CELL(mynode) = mynode_val;
         }
@@ -378,7 +383,7 @@ bool intcoord(long xp[NDIM], vector const rp)
   double xsc;
 
   inb = TRUE;
-  DASH_ASSERT(NDIM == 3);
+  ASSERT(NDIM == 3);
   sh_vec rmin_val = rmin.get();
   vector rmin_tmp = {rmin_val.x, rmin_val.y, rmin_val.z};
   for (k = 0; k < NDIM; k++) {
@@ -660,6 +665,7 @@ leafptr makeleaf(long ProcessId)
   }
 
   Myleaf          = Local.mynumleaf++;
+  //Resolve the global index of a specific unit's local index 'Myleaf'
   auto const gpos = leaftab.pattern().global(Myleaf);
   auto le         = static_cast<leafptr>(leaftab.begin() + gpos);
   auto le_val     = static_cast<leaf>(*le);
@@ -669,11 +675,7 @@ leafptr makeleaf(long ProcessId)
   le_val.done       = FALSE;
   le_val.mass       = 0.0;
   le_val.num_bodies = 0;
-  /*
-  for (i = 0; i < MAX_BODIES_PER_LEAF; i++) {
-    Bodyp(le)[i] = NULL;
-  }
-  */
+
   std::fill(le_val.bodyp, le_val.bodyp + MAX_BODIES_PER_LEAF, bodyptr{});
   // write the value back to global memory
   *le                              = le_val;
