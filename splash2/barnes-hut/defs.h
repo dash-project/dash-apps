@@ -17,7 +17,6 @@
 #ifndef _DEFS_H_
 #define _DEFS_H_
 
-//#include <assert.h>
 #include <dash/Atomic.h>
 #include <dash/GlobRef.h>
 #include "stdinc.h"
