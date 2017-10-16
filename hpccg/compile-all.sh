@@ -1,6 +1,12 @@
 #!/bin/bash
 
-[[ !  -z  "$1"  ]] || { echo "usage: $0 <ENVIRONMENT>  for building Makefile.ENVIRONMENT"; exit 1; }
+[[ !  -z  "$1"  ]] || { 
+  echo "usage: $0 <ENVIRONMENT>  for building Makefile.ENVIRONMENT";
+  ENVIRONMENTS=`find src_ref -name "Makefile.*" | awk -F/ '{print $NF}'`;
+  echo "available makefiles:";
+  echo "$ENVIRONMENTS"
+  exit 1;
+}
 ENVIRONMENT="$1"
 
 for DIR in $(ls -d */); do

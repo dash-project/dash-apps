@@ -171,10 +171,10 @@ std::string render_svg(
     auto elem_hwinfo = elem.find("hwinfo");
     std::ostringstream shared_mem_kb;
     if (elem_hwinfo != elem.end()) {
-      auto hwinfo_shared_mem_kb = elem_hwinfo->find("shmem");
-      if (hwinfo_shared_mem_kb != elem_hwinfo->end()) {
-        shared_mem_kb << *hwinfo_shared_mem_kb << " KB";
-      }
+       auto hwinfo_shared_mem_kb = elem_hwinfo->find("shmem");
+       if (hwinfo_shared_mem_kb != elem_hwinfo->end()) {
+         shared_mem_kb << *hwinfo_shared_mem_kb << " KB";
+       }
     }
 
     if (scope_name == "NODE" || scope_name == "MODULE") {
@@ -188,7 +188,7 @@ std::string render_svg(
     if (scope_name == "NUMA") {
       std::ostringstream numa_mb;
       numa_mb << shared_mem_kb.str();
-      std::string numa_id = "?";
+      int numa_id = -1;
       if (elem_hwinfo != elem.end() &&
           elem_hwinfo->find("numa_id") != elem_hwinfo->end()) {
         numa_id = (*elem_hwinfo)["numa_id"];
@@ -205,9 +205,9 @@ std::string render_svg(
                             x + tpad, y + tpad * 3 + fpad);
     }
     if (scope_name == "UNIT") {
-      int ncores   = elem["unit_loc"]["hwinfo"]["num_cores"];
-      int nthreads = elem["unit_loc"]["hwinfo"]["threads"]["max"];
-      int cpu_id   = elem["unit_loc"]["hwinfo"]["cpu_id"];
+      int ncores   = elem["unit_locality"]["hwinfo"]["num_cores"];
+      int nthreads = elem["unit_locality"]["hwinfo"]["threads"]["max"];
+      int cpu_id   = elem["unit_locality"]["hwinfo"]["cpu_id"];
       int unit_id  = elem["unit_id"]["local_id"];
 
       os << ind << svg_text("id", unit_id,
@@ -240,8 +240,8 @@ svg_node_t render_domain(
   std::ostringstream os;
 
   if (elem.is_object()) {
-    auto domains  = elem.find("domains");
     auto scope    = elem.find("scope");
+    auto domains  = elem.find("domains");
     bool vertical = true;
     bool nested   = true;
     if (domains != elem.end()) {

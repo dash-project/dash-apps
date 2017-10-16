@@ -1,13 +1,13 @@
 
 
-DASH_ROOT = $(HOME)/opt/dash-0.3.0
+DASH_ROOT = $(HOME)/opt/dash-0.3.0-dev
 
 DART_IMPL = mpi
 
 INC=-I$(DASH_ROOT)/include
 LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lpthread -lhwloc -lnuma -lpapi
 
-CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=0 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG -DDASH_ENABLE_ASSERTIONS
+CXXFLAGS= -g -O0 -Wall -Wno-sign-compare
 
 CFLAGS=$(CXXFLAGS)
 

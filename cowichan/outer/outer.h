@@ -32,31 +32,16 @@ inline void Outer(
    value zero = {0,0};
    // zero.row = 0;
    // zero.col = 0;
-   double * matP;
-   double * matBegin = matOut.lbegin();
 
-   matP = matOut.lbegin();
-   uint c = 0;
-   
-   cout << "gRow:" << gRow << "\nend:" << end << "\n";
-   
    for( uint i = 0; gRow < end; ++gRow, ++i ) {
-     
     nmax = 0;
-    
     for( uint j = 0; j < nelts; ++j ) {
       if( gRow != j) {
-        //matOut.local[i][j] = distance(points[gRow], points[j]);
-        *matP = distance(points[gRow], points[j]);
-        
-        nmax = max( nmax, *matP );
+        matOut.local[i][j] = distance(points[gRow], points[j]);
+        nmax = max( nmax, static_cast<double>( matOut.local[i][j] ) );
       }
-      ++matP;
-      ++c;
     }
-    //matOut.local[i][gRow] = nelts * nmax;
-    //if(c >= 100000000) {cout << "made it\n";c=0;}
-    matBegin[i*nelts+gRow] = nelts * nmax;
+    matOut.local[i][gRow] = nelts * nmax;
     vec.local[i] = distance( zero, points[gRow] );
   }
   

@@ -22,7 +22,7 @@ if [[ $CC == *gcc ]] ; then module swap gnu intel &> /dev/null; fi;
 
 echo $nRowsCols $nRowsCols $thresh > thresh_in
 echo $nRowsCols $nRowsCols $winnowNelts $thresh > winnow_in
-echo $winnowNelts > outProd_in
+echo $nRowsCols > outProd_in
 
 for (( IX=$probIxStart ; IX<=$probIxEnd ; ++IX )); do
  
