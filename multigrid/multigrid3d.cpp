@@ -19,6 +19,18 @@ uint32_t filenumber= 0;
 #endif /* WITHCSVOUTPUT */
 
 
+/* TODOs
+
+- add __restrict to pointers to avoid aliasing and thus allow vectorization
+- introduce double buffering!
+- add clean version of the code:
+    - without asserts
+    - without MiniMon
+    - with simple loops, no optimization for contiguous lines, etc.
+
+*/
+
+
 /* for MiniMonT */
 std::vector<MiniMonT>* MiniMonT::tape;
 std::chrono::time_point<std::chrono::high_resolution_clock> MiniMonT::inittime;
@@ -355,19 +367,19 @@ void markunits( MatrixT& grid ) {
 
     for ( size_t i = 0; i < d; ++i ) {
         for ( size_t j = 0; j < h; ++j ) {
-            grid.local[i][j][0] = 1.0;
+            grid.local[i][j][0] = 8.0;
         }
     }
 
     for ( size_t i = 0; i < d; ++i ) {
         for ( size_t k = 0; k < w; ++k ) {
-            grid.local[i][0][k] = 1.0;
+            grid.local[i][0][k] = 8.0;
         }
     }
 
     for ( size_t j = 0; j < h; ++j ) {
         for ( size_t k = 0; k < w; ++k ) {
-            grid.local[0][j][k] = 1.0;
+            grid.local[0][j][k] = 8.0;
         }
     }
 
@@ -964,10 +976,19 @@ int main( int argc, char* argv[] ) {
     v_cycle( levels.begin(), levels.end(), 10, 0.00001 );
     dash::Team::All().barrier();
 
-    smoothen_final( levels, 0.001 );
-    dash::Team::All().barrier();
-
+    smoothen_final( levels, 0.1 );
     writeToCsv( levels.front()->grid );
+    smoothen_final( levels, 0.01 );
+    writeToCsv( levels.front()->grid );
+    smoothen_final( levels, 0.001 );
+    writeToCsv( levels.front()->grid );
+    writeToCsv( levels.front()->grid );
+    writeToCsv( levels.front()->grid );
+    writeToCsv( levels.front()->grid );
+    writeToCsv( levels.front()->grid );
+    writeToCsv( levels.front()->grid );
+
+    dash::Team::All().barrier();
 
     MiniMonT::MiniMonRecord( 0, "dash::finalize" );
     dash::finalize();
