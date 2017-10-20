@@ -157,6 +157,7 @@ Here is still a slight shift in the output when the actual grid is larger than t
     size_t divd= ( resolutionForCSVd > d ) ? resolutionForCSVd/d : 1;
     size_t divh= ( resolutionForCSVh > h ) ? resolutionForCSVh/h : 1;
     size_t divw= ( resolutionForCSVw > w ) ? resolutionForCSVw/w : 1;
+
     size_t muld= ( resolutionForCSVd < d ) ? d/resolutionForCSVd : 1;
     size_t mulh= ( resolutionForCSVh < h ) ? h/resolutionForCSVh : 1;
     size_t mulw= ( resolutionForCSVw < w ) ? w/resolutionForCSVw : 1;
@@ -1030,13 +1031,30 @@ void do_plain_iteration( uint32_t howmanylevels ) {
 
     //dash::barrier();
 
+    MiniMonT::MiniMonRecord( 0, "smoothflatfixed" );
 
-    MiniMonT::MiniMonRecord( 0, "smoothflat" );
+    uint32_t j= 0;
+    while ( j < 20 ) {
+
+        smoothen( *level, NULL );
+        level->swap();
+
+        if ( 0 == dash::myid() ) {
+            cout << j << ": smoothen grid without residual " << endl;
+        }
+        j++;
+        //writeToCsv( level->oldgrid );
+    }
+
+    MiniMonT::MiniMonRecord( 1, "smoothflatfixed" );
+
+    writeToCsv( level->oldgrid );
+
+    MiniMonT::MiniMonRecord( 0, "smoothflatresidual" );
 
     double epsilon= 0.001;
     double residual= 1.0+epsilon;
-    uint32_t j= 0;
-    while ( residual > epsilon ) {
+    while ( residual > epsilon && j < 40 ) {
 
         smoothen( *level, &residual );
         level->swap();
@@ -1048,9 +1066,9 @@ void do_plain_iteration( uint32_t howmanylevels ) {
         //writeToCsv( level->oldgrid );
     }
 
-    writeToCsv( level->oldgrid );
+    MiniMonT::MiniMonRecord( 1, "smoothflatresidual" );
 
-    MiniMonT::MiniMonRecord( 1, "smoothflat" );
+    writeToCsv( level->oldgrid );
 
     delete level;
     level= NULL;
@@ -1074,10 +1092,10 @@ int main( int argc, char* argv[] ) {
     uint32_t howmanylevels= 5;
 
 
-    if ( argc > 1 ) {
+    for ( int a= 1; a < argc; a++ ) {
 
-        if ( 0 == strncmp( "-h", argv[1], 2  ) ||
-                0 == strncmp( "--help", argv[1], 6 ) ) {
+        if ( 0 == strncmp( "-h", argv[a], 2  ) ||
+                0 == strncmp( "--help", argv[a], 6 ) ) {
 
             if ( 0 == dash::myid() ) {
 
@@ -1085,8 +1103,8 @@ int main( int argc, char* argv[] ) {
             }
             exit(0);
 
-        } else if ( 0 == strncmp( "-p", argv[1], 2  ) ||
-                0 == strncmp( "--plain", argv[1], 7 )) {
+        } else if ( 0 == strncmp( "-p", argv[a], 2  ) ||
+                0 == strncmp( "--plain", argv[a], 7 )) {
 
             do_multigrid= false;
             if ( 0 == dash::myid() ) {
@@ -1097,7 +1115,11 @@ int main( int argc, char* argv[] ) {
         } else {
 
             /* otherwise interpret as number of grid levels to employ */
-            howmanylevels= atoi( argv[1] );
+            howmanylevels= atoi( argv[a] );
+            if ( 0 == dash::myid() ) {
+                cout << "using " << howmanylevels << " levels, " << 
+                (1<<howmanylevels) << "^3" << " per unit" << endl;
+            }
         }
     }
 
