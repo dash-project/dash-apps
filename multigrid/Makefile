@@ -19,6 +19,13 @@ multigrid3d: multigrid3d.cpp minimonitoring.h
 	$(CXX) -march=native -c $(INC) $?
 	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
 
+multigrid3d_plain.cpp: multigrid3d.cpp
+	grep -v -i "minimon"   multigrid3d.cpp > multigrid3d_plain.cpp
+
+multigrid3d_plain: multigrid3d_plain.cpp
+	$(CXX) -march=native -c $(INC) $?
+	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+
 multigrid3d_elastic: multigrid3d_elastic.cpp minimonitoring.h
 	$(CXX) -march=native -c $(INC) $?
 	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
