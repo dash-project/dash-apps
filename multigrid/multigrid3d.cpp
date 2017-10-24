@@ -875,9 +875,9 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
-    resolutionForCSVd= ( 1<<5 ) * factor_z;
-    resolutionForCSVh= ( 1<<5 ) * factor_y;
-    resolutionForCSVw= ( 1<<5 ) * factor_x;
+    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
+    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
+    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
 
     if ( 0 == dash::myid() ) {
 
@@ -968,7 +968,9 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     dash::Team::All().barrier();
 
     smoothen_final( levels.front(), 0.001 );
-    writeToCsv( levels.front()->oldgrid );
+    for ( int i= 0; i < 5; ++i ) {
+        writeToCsv( levels.front()->oldgrid );
+    }
 
     dash::Team::All().barrier();
 }
@@ -998,9 +1000,9 @@ void do_plain_iteration( uint32_t howmanylevels ) {
     vector<Level*> levels;
     levels.reserve( howmanylevels );
 
-    resolutionForCSVd= ( 1<<5 ) * factor_z;
-    resolutionForCSVh= ( 1<<5 ) * factor_y;
-    resolutionForCSVw= ( 1<<5 ) * factor_x;
+    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
+    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
+    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
 
     if ( 0 == dash::myid() ) {
 
