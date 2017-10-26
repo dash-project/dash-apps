@@ -608,6 +608,44 @@ void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
 }
 
 
+/* The following functions are used for the async lazy residual computation */
+
+using ResidualArrayT = dash::Array<double>;
+
+/*
+- team may be a subteam of res's team
+*/
+ResidualArrayT* initResidualArray( ResidualArrayT*, const dash::Team& team ) {
+
+    /* create ResidualArray if argument NULL, reuse otherwise */
+
+}
+
+/*
+- team may be a subteam of res's team
+*/
+void updateResidualArray( ResidualArrayT* res, const dash::Team& team ) {
+
+}
+
+/*
+- team may be a subteam of res's team
+*/
+double checkResidualArray( ResidualArrayT*, const dash::Team& team ) {
+
+}
+
+
+/* for the version with flexible teams only -- do later */
+void leaveResidualArray( ResidualArrayT* ) {
+
+}
+
+
+void finalizeResidualArray( ResidualArrayT* ) {
+
+}
+
 /** 
 Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
  
@@ -626,10 +664,6 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 
     /// relaxation coeff.
     const double c= 1.0;
-
-    /* this barrier is there so that iterations are synchronized across all
-    units. Otherwise some overtak others esp. on the very small grids. */
-    level.oldgrid->barrier();
 
     // async halo update
     level.oldhalo->updateHalosAsync();
@@ -685,6 +719,10 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 
     MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
 
+    /* this barrier is there so that iterations are synchronized across all
+    units. Otherwise some overtak others esp. on the very small grids. */
+    level.oldgrid->barrier();
+
     MiniMonT::MiniMonRecord( 0, "smooth_outer", param );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
@@ -702,11 +740,14 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
 
     MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
 
+    /* *** now comes the residual sync -- handle with gloves only *** */
+
+
     if ( NULL != residual_ret ) {
 
         MiniMonT::MiniMonRecord( 0, "smooth_residuals", param );
 
-        /*static*/ dash::Array<double> residuals( level.oldgrid->team().size(), dash::BLOCKED, level.oldgrid->team() );
+        dash::Array<double> residuals( level.oldgrid->team().size(), dash::BLOCKED, level.oldgrid->team() );
         residuals.local[0]= res;
 
     /*
@@ -739,6 +780,7 @@ void smoothen( Level& level, double* residual_ret= NULL ) {
         MiniMonT::MiniMonRecord( 1, "smooth_residuals", param );
     }
 
+    level.swap();
 
     MiniMonT::MiniMonRecord( 1, "smoothen", param );
 }
@@ -769,7 +811,6 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
 
             /* need global residual for iteration count */
             smoothen( **it, &residual );
-            (*it)->swap();
 
             if ( 0 == dash::myid() ) {
                 cout << j << ": smoothen coarsest with residual " << residual << endl;
@@ -786,7 +827,6 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it, NULL );
-        (*it)->swap();
     }
 
     writeToCsv( (*it)->oldgrid );
@@ -825,7 +865,6 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it, NULL );
-        (*it)->swap();
     }
     writeToCsv( (*it)->oldgrid );
 }
@@ -840,7 +879,6 @@ void smoothen_final( Level* level, double epsilon= 0.01 ) {
     while ( residual > epsilon ) {
 
         smoothen( *level, &residual );
-        level->swap();
 
         if ( 0 == dash::myid() ) {
             cout << j << ": smoothen finest with residual " << residual << endl;
@@ -976,7 +1014,46 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 }
 
 
-void do_plain_iteration( uint32_t howmanylevels ) {
+
+void do_multigrid_elastic( uint32_t howmanylevels ) {
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "test async" << endl;
+    }
+
+    /* make array only on unit 0 */
+    dash::Array<double> residuals( dash::Team::All().size(), 
+        dash::BLOCKCYCLIC(dash::Team::All().size()), 
+        dash::Team::All() );
+
+    cout << dash::myid() << ": global size " << residuals.end() - residuals.begin() << 
+        ", locals size " << residuals.lend() - residuals.lbegin() << endl;
+
+    dash::fill( residuals.begin(), residuals.end(), 5 );
+
+    residuals.async[dash::myid()]= 0.1*dash::myid();
+
+    residuals.async.flush();
+    dash::barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        for ( int i= 0; i < dash::Team::All().size(); i++ ) {
+
+            cout << (double) residuals[i] << " ";
+        }
+        cout << endl;
+    }
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "test async done" << endl;
+    }
+}
+
+
+void do_flat_iteration( uint32_t howmanylevels ) {
 
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -1006,7 +1083,7 @@ void do_plain_iteration( uint32_t howmanylevels ) {
 
     if ( 0 == dash::myid() ) {
 
-        cout << "run plain iteration with " << dash::Team::All().size() << " units "
+        cout << "run flat iteration with " << dash::Team::All().size() << " units "
             "for grids of " << 
             (1<<(howmanylevels))*factor_z << "x" <<
             (1<<(howmanylevels))*factor_y << "x" <<
@@ -1039,7 +1116,6 @@ void do_plain_iteration( uint32_t howmanylevels ) {
     while ( j < 20 ) {
 
         smoothen( *level, NULL );
-        level->swap();
 
         if ( 0 == dash::myid() ) {
             cout << j << ": smoothen grid without residual " << endl;
@@ -1054,12 +1130,11 @@ void do_plain_iteration( uint32_t howmanylevels ) {
 
     MiniMonT::MiniMonRecord( 0, "smoothflatresidual" );
 
-    double epsilon= 0.001;
+    double epsilon= 0.01;
     double residual= 1.0+epsilon;
     while ( residual > epsilon && j < 40 ) {
 
         smoothen( *level, &residual );
-        level->swap();
 
         if ( 0 == dash::myid() ) {
             cout << j << ": smoothen grid with residual " << residual << endl;
@@ -1090,7 +1165,8 @@ int main( int argc, char* argv[] ) {
     MiniMonT::MiniMonRecord( 0, "setup" );
 
 
-    bool do_multigrid= true;
+    bool do_flatsolver= false;
+    bool do_elastic= false;
     uint32_t howmanylevels= 5;
 
 
@@ -1105,13 +1181,22 @@ int main( int argc, char* argv[] ) {
             }
             exit(0);
 
-        } else if ( 0 == strncmp( "-p", argv[a], 2  ) ||
-                0 == strncmp( "--plain", argv[a], 7 )) {
+        } else if ( 0 == strncmp( "-f", argv[a], 2  ) ||
+                0 == strncmp( "--flat", argv[a], 7 )) {
 
-            do_multigrid= false;
+            do_flatsolver= true;
             if ( 0 == dash::myid() ) {
 
-                cout << "do plain iteration instead of multigrid" << endl;
+                cout << "do flat iteration instead of multigrid" << endl;
+            }
+
+        } else if ( 0 == strncmp( "-e", argv[a], 2  ) ||
+                0 == strncmp( "--elastic", argv[a], 7 )) {
+
+            do_elastic= true;
+            if ( 0 == dash::myid() ) {
+
+                cout << "do multigrid iteration with changing number of units per grid" << endl;
             }
 
         } else {
@@ -1128,13 +1213,17 @@ int main( int argc, char* argv[] ) {
     assert( howmanylevels > 2 );
     assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
 
-    if ( do_multigrid ) {
+    if ( do_flatsolver ) {
 
-        do_multigrid_iteration( howmanylevels );
+        do_flat_iteration( howmanylevels );
+
+    } else if ( do_elastic ) {
+
+        do_multigrid_elastic( howmanylevels );
 
     } else {
 
-        do_plain_iteration( howmanylevels );
+        do_multigrid_iteration( howmanylevels );
     }
 
     MiniMonT::MiniMonRecord( 0, "dash::finalize" );
