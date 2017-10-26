@@ -646,13 +646,113 @@ void finalizeResidualArray( ResidualArrayT* ) {
 
 }
 
+
+/* Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
+ 
+This specialization does not compute the residual to have a much simple code. Should be kept in sync with the following version of smoothen() */
+void smoothen( Level& level ) {
+
+    size_t ld= level.oldgrid->local.extent(0);
+    size_t lh= level.oldgrid->local.extent(1);
+    size_t lw= level.oldgrid->local.extent(2);
+    uint64_t param= ld*lh*lw;
+    MiniMonT::MiniMonRecord( 0, "smoothen", param );
+
+    double res= 0.0;
+
+    /// relaxation coeff.
+    const double c= 1.0;
+
+    // async halo update
+    level.oldhalo->updateHalosAsync();
+
+    MiniMonT::MiniMonRecord( 0, "smooth_inner", param );
+
+    // update inner
+
+    /* the start value for both, the y loop and the x loop is 1 because either there is
+    a border area next to the halo -- then the first column or row is covered below in
+    the border update -- or there is an outside border -- then the first column or row
+    contains the boundary values. */
+    for ( size_t z= 1; z < ld-1; z++ ) {
+        for ( size_t y= 1; y < lh-1; y++ ) {
+
+            /* this should eventually be done with Alpaka or Kokkos to look
+            much nicer but still be fast */
+
+            constexpr size_t x= 1;
+            const double* __restrict p_here=  &level.oldgrid->local[z  ][y  ][x  ];
+            const double* __restrict p_east=  &level.oldgrid->local[z  ][y  ][x+1];
+            const double* __restrict p_west=  &level.oldgrid->local[z  ][y  ][x-1];
+            const double* __restrict p_north= &level.oldgrid->local[z  ][y+1][x  ];
+            const double* __restrict p_south= &level.oldgrid->local[z  ][y-1][x  ];
+            const double* __restrict p_up=    &level.oldgrid->local[z+1][y  ][x  ];
+            const double* __restrict p_down=  &level.oldgrid->local[z-1][y  ][x  ];
+
+            double* __restrict p_new=   &level.newgrid->local[z  ][y  ][x  ];
+
+            for ( size_t x= 1; x < lw-1; x++ ) {
+
+                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
+                *p_new= *p_here + c * dtheta;
+                res= std::max( res, std::fabs( dtheta ) );
+                p_here++;
+                p_east++;
+                p_west++;
+                p_north++;
+                p_south++;
+                p_up++;
+                p_down++;
+                p_new++;
+            }
+        }
+    }
+
+    MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
+
+    MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
+
+    // wait for async halo update
+    level.oldhalo->waitHalosAsync();
+
+    MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
+
+    /* this barrier is there so that iterations are synchronized across all
+    units. Otherwise some overtak others esp. on the very small grids. */
+    level.oldgrid->barrier();
+
+    MiniMonT::MiniMonRecord( 0, "smooth_outer", param );
+
+    /// begin pointer of local block, needed because halo border iterator is read-only
+    auto gridlocalbegin= level.newgrid->lbegin();
+
+    auto bend = level.oldhalo->bend();
+    // update border area
+    for( auto it = level.oldhalo->bbegin(); it != bend; ++it ) {
+
+        double dtheta= ( it.valueAt(0) + it.valueAt(1) +
+            it.valueAt(2) + it.valueAt(3) + it.valueAt(4) + it.valueAt(5) ) / 6.0 - *it;
+        gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
+        res= std::max( res, std::fabs( dtheta ) );
+    }
+
+    MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
+
+
+    level.swap();
+
+    MiniMonT::MiniMonRecord( 1, "smoothen", param );
+}
+
+
+
 /** 
 Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
  
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
-void smoothen( Level& level, double* residual_ret= NULL ) {
+void smoothen( Level& level, double* residual_ret ) {
 
     size_t ld= level.oldgrid->local.extent(0);
     size_t lh= level.oldgrid->local.extent(1);
@@ -826,7 +926,7 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
 
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
-        smoothen( **it, NULL );
+        smoothen( **it );
     }
 
     writeToCsv( (*it)->oldgrid );
@@ -864,7 +964,7 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
 
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
-        smoothen( **it, NULL );
+        smoothen( **it );
     }
     writeToCsv( (*it)->oldgrid );
 }
@@ -1115,7 +1215,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     uint32_t j= 0;
     while ( j < 20 ) {
 
-        smoothen( *level, NULL );
+        smoothen( *level );
 
         if ( 0 == dash::myid() ) {
             cout << j << ": smoothen grid without residual " << endl;
