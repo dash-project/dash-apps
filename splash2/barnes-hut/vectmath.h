@@ -34,27 +34,27 @@ typedef real matrix[NDIM][NDIM];
 
 #define CLRV(v) /* CLeaR Vector */               \
   {                                              \
-    register long _i;                            \
+    long _i;                            \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] = 0.0; \
   }
 
 #define UNITV(v, j) /* UNIT Vector */                                \
   {                                                                  \
-    register long _i;                                                \
+    long _i;                                                \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] = (_i == (j) ? 1.0 : 0.0); \
   }
 
 #define SETV(v, u) /* SET Vector */                  \
   {                                                  \
-    register long _i;                                \
+    long _i;                                \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] = (u)[_i]; \
   }
 
 #define ADDV(v, u, w) /* ADD Vector */              \
   {                                                 \
-    register real *_vp       = (v);                 \
-    register real const *_up = (u);                 \
-    register real const *_wp = (w);                 \
+    real *_vp       = (v);                 \
+    real const *_up = (u);                 \
+    real const *_wp = (w);                 \
     *_vp++                   = (*_up++) + (*_wp++); \
     *_vp++                   = (*_up++) + (*_wp++); \
     *_vp                     = (*_up) + (*_wp);     \
@@ -62,9 +62,9 @@ typedef real matrix[NDIM][NDIM];
 
 #define SUBV(v, u, w) /* SUBtract Vector */         \
   {                                                 \
-    register real *_vp       = (v);                 \
-    register real const *_up = (u);                 \
-    register real const *_wp = (w);                 \
+    real *_vp       = (v);                 \
+    real const *_up = (u);                 \
+    real const *_wp = (w);                 \
     *_vp++                   = (*_up++) - (*_wp++); \
     *_vp++                   = (*_up++) - (*_wp++); \
     *_vp                     = (*_up) - (*_wp);     \
@@ -72,8 +72,8 @@ typedef real matrix[NDIM][NDIM];
 
 #define MULVS(v, u, s) /* MULtiply Vector by Scalar */ \
   {                                                    \
-    register real *_vp       = (v);                    \
-    register real const *_up = (u);                    \
+    real *_vp       = (v);                    \
+    real const *_up = (u);                    \
     *_vp++                   = (*_up++) * (s);         \
     *_vp++                   = (*_up++) * (s);         \
     *_vp                     = (*_up) * (s);           \
@@ -81,13 +81,13 @@ typedef real matrix[NDIM][NDIM];
 
 #define DIVVS(v, u, s) /* DIVide Vector by Scalar */       \
   {                                                        \
-    register long _i;                                      \
+    long _i;                                      \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] = (u)[_i] / (s); \
   }
 
 #define DOTVP(s, v, u) /* DOT Vector Product */ \
   {                                             \
-    register real *_vp = (v), *_up = (u);       \
+    real *_vp = (v), *_up = (u);       \
     (s) = (*_vp++) * (*_up++);                  \
     (s) += (*_vp++) * (*_up++);                 \
     (s) += (*_vp) * (*_up);                     \
@@ -96,7 +96,7 @@ typedef real matrix[NDIM][NDIM];
 #define ABSV(s, v) /* ABSolute value of a Vector */          \
   {                                                          \
     double _tmp, sqrt();                                     \
-    register long _i;                                        \
+    long _i;                                        \
     _tmp = 0.0;                                              \
     for (_i = 0; _i < NDIM; _i++) _tmp += (v)[_i] * (v)[_i]; \
     (s)     = sqrt(_tmp);                                    \
@@ -105,7 +105,7 @@ typedef real matrix[NDIM][NDIM];
 #define DISTV(s, u, v) /* DISTance between Vectors */    \
   {                                                      \
     double _tmp, sqrt();                                 \
-    register long _i;                                    \
+    long _i;                                    \
     _tmp = 0.0;                                          \
     for (_i = 0; _i < NDIM; _i++)                        \
       _tmp += ((u)[_i] - (v)[_i]) * ((u)[_i] - (v)[_i]); \
@@ -121,25 +121,25 @@ typedef real matrix[NDIM][NDIM];
 
 #define INCADDV(v, u) /* INCrementally ADD Vector */  \
   {                                                   \
-    register long _i;                                 \
+    long _i;                                 \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] += (u)[_i]; \
   }
 
 #define INCSUBV(v, u) /* INCrementally SUBtract Vector */ \
   {                                                       \
-    register long _i;                                     \
+    long _i;                                     \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] -= (u)[_i];     \
   }
 
 #define INCMULVS(v, s) /* INCrementally MULtiply Vector by Scalar */ \
   {                                                                  \
-    register long _i;                                                \
+    long _i;                                                \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] *= (s);                    \
   }
 
 #define INCDIVVS(v, s) /* INCrementally DIVide Vector by Scalar */ \
   {                                                                \
-    register long _i;                                              \
+    long _i;                                              \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] /= (s);                  \
   }
 
@@ -149,49 +149,49 @@ typedef real matrix[NDIM][NDIM];
 
 #define CLRM(p) /* CLeaR Matrix */                     \
   {                                                    \
-    register long _i, _j;                              \
+    long _i, _j;                              \
     for (_i = 0; _i < NDIM; _i++)                      \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = 0.0; \
   }
 
 #define SETMI(p) /* SET Matrix to Identity */                             \
   {                                                                       \
-    register long _i, _j;                                                 \
+    long _i, _j;                                                 \
     for (_i = 0; _i < NDIM; _i++)                                         \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (_i == _j ? 1.0 : 0.0); \
   }
 
 #define SETM(p, q) /* SET Matrix */                            \
   {                                                            \
-    register long _i, _j;                                      \
+    long _i, _j;                                      \
     for (_i = 0; _i < NDIM; _i++)                              \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (q)[_i][_j]; \
   }
 
 #define TRANM(p, q) /* TRANspose Matrix */                     \
   {                                                            \
-    register long _i, _j;                                      \
+    long _i, _j;                                      \
     for (_i = 0; _i < NDIM; _i++)                              \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (q)[_j][_i]; \
   }
 
 #define ADDM(p, q, r) /* ADD Matrix */                                       \
   {                                                                          \
-    register long _i, _j;                                                    \
+    long _i, _j;                                                    \
     for (_i = 0; _i < NDIM; _i++)                                            \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (q)[_i][_j] + (r)[_i][_j]; \
   }
 
 #define SUBM(p, q, r) /* SUBtract Matrix */                                  \
   {                                                                          \
-    register long _i, _j;                                                    \
+    long _i, _j;                                                    \
     for (_i = 0; _i < NDIM; _i++)                                            \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (q)[_i][_j] - (r)[_i][_j]; \
   }
 
 #define MULM(p, q, r) /* Multiply Matrix */         \
   {                                                 \
-    register long _i, _j, _k;                       \
+    long _i, _j, _k;                       \
     for (_i = 0; _i < NDIM; _i++)                   \
       for (_j = 0; _j < NDIM; _j++) {               \
         (p)[_i][_j] = 0.0;                          \
@@ -202,21 +202,21 @@ typedef real matrix[NDIM][NDIM];
 
 #define MULMS(p, q, s) /* MULtiply Matrix by Scalar */               \
   {                                                                  \
-    register long _i, _j;                                            \
+    long _i, _j;                                            \
     for (_i = 0; _i < NDIM; _i++)                                    \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (q)[_i][_j] * (s); \
   }
 
 #define DIVMS(p, q, s) /* DIVide Matrix by Scalar */                 \
   {                                                                  \
-    register long _i, _j;                                            \
+    long _i, _j;                                            \
     for (_i = 0; _i < NDIM; _i++)                                    \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (q)[_i][_j] / (s); \
   }
 
 #define MULMV(v, p, u) /* MULtiply Matrix by Vector */                \
   {                                                                   \
-    register long _i, _j;                                             \
+    long _i, _j;                                             \
     for (_i = 0; _i < NDIM; _i++) {                                   \
       (v)[_i] = 0.0;                                                  \
       for (_j = 0; _j < NDIM; _j++) (v)[_i] += (p)[_i][_j] * (u)[_j]; \
@@ -225,14 +225,14 @@ typedef real matrix[NDIM][NDIM];
 
 #define OUTVP(p, v, u) /* OUTer Vector Product */                    \
   {                                                                  \
-    register long _i, _j;                                            \
+    long _i, _j;                                            \
     for (_i = 0; _i < NDIM; _i++)                                    \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (v)[_i] * (u)[_j]; \
   }
 
 #define TRACEM(s, p) /* TRACE of Matrix */              \
   {                                                     \
-    register long _i;                                   \
+    long _i;                                   \
     (s) = 0.0;                                          \
     for (_i = 0.0; _i < NDIM; _i++) (s) += (p)[_i][_i]; \
   }
@@ -243,29 +243,40 @@ typedef real matrix[NDIM][NDIM];
 
 #define SETVS(v, s) /* SET Vector to Scalar */   \
   {                                              \
-    register long _i;                            \
+    long _i;                            \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] = (s); \
   }
 
 #define ADDVS(v, u, s) /* ADD Vector and Scalar */         \
-  register long _i;                                        \
+  long _i;                                        \
   for (_i = 0; _i < NDIM; _i++) (v)[_i] = (u)[_i] + (s);   \
   {                                                        \
-    register long _i;                                      \
+    long _i;                                      \
     for (_i = 0; _i < NDIM; _i++) (v)[_i] = (u)[_i] + (s); \
   }
 
 #define SETMS(p, s) /* SET Matrix to Scalar */         \
   {                                                    \
-    register long _i, _j;                              \
+    long _i, _j;                              \
     for (_i = 0; _i < NDIM; _i++)                      \
       for (_j = 0; _j < NDIM; _j++) (p)[_i][_j] = (s); \
   }
 
-#define PRTV(name, vec) /* PRinT Vector */                                  \
-  {                                                                         \
-    std::cout << name << " = [" << vec[0] << "," << vec[1] << "," << vec[2] \
-              << "] ";                                                      \
+#define PRTV(ss, name, vec) /* PRinT Vector */ \
+  {                                            \
+    ss << name << " = [";                      \
+    ss << std::setprecision(4);                \
+    ss << std::fixed;                          \
+    ss << std::setw(9);                        \
+    ss << vec[0] << ",";                       \
+    ss << std::setprecision(4);                \
+    ss << std::fixed;                          \
+    ss << std::setw(9);                        \
+    ss << vec[1] << ",";                       \
+    ss << std::setprecision(4);                \
+    ss << std::fixed;                          \
+    ss << std::setw(9);                        \
+    ss << vec[2] << "] ";                      \
   }
 #define PRTV_SS(ss, name, vec) /* PRinT Vector */                    \
   {                                                                  \
