@@ -60,7 +60,7 @@ void maketree(long ProcessId)
               ProcessId, (long)p);
       {pthread_mutex_unlock(&(Global->io_lock));};
       */
-      DASH_ASSERT(false);
+      ASSERT(false);
     }
   }
   dash::barrier();
@@ -108,68 +108,65 @@ leafptr InitLeaf(cellptr parent, long ProcessId)
   return (l);
 }
 
-void printtree(nodeptr n)
+static void _printtree(nodeptr n, std::ostringstream &ss)
 {
-  long k;
+  long    k;
   cellptr c;
-  cell c_val;
-  leaf l_val;
+  cell    c_val;
+  leaf    l_val;
   leafptr l;
   bodyptr p;
-  //long nseq;
+  // long nseq;
   long const type = Type(*n);
-  std::ostringstream ss;
   switch (type) {
     case CELL:
       c     = NODE_AS_CELL(n);
       c_val = static_cast<cell>(*c);
-      //nseq  = c_val.seqnum;
-      std::cout << "Cell : Cost = " << c_val.cost << ", ";
-      PRTV( "Pos", c_val.pos);
-      std::cout << "\n";
+      ss << "Cell : Cost = " << c_val.cost << ", ";
+      PRTV(ss, "Pos", c_val.pos);
+      ss << "\n";
       for (k = 0; k < NSUB; k++) {
-        std::cout << "Child #" << k << ": ";
+        ss << "Child #" << k << ": ";
         if (!c_val.subp[k]) {
-          std::cout << "NONE";
+          ss << "NONE";
         }
         else {
           if (Type(*(c_val.subp[k])) == CELL) {
-            std::cout << "C: Cost = " << static_cast<long>(Cost(*(c_val.subp[k]))) << ", ";
+            ss << "C: Cost = " << static_cast<long>(Cost(*(c_val.subp[k])));
           }
           else {
             auto const leaf_val = (*NODE_AS_LEAF(c_val.subp[k])).get();
-       //     nseq                = leaf_val.seqnum;
-            std::cout << "L: # Bodies = " << leaf_val.num_bodies
-                      << ", Cost = " << leaf_val.cost << ", ";
+            ss << "L: # Bodies = " << leaf_val.num_bodies
+               << ", Cost = " << leaf_val.cost;
           }
           auto tmp = (*(c_val.subp[k])).get();
-          PRTV( "Pos", tmp.pos);
+          ss << ", ";
+          PRTV(ss, "Pos", tmp.pos);
         }
-        std::cout << "\n";
+        ss << "\n";
       }
       for (k = 0; k < NSUB; k++) {
         if (c_val.subp[k]) {
-          printtree(c_val.subp[k]);
+          _printtree(c_val.subp[k], ss);
         }
       }
       break;
     case LEAF:
       l     = NODE_AS_LEAF(n);
       l_val = static_cast<leaf>(*l);
-      //nseq  = l_val.seqnum;
-      std::cout << "Leaf : # Bodies = " << l_val.num_bodies
-                << ", Cost = " << l_val.cost << " ";
-      PRTV( "Pos", l_val.pos);
-      std::cout << "\n";
+      ss << "Leaf : # Bodies = " << l_val.num_bodies
+         << ", Cost = " << l_val.cost << ", ";
+      PRTV(ss, "Pos", l_val.pos);
+      ss << "\n";
       for (k = 0; k < l_val.num_bodies; k++) {
         p = l_val.bodyp[k];
 
         auto const p_val = (*p).get();
 
-        std::cout << "Body #" << p - static_cast<bodyptr>(bodytab.begin())
-                  << ", Num = " << k << ", Level = " << p_val.level << ", ";
-        PRTV( "Pos", p_val.pos);
-        std::cout << "\n";
+        ss << "Body #" << p - static_cast<bodyptr>(bodytab.begin())
+           << ": Num = " << k << ", Level = " << p_val.level << ", ";
+        PRTV(ss, "Pos", p_val.pos);
+        ss << "\n";
       }
       break;
     default:
@@ -177,7 +174,13 @@ void printtree(nodeptr n)
       exit(-1);
       break;
   }
-  fflush(stdout);
+}
+
+void printtree(nodeptr n)
+{
+  std::ostringstream ss;
+  _printtree(n, ss);
+  std::cout << ss.str() << std::endl;
 }
 
 /*
@@ -308,8 +311,10 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         *qptr = le;
         // cast as a cell
         *NODE_AS_CELL(mynode) = mynode_val;
+#ifdef ENABLE_ASSERTIONS
         auto const tmp        = static_cast<cell>(*NODE_AS_CELL(mynode));
-        assert(tmp.subp[kidIndex] == le);
+        ASSERT(tmp.subp[kidIndex] == le);
+#endif
       }
       CellLock.at(mynode_val.seqnum % MAXLOCK).unlock();
       /* unlock the parent cell */
@@ -325,7 +330,10 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         auto le_val = static_cast<leaf>(*le);
         if (le_val.num_bodies == MAX_BODIES_PER_LEAF) {
           // CASE 2: Subdivide the Tree
-          // mynode_val.subp[kidIndex]) = SubdivideLeaf(le, mynode, l, ProcessId)
+          // mynode_val.subp[kidIndex]) = SubdivideLeaf(le, mynode, l,
+          // ProcessId)
+          // TODO: is this really correct or does it not loose some updates to
+          // mynode in SubdivideLeaf
           *qptr                 = SubdivideLeaf(le, mynode, l, ProcessId);
           *NODE_AS_CELL(mynode) = mynode_val;
         }
@@ -375,7 +383,7 @@ bool intcoord(long xp[NDIM], vector const rp)
   double xsc;
 
   inb = TRUE;
-  DASH_ASSERT(NDIM == 3);
+  ASSERT(NDIM == 3);
   sh_vec rmin_val = rmin.get();
   vector rmin_tmp = {rmin_val.x, rmin_val.y, rmin_val.z};
   for (k = 0; k < NDIM; k++) {
@@ -615,7 +623,7 @@ cellptr SubdivideLeaf(leafptr le, cellptr parent, long l, long ProcessId)
 
 cellptr makecell(long ProcessId)
 {
-  long i, Mycell;
+  long Mycell;
 
   if (Local.mynumcell == maxmycell) {
     error("makecell: Proc %ld needs more than %ld cells; increase fcells\n",
@@ -649,8 +657,7 @@ cellptr makecell(long ProcessId)
 
 leafptr makeleaf(long ProcessId)
 {
-  long i, Myleaf;
-  dash::default_index_t myleaf_gpos;
+  long Myleaf;
 
   if (Local.mynumleaf == maxmyleaf) {
     error("makeleaf: Proc %ld needs more than %ld leaves; increase fleaves\n",
@@ -658,6 +665,7 @@ leafptr makeleaf(long ProcessId)
   }
 
   Myleaf          = Local.mynumleaf++;
+  //Resolve the global index of a specific unit's local index 'Myleaf'
   auto const gpos = leaftab.pattern().global(Myleaf);
   auto le         = static_cast<leafptr>(leaftab.begin() + gpos);
   auto le_val     = static_cast<leaf>(*le);
@@ -667,11 +675,7 @@ leafptr makeleaf(long ProcessId)
   le_val.done       = FALSE;
   le_val.mass       = 0.0;
   le_val.num_bodies = 0;
-  /*
-  for (i = 0; i < MAX_BODIES_PER_LEAF; i++) {
-    Bodyp(le)[i] = NULL;
-  }
-  */
+
   std::fill(le_val.bodyp, le_val.bodyp + MAX_BODIES_PER_LEAF, bodyptr{});
   // write the value back to global memory
   *le                              = le_val;

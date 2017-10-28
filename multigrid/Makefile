@@ -1,7 +1,7 @@
 include make.defs
 
 .phony: all
-all: multigrid heat_equation2d heat_equation3d
+all: multigrid3d 
 
 multigrid:  multigrid.cpp
 	$(CXX) -c $(INC) `libpng-config --cflags` $?
@@ -16,6 +16,13 @@ multigrid2d+minimon:  multigrid2d+minimon.cpp minimonitoring.h
 		$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
 
 multigrid3d: multigrid3d.cpp minimonitoring.h
+	$(CXX) -march=native -c $(INC) $?
+	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+
+multigrid3d_plain.cpp: multigrid3d.cpp
+	grep -v -i "minimon"   multigrid3d.cpp > multigrid3d_plain.cpp
+
+multigrid3d_plain: multigrid3d_plain.cpp
 	$(CXX) -march=native -c $(INC) $?
 	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
 

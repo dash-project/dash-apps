@@ -71,6 +71,8 @@ Command line options:
 #include <unistd.h>
 #include <cstdlib>
 
+#include <algorithm>
+
 #include "code.h"
 #include "defs.h"
 #include "getparam.h"
@@ -84,8 +86,8 @@ typedef struct dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
 /***********************************************
  * DEFINITIONS OF EXTERN GLOBAL VARIABLES      *
 ***********************************************/
-string headline;
-long nbody;
+string             headline;
+size_t               nbody;
 dash::Shared<real> dtime;   /* timestep for leapfrog integrator */
 dash::Shared<real> dtout;   /* time between data outputs */
 dash::Shared<real> tstop;   /* time to stop calculation */
@@ -99,9 +101,9 @@ dash::Shared<real> dthf;    /* half time step */
 
 dash::Shared<long> maxcell;
 dash::Shared<long> maxleaf;
-long maxmybody;
-long maxmycell;
-long maxmyleaf;
+size_t               maxmybody;
+size_t               maxmycell;
+size_t               maxmyleaf;
 dash::Shared<long> n2bcalc; /* total number of body/cell interactions  */
 dash::Shared<long> nbccalc; /* total number of body/body interactions  */
 dash::Shared<long> selfint; /* number of self interactions             */
@@ -111,7 +113,7 @@ dash::Array<cell> celltab;
 dash::Array<leaf> leaftab;
 
 std::vector<dash::Mutex> CellLock;
-dash::Mutex CountLock;
+dash::Mutex              CountLock;
 
 dash::Shared<real> mtot; /* total mass of N-body system             */
 // dash::Shared<real> etot[3];      /* binding, kinetic, potential energy */
@@ -119,12 +121,12 @@ dash::Shared<sh_mat> keten; /* kinetic energy tensor                   */
 dash::Shared<sh_mat> peten; /* potential energy tensor                 */
 //* center of mass coordinates and velocity */
 // dash::Shared<vector> cmphase[2];
-dash::Shared<sh_vec> amvec;   /* angular momentum vector                 */
+dash::Shared<sh_vec>  amvec;  /* angular momentum vector                 */
 dash::Shared<cellptr> G_root; /* root of the whole tree                  */
-dash::Shared<sh_vec> rmin;    /* lower-left corner of coordinate box     */
-dash::Shared<sh_vec> min;     /* temporary lower-left corner of the box  */
-dash::Shared<sh_vec> max;     /* temporary upper right corner of the box */
-dash::Shared<real> rsize;     /* side-length of integer coordinate box   */
+dash::Shared<sh_vec>  rmin;   /* lower-left corner of coordinate box     */
+dash::Shared<sh_vec>  min;    /* temporary lower-left corner of the box  */
+dash::Shared<sh_vec>  max;    /* temporary upper right corner of the box */
+dash::Shared<real>    rsize;  /* side-length of integer coordinate box   */
 
 dash::Shared<unsigned long> createstart, createend, computestart, computeend;
 dash::Shared<unsigned long> trackstart, trackend, tracktime;
@@ -139,7 +141,7 @@ struct local_memory Local;
 ***********************************************/
 static dash::Shared<double> globtout;
 static dash::Shared<double> globtnow;
-static dash::Shared<int> globnstep;
+static dash::Shared<int>    globnstep;
 
 const char *defv[] = {
     /* DEFAULT PARAMETER VALUES              */
@@ -360,12 +362,6 @@ int main(int argc, char *argv[])
   long c;
   dash::init(&argc, &argv);
 
-#if 0
-  int wait = 1;
-  while (wait)
-    ;
-#endif
-
   Timer::Calibrate(0);
 
   if (argc < 2) {
@@ -373,7 +369,6 @@ int main(int argc, char *argv[])
       std::cout << "usage: " << std::string(argv[0]) << std::endl;
     }
     dash::finalize();
-    return EXIT_FAILURE;
   }
 
   int exit = 2;
@@ -385,26 +380,42 @@ int main(int argc, char *argv[])
         exit = EXIT_SUCCESS;
         break;
       default:
-        if (dash::myid() == 0) Help();
-        fprintf(stderr, "Only valid option is \"-h\".\n");
+        if (dash::myid() == 0) {
+          Help();
+          std::cerr << "Only valid option is \"-h\".\n";
+        }
         exit = EXIT_FAILURE;
         break;
     }
+  }
+
+  if (argv[1][0] == '-') {
+    if (dash::myid() == 0)
+      std::cerr << "argument for nbody is a negative number!\n";
+
+    exit = EXIT_FAILURE;
   }
 
   if (exit != 2) {
     dash::finalize();
     return exit;
   }
-
   nbody = ::std::atoi(argv[1]);
 
-  LOG_MESSAGE("Before ANLinit");
+  if (argc > 2) {
+    int debug = ::std::atoi(argv[2]);
+
+    if (dash::myid() == 0 && debug) {
+      int wait = 1;
+      while (wait);
+    }
+  }
+
   ANLinit();  // Prepare all global data structures
 
   if (dash::myid() == 0) {
     initparam(defv);
-    // initoutput();
+    //initoutput();
     startrun();
   }
 
@@ -418,8 +429,9 @@ int main(int argc, char *argv[])
     treebuildtime.set(0);
     forcecalctime.set(0);
     computestart.set(Timer::Now());
-    printf("COMPUTESTART  = %12lu\n",
-           static_cast<unsigned long>(computestart.get()));
+    printf(
+        "COMPUTESTART  = %12lu\n",
+        static_cast<unsigned long>(computestart.get()));
   }
 
   SlaveStart();
@@ -441,23 +453,26 @@ int main(int argc, char *argv[])
     std::cout << os.str();
 
     printf("TRACKTIME     = %12lu\n", tracktime.get().get());
-    printf("PARTITIONTIME = %12lu\t%5.2f\n", partitiontime.get().get(),
-           (static_cast<double>(partitiontime.get().get()) /
-            tracktime.get().get()));
-    printf("TREEBUILDTIME = %12lu\t%5.2f\n", treebuildtime.get().get()),
+    printf(
+        "PARTITIONTIME = %12lu\t%5.2f\n", partitiontime.get().get(),
+        (static_cast<double>(partitiontime.get().get()) /
+         tracktime.get().get()));
+    printf("TREEBUILDTIME = %12lu\t%5.2f\n", treebuildtime.get().get(),
         (static_cast<double>(treebuildtime.get().get()) /
-         tracktime.get().get());
-    printf("FORCECALCTIME = %12lu\t%5.2f\n", forcecalctime.get().get(),
-           (static_cast<double>(forcecalctime.get().get())) /
-               tracktime.get().get());
+         tracktime.get().get()));
+    printf(
+        "FORCECALCTIME = %12lu\t%5.2f\n", forcecalctime.get().get(),
+        (static_cast<double>(forcecalctime.get().get())) /
+            tracktime.get().get());
 
     auto const track = tracktime.get().get();
-    printf("RESTTIME      = %12lu\t%5.2f\n",
-           tracktime.get().get() - partitiontime.get().get() -
-               treebuildtime.get().get() - forcecalctime.get().get(),
-           ((tracktime.get().get() - partitiontime.get().get() -
-             treebuildtime.get().get() - forcecalctime.get().get())) /
-               track);
+    printf(
+        "RESTTIME      = %12lu\t%5.2f\n",
+        tracktime.get().get() - partitiontime.get().get() -
+            treebuildtime.get().get() - forcecalctime.get().get(),
+        static_cast<double>((tracktime.get().get() - partitiontime.get().get() -
+          treebuildtime.get().get() - forcecalctime.get().get())) /
+            track);
   }
   return EXIT_SUCCESS;
 }
@@ -494,7 +509,6 @@ void ANLinit()
     CellLock.emplace_back(dash::Team::All());
   }
 
-  CountLock.init();
 
   auto const nprocs = dash::size();
 
@@ -509,42 +523,45 @@ void ANLinit()
     error("testdata: not enough memory\n");
   }
 
-  DASH_ASSERT(dtime.allocate());
-  DASH_ASSERT(dthf.allocate());
-  DASH_ASSERT(eps.allocate());
-  DASH_ASSERT(epssq.allocate());
-  DASH_ASSERT(tol.allocate());
-  DASH_ASSERT(tolsq.allocate());
-  DASH_ASSERT(fcells.allocate());
-  DASH_ASSERT(fleaves.allocate());
-  DASH_ASSERT(tstop.allocate());
-  DASH_ASSERT(dtout.allocate());
-  DASH_ASSERT(globtout.allocate());
-  DASH_ASSERT(globtnow.allocate());
-  DASH_ASSERT(globnstep.allocate());
-  DASH_ASSERT(maxleaf.allocate());
-  DASH_ASSERT(maxcell.allocate());
-  DASH_ASSERT(rsize.allocate());
-  DASH_ASSERT(rmin.allocate());
-  DASH_ASSERT(max.allocate());
-  DASH_ASSERT(min.allocate());
-  DASH_ASSERT(createstart.allocate());
-  DASH_ASSERT(createend.allocate());
-  DASH_ASSERT(computestart.allocate());
-  DASH_ASSERT(computeend.allocate());
-  DASH_ASSERT(trackstart.allocate());
-  DASH_ASSERT(trackend.allocate());
-  DASH_ASSERT(tracktime.allocate());
-  DASH_ASSERT(partitionstart.allocate());
-  DASH_ASSERT(partitionend.allocate());
-  DASH_ASSERT(partitiontime.allocate());
-  DASH_ASSERT(treebuildstart.allocate());
-  DASH_ASSERT(treebuildend.allocate());
-  DASH_ASSERT(treebuildtime.allocate());
-  DASH_ASSERT(forcecalcstart.allocate());
-  DASH_ASSERT(forcecalcend.allocate());
-  DASH_ASSERT(forcecalctime.allocate());
-  DASH_ASSERT(G_root.allocate());
+  CountLock.init(bodytab.team());
+
+
+  (dtime.allocate());
+  (dthf.allocate());
+  (eps.allocate());
+  (epssq.allocate());
+  (tol.allocate());
+  (tolsq.allocate());
+  (fcells.allocate());
+  (fleaves.allocate());
+  (tstop.allocate());
+  (dtout.allocate());
+  (globtout.allocate());
+  (globtnow.allocate());
+  (globnstep.allocate());
+  (maxleaf.allocate());
+  (maxcell.allocate());
+  (rsize.allocate());
+  (rmin.allocate());
+  (max.allocate());
+  (min.allocate());
+  (createstart.allocate());
+  (createend.allocate());
+  (computestart.allocate());
+  (computeend.allocate());
+  (trackstart.allocate());
+  (trackend.allocate());
+  (tracktime.allocate());
+  (partitionstart.allocate());
+  (partitionend.allocate());
+  (partitiontime.allocate());
+  (treebuildstart.allocate());
+  (treebuildend.allocate());
+  (treebuildtime.allocate());
+  (forcecalcstart.allocate());
+  (forcecalcend.allocate());
+  (forcecalctime.allocate());
+  (G_root.allocate());
 }
 
 /*
@@ -552,8 +569,6 @@ void ANLinit()
  */
 void init_root()
 {
-  long i;
-
   // The root is always the first cell
   //
   celltab.local[0].type   = CELL;
@@ -563,9 +578,7 @@ void init_root()
 
   G_root.set(static_cast<cellptr>(celltab.begin()));
   // The root has initially no children
-  for (i = 0; i < NSUB; i++) {
-    celltab.local[0].subp[i] = cellptr{};
-  }
+  std::fill(celltab.local[0].subp, celltab.local[0].subp + NSUB, cellptr{});
   Local.mynumcell = 1;
 }
 
@@ -596,12 +609,10 @@ long Log_base_2(long number)
 #endif
 void tab_init()
 {
-  long i;
-
   /*allocate/cell space */
   if (dash::myid() == 0) {
     auto const fleaves_val = static_cast<double>(fleaves.get());
-    DASH_ASSERT(fleaves_val);
+    ASSERT(fleaves_val);
     auto const maxleaf_val =
         static_cast<long>(static_cast<double>(fleaves.get()) * nbody);
     maxleaf.set(maxleaf_val);
@@ -696,12 +707,8 @@ void SlaveStart()
   auto const dtime_val = dtime.get();
   while (Local.tnow < tstop_val + 0.1 * dtime_val) {
     stepsystem(ProcessId);
-    if (ProcessId == 0) {
-      // printtree(G_root.get().get());
-      // printf("Going to next step!!!\n");
-    }
   }
-  printtree(G_root.get().get());
+  if (ProcessId == 0) printtree(G_root.get().get());
 }
 
 void startrun()
@@ -734,10 +741,10 @@ void startrun()
   globtnow.set(Local.tnow);
 
   printf("----------PARAMS----------------\n");
-  // printf("infile = %s\n", infile);
-  printf("nbody = %d\n", nbody);
-  printf("seed = %d\n", seed);
-  // printf("outfile = %s\n", outfile);
+  printf("infile = \n");
+  printf("nbody = %ld\n", nbody);
+  printf("seed = %ld\n", seed);
+  printf("outfile = \n");
   printf("dtime = %f\n", dtime.get().get());
   printf("eps = %f\n", eps.get().get());
   printf("tol = %f\n", tol.get().get());
@@ -745,7 +752,7 @@ void startrun()
   printf("fleaves = %f\n", fleaves.get().get());
   printf("tstop = %f\n", tstop.get().get());
   printf("dtout = %f\n", dtout.get().get());
-  printf("NPROC = %d\n", dash::size());
+  printf("NPROC = %zd\n", dash::size());
 }
 
 /*
@@ -758,11 +765,11 @@ void startrun()
 
 void testdata()
 {
-  real rsc, vsc, r, v, x, y;
+  real   rsc, vsc, r, v, x, y;
   vector cmr, cmv;
-  long rejects = 0;
-  long halfnbody, i;
-  float offset;
+  long   rejects = 0;
+  long   halfnbody, i;
+  float  offset;
 
   headline   = "Hack code: Plummer model";
   Local.tnow = 0.0;
@@ -846,7 +853,7 @@ void testdata()
 
 void pickshell(real *vec, real rad)
 {
-  register long k;
+  long   k;
   double rsq, rsc;
 
   do {
@@ -878,10 +885,10 @@ void stepsystem(long ProcessId)
   real Cavg;
   // bodyptr p, *pp;
   vector dvel, vel1, dpos;
-  long trackstart, trackend;
-  long partitionstart, partitionend;
-  long treebuildstart, treebuildend;
-  long forcecalcstart, forcecalcend;
+  long   trackstart, trackend;
+  long   partitionstart, partitionend;
+  long   treebuildstart, treebuildend;
+  long   forcecalcstart, forcecalcend;
 
   auto const nprocs = bodytab.team().size();
 
@@ -961,7 +968,7 @@ void stepsystem(long ProcessId)
   Cavg =
       static_cast<real>(Cost(*(static_cast<cellptr>(G_root.get())))) / nprocs;
   Local.workMin = Cavg * ProcessId;
-  Local.workMax = (Cavg * (ProcessId + 1) + (ProcessId == (nprocs - 1)));
+  Local.workMax = (Cavg * (ProcessId + 1) + (ProcessId == static_cast<long>(nprocs - 1)));
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -1064,10 +1071,10 @@ void stepsystem(long ProcessId)
   */
 
   CountLock.lock();
-  auto tmp_min   = static_cast<sh_vec>(min.get());
+  auto   tmp_min = static_cast<sh_vec>(min.get());
   vector min_vec = {tmp_min.x, tmp_min.y, tmp_min.z};
 
-  auto tmp_max   = static_cast<sh_vec>(max.get());
+  auto   tmp_max = static_cast<sh_vec>(max.get());
   vector max_vec = {tmp_max.x, tmp_max.y, tmp_max.z};
 
   bool min_vec_modified = false;
@@ -1137,10 +1144,10 @@ void stepsystem(long ProcessId)
   if (ProcessId == 0) {
     real rsize_val = 0;
 
-    auto tmp_max   = static_cast<sh_vec>(max.get());
+    auto   tmp_max = static_cast<sh_vec>(max.get());
     vector max_vec = {tmp_max.x, tmp_max.y, tmp_max.z};
 
-    auto tmp_min   = static_cast<sh_vec>(min.get());
+    auto   tmp_min = static_cast<sh_vec>(min.get());
     vector min_vec = {tmp_min.x, tmp_min.y, tmp_min.z};
 
     SUBV(max_vec, max_vec, min_vec);
@@ -1150,7 +1157,7 @@ void stepsystem(long ProcessId)
       }
     }
 
-    auto tmp_rmin   = static_cast<sh_vec>(rmin.get());
+    auto   tmp_rmin = static_cast<sh_vec>(rmin.get());
     vector rmin_vec = {tmp_rmin.x, tmp_rmin.y, tmp_rmin.z};
     ADDVS(rmin_vec, min_vec, -rsize_val / 100000.0);
     rmin.set({rmin_vec[0], rmin_vec[1], rmin_vec[2]});
@@ -1172,11 +1179,11 @@ void stepsystem(long ProcessId)
 void ComputeForces(long ProcessId)
 {
   bodyptr p, *pp;
-  vector acc1, dacc, dvel;
+  vector  acc1, dacc, dvel;
 
   for (pp = Local.mybodytab; pp < Local.mybodytab + Local.mynbody; pp++) {
     p = *pp;
-    DASH_ASSERT(p);
+    ASSERT(p);
     body p_val = *p;
     SETV(acc1, p_val.acc);
     Cost(*p) = 0;
@@ -1203,10 +1210,11 @@ void ComputeForces(long ProcessId)
  * assigned to the processor.
  */
 
-void find_my_initial_bodies(dash::Array<body> &btab, long nbody,
-                            long ProcessId)
+void find_my_initial_bodies(
+    dash::Array<body> &btab, long nbody, long ProcessId)
 {
-  long extra, offset, i;
+  long extra, offset;
+  size_t i;
 
   Local.mynbody = nbody / bodytab.team().size();
   extra         = nbody % bodytab.team().size();
@@ -1221,12 +1229,13 @@ void find_my_initial_bodies(dash::Array<body> &btab, long nbody,
     offset = (Local.mynbody + 1) * extra +
              (ProcessId - extra) * Local.mynbody;
              */
+    //local to global index mapping
     offset = bodytab.pattern().global(0);
   }
 
-  DASH_ASSERT(Local.mynbody <= btab.lsize());
+  ASSERT(Local.mynbody <= btab.lsize());
 
-  // TODO: use dash transform
+  // TODO: use dash::copy() --> global to local copy
   for (i = 0; i < Local.mynbody; i++) {
     Local.mybodytab[i] = static_cast<bodyptr>(bodytab.begin() + offset + i);
   }
@@ -1237,7 +1246,7 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
   long i;
 
   if (Type((*mycell)) == LEAF) {
-    auto l           = static_cast<leafptr>(mycell);
+    auto       l     = static_cast<leafptr>(mycell);
     auto const l_val = static_cast<leaf>(*l);
     for (i = 0; i < l_val.num_bodies; i++) {
       if (work >= Local.workMin - .1) {
@@ -1263,8 +1272,8 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
       if (qptr) {
         auto const cost = Cost(*qptr).get();
         if ((work + cost) >= (Local.workMin - .1)) {
-          find_my_bodies(qptr, work, Direction_Sequence[direction][i],
-                         ProcessId);
+          find_my_bodies(
+              qptr, work, Direction_Sequence[direction][i], ProcessId);
         }
         work += cost;
       }
@@ -1290,8 +1299,8 @@ void Housekeep(long ProcessId)
  */
 void setbound()
 {
-  long i;
-  real side;
+  long    i;
+  real    side;
   bodyptr p;
 
   SETVS(Local.min, 1E99);

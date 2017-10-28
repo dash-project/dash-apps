@@ -608,7 +608,7 @@ cout << "    src  global dist " << source.grid.end() - source.grid.begin() << en
 
             auto start= source.grid.begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
 
-            //dash::copy( start, start + sizes[2], &dest.grid.local[z][y][0] );
+            dash::copy( start, start + sizes[2], &dest.grid.local[z][y][0] );
             //dash::copy( start, start + sizes[2], buf );
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
         }
@@ -850,7 +850,7 @@ cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
 
 //writeToCsvFullGrid( (*it)->grid );
             transfertofewer( **it, **itnext );
-writeToCsvFullGrid( (*itnext)->grid );
+//writeToCsvFullGrid( (*itnext)->grid );
 
             v_cycle( itnext, itend, numiter, epsilon );
 
@@ -1157,7 +1157,7 @@ int main( int argc, char* argv[] ) {
 
     v_cycle( levels.begin(), levels.end(), 2, 0.0001 );
     dash::Team::All().barrier();
-    smoothen_final( levels, 0.1 );
+    smoothen_final( levels, 0.001 );
 
     dash::Team::All().barrier();
 

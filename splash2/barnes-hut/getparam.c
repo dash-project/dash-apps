@@ -106,6 +106,7 @@ bool getbparam(string name)
       return (FALSE);
    }
    error("getbparam: %s=%s not bool\n", name, val);
+   return FALSE;
 }
 
 double getdparam(string name)

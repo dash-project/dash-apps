@@ -1,0 +1,265 @@
+{type: 1, mass: 0.0156250, pos: [-0.00450, 0.00286, 0.00423], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.38176, 0.12946, -0.14430]}
+{type: 1, mass: 0.0156250, pos: [0.14976, 1.54775, 3.23319], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.21991, -0.40517, 0.21399]}
+{type: 1, mass: 0.0156250, pos: [2.55448, -0.83233, 0.15638], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06196, -0.47083, -0.21474]}
+{type: 1, mass: 0.0156250, pos: [2.83159, 1.62243, 0.42880], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.17196, 0.03581, -0.00694]}
+{type: 1, mass: 0.0156250, pos: [-0.11232, -0.20514, -0.01893], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.21995, 0.29146, 0.40111]}
+{type: 1, mass: 0.0156250, pos: [0.23009, 1.21672, -0.83565], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.05761, 0.53084, 0.08253]}
+{type: 1, mass: 0.0156250, pos: [-1.40164, -1.90816, 1.08104], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.29265, -0.36998, 0.00560]}
+{type: 1, mass: 0.0156250, pos: [0.81845, -1.10372, -3.43683], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.13372, 0.21619, 0.22499]}
+{type: 1, mass: 0.0156250, pos: [0.47416, 2.25944, 1.13115], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.12406, -0.16887, -0.06104]}
+{type: 1, mass: 0.0156250, pos: [-0.55313, 1.51496, 2.20451], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.13908, 0.01001, -0.09951]}
+{type: 1, mass: 0.0156250, pos: [-2.73427, -4.10016, -1.09388], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.09223, -0.08452, 0.15455]}
+{type: 1, mass: 0.0156250, pos: [0.62829, -0.63828, 0.45306], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.05639, -0.40600, 0.43274]}
+{type: 1, mass: 0.0156250, pos: [-1.06810, 0.16402, -0.60812], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.12490, 0.11409, -0.07271]}
+{type: 1, mass: 0.0156250, pos: [-0.97388, 0.94131, 0.17620], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.07532, 0.13642, 0.16327]}
+{type: 1, mass: 0.0156250, pos: [2.58809, 1.51152, 1.23489], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06387, -0.05344, -0.05545]}
+{type: 1, mass: 0.0156250, pos: [0.12003, 5.14187, -0.53972], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.31069, -0.03622, -0.04058]}
+{type: 1, mass: 0.0156250, pos: [1.00347, -1.16957, -0.84823], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06392, -0.20982, 0.02468]}
+{type: 1, mass: 0.0156250, pos: [-2.35878, -1.53354, -0.66669], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.29021, 0.27354, 0.37126]}
+{type: 1, mass: 0.0156250, pos: [-0.93854, 0.35885, -0.64124], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03916, 0.12139, 0.33516]}
+{type: 1, mass: 0.0156250, pos: [-4.97704, 1.30863, 1.21202], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.18802, 0.10880, -0.19088]}
+{type: 1, mass: 0.0156250, pos: [2.99213, -0.78299, 0.88511], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.25800, -0.04412, -0.14818]}
+{type: 1, mass: 0.0156250, pos: [0.55539, 0.40331, -3.28081], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.13188, 0.28964, -0.21436]}
+{type: 1, mass: 0.0156250, pos: [1.42136, 1.87066, -0.73896], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06946, 0.29944, 0.17048]}
+{type: 1, mass: 0.0156250, pos: [0.47224, -0.13814, 0.65622], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.39533, -0.66691, 0.35813]}
+{type: 1, mass: 0.0156250, pos: [1.05251, -0.53981, 0.13003], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.24692, -0.34537, -0.31325]}
+{type: 1, mass: 0.0156250, pos: [5.67625, 5.26950, 9.42461], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.00931, 0.06757, 0.03805]}
+{type: 1, mass: 0.0156250, pos: [-0.45659, 0.19797, 1.59079], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.10432, -0.02190, -0.01954]}
+{type: 1, mass: 0.0156250, pos: [0.90986, 0.66422, -2.29017], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.04551, 0.19961, -0.12085]}
+{type: 1, mass: 0.0156250, pos: [3.73849, -2.17383, 3.48775], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.17433, 0.20745, -0.15154]}
+{type: 1, mass: 0.0156250, pos: [-0.34699, 0.40391, 1.67103], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.45215, -0.13414, -0.06525]}
+{type: 1, mass: 0.0156250, pos: [0.93801, 2.77133, -0.22608], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.21937, 0.19853, 0.07694]}
+{type: 1, mass: 0.0156250, pos: [-6.44291, -2.34136, -1.95289], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.07978, -0.03422, -0.18686]}
+{type: 1, mass: 0.0156250, pos: [3.99550, 4.00286, 4.00423], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.38176, 0.12946, -0.14430]}
+{type: 1, mass: 0.0156250, pos: [4.14976, 5.54775, 7.23319], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.21991, -0.40517, 0.21399]}
+{type: 1, mass: 0.0156250, pos: [6.55448, 3.16767, 4.15638], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06196, -0.47083, -0.21474]}
+{type: 1, mass: 0.0156250, pos: [6.83159, 5.62243, 4.42880], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.17196, 0.03581, -0.00694]}
+{type: 1, mass: 0.0156250, pos: [3.88768, 3.79486, 3.98107], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.21995, 0.29146, 0.40111]}
+{type: 1, mass: 0.0156250, pos: [4.23009, 5.21672, 3.16435], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.05761, 0.53084, 0.08253]}
+{type: 1, mass: 0.0156250, pos: [2.59836, 2.09184, 5.08104], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.29265, -0.36998, 0.00560]}
+{type: 1, mass: 0.0156250, pos: [4.81845, 2.89628, 0.56317], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.13372, 0.21619, 0.22499]}
+{type: 1, mass: 0.0156250, pos: [4.47416, 6.25944, 5.13115], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.12406, -0.16887, -0.06104]}
+{type: 1, mass: 0.0156250, pos: [3.44687, 5.51496, 6.20451], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.13908, 0.01001, -0.09951]}
+{type: 1, mass: 0.0156250, pos: [1.26573, -0.10016, 2.90612], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.09223, -0.08452, 0.15455]}
+{type: 1, mass: 0.0156250, pos: [4.62829, 3.36172, 4.45306], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.05639, -0.40600, 0.43274]}
+{type: 1, mass: 0.0156250, pos: [2.93190, 4.16402, 3.39188], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.12490, 0.11409, -0.07271]}
+{type: 1, mass: 0.0156250, pos: [3.02612, 4.94131, 4.17620], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.07532, 0.13642, 0.16327]}
+{type: 1, mass: 0.0156250, pos: [6.58809, 5.51152, 5.23489], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06387, -0.05344, -0.05545]}
+{type: 1, mass: 0.0156250, pos: [4.12003, 9.14187, 3.46028], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.31069, -0.03622, -0.04058]}
+{type: 1, mass: 0.0156250, pos: [5.00347, 2.83043, 3.15177], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06392, -0.20982, 0.02468]}
+{type: 1, mass: 0.0156250, pos: [1.64122, 2.46646, 3.33331], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.29021, 0.27354, 0.37126]}
+{type: 1, mass: 0.0156250, pos: [3.06146, 4.35885, 3.35876], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03916, 0.12139, 0.33516]}
+{type: 1, mass: 0.0156250, pos: [-0.97704, 5.30863, 5.21202], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.18802, 0.10880, -0.19088]}
+{type: 1, mass: 0.0156250, pos: [6.99213, 3.21701, 4.88511], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.25800, -0.04412, -0.14818]}
+{type: 1, mass: 0.0156250, pos: [4.55539, 4.40331, 0.71919], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.13188, 0.28964, -0.21436]}
+{type: 1, mass: 0.0156250, pos: [5.42136, 5.87066, 3.26104], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.06946, 0.29944, 0.17048]}
+{type: 1, mass: 0.0156250, pos: [4.47224, 3.86186, 4.65622], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.39533, -0.66691, 0.35813]}
+{type: 1, mass: 0.0156250, pos: [5.05251, 3.46019, 4.13003], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.24692, -0.34537, -0.31325]}
+{type: 1, mass: 0.0156250, pos: [9.67625, 9.26950, 13.42461], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.00931, 0.06757, 0.03805]}
+{type: 1, mass: 0.0156250, pos: [3.54341, 4.19797, 5.59079], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.10432, -0.02190, -0.01954]}
+{type: 1, mass: 0.0156250, pos: [4.90986, 4.66422, 1.70983], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.04551, 0.19961, -0.12085]}
+{type: 1, mass: 0.0156250, pos: [7.73849, 1.82617, 7.48775], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.17433, 0.20745, -0.15154]}
+{type: 1, mass: 0.0156250, pos: [3.65301, 4.40391, 5.67103], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.45215, -0.13414, -0.06525]}
+{type: 1, mass: 0.0156250, pos: [4.93801, 6.77133, 3.77392], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.21937, 0.19853, 0.07694]}
+{type: 1, mass: 0.0156250, pos: [-2.44291, 1.65864, 2.04711], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.07978, -0.03422, -0.18686]}
+{type: 1, mass: 0.0156250, pos: [-2.21656, -2.36289, -2.37023], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.41505, 0.13637, -0.17391]}
+{type: 1, mass: 0.0156250, pos: [-2.06230, -0.81800, 0.85873], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.25320, -0.39826, 0.18438]}
+{type: 1, mass: 0.0156250, pos: [0.34242, -3.19809, -2.21808], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.02867, -0.46391, -0.24435]}
+{type: 1, mass: 0.0156250, pos: [0.61953, -0.74332, -1.94567], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.13867, 0.04273, -0.03655]}
+{type: 1, mass: 0.0156250, pos: [-2.32438, -2.57090, -2.39340], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.18666, 0.29837, 0.37150]}
+{type: 1, mass: 0.0156250, pos: [-1.98197, -1.14904, -3.21012], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.09090, 0.53776, 0.05292]}
+{type: 1, mass: 0.0156250, pos: [-3.61370, -4.27392, -1.29343], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.32594, -0.36307, -0.02401]}
+{type: 1, mass: 0.0156250, pos: [-1.39361, -3.46948, -5.81130], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.10043, 0.22310, 0.19538]}
+{type: 1, mass: 0.0156250, pos: [-1.73791, -0.10632, -1.24331], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.09077, -0.16196, -0.09065]}
+{type: 1, mass: 0.0156250, pos: [-2.76519, -0.85080, -0.16995], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.10579, 0.01692, -0.12912]}
+{type: 1, mass: 0.0156250, pos: [-4.94633, -6.46592, -3.46835], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.12552, -0.07760, 0.12494]}
+{type: 1, mass: 0.0156250, pos: [-1.58377, -3.00404, -1.92141], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.08968, -0.39909, 0.40313]}
+{type: 1, mass: 0.0156250, pos: [-3.28016, -2.20174, -2.98258], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.15819, 0.12100, -0.10232]}
+{type: 1, mass: 0.0156250, pos: [-3.18594, -1.42445, -2.19826], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.04203, 0.14333, 0.13366]}
+{type: 1, mass: 0.0156250, pos: [0.37603, -0.85424, -1.13957], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03058, -0.04652, -0.08506]}
+{type: 1, mass: 0.0156250, pos: [-2.09203, 2.77611, -2.91418], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.27740, -0.02931, -0.07019]}
+{type: 1, mass: 0.0156250, pos: [-1.20859, -3.53533, -3.22270], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03063, -0.20290, -0.00493]}
+{type: 1, mass: 0.0156250, pos: [-4.57084, -3.89929, -3.04116], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.32350, 0.28045, 0.34166]}
+{type: 1, mass: 0.0156250, pos: [-3.15060, -2.00690, -3.01570], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.00587, 0.12831, 0.30555]}
+{type: 1, mass: 0.0156250, pos: [-7.18910, -1.05713, -1.16245], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.22131, 0.11572, -0.22049]}
+{type: 1, mass: 0.0156250, pos: [0.78007, -3.14875, -1.48935], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.22471, -0.03721, -0.17779]}
+{type: 1, mass: 0.0156250, pos: [-1.65668, -1.96245, -5.65527], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.16517, 0.29655, -0.24397]}
+{type: 1, mass: 0.0156250, pos: [-0.79070, -0.49510, -3.11342], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03616, 0.30635, 0.14087]}
+{type: 1, mass: 0.0156250, pos: [-1.73982, -2.50390, -1.71824], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.36204, -0.65999, 0.32852]}
+{type: 1, mass: 0.0156250, pos: [-1.15955, -2.90557, -2.24443], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.21363, -0.33845, -0.34285]}
+{type: 1, mass: 0.0156250, pos: [3.46419, 2.90374, 7.05015], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.02398, 0.07448, 0.00844]}
+{type: 1, mass: 0.0156250, pos: [-2.66865, -2.16778, -0.78367], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.13761, -0.01499, -0.04915]}
+{type: 1, mass: 0.0156250, pos: [-1.30220, -1.70154, -4.66463], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.01222, 0.20652, -0.15046]}
+{type: 1, mass: 0.0156250, pos: [1.52643, -4.53958, 1.11329], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.20762, 0.21437, -0.18115]}
+{type: 1, mass: 0.0156250, pos: [-2.55905, -1.96184, -0.70343], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.41886, -0.12722, -0.09486]}
+{type: 1, mass: 0.0156250, pos: [-1.27405, 0.40557, -2.60054], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.18608, 0.20544, 0.04733]}
+{type: 1, mass: 0.0156250, pos: [-8.65497, -4.70712, -4.32735], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.04649, -0.02731, -0.21647]}
+{type: 1, mass: 0.0156250, pos: [1.78344, 1.63711, 1.62977], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.41505, 0.13637, -0.17391]}
+{type: 1, mass: 0.0156250, pos: [1.93770, 3.18200, 4.85873], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.25320, -0.39826, 0.18438]}
+{type: 1, mass: 0.0156250, pos: [4.34242, 0.80191, 1.78192], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.02867, -0.46391, -0.24435]}
+{type: 1, mass: 0.0156250, pos: [4.61953, 3.25668, 2.05433], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.13867, 0.04273, -0.03655]}
+{type: 1, mass: 0.0156250, pos: [1.67562, 1.42910, 1.60660], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.18666, 0.29837, 0.37150]}
+{type: 1, mass: 0.0156250, pos: [2.01803, 2.85096, 0.78988], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.09090, 0.53776, 0.05292]}
+{type: 1, mass: 0.0156250, pos: [0.38630, -0.27392, 2.70657], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.32594, -0.36307, -0.02401]}
+{type: 1, mass: 0.0156250, pos: [2.60639, 0.53052, -1.81130], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.10043, 0.22310, 0.19538]}
+{type: 1, mass: 0.0156250, pos: [2.26209, 3.89368, 2.75669], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.09077, -0.16196, -0.09065]}
+{type: 1, mass: 0.0156250, pos: [1.23481, 3.14920, 3.83005], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.10579, 0.01692, -0.12912]}
+{type: 1, mass: 0.0156250, pos: [-0.94633, -2.46592, 0.53165], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.12552, -0.07760, 0.12494]}
+{type: 1, mass: 0.0156250, pos: [2.41623, 0.99596, 2.07859], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.08968, -0.39909, 0.40313]}
+{type: 1, mass: 0.0156250, pos: [0.71984, 1.79826, 1.01742], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.15819, 0.12100, -0.10232]}
+{type: 1, mass: 0.0156250, pos: [0.81406, 2.57555, 1.80174], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.04203, 0.14333, 0.13366]}
+{type: 1, mass: 0.0156250, pos: [4.37603, 3.14576, 2.86043], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03058, -0.04652, -0.08506]}
+{type: 1, mass: 0.0156250, pos: [1.90797, 6.77611, 1.08582], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.27740, -0.02931, -0.07019]}
+{type: 1, mass: 0.0156250, pos: [2.79141, 0.46467, 0.77730], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03063, -0.20290, -0.00493]}
+{type: 1, mass: 0.0156250, pos: [-0.57084, 0.10071, 0.95884], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.32350, 0.28045, 0.34166]}
+{type: 1, mass: 0.0156250, pos: [0.84940, 1.99310, 0.98430], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.00587, 0.12831, 0.30555]}
+{type: 1, mass: 0.0156250, pos: [-3.18910, 2.94287, 2.83755], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.22131, 0.11572, -0.22049]}
+{type: 1, mass: 0.0156250, pos: [4.78007, 0.85125, 2.51065], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.22471, -0.03721, -0.17779]}
+{type: 1, mass: 0.0156250, pos: [2.34332, 2.03755, -1.65527], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.16517, 0.29655, -0.24397]}
+{type: 1, mass: 0.0156250, pos: [3.20930, 3.50490, 0.88658], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.03616, 0.30635, 0.14087]}
+{type: 1, mass: 0.0156250, pos: [2.26018, 1.49610, 2.28176], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.36204, -0.65999, 0.32852]}
+{type: 1, mass: 0.0156250, pos: [2.84045, 1.09443, 1.75557], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.21363, -0.33845, -0.34285]}
+{type: 1, mass: 0.0156250, pos: [7.46419, 6.90374, 11.05015], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.02398, 0.07448, 0.00844]}
+{type: 1, mass: 0.0156250, pos: [1.33135, 1.83222, 3.21633], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.13761, -0.01499, -0.04915]}
+{type: 1, mass: 0.0156250, pos: [2.69780, 2.29846, -0.66463], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.01222, 0.20652, -0.15046]}
+{type: 1, mass: 0.0156250, pos: [5.52643, -0.53958, 5.11329], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [-0.20762, 0.21437, -0.18115]}
+{type: 1, mass: 0.0156250, pos: [1.44095, 2.03816, 3.29657], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.41886, -0.12722, -0.09486]}
+{type: 1, mass: 0.0156250, pos: [2.72595, 4.40557, 1.39946], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.18608, 0.20544, 0.04733]}
+{type: 1, mass: 0.0156250, pos: [-4.65497, -0.70712, -0.32735], cost: 1, level: 0, parent: (nil), child_num: 0, vel: [0.04649, -0.02731, -0.21647]}
+----------PARAMS----------------
+infile = 
+nbody = 64
+seed = 123
+outfile = 
+dtime = 0.025000
+eps = 0.050000
+tol = 1.000000
+fcells = 2.000000
+fleaves = 5.000000
+tstop = 0.075000
+dtout = 0.250000
+NPROC = 1
+
+		Hack code: Plummer model
+
+     nbody     dtime       eps       tol     dtout     tstop    fcells     NPROC
+        64   0.02500    0.0500      1.00     0.250     0.075      2.00         1
+
+maxmybody: 3264
+maxmycell: 640
+maxmyleaf: 320
+COMPUTESTART  = 1499171710075877
+Cell : Cost = 2379, Pos = [  -0.0000,   0.0000,  -0.0000] 
+Child #0: C: Cost = 1050, Pos = [  -2.6876,  -2.1513,  -2.1863] 
+Child #1: NONE
+Child #2: L: # Bodies =  1, Cost = 31, Pos = [  -3.2057,   2.9515,   2.8210] 
+Child #3: L: # Bodies =  1, Cost = 32, Pos = [  -2.0712,   2.7739,  -2.9194] 
+Child #4: L: # Bodies =  9, Cost = 326, Pos = [   2.3576,   3.3151,   0.7440] 
+Child #5: L: # Bodies =  7, Cost = 211, Pos = [   3.1722,   3.5961,   5.0982] 
+Child #6: L: # Bodies =  3, Cost = 109, Pos = [   2.3980,   0.3357,   3.6724] 
+Child #7: C: Cost = 620, Pos = [   1.9942,  -0.1003,   0.5276] 
+Cell : Cost = 1050, Pos = [  -2.6876,  -2.1513,  -2.1863] 
+Child #0: L: # Bodies =  3, Cost = 58, Pos = [  -6.0674,  -5.0197,  -3.6060] 
+Child #1: NONE
+Child #2: L: # Bodies =  2, Cost = 51, Pos = [  -5.9285,  -0.8788,  -0.7613] 
+Child #3: NONE
+Child #4: L: # Bodies =  8, Cost = 314, Pos = [  -2.0790,  -1.2988,  -3.4283] 
+Child #5: L: # Bodies =  6, Cost = 264, Pos = [  -2.0618,  -0.9724,  -0.1785] 
+Child #6: L: # Bodies =  2, Cost = 75, Pos = [  -2.2969,  -3.3864,  -0.3771] 
+Child #7: L: # Bodies =  7, Cost = 288, Pos = [  -1.6568,  -2.9175,  -2.8033] 
+Leaf : # Bodies =  3, Cost = 58, Pos = [  -6.0674,  -5.0197,  -3.6060] 
+Body #10: Num =  0, Level = 576460752303423488, Pos = [  -4.9588,  -6.4736,  -3.4558] 
+Body #17: Num =  1, Level = 576460752303423488, Pos = [  -4.6031,  -3.8712,  -3.0069] 
+Body #31: Num =  2, Level = 576460752303423488, Pos = [  -8.6503,  -4.7098,  -4.3490] 
+Leaf : # Bodies =  2, Cost = 51, Pos = [  -5.9285,  -0.8788,  -0.7613] 
+Body #19: Num =  0, Level = 576460752303423488, Pos = [  -7.2111,  -1.0456,  -1.1845] 
+Body #63: Num =  1, Level = 576460752303423488, Pos = [  -4.6502,  -0.7099,  -0.3490] 
+Leaf : # Bodies =  8, Cost = 314, Pos = [  -2.0790,  -1.2988,  -3.4283] 
+Body # 5: Num =  0, Level = 576460752303423488, Pos = [  -1.9910,  -1.0954,  -3.2047] 
+Body #12: Num =  1, Level = 576460752303423488, Pos = [  -3.2950,  -2.1885,  -2.9927] 
+Body #13: Num =  2, Level = 576460752303423488, Pos = [  -3.1815,  -1.4103,  -2.1849] 
+Body #18: Num =  3, Level = 576460752303423488, Pos = [  -3.1505,  -1.9951,  -2.9848] 
+Body #21: Num =  4, Level = 576460752303423488, Pos = [  -1.6732,  -1.9328,  -5.6795] 
+Body #22: Num =  5, Level = 576460752303423488, Pos = [  -0.7872,  -0.4645,  -3.0992] 
+Body #27: Num =  6, Level = 576460752303423488, Pos = [  -1.3010,  -1.6809,  -4.6796] 
+Body #30: Num =  7, Level = 576460752303423488, Pos = [  -1.2554,   0.4260,  -2.5957] 
+Leaf : # Bodies =  6, Cost = 264, Pos = [  -2.0618,  -0.9724,  -0.1785] 
+Body # 1: Num =  0, Level = 576460752303423488, Pos = [  -2.0876,  -0.8578,   0.8770] 
+Body # 8: Num =  1, Level = 576460752303423488, Pos = [  -1.7288,  -0.1226,  -1.2524] 
+Body # 9: Num =  2, Level = 576460752303423488, Pos = [  -2.7545,  -0.8492,  -0.1830] 
+Body #26: Num =  3, Level = 576460752303423488, Pos = [  -2.6817,  -2.1683,  -0.7884] 
+Body #29: Num =  4, Level = 576460752303423488, Pos = [  -2.5177,  -1.9754,  -0.7134] 
+Body #49: Num =  5, Level = 576460752303423488, Pos = [  -0.6031,   0.1288,   0.9930] 
+Leaf : # Bodies =  2, Cost = 75, Pos = [  -2.2969,  -3.3864,  -0.3771] 
+Body # 6: Num =  0, Level = 576460752303423488, Pos = [  -3.6462,  -4.3101,  -1.2959] 
+Body #42: Num =  1, Level = 576460752303423488, Pos = [  -0.9589,  -2.4736,   0.5440] 
+Leaf : # Bodies =  7, Cost = 288, Pos = [  -1.6568,  -2.9175,  -2.8033] 
+Body # 0: Num =  0, Level = 576460752303423488, Pos = [  -2.2586,  -2.3506,  -2.3875] 
+Body # 4: Num =  1, Level = 576460752303423488, Pos = [  -2.3050,  -2.5396,  -2.3561] 
+Body # 7: Num =  2, Level = 576460752303423488, Pos = [  -1.3836,  -3.4471,  -5.7916] 
+Body #11: Num =  3, Level = 576460752303423488, Pos = [  -1.5927,  -3.0435,  -1.8812] 
+Body #16: Num =  4, Level = 576460752303423488, Pos = [  -1.2056,  -3.5554,  -3.2230] 
+Body #23: Num =  5, Level = 576460752303423488, Pos = [  -1.7037,  -2.5700,  -1.6857] 
+Body #24: Num =  6, Level = 576460752303423488, Pos = [  -1.1385,  -2.9393,  -2.2785] 
+Leaf : # Bodies =  1, Cost = 31, Pos = [  -3.2057,   2.9515,   2.8210] 
+Body #51: Num =  0, Level = 1152921504606846976, Pos = [  -3.2112,   2.9544,   2.8155] 
+Leaf : # Bodies =  1, Cost = 32, Pos = [  -2.0712,   2.7739,  -2.9194] 
+Body #15: Num =  0, Level = 1152921504606846976, Pos = [  -2.0642,   2.7731,  -2.9211] 
+Leaf : # Bodies =  9, Cost = 326, Pos = [   2.3576,   3.3151,   0.7440] 
+Body #35: Num =  0, Level = 1152921504606846976, Pos = [   4.6332,   3.2609,   2.0507] 
+Body #37: Num =  1, Level = 1152921504606846976, Pos = [   2.0089,   2.9046,   0.7953] 
+Body #45: Num =  2, Level = 1152921504606846976, Pos = [   0.8184,   2.5897,   1.8150] 
+Body #47: Num =  3, Level = 1152921504606846976, Pos = [   1.9357,   6.7731,   1.0788] 
+Body #50: Num =  4, Level = 1152921504606846976, Pos = [   0.8494,   2.0048,   1.0151] 
+Body #53: Num =  5, Level = 1152921504606846976, Pos = [   2.3268,   2.0671,  -1.6795] 
+Body #54: Num =  6, Level = 1152921504606846976, Pos = [   3.2128,   3.5354,   0.9007] 
+Body #59: Num =  7, Level = 1152921504606846976, Pos = [   2.6989,   2.3190,  -0.6796] 
+Body #62: Num =  8, Level = 1152921504606846976, Pos = [   2.7445,   4.4259,   1.4042] 
+Leaf : # Bodies =  7, Cost = 211, Pos = [   3.1722,   3.5961,   5.0982] 
+Body #25: Num =  0, Level = 1152921504606846976, Pos = [   3.4618,   2.9112,   7.0509] 
+Body #33: Num =  1, Level = 1152921504606846976, Pos = [   1.9124,   3.1421,   4.8770] 
+Body #40: Num =  2, Level = 1152921504606846976, Pos = [   2.2711,   3.8773,   2.7475] 
+Body #41: Num =  3, Level = 1152921504606846976, Pos = [   1.2455,   3.1508,   3.8170] 
+Body #46: Num =  4, Level = 1152921504606846976, Pos = [   4.3790,   3.1411,   2.8518] 
+Body #57: Num =  5, Level = 1152921504606846976, Pos = [   7.4618,   6.9112,  11.0510] 
+Body #61: Num =  6, Level = 1152921504606846976, Pos = [   1.4823,   2.0245,   3.2865] 
+Leaf : # Bodies =  3, Cost = 109, Pos = [   2.3980,   0.3357,   3.6724] 
+Body #38: Num =  0, Level = 1152921504606846976, Pos = [   0.3538,  -0.3101,   2.7041] 
+Body #58: Num =  1, Level = 1152921504606846976, Pos = [   1.3182,   1.8317,   3.2116] 
+Body #60: Num =  2, Level = 1152921504606846976, Pos = [   5.5056,  -0.5181,   5.0951] 
+Cell : Cost = 620, Pos = [   1.9942,  -0.1003,   0.5276] 
+Child #0: L: # Bodies =  1, Cost = 46, Pos = [   0.3445,  -3.2328,  -2.2363] 
+Child #1: L: # Bodies =  2, Cost = 72, Pos = [   1.1538,  -3.8375,  -0.2015] 
+Child #2: L: # Bodies =  8, Cost = 343, Pos = [   1.8594,   0.9976,   1.2546] 
+Child #3: L: # Bodies =  2, Cost = 91, Pos = [   1.6219,  -0.0964,  -1.8725] 
+Child #4: NONE
+Child #5: L: # Bodies =  2, Cost = 68, Pos = [   4.5707,   0.8078,   2.1304] 
+Child #6: NONE
+Child #7: NONE
+Leaf : # Bodies =  1, Cost = 46, Pos = [   0.3445,  -3.2328,  -2.2363] 
+Body # 2: Num =  0, Level = 576460752303423488, Pos = [   0.3452,  -3.2444,  -2.2424] 
+Leaf : # Bodies =  2, Cost = 72, Pos = [   1.1538,  -3.8375,  -0.2015] 
+Body #20: Num =  0, Level = 576460752303423488, Pos = [   0.8024,  -3.1524,  -1.5072] 
+Body #28: Num =  1, Level = 576460752303423488, Pos = [   1.5056,  -4.5181,   1.0951] 
+Leaf : # Bodies =  8, Cost = 343, Pos = [   1.8594,   0.9976,   1.2546] 
+Body #14: Num =  0, Level = 576460752303423488, Pos = [   0.3790,  -0.8589,  -1.1482] 
+Body #32: Num =  1, Level = 576460752303423488, Pos = [   1.7414,   1.6494,   1.6124] 
+Body #36: Num =  2, Level = 576460752303423488, Pos = [   1.6949,   1.4603,   1.6438] 
+Body #43: Num =  3, Level = 576460752303423488, Pos = [   2.4072,   0.9565,   2.1187] 
+Body #44: Num =  4, Level = 576460752303423488, Pos = [   0.7049,   1.8114,   1.0072] 
+Body #48: Num =  5, Level = 576460752303423488, Pos = [   2.7944,   0.4445,   0.7769] 
+Body #55: Num =  6, Level = 576460752303423488, Pos = [   2.2963,   1.4299,   2.3143] 
+Body #56: Num =  7, Level = 576460752303423488, Pos = [   2.8614,   1.0607,   1.7214] 
+Leaf : # Bodies =  2, Cost = 91, Pos = [   1.6219,  -0.0964,  -1.8725] 
+Body # 3: Num =  0, Level = 576460752303423488, Pos = [   0.6333,  -0.7391,  -1.9492] 
+Body #39: Num =  1, Level = 576460752303423488, Pos = [   2.6163,   0.5529,  -1.7917] 
+Leaf : # Bodies =  2, Cost = 68, Pos = [   4.5707,   0.8078,   2.1304] 
+Body #34: Num =  0, Level = 576460752303423488, Pos = [   4.3451,   0.7556,   1.7576] 
+Body #52: Num =  1, Level = 576460752303423488, Pos = [   4.8023,   0.8476,   2.4927] 
+COMPUTEEND    = 1499171710077514
+COMPUTETIME   =         1637
+TRACKTIME     =          403
+PARTITIONTIME =            1	 0.00
+TREEBUILDTIME =           29	 0.07
+FORCECALCTIME =          364	 0.90
+RESTTIME      =            9	 0.02
