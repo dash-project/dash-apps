@@ -5,7 +5,7 @@
 #@ minimize_time_to_solution = yes
 #@ job_type = parallel
 #@ class = micro 
-#@ node = 1
+#@ node = <nodes>
 ###@ island_count= not needed for
 #### class general
 #@ island_count = 1 
@@ -13,7 +13,7 @@
 ## other example
 ##@ tasks_per_node = 28
 #@ wall_clock_limit = 1:00:00
-#@ job_name = hpccg-weakScale-ibm-<procs> 
+#@ job_name = hpccg-weakScale-ibm-large-<procs> 
 #@ network.MPI = sn_all,not_shared,us
 #@ initialdir = ../../
 #@ output = $(home)/log/job.$(job_name).$(jobid).out
@@ -37,7 +37,7 @@ for IMPL in $(ls -d */); do
   mkdir -p $RESULTDIR 
   # place output files in correct dir
   cd $RESULTDIR 
-  poe $TOPDIR/$IMPL/test_HPCCG 64 64 64
+  poe $TOPDIR/$IMPL/test_HPCCG 96 96 96 
   cd $TOPDIR
 done
 

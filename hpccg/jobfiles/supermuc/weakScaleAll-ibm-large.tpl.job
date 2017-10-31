@@ -5,7 +5,7 @@
 #@ minimize_time_to_solution = yes
 #@ job_type = parallel
 #@ class = micro 
-#@ node = 1
+#@ node = <nodes>
 ###@ island_count= not needed for
 #### class general
 #@ island_count = 1 
@@ -37,7 +37,7 @@ for IMPL in $(ls -d */); do
   mkdir -p $RESULTDIR 
   # place output files in correct dir
   cd $RESULTDIR 
-  poe $TOPDIR/$IMPL/test_HPCCG 128 128 128 
+  poe $TOPDIR/$IMPL/test_HPCCG 128 128 256
   cd $TOPDIR
 done
 

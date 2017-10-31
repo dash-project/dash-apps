@@ -5,7 +5,7 @@
 #@ minimize_time_to_solution = yes
 #@ job_type = MPICH 
 #@ class = micro 
-#@ node = 1
+#@ node = <nodes> 
 ###@ island_count= not needed for
 #### class general
 #@ island_count = 1 
