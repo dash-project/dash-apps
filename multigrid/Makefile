@@ -3,10 +3,6 @@ include make.defs
 .phony: all
 all: multigrid3d 
 
-multigrid:  multigrid.cpp
-	$(CXX) -c $(INC) `libpng-config --cflags` $?
-	$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
-
 multigrid2d:  multigrid2d.cpp
 		$(CXX) -c $(INC) `libpng-config --cflags` $?
 		$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
@@ -15,8 +11,8 @@ multigrid2d+minimon:  multigrid2d+minimon.cpp minimonitoring.h
 		$(CXX) -c $(INC) `libpng-config --cflags` $?
 		$(CXX) -o $@ $@.o $(LIB) `libpng-config --ldflags` -lhwloc -lnuma
 
-multigrid3d: multigrid3d.cpp minimonitoring.h
-	$(CXX) -march=native -c $(INC) $?
+multigrid3d: multigrid3d.cpp allreduce.h minimonitoring.h
+	$(CXX) -march=native -c $(INC) $<
 	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
 
 multigrid3d_plain.cpp: multigrid3d.cpp
@@ -48,4 +44,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon multigrid3d_elastic halo_heat_eqn *.o *.png *.csv.* *.gch
+	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon multigrid3d_elastic halo_heat_eqn *.o *.gch

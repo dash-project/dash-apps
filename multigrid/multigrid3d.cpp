@@ -10,6 +10,7 @@
 #include <libdash.h>
 #include <dash/experimental/HaloMatrixWrapper.h>
 
+#include "allreduce.h"
 #include "minimonitoring.h"
 
 #define WITHCSVOUTPUT 1
@@ -608,41 +609,53 @@ void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
 }
 
 
-/* The following functions are used for the async lazy residual computation */
+void transfertofewer( Level& source /* with larger team*/, Level& dest /* with smaller team */ ) {
 
-using ResidualArrayT = dash::Array<double>;
+    /* should only be called by the smaller team */
+    assert( 0 == dest.oldgrid->team().position() );
 
-/*
-- team may be a subteam of res's team
-*/
-ResidualArrayT* initResidualArray( ResidualArrayT*, const dash::Team& team ) {
+cout << "unit " << dash::myid() << " transfertofewer" << endl;
 
-    /* create ResidualArray if argument NULL, reuse otherwise */
+    /* we need to find the coordinates that the local unit needs to receive
+    from several other units that are not in this team */
 
+    /* we can safely assume that the source blocks are copied entirely */
+
+    std::array< long int, 3 > corner= dest.oldgrid->pattern().global( {0,0,0} );
+    std::array< long unsigned int, 3 > sizes= dest.oldgrid->pattern().local_extents();
+
+cout << "    start coord: " <<
+    corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
+cout << "    extents: " <<
+        sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
+cout << "    dest local  dist " << dest.oldgrid->lend() - dest.oldgrid->lbegin() << endl;
+cout << "    dest global dist " << dest.oldgrid->end() - dest.oldgrid->begin() << endl;
+cout << "    src  local  dist " << source.oldgrid->lend() - source.oldgrid->lbegin() << endl;
+cout << "    src  global dist " << source.oldgrid->end() - source.oldgrid->begin() << endl;
+
+    /* Can I do this any cleverer than loops over the n-1 non-contiguous
+    dimensions and then a dash::copy for the 1 contiguous dimension? */
+
+    double buf[512];
+
+    for ( uint32_t z= 0; z < sizes[0]; z++ ) {
+        for ( uint32_t y= 0; y < sizes[1]; y++ ) {
+
+            cout << "copy " << corner[0]+z << "," << corner[1]+y << "," <<corner[2] << " -- " <<
+                corner[0]+z << "," << corner[1]+y << "," << corner[2] + sizes[2] << " == " <<
+                ((corner[0]+z)*sizes[1]+y)*sizes[2] << " - " << ((corner[0]+z)*sizes[1]+y)*sizes[2]+sizes[2] << endl;
+
+            auto start= source.oldgrid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
+
+            dash::copy( start, start + sizes[2], &dest.oldgrid->local[z][y][0] );
+            //dash::copy( start, start + sizes[2], buf );
+            //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
+        }
+    }
 }
 
-/*
-- team may be a subteam of res's team
-*/
-void updateResidualArray( ResidualArrayT* res, const dash::Team& team ) {
 
-}
-
-/*
-- team may be a subteam of res's team
-*/
-double checkResidualArray( ResidualArrayT*, const dash::Team& team ) {
-
-}
-
-
-/* for the version with flexible teams only -- do later */
-void leaveResidualArray( ResidualArrayT* ) {
-
-}
-
-
-void finalizeResidualArray( ResidualArrayT* ) {
+void transfertomore( Level& source /* with smaller team*/, Level& dest /* with larger team */ ) {
 
 }
 
@@ -752,7 +765,7 @@ Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at 
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
-void smoothen( Level& level, double* residual_ret ) {
+double smoothen( Level& level, Allreduce& res ) {
 
     size_t ld= level.oldgrid->local.extent(0);
     size_t lh= level.oldgrid->local.extent(1);
@@ -760,7 +773,7 @@ void smoothen( Level& level, double* residual_ret ) {
     uint64_t param= ld*lh*lw;
     MiniMonT::MiniMonRecord( 0, "smoothen", param );
 
-    double res= 0.0;
+    double localres= 0.0;
 
     /// relaxation coeff.
     const double c= 1.0;
@@ -797,7 +810,7 @@ void smoothen( Level& level, double* residual_ret ) {
 
                 double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
                 *p_new= *p_here + c * dtheta;
-                res= std::max( res, std::fabs( dtheta ) );
+                localres= std::max( localres, std::fabs( dtheta ) );
                 p_here++;
                 p_east++;
                 p_west++;
@@ -813,15 +826,22 @@ void smoothen( Level& level, double* residual_ret ) {
     MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
-
     // wait for async halo update
     level.oldhalo->waitHalosAsync();
-
     MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
 
-    /* this barrier is there so that iterations are synchronized across all
-    units. Otherwise some overtak others esp. on the very small grids. */
-    level.oldgrid->barrier();
+
+    MiniMonT::MiniMonRecord( 0, "smooth_col_bc", param );
+    /* unit 0 (of any active team) waits until all local residuals from all 
+    other active units are in */
+    res.collect( level.oldgrid->team() );
+    res.asyncbroadcast( level.oldgrid->team() );
+    MiniMonT::MiniMonRecord( 1, "smooth_col_bc", param );
+
+
+    /* the former contains a barrier that keeps the iterations in sync */
+    // level.oldgrid->barrier();
+
 
     MiniMonT::MiniMonRecord( 0, "smooth_outer", param );
 
@@ -835,60 +855,33 @@ void smoothen( Level& level, double* residual_ret ) {
         double dtheta= ( it.valueAt(0) + it.valueAt(1) +
             it.valueAt(2) + it.valueAt(3) + it.valueAt(4) + it.valueAt(5) ) / 6.0 - *it;
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
-        res= std::max( res, std::fabs( dtheta ) );
+        localres= std::max( localres, std::fabs( dtheta ) );
     }
 
     MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
 
-    /* *** now comes the residual sync -- handle with gloves only *** */
+    MiniMonT::MiniMonRecord( 0, "smooth_wait_set", param );
 
+    res.waitbroadcast( level.oldgrid->team() );
 
-    if ( NULL != residual_ret ) {
+    /* global residual from former iteration */
+    double oldres= res.get();
 
-        MiniMonT::MiniMonRecord( 0, "smooth_residuals", param );
+    res.asyncset( localres, level.oldgrid->team() );
 
-        dash::Array<double> residuals( level.oldgrid->team().size(), dash::BLOCKED, level.oldgrid->team() );
-        residuals.local[0]= res;
-
-    /*
-        residuals.barrier();
-
-        if ( 0 != dash::myid() ) {
-
-            dash::transform<double>(
-                residuals.lbegin(), residuals.lend(), // first source
-                residuals.begin(), // second source
-                residuals.begin(), // destination
-                dash::max<double>() );
-        }
-        residuals.barrier();
-    */
-
-        residuals.barrier();
-
-        *residual_ret= 0.0;
-        if ( 0 == dash::myid() ) {
-            for ( const double& residual : residuals ) {
-                *residual_ret= std::max( *residual_ret, residual );
-            }
-            residuals.local[0]= *residual_ret;
-        }
-        residuals.barrier();
-
-        *residual_ret= residuals[0];
-
-        MiniMonT::MiniMonRecord( 1, "smooth_residuals", param );
-    }
+    MiniMonT::MiniMonRecord( 1, "smooth_wait_set", param );
 
     level.swap();
 
     MiniMonT::MiniMonRecord( 1, "smoothen", param );
+
+    return oldres;
 }
 
 
 /* recursive version */
 void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
-        uint32_t numiter, double epsilon= 0.01 ) {
+        uint32_t numiter, double epsilon, Allreduce& res ) {
 
     if ( 0 == dash::myid() ) {
         cout << "v-cycle on  " <<
@@ -905,20 +898,73 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
 
         /* smoothen completely  */
 
-        double residual= 1.0+epsilon;
         uint32_t j= 0;
-        while ( residual > epsilon ) {
+        while ( res.get() > epsilon ) {
 
             /* need global residual for iteration count */
-            smoothen( **it, &residual );
+            smoothen( **it, res );
 
             if ( 0 == dash::myid() ) {
-                cout << j << ": smoothen coarsest with residual " << residual << endl;
+                cout << j << ": smoothen coarsest with residual " << res.get() << endl;
             }
             j++;
         }
         writeToCsv( (*it)->oldgrid );
+        return;
+    }
 
+    /* stepped on the dummy level? ... which is there to signal that it is not
+    the end of the parallel recursion on the coarsest level but a subteam is
+    going on to solve the coarser levels but this unit is not in that subteam.
+    ... sounds complicated, is complicated, change only if you know what you
+    are doing. */
+    if ( NULL == *itnext ) {
+
+        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
+        (*it)->oldgrid->team().barrier();
+
+        cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
+        return;
+    }
+
+    /* stepped on a transfer level? */
+    if ( (*it)->oldgrid->team().size() != (*itnext)->oldgrid->team().size() ) {
+
+        /* only the members of the reduced team need to work, all others do siesta. */
+        //if ( 0 == (*itnext)->grid.team().position() )
+        assert( 0 == (*itnext)->oldgrid->team().position() );
+        {
+
+            cout << "transfer to " <<
+                (*it)->oldgrid->extent(2) << "x" <<
+                (*it)->oldgrid->extent(1) << "x" <<
+                (*it)->oldgrid->extent(0) << " with " << (*it)->oldgrid->team().size() << " units "
+                " --> " <<
+                (*itnext)->oldgrid->extent(2) << "x" <<
+                (*itnext)->oldgrid->extent(1) << "x" <<
+                (*itnext)->oldgrid->extent(0) << " with " << (*itnext)->oldgrid->team().size() << " units " << endl;
+
+            transfertofewer( **it, **itnext );
+
+            v_cycle( itnext, itend, numiter, epsilon, res );
+
+            cout << "transfer back " <<
+            (*itnext)->oldgrid->extent(2) << "x" <<
+            (*itnext)->oldgrid->extent(1) << "x" <<
+            (*itnext)->oldgrid->extent(0) << " with " << (*itnext)->oldgrid->team().size() << " units "
+            " --> " <<
+            (*it)->oldgrid->extent(2) << "x" <<
+            (*it)->oldgrid->extent(1) << "x" <<
+            (*it)->oldgrid->extent(0) << " with " << (*it)->oldgrid->team().size() << " units " <<  endl;
+
+            transfertomore( **itnext, **it );
+        }
+
+        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
+        (*it)->oldgrid->team().barrier();
+
+
+        cout << "all meet again here: I'm active unit " << dash::myid() << endl;
         return;
     }
 
@@ -946,7 +992,7 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
     writeToCsv( (*itnext)->oldgrid );
 
     /* recurse  */
-    v_cycle( itnext, itend, numiter, epsilon );
+    v_cycle( itnext, itend, numiter, epsilon, res );
 
     /* scale up */
     if ( 0 == dash::myid() ) {
@@ -970,18 +1016,17 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
 }
 
 
-void smoothen_final( Level* level, double epsilon= 0.01 ) {
+void smoothen_final( Level* level, double epsilon, Allreduce& res ) {
 
     MiniMonT::MiniMonRecord( 0, "smoothfinal" );
 
-    double residual= 1.0+epsilon;
     uint32_t j= 0;
-    while ( residual > epsilon ) {
+    while ( res.get() > epsilon ) {
 
-        smoothen( *level, &residual );
+        smoothen( *level, res );
 
         if ( 0 == dash::myid() ) {
-            cout << j << ": smoothen finest with residual " << residual << endl;
+            cout << j << ": smoothen finest with residual " << res.get() << endl;
         }
         j++;
     }
@@ -1098,14 +1143,18 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     dash::Team::All().barrier();
 
+    Allreduce res( dash::Team::All() );
+    res.reset( dash::Team::All() );
+
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels.begin(), levels.end(), 10, 0.001 );
+    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 10, 0.0001 );
+    v_cycle( levels.begin(), levels.end(), 10, 0.0001, res );
     dash::Team::All().barrier();
 
-    smoothen_final( levels.front(), 0.001 );
+    res.reset( dash::Team::All() );
+    smoothen_final( levels.front(), 0.001, res );
     for ( int i= 0; i < 5; ++i ) {
         writeToCsv( levels.front()->oldgrid );
     }
@@ -1119,36 +1168,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     if ( 0 == dash::myid() ) {
 
-        cout << "test async" << endl;
-    }
-
-    /* make array only on unit 0 */
-    dash::Array<double> residuals( dash::Team::All().size(), 
-        dash::BLOCKCYCLIC(dash::Team::All().size()), 
-        dash::Team::All() );
-
-    cout << dash::myid() << ": global size " << residuals.end() - residuals.begin() << 
-        ", locals size " << residuals.lend() - residuals.lbegin() << endl;
-
-    dash::fill( residuals.begin(), residuals.end(), 5 );
-
-    residuals.async[dash::myid()]= 0.1*dash::myid();
-
-    residuals.async.flush();
-    dash::barrier();
-
-    if ( 0 == dash::myid() ) {
-
-        for ( int i= 0; i < dash::Team::All().size(); i++ ) {
-
-            cout << (double) residuals[i] << " ";
-        }
-        cout << endl;
-    }
-
-    if ( 0 == dash::myid() ) {
-
-        cout << "test async done" << endl;
+        cout << "not implemented yet" << endl;
     }
 }
 
@@ -1230,14 +1250,16 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     MiniMonT::MiniMonRecord( 0, "smoothflatresidual" );
 
-    double epsilon= 0.01;
-    double residual= 1.0+epsilon;
-    while ( residual > epsilon && j < 40 ) {
+    Allreduce res( dash::Team::All() );
+    res.reset( dash::Team::All() );
 
-        smoothen( *level, &residual );
+    double epsilon= 0.01;
+    while ( res.get() > epsilon && j < 40 ) {
+
+        smoothen( *level, res );
 
         if ( 0 == dash::myid() ) {
-            cout << j << ": smoothen grid with residual " << residual << endl;
+            cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
         j++;
         //writeToCsv( level->oldgrid );
