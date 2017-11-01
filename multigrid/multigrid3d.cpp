@@ -609,6 +609,55 @@ void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
 }
 
 
+void transfertofewer( Level& source /* with larger team*/, Level& dest /* with smaller team */ ) {
+
+    /* should only be called by the smaller team */
+    assert( 0 == dest.oldgrid->team().position() );
+
+cout << "unit " << dash::myid() << " transfertofewer" << endl;
+
+    /* we need to find the coordinates that the local unit needs to receive
+    from several other units that are not in this team */
+
+    /* we can safely assume that the source blocks are copied entirely */
+
+    std::array< long int, 3 > corner= dest.oldgrid->pattern().global( {0,0,0} );
+    std::array< long unsigned int, 3 > sizes= dest.oldgrid->pattern().local_extents();
+
+cout << "    start coord: " <<
+    corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
+cout << "    extents: " <<
+        sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
+cout << "    dest local  dist " << dest.oldgrid->lend() - dest.oldgrid->lbegin() << endl;
+cout << "    dest global dist " << dest.oldgrid->end() - dest.oldgrid->begin() << endl;
+cout << "    src  local  dist " << source.oldgrid->lend() - source.oldgrid->lbegin() << endl;
+cout << "    src  global dist " << source.oldgrid->end() - source.oldgrid->begin() << endl;
+
+    /* Can I do this any cleverer than loops over the n-1 non-contiguous
+    dimensions and then a dash::copy for the 1 contiguous dimension? */
+
+    double buf[512];
+
+    for ( uint32_t z= 0; z < sizes[0]; z++ ) {
+        for ( uint32_t y= 0; y < sizes[1]; y++ ) {
+
+            cout << "copy " << corner[0]+z << "," << corner[1]+y << "," <<corner[2] << " -- " <<
+                corner[0]+z << "," << corner[1]+y << "," << corner[2] + sizes[2] << " == " <<
+                ((corner[0]+z)*sizes[1]+y)*sizes[2] << " - " << ((corner[0]+z)*sizes[1]+y)*sizes[2]+sizes[2] << endl;
+
+            auto start= source.oldgrid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
+
+            dash::copy( start, start + sizes[2], &dest.oldgrid->local[z][y][0] );
+            //dash::copy( start, start + sizes[2], buf );
+            //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
+        }
+    }
+}
+
+
+void transfertomore( Level& source /* with smaller team*/, Level& dest /* with larger team */ ) {
+
+}
 
 
 /* Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
@@ -861,6 +910,61 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
             j++;
         }
         writeToCsv( (*it)->oldgrid );
+        return;
+    }
+
+    /* stepped on the dummy level? ... which is there to signal that it is not
+    the end of the parallel recursion on the coarsest level but a subteam is
+    going on to solve the coarser levels but this unit is not in that subteam.
+    ... sounds complicated, is complicated, change only if you know what you
+    are doing. */
+    if ( NULL == *itnext ) {
+
+        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
+        (*it)->oldgrid->team().barrier();
+
+        cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
+        return;
+    }
+
+    /* stepped on a transfer level? */
+    if ( (*it)->oldgrid->team().size() != (*itnext)->oldgrid->team().size() ) {
+
+        /* only the members of the reduced team need to work, all others do siesta. */
+        //if ( 0 == (*itnext)->grid.team().position() )
+        assert( 0 == (*itnext)->oldgrid->team().position() );
+        {
+
+            cout << "transfer to " <<
+                (*it)->oldgrid->extent(2) << "x" <<
+                (*it)->oldgrid->extent(1) << "x" <<
+                (*it)->oldgrid->extent(0) << " with " << (*it)->oldgrid->team().size() << " units "
+                " --> " <<
+                (*itnext)->oldgrid->extent(2) << "x" <<
+                (*itnext)->oldgrid->extent(1) << "x" <<
+                (*itnext)->oldgrid->extent(0) << " with " << (*itnext)->oldgrid->team().size() << " units " << endl;
+
+            transfertofewer( **it, **itnext );
+
+            v_cycle( itnext, itend, numiter, epsilon, res );
+
+            cout << "transfer back " <<
+            (*itnext)->oldgrid->extent(2) << "x" <<
+            (*itnext)->oldgrid->extent(1) << "x" <<
+            (*itnext)->oldgrid->extent(0) << " with " << (*itnext)->oldgrid->team().size() << " units "
+            " --> " <<
+            (*it)->oldgrid->extent(2) << "x" <<
+            (*it)->oldgrid->extent(1) << "x" <<
+            (*it)->oldgrid->extent(0) << " with " << (*it)->oldgrid->team().size() << " units " <<  endl;
+
+            transfertomore( **itnext, **it );
+        }
+
+        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
+        (*it)->oldgrid->team().barrier();
+
+
+        cout << "all meet again here: I'm active unit " << dash::myid() << endl;
         return;
     }
 
