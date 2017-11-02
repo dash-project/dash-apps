@@ -611,6 +611,7 @@ void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
 
 void transfertofewer( Level& source /* with larger team*/, Level& dest /* with smaller team */ ) {
 
+#if 0
     /* should only be called by the smaller team */
     assert( 0 == dest.oldgrid->team().position() );
 
@@ -652,6 +653,7 @@ cout << "    src  global dist " << source.oldgrid->end() - source.oldgrid->begin
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
         }
     }
+#endif /* 0 */
 }
 
 
@@ -1166,10 +1168,187 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
 void do_multigrid_elastic( uint32_t howmanylevels ) {
 
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    /* determine factors for width and height such that every unit has a power of two
+    extent in every dimension and that the area is close to a square
+    with aspect ratio \in [0,75,1,5] */
+
+    uint32_t factor_z= teamspec.num_units(0);
+    uint32_t factor_y= teamspec.num_units(1);
+    uint32_t factor_x= teamspec.num_units(2);
+
+    uint32_t factor_max= factor_z;
+    factor_max= std::max( factor_max, factor_y );
+    factor_max= std::max( factor_max, factor_x );
+    while ( factor_z < 0.75 * factor_max ) { factor_z *= 2; }
+    while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
+    while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
+
+    vector<Level*> levels;
+    levels.reserve( howmanylevels );
+
+    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
+    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
+    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
+
     if ( 0 == dash::myid() ) {
 
-        cout << "not implemented yet" << endl;
+        cout << "run elastic multigrid iteration with " << dash::Team::All().size() << " units "
+            "for with grids from " <<
+            factor_z << "x" <<
+            factor_y << "x" <<
+            factor_x <<
+            " to " <<
+            (1<<(howmanylevels))*factor_z << "x" <<
+            (1<<(howmanylevels))*factor_y << "x" <<
+            (1<<(howmanylevels))*factor_x <<
+            endl << endl;
     }
+
+    /* create all grid levels, starting with the finest and ending with 2x2,
+    The finest level is outside the loop because it is always done by dash::Team::All() */
+
+    if ( 0 == dash::myid() ) {
+        cout << "finest level is " <<
+            (1<<(howmanylevels))*factor_z << "x" <<
+            (1<<(howmanylevels))*factor_y << "x" <<
+            (1<<(howmanylevels))*factor_x <<
+            " distributed over " << dash::Team::All().size() << " units " << endl;
+    }
+
+    levels.push_back( new Level(
+        (1<<(howmanylevels))*factor_z ,
+        (1<<(howmanylevels))*factor_y ,
+        (1<<(howmanylevels))*factor_x ,
+        dash::Team::All(), teamspec ) );
+
+    /* only do initgrid on the finest level, use caledownboundary for all others */
+    initboundary( *levels.back() );
+    sanitycheck( levels.back()->oldgrid );
+
+    dash::barrier();
+
+    for ( uint32_t l= 1; l < howmanylevels; l++ ) {
+
+        dash::Team& previousteam= levels.back()->oldgrid->team();
+        dash::Team& currentteam= ( 4 == l ) ? previousteam.split(4) : previousteam;
+        TeamSpecT localteamspec( currentteam.size(), 1, 1 );
+        localteamspec.balance_extents();
+
+        if ( 0 == currentteam.position() ) {
+
+            if ( previousteam.size() != currentteam.size() ) {
+
+                /* the team working on the following grid layers has just
+                been reduced. Therefore, we add an additional grid with the
+                same size as the previous one but for the reduced team. Then,
+                copying the data from the domain of the larger team to the
+                domain of the smaller team is easy. */
+
+                if ( 0 == currentteam.myid() ) {
+                    cout << "transfer level " << l-1 << " is " <<
+                        (1<<(howmanylevels-l+1))*factor_z << "x" <<
+                        (1<<(howmanylevels-l+1))*factor_y << "x" <<
+                        (1<<(howmanylevels-l+1))*factor_x <<
+                        " distributed over " <<
+                        localteamspec.num_units(0) << "x" <<
+                        localteamspec.num_units(1) << "x" <<
+                        localteamspec.num_units(2) << " units ()" << endl;
+                }
+
+                levels.push_back(
+                    new Level( (1<<(howmanylevels-l+1))*factor_z ,
+                                (1<<(howmanylevels-l+1))*factor_y ,
+                                (1<<(howmanylevels-l+1))*factor_x ,
+                    currentteam, localteamspec ) );
+            }
+
+            /*
+            cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
+            */
+
+            if ( 0 == currentteam.myid() ) {
+                cout << "compute level " << l << " is " <<
+                    (1<<(howmanylevels-l))*factor_z << "x" <<
+                    (1<<(howmanylevels-l))*factor_y << "x" <<
+                    (1<<(howmanylevels-l))*factor_x <<
+                    " distributed over " <<
+                    localteamspec.num_units(0) << "x" <<
+                    localteamspec.num_units(1) << "x" <<
+                    localteamspec.num_units(2) << " units ()" << endl;
+            }
+
+            /* do not try to allocate >= 8GB per core -- try to prevent myself
+            from running too big a simulation on my laptop */
+            assert( (1<<(howmanylevels-l))*factor_z *
+                (1<<(howmanylevels-l))*factor_y *
+                (1<<(howmanylevels-l))*factor_x < currentteam.size() * (1<<27) );
+
+            levels.push_back(
+                new Level( (1<<(howmanylevels-l))*factor_z ,
+                            (1<<(howmanylevels-l))*factor_y ,
+                            (1<<(howmanylevels-l))*factor_x ,
+                currentteam, localteamspec ) );
+
+            currentteam.barrier();
+
+            /*
+            cout << "unit " << dash::myid() << " : " <<
+                levels.back()->grid.local.extent(1) << " x " <<
+                levels.back()->grid.local.extent(0) << endl;
+            dash::barrier();
+            */
+
+            /* should use scaledownboundary() but it is more complicated here 
+            ... let's find out which is better in the end */
+            initboundary( *levels.back() );
+
+        } else {
+
+            /*
+            cout << "waiting unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
+            */
+
+            /* this is a passive unit not takin part in the subteam that
+            handles the coarser grids. insert a dummy entry in the vector
+            of levels to signal that this is not the coarsest level globally. */
+            levels.push_back( NULL );
+
+            break;
+        }
+    }
+
+    /* here all units and all teams meet again, those that were active for the coarsest
+    levels and those that were dormant */
+    dash::Team::All().barrier();
+
+    /* Fill finest level. Strictly, we don't need to set any initial values here
+    but we do it for demonstration in the graphical output */
+    initgrid( levels.front()->oldgrid );
+    markunits( levels.front()->oldgrid );
+    writeToCsv( levels.front()->oldgrid );
+
+    dash::Team::All().barrier();
+
+    Allreduce res( dash::Team::All() );
+    res.reset( dash::Team::All() );
+
+    MiniMonT::MiniMonRecord( 1, "setup" );
+
+    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
+    dash::Team::All().barrier();
+    v_cycle( levels.begin(), levels.end(), 10, 0.0001, res );
+    dash::Team::All().barrier();
+
+    res.reset( dash::Team::All() );
+    smoothen_final( levels.front(), 0.001, res );
+    for ( int i= 0; i < 5; ++i ) {
+        writeToCsv( levels.front()->oldgrid );
+    }
+
+    dash::Team::All().barrier();
 }
 
 
@@ -1233,7 +1412,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     MiniMonT::MiniMonRecord( 0, "smoothflatfixed" );
 
     uint32_t j= 0;
-    while ( j < 20 ) {
+    while ( j < 200 ) {
 
         smoothen( *level );
 
@@ -1253,8 +1432,8 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     Allreduce res( dash::Team::All() );
     res.reset( dash::Team::All() );
 
-    double epsilon= 0.01;
-    while ( res.get() > epsilon && j < 40 ) {
+    double epsilon= 0.001;
+    while ( res.get() > epsilon && j < 400 ) {
 
         smoothen( *level, res );
 
