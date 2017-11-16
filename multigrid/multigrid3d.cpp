@@ -8,7 +8,7 @@
 #include <utility>
 
 #include <libdash.h>
-#include <dash/experimental/HaloMatrixWrapper.h>
+//#include <dash/HaloMatrixWrapper.h>
 
 #include "allreduce.h"
 #include "minimonitoring.h"
@@ -46,10 +46,10 @@ using std::vector;
 
 using TeamSpecT = dash::TeamSpec<3>;
 using MatrixT = dash::NArray<double,3>;
-using StencilT = dash::experimental::Stencil<3>;
-using StencilSpecT = dash::experimental::StencilSpec<3,6>;
-using CycleSpecT = dash::experimental::CycleSpec<3>;
-using HaloMatrixWrapperT = dash::experimental::HaloMatrixWrapper<MatrixT,StencilSpecT>;
+using StencilT = dash::Stencil<3>;
+using StencilSpecT = dash::StencilSpec<3,6>;
+using CycleSpecT = dash::CycleSpec<3>;
+using HaloMatrixWrapperT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
 
 
 const StencilSpecT stencil_spec({
@@ -58,14 +58,14 @@ const StencilSpecT stencil_spec({
     StencilT( 0, 0,-1), StencilT( 0, 0, 1)});
 
 const CycleSpecT cycle_spec(
-    dash::experimental::Cycle::FIXED,
-    dash::experimental::Cycle::FIXED,
-    dash::experimental::Cycle::FIXED );
+    dash::Cycle::FIXED,
+    dash::Cycle::FIXED,
+    dash::Cycle::FIXED );
 
 struct Level {
 
-    /* now with double-buffering. oldgrid and oldhalo should only be read, 
-    newgrid should only be written. newhalo is only there to keep newgrid's halo 
+    /* now with double-buffering. oldgrid and oldhalo should only be read,
+    newgrid should only be written. newhalo is only there to keep newgrid's halo
     before both are swapped in swap() */
 
     MatrixT* oldgrid;
@@ -77,10 +77,10 @@ struct Level {
     Level( size_t d, size_t h, size_t w, dash::Team& team, TeamSpecT teamspec ) {
 
         oldgrid= new MatrixT( dash::SizeSpec<3>( d, h, w ),
-            dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), 
+            dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
             team, teamspec );
         newgrid= new MatrixT( dash::SizeSpec<3>( d, h, w ),
-            dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), 
+            dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
             team, teamspec );
         oldhalo= new HaloMatrixWrapperT( *oldgrid, stencil_spec, cycle_spec );
         newhalo= new HaloMatrixWrapperT( *newgrid, stencil_spec, cycle_spec );
@@ -123,7 +123,7 @@ defined by the previous three global variables. So an animations of the
 multigrid procedure is possible. */
 void writeToCsv( const MatrixT* grid ) {
 
-/* TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+/* TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 
 Here is still a slight shift in the output when the actual grid is larger than the output grid!
 
@@ -325,8 +325,8 @@ void initboundary_3hot3cold( Level& level ) {
         return ret;
     };
 
-    level.oldhalo->setFixedHalos( lambda );
-    level.newhalo->setFixedHalos( lambda );
+    level.oldhalo->set_fixed_halos( lambda );
+    level.newhalo->set_fixed_halos( lambda );
 
 }
 
@@ -395,9 +395,8 @@ void initboundary( Level& level ) {
         return ret;
     };
 
-    level.oldhalo->setFixedHalos( lambda );
-    level.newhalo->setFixedHalos( lambda );
-
+    level.oldhalo->set_fixed_halos( lambda );
+    level.newhalo->set_fixed_halos( lambda );
 }
 
 
@@ -445,9 +444,9 @@ void scaledownboundary( Level& fine, Level& coarse ) {
     size_t dmax= coarse.oldgrid->extent(0);
     size_t hmax= coarse.oldgrid->extent(1);
     //size_t wmax= coarse.oldgrid->extent(2);
- 
+
     auto finehalo= fine.oldhalo;
-    
+
     auto lambda= [&finehalo,&dmax,&hmax]( const std::array<dash::default_index_t,3>& coord ) {
 
         auto coordf= coord;
@@ -459,34 +458,34 @@ void scaledownboundary( Level& fine, Level& coarse ) {
 
             /* z plane */
             return 0.25 * (
-                *finehalo->haloElementAt( { coordf[0], coordf[1]+0, coordf[2]+0 } ) +
-                *finehalo->haloElementAt( { coordf[0], coordf[1]+0, coordf[2]+1 } ) +
-                *finehalo->haloElementAt( { coordf[0], coordf[1]+1, coordf[2]+0 } ) +
-                *finehalo->haloElementAt( { coordf[0], coordf[1]+1, coordf[2]+1 } ) );
+                *finehalo->halo_element_at( { coordf[0], coordf[1]+0, coordf[2]+0 } ) +
+                *finehalo->halo_element_at( { coordf[0], coordf[1]+0, coordf[2]+1 } ) +
+                *finehalo->halo_element_at( { coordf[0], coordf[1]+1, coordf[2]+0 } ) +
+                *finehalo->halo_element_at( { coordf[0], coordf[1]+1, coordf[2]+1 } ) );
 
         } else if ( -1 == coord[1] || hmax == coord[1] ) {
 
             /* y plane */
             return 0.25 * (
-                *finehalo->haloElementAt( { coordf[0]+0, coordf[1], coordf[2]+0 } ) +
-                *finehalo->haloElementAt( { coordf[0]+0, coordf[1], coordf[2]+1 } ) +
-                *finehalo->haloElementAt( { coordf[0]+1, coordf[1], coordf[2]+0 } ) +
-                *finehalo->haloElementAt( { coordf[0]+1, coordf[1], coordf[2]+1 } ) );
+                *finehalo->halo_element_at( { coordf[0]+0, coordf[1], coordf[2]+0 } ) +
+                *finehalo->halo_element_at( { coordf[0]+0, coordf[1], coordf[2]+1 } ) +
+                *finehalo->halo_element_at( { coordf[0]+1, coordf[1], coordf[2]+0 } ) +
+                *finehalo->halo_element_at( { coordf[0]+1, coordf[1], coordf[2]+1 } ) );
 
         } else /* if ( -1 == coord[2] || wmax == coord[2] ) */ {
 
             /* x plane */
             return 0.25 * (
-                *finehalo->haloElementAt( { coordf[0]+0, coordf[1]+0, coordf[2] } ) +
-                *finehalo->haloElementAt( { coordf[0]+0, coordf[1]+1, coordf[2] } ) +
-                *finehalo->haloElementAt( { coordf[0]+1, coordf[1]+0, coordf[2] } ) +
-                *finehalo->haloElementAt( { coordf[0]+1, coordf[1]+1, coordf[2] } ) );
+                *finehalo->halo_element_at( { coordf[0]+0, coordf[1]+0, coordf[2] } ) +
+                *finehalo->halo_element_at( { coordf[0]+0, coordf[1]+1, coordf[2] } ) +
+                *finehalo->halo_element_at( { coordf[0]+1, coordf[1]+0, coordf[2] } ) +
+                *finehalo->halo_element_at( { coordf[0]+1, coordf[1]+1, coordf[2] } ) );
 
         }
     };
 
-    coarse.oldhalo->setFixedHalos( lambda );
-    coarse.newhalo->setFixedHalos( lambda );
+    coarse.oldhalo->set_fixed_halos( lambda );
+    coarse.newhalo->set_fixed_halos( lambda );
 }
 
 
@@ -663,7 +662,7 @@ void transfertomore( Level& source /* with smaller team*/, Level& dest /* with l
 
 
 /* Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
- 
+
 This specialization does not compute the residual to have a much simple code. Should be kept in sync with the following version of smoothen() */
 void smoothen( Level& level ) {
 
@@ -679,7 +678,7 @@ void smoothen( Level& level ) {
     const double c= 1.0;
 
     // async halo update
-    level.oldhalo->updateHalosAsync();
+    level.oldhalo->update_async();
 
     MiniMonT::MiniMonRecord( 0, "smooth_inner", param );
 
@@ -728,7 +727,7 @@ void smoothen( Level& level ) {
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
 
     // wait for async halo update
-    level.oldhalo->waitHalosAsync();
+    level.oldhalo->update_async();
 
     MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
 
@@ -745,8 +744,8 @@ void smoothen( Level& level ) {
     // update border area
     for( auto it = level.oldhalo->bbegin(); it != bend; ++it ) {
 
-        double dtheta= ( it.valueAt(0) + it.valueAt(1) +
-            it.valueAt(2) + it.valueAt(3) + it.valueAt(4) + it.valueAt(5) ) / 6.0 - *it;
+        double dtheta= ( it.value_at(0) + it.value_at(1) +
+            it.value_at(2) + it.value_at(3) + it.value_at(4) + it.value_at(5) ) / 6.0 - *it;
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
         res= std::max( res, std::fabs( dtheta ) );
     }
@@ -761,9 +760,9 @@ void smoothen( Level& level ) {
 
 
 
-/** 
+/**
 Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
- 
+
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
@@ -781,7 +780,7 @@ double smoothen( Level& level, Allreduce& res ) {
     const double c= 1.0;
 
     // async halo update
-    level.oldhalo->updateHalosAsync();
+    level.oldhalo->update_async();
 
     MiniMonT::MiniMonRecord( 0, "smooth_inner", param );
 
@@ -829,12 +828,12 @@ double smoothen( Level& level, Allreduce& res ) {
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
     // wait for async halo update
-    level.oldhalo->waitHalosAsync();
+    level.oldhalo->wait();
     MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
 
 
     MiniMonT::MiniMonRecord( 0, "smooth_col_bc", param );
-    /* unit 0 (of any active team) waits until all local residuals from all 
+    /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
     res.collect( level.oldgrid->team() );
     res.asyncbroadcast( level.oldgrid->team() );
@@ -854,8 +853,8 @@ double smoothen( Level& level, Allreduce& res ) {
     // update border area
     for( auto it = level.oldhalo->bbegin(); it != bend; ++it ) {
 
-        double dtheta= ( it.valueAt(0) + it.valueAt(1) +
-            it.valueAt(2) + it.valueAt(3) + it.valueAt(4) + it.valueAt(5) ) / 6.0 - *it;
+        double dtheta= ( it.value_at(0) + it.value_at(1) +
+            it.value_at(2) + it.value_at(3) + it.value_at(4) + it.value_at(5) ) / 6.0 - *it;
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
         localres= std::max( localres, std::fabs( dtheta ) );
     }
@@ -1301,7 +1300,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
             dash::barrier();
             */
 
-            /* should use scaledownboundary() but it is more complicated here 
+            /* should use scaledownboundary() but it is more complicated here
             ... let's find out which is better in the end */
             initboundary( *levels.back() );
 
@@ -1383,7 +1382,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     if ( 0 == dash::myid() ) {
 
         cout << "run flat iteration with " << dash::Team::All().size() << " units "
-            "for grids of " << 
+            "for grids of " <<
             (1<<(howmanylevels))*factor_z << "x" <<
             (1<<(howmanylevels))*factor_y << "x" <<
             (1<<(howmanylevels))*factor_x <<
@@ -1505,7 +1504,7 @@ int main( int argc, char* argv[] ) {
             /* otherwise interpret as number of grid levels to employ */
             howmanylevels= atoi( argv[a] );
             if ( 0 == dash::myid() ) {
-                cout << "using " << howmanylevels << " levels, " << 
+                cout << "using " << howmanylevels << " levels, " <<
                 (1<<howmanylevels) << "^3" << " per unit" << endl;
             }
         }

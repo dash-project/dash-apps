@@ -1,7 +1,8 @@
 
 
 DASH_ROOT = /home/knue/local/dash-0.3.0_halo
-#DASH_ROOT = /opt/dash
+DASH_ROOT = /home/knue/local/dash-0.3.0
+
 MPIROOT = /opt/open-mpi/
 
 DART_IMPL = mpi
