@@ -1,0 +1,24 @@
+#!/bin/bash -l
+
+#SBATCH -N 1         #Use 2 nodes
+#SBATCH -t 00:30:00  #Set 30 minute time limit
+#SBATCH -p regular   #Submit to the regular 'partition'
+#SBATCH -L SCRATCH   #Job requires $SCRATCH file system
+#SBATCH -C haswell   #Use Haswell nodes
+#SBATCH -D ../../
+##SBATCH -o $(home)/log/<script_name>.<job_id>.out
+##SBATCH -e $(home)/log/<script_name>.<job_id>.err
+
+for IMPL in $(ls -d */); do
+  if [[ "$IMPL" == "jobfiles/" ]]; then continue; fi 
+  if [[ "$IMPL" == "results/" ]]; then continue; fi 
+  echo "Execute $IMPL"
+  TOPDIR=$(pwd)
+  RESULTDIR="$TOPDIR/results/cray/<procs>/$IMPL"
+  mkdir -p $RESULTDIR 
+  # place output files in correct dir
+  cd $RESULTDIR 
+  srun -n <procs> -c 4 $TOPDIR/$IMPL/test_HPCCG 128 128 128 
+  cd $TOPDIR
+done
+

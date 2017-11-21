@@ -37,7 +37,7 @@ for IMPL in $(ls -d */); do
   mkdir -p $RESULTDIR 
   # place output files in correct dir
   cd $RESULTDIR 
-  poe $TOPDIR/$IMPL/test_HPCCG 128 128 256
+  poe $TOPDIR/$IMPL/test_HPCCG 96 96 96 
   cd $TOPDIR
 done
 
