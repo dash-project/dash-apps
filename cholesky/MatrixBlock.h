@@ -21,8 +21,11 @@ public:
     if (_is_local) {
       _local_ptr = matrix.lbegin() +
                     pattern.local_index(
-                      {block_row_idx*pattern.blocksize(0),
-                        block_col_idx*pattern.blocksize(1)}).index;
+                      {static_cast<typename MatrixT::index_type>(
+                        block_row_idx*pattern.blocksize(0)),
+                       static_cast<typename MatrixT::index_type>(
+                         block_col_idx*pattern.blocksize(1))}
+                    ).index;
     }
     this->_size = pattern.blocksize(0) * pattern.blocksize(1);
 #ifdef DEBUG
