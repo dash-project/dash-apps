@@ -5,6 +5,8 @@
 #include <lapacke.h>
 #include "MatrixBlock.h"
 
+typedef dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
+
 extern "C" {
 void dgemm_ (const char *transa, const char *transb, int *l, int *n, int *m, double *alpha,
              const void *a, int *lda, void *b, int *ldb, double *beta, void *c, int *ldc);
