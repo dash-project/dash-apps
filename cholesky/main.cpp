@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include <limits>
+#include <algorithm>
 #include <dash/util/Timer.h>
 
 #include "common.h"
@@ -9,10 +11,13 @@
 
 #if defined (DASH_TASKS)
 #include "CholeskyTasks.h"
+#define USE_TASKS 1
 #elif defined (DASH_TASKS_PREFETCH)
 #include "CholeskyTasksPrefetch.h"
+#define USE_TASKS 1
 #else
 #include "Cholesky.h"
+#define USE_TASKS 0
 #endif
 
 using value_t = double;
@@ -22,6 +27,7 @@ using Block = MatrixBlock<TiledMatrix>;
 
 //#define DEBUG
 //#define CHECK_RESULT
+#define FAST_INIT
 
 static
 void fill_random(TiledMatrix &matrix);
@@ -130,6 +136,23 @@ void fill_random(TiledMatrix &matrix)
       //*it = c++;
     }
   }
+#elif defined(FAST_INIT) && USE_TASKS
+  using value_t = typename TiledMatrix::value_type;
+  dash::tasks::parallel_for(matrix.lbegin(), matrix.lend(),
+    [](value_t* first, value_t* last){
+      int ISEED[4] = {0,0,0,1};
+      int intONE=1;
+      size_t num_elem_total = last - first;
+      size_t num_elem = 0;
+      while (num_elem < num_elem_total) {
+        size_t to_copy = num_elem_total - num_elem;
+        int n = std::min(to_copy,
+                         static_cast<size_t>(std::numeric_limits<int>::max()));
+        dlarnv_(&intONE, &ISEED[0], &n, first);
+        num_elem += n;
+      }
+    });
+  dash::tasks::complete();
 #else
   constexpr int rand_max = 100;
   for (auto it = matrix.lbegin(); it != matrix.lend(); ++it) {
