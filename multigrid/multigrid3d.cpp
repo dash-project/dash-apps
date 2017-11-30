@@ -8,12 +8,10 @@
 #include <utility>
 
 #include <libdash.h>
-//#include <dash/HaloMatrixWrapper.h>
 
 #include "allreduce.h"
 #include "minimonitoring.h"
 
-#define WITHCSVOUTPUT 1
 #ifdef WITHCSVOUTPUT
 
 uint32_t filenumber= 0;
@@ -49,61 +47,58 @@ using MatrixT = dash::NArray<double,3>;
 using StencilT = dash::Stencil<3>;
 using StencilSpecT = dash::StencilSpec<3,6>;
 using CycleSpecT = dash::CycleSpec<3>;
-using HaloMatrixWrapperT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
 
-
-const StencilSpecT stencil_spec({
+constexpr StencilSpecT stencil_spec({
     StencilT(-1, 0, 0), StencilT( 1, 0, 0),
     StencilT( 0,-1, 0), StencilT( 0, 1, 0),
     StencilT( 0, 0,-1), StencilT( 0, 0, 1)});
 
-const CycleSpecT cycle_spec(
+constexpr CycleSpecT cycle_spec(
     dash::Cycle::FIXED,
     dash::Cycle::FIXED,
     dash::Cycle::FIXED );
 
 struct Level {
+private:
+  using SizeSpecT = dash::SizeSpec<3>;
+  using DistSpecT = dash::DistributionSpec<3>;
+  using HaloMatrixWrapperT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
 
-    /* now with double-buffering. oldgrid and oldhalo should only be read,
-    newgrid should only be written. newhalo is only there to keep newgrid's halo
+
+    /* now with double-buffering. oldgrid and src_halo should only be read,
+    newgrid should only be written. target_halo is only there to keep newgrid's halo
     before both are swapped in swap() */
 
-    MatrixT* oldgrid;
-    HaloMatrixWrapperT* oldhalo;
+public:
+    HaloMatrixWrapperT* src_halo;
+    HaloMatrixWrapperT* target_halo;
 
-    MatrixT* newgrid;
-    HaloMatrixWrapperT* newhalo;
 
-    Level( size_t d, size_t h, size_t w, dash::Team& team, TeamSpecT teamspec ) {
-
-        oldgrid= new MatrixT( dash::SizeSpec<3>( d, h, w ),
-            dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
-            team, teamspec );
-        newgrid= new MatrixT( dash::SizeSpec<3>( d, h, w ),
-            dash::DistributionSpec<3>( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
-            team, teamspec );
-        oldhalo= new HaloMatrixWrapperT( *oldgrid, stencil_spec, cycle_spec );
-        newhalo= new HaloMatrixWrapperT( *newgrid, stencil_spec, cycle_spec );
+    Level( size_t d, size_t h, size_t w, dash::Team& team, TeamSpecT teamspec )
+      : _grid_1( SizeSpecT( d, h, w ),
+            DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
+            team, teamspec ),
+        _grid_2( SizeSpecT( d, h, w ),
+            DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
+            team, teamspec ),
+        _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
+        _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
+        src_halo(&_halo_grid_1), target_halo(&_halo_grid_2) {
     }
 
     Level() = delete;
 
-    ~Level() {
-/*
-        delete oldgrid;
-        delete newgrid;
-        delete oldhalo;
-        delete newhalo;
-*/
-    }
-
     /** swap grid and halos for the double buffering scheme */
     void swap() {
 // smooth_inner
-        std::swap<MatrixT*>( oldgrid, newgrid );
-        std::swap<HaloMatrixWrapperT*>( oldhalo, newhalo );
+        std::swap( src_halo, target_halo );
     }
 
+private:
+    MatrixT _grid_1;
+    MatrixT _grid_2;
+    HaloMatrixWrapperT _halo_grid_1;
+    HaloMatrixWrapperT _halo_grid_2;
 
 };
 
@@ -121,7 +116,7 @@ size_t resolutionForCSVw= 0;
 read and visualize it as a structured grid. Use a fixed size for the grid as
 defined by the previous three global variables. So an animations of the
 multigrid procedure is possible. */
-void writeToCsv( const MatrixT* grid ) {
+void writeToCsv( const MatrixT& grid ) {
 
 /* TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 
@@ -131,21 +126,23 @@ Here is still a slight shift in the output when the actual grid is larger than t
 
 #ifdef WITHCSVOUTPUT
 
-    grid->barrier();
+    grid.barrier();
 
-    std::array< long int, 3 > corner= grid->pattern().global( {0,0,0} );
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
-    size_t d= grid->extent(0);
-    size_t h= grid->extent(1);
-    size_t w= grid->extent(2);
+    size_t d= grid.extent(0);
+    size_t h= grid.extent(1);
+    size_t w= grid.extent(2);
 
-    size_t dl= grid->local.extent(0);
-    size_t hl= grid->local.extent(1);
-    size_t wl= grid->local.extent(2);
+    size_t dl= grid.local.extent(0);
+    size_t hl= grid.local.extent(1);
+    size_t wl= grid.local.extent(2);
 
     std::ofstream csvfile;
+    std::ostringstream num_string;
+    num_string << std::setw(5) << std::setfill('0') << filenumber++;
     csvfile.open( "image_unit" + std::to_string(dash::myid()) +
-        ".csv." + std::to_string(filenumber++) );
+        ".csv." + num_string.str() );
 
     if ( 0 == dash::myid() ) {
         csvfile << " z coord, y coord, x coord, heat" << "\n";
@@ -179,37 +176,39 @@ Here is still a slight shift in the output when the actual grid is larger than t
                 csvfile << setfill('0') << setw(4) << corner[0]+z << "," <<
                     setfill('0') << setw(4) << corner[1]+y << "," <<
                     setfill('0') << setw(4) << corner[2]+x << "," <<
-                    (double) grid->local[ muld*z/divd ][ mulh*y/divh ][ mulw*x/divw ] << "\n";
+                    (double) grid.local[ muld*z/divd ][ mulh*y/divh ][ mulw*x/divw ] << "\n";
             }
         }
     }
 
     csvfile.close();
-    grid->barrier();
+    grid.barrier();
 #endif /* WITHCSVOUTPUT */
 }
 
 
 /* write out the grid in its actual size */
-void writeToCsvFullGrid( const MatrixT* grid ) {
+void writeToCsvFullGrid( const MatrixT& grid ) {
 
 #ifdef WITHCSVOUTPUT
 
-    grid->barrier();
+    grid.barrier();
 
-    std::array< long int, 3 > corner= grid->pattern().global( {0,0,0} );
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
-    size_t d= grid->extent(0);
-    size_t h= grid->extent(1);
-    size_t w= grid->extent(2);
+    size_t d= grid.extent(0);
+    size_t h= grid.extent(1);
+    size_t w= grid.extent(2);
 
-    size_t dl= grid->local.extent(0);
-    size_t hl= grid->local.extent(1);
-    size_t wl= grid->local.extent(2);
+    size_t dl= grid.local.extent(0);
+    size_t hl= grid.local.extent(1);
+    size_t wl= grid.local.extent(2);
 
     std::ofstream csvfile;
+    std::ostringstream num_string;
+    num_string << std::setw(5) << std::setfill('0') << filenumber++;
     csvfile.open( "image_unit" + std::to_string(dash::myid()) +
-        ".csv." + std::to_string(filenumber++) );
+        ".csv." + num_string.str() );
 
     if ( 0 == dash::myid() ) {
         csvfile << " z coord, y coord, x coord, heat" << "\n";
@@ -222,23 +221,23 @@ void writeToCsvFullGrid( const MatrixT* grid ) {
                 csvfile << setfill('0') << setw(4) << corner[0]+z << "," <<
                     setfill('0') << setw(4) << corner[1]+y << "," <<
                     setfill('0') << setw(4) << corner[2]+x << "," <<
-                    (double) grid->local[ z ][ y ][ x ] << "\n";
+                    (double) grid.local[ z ][ y ][ x ] << "\n";
             }
         }
     }
 
     csvfile.close();
-    grid->barrier();
+    grid.barrier();
 #endif /* WITHCSVOUTPUT */
 }
 
 
-void sanitycheck( const MatrixT* grid  ) {
+void sanitycheck( const MatrixT& grid  ) {
 
     /* check if the sum of the local extents of the matrix blocks sum up to
     the global extents, abort otherwise */
     dash::Array<size_t> sums( dash::Team::All().size(), dash::BLOCKED );
-    sums.local[0]= grid->local.extent(0) * grid->local.extent(1) * grid->local.extent(2);
+    sums.local[0]= grid.local.extent(0) * grid.local.extent(1) * grid.local.extent(2);
     sums.barrier();
 
     if ( 0 != dash::myid() ) {
@@ -251,12 +250,12 @@ void sanitycheck( const MatrixT* grid  ) {
     }
     sums.barrier();
 
-    if ( ( (size_t) sums[0] ) != grid->extent(0) * grid->extent(1) * grid->extent(2) ) {
+    if ( ( (size_t) sums[0] ) != grid.extent(0) * grid.extent(1) * grid.extent(2) ) {
 
         if ( 0 == dash::myid() ) {
             cout << "ERROR: size mismatch: global size is " <<
-                grid->extent(0) * grid->extent(1) * grid->extent(2) << " == " <<
-                grid->extent(0) << "x" << grid->extent(1) << "x" << grid->extent(2) <<
+                grid.extent(0) * grid.extent(1) * grid.extent(2) << " == " <<
+                grid.extent(0) << "x" << grid.extent(1) << "x" << grid.extent(2) <<
                 " but sum of local sizes is " << (size_t) sums[0] << std::flush << endl;
         }
 
@@ -266,21 +265,22 @@ void sanitycheck( const MatrixT* grid  ) {
 }
 
 
-void initgrid( MatrixT* grid ) {
+void initgrid( MatrixT& grid ) {
 
     /* not strictly necessary but it also avoids NAN values */
-    dash::fill( grid->begin(), grid->end(), 5.0 );
+    dash::fill( grid.begin(), grid.end(), 5.0 );
 
-    grid->barrier();
+    grid.barrier();
 }
 
 
 /* simple boundary settings where 3 sides are hot and 3 are cold */
 void initboundary_3hot3cold( Level& level ) {
+    using index_t = dash::default_index_t;
 
-    double gw= level.oldgrid->extent(2);
-    double gh= level.oldgrid->extent(1);
-    double gd= level.oldgrid->extent(0);
+    double gw= level.src_halo->matrix().extent(2);
+    double gh= level.src_halo->matrix().extent(1);
+    double gd= level.src_halo->matrix().extent(0);
 
     /* with this way of setting the boundary conditions on every level separatel (in
     contrast to scaling it down step by step) one needs to make sure that the boundary
@@ -288,45 +288,42 @@ void initboundary_3hot3cold( Level& level ) {
     values will have jumps in different places (instead of jumps being smoothed out
     by coarsening the boundary).
     Well, we should really think about another way to init the boundary values! */
-    auto lambda= [gd,gh,gw]( const std::array<dash::default_index_t,3>& coords ) {
+    auto lambda= [gd,gh,gw]( const auto& coords ) {
 
-        dash::default_index_t z= coords[0];
-        dash::default_index_t y= coords[1];
-        dash::default_index_t x= coords[2];
-        double ret= 0;
+        index_t z= coords[0];
+        index_t y= coords[1];
+        index_t x= coords[2];
 
         /* for simplicity make every side uniform */
 
         if ( -1 == z ) {
 
-            ret= 10.0;
+            return 10.0;
 
         } else if ( gd == z ) {
 
-            ret= 0.0;
+            return 0.0;
 
         } else if ( -1 == y ) {
 
-            ret= 9.0;
+            return 9.0;
 
         } else if ( gh == y ) {
 
-            ret= 1.0;
+            return 1.0;
 
         } else if ( -1 == x ) {
 
-            ret= 8.0;
+            return 8.0;
 
         } else if ( gw == x ) {
 
-            ret= 2.0;
+            return 2.0;
         }
-
-        return ret;
     };
 
-    level.oldhalo->set_fixed_halos( lambda );
-    level.newhalo->set_fixed_halos( lambda );
+    level.src_halo->set_fixed_halos( lambda );
+    level.target_halo->set_fixed_halos( lambda );
 
 }
 
@@ -336,9 +333,11 @@ in the middle */
 // void initboundary_2circles( Level& level ) {
 void initboundary( Level& level ) {
 
-    double gw= level.oldgrid->extent(2);
-    double gh= level.oldgrid->extent(1);
-    double gd= level.oldgrid->extent(0);
+    using index_t = dash::default_index_t;
+
+    double gw= level.src_halo->matrix().extent(2);
+    double gh= level.src_halo->matrix().extent(1);
+    double gd= level.src_halo->matrix().extent(0);
 
     /* This way of setting boundaries uses subsampling on the top and bottom
     planes to determine the border values. This is another logical way that
@@ -347,11 +346,11 @@ void initboundary( Level& level ) {
     All other sides are constant at 0.0 degrees. The top an bottom circles are
     hot with 10.0 degrees. */
 
-    auto lambda= [gd,gh,gw]( const std::array<dash::default_index_t,3>& coords ) {
+    auto lambda= [gd,gh,gw]( const auto& coords ) {
 
-        dash::default_index_t z= coords[0];
-        dash::default_index_t y= coords[1];
-        dash::default_index_t x= coords[2];
+        index_t z= coords[0];
+        index_t y= coords[1];
+        index_t x= coords[2];
 
         double ret= 0.0;
 
@@ -395,34 +394,34 @@ void initboundary( Level& level ) {
         return ret;
     };
 
-    level.oldhalo->set_fixed_halos( lambda );
-    level.newhalo->set_fixed_halos( lambda );
+    level.src_halo->set_fixed_halos( lambda );
+    level.target_halo->set_fixed_halos( lambda );
 }
 
 
-void markunits( MatrixT* grid ) {
+void markunits( MatrixT& grid ) {
 
     /* Mark unit bordery by setting the first local rows and columns */
 
-    size_t w= grid->local.extent(2);
-    size_t h= grid->local.extent(1);
-    size_t d= grid->local.extent(0);
+    size_t w= grid.local.extent(2);
+    size_t h= grid.local.extent(1);
+    size_t d= grid.local.extent(0);
 
     for ( size_t i = 0; i < d; ++i ) {
         for ( size_t j = 0; j < h; ++j ) {
-            grid->local[i][j][0] = 8.0;
+            grid.local[i][j][0] = 8.0;
         }
     }
 
     for ( size_t i = 0; i < d; ++i ) {
         for ( size_t k = 0; k < w; ++k ) {
-            grid->local[i][0][k] = 8.0;
+            grid.local[i][0][k] = 8.0;
         }
     }
 
     for ( size_t j = 0; j < h; ++j ) {
         for ( size_t k = 0; k < w; ++k ) {
-            grid->local[0][j][k] = 8.0;
+            grid.local[0][j][k] = 8.0;
         }
     }
 }
@@ -430,24 +429,20 @@ void markunits( MatrixT* grid ) {
 
 void scaledownboundary( Level& fine, Level& coarse ) {
 
-    assert( coarse.oldgrid->extent(2)*2 == fine.oldgrid->extent(2) );
-    assert( coarse.oldgrid->extent(1)*2 == fine.oldgrid->extent(1) );
-    assert( coarse.oldgrid->extent(0)*2 == fine.oldgrid->extent(0) );
+    auto& coarse_src_grid = coarse.src_halo->matrix();
+    auto& fine_src_grid = fine.src_halo->matrix();
 
-    size_t wc= coarse.oldgrid->local.extent(2);
-    size_t hc= coarse.oldgrid->local.extent(1);
-    size_t dc= coarse.oldgrid->local.extent(0);
-    size_t wf= fine.oldgrid->local.extent(2);
-    size_t hf= fine.oldgrid->local.extent(1);
-    size_t df= fine.oldgrid->local.extent(0);
+    assert( coarse_src_grid.extent(2)*2 == fine_src_grid.extent(2) );
+    assert( coarse_src_grid.extent(1)*2 == fine_src_grid.extent(1) );
+    assert( coarse_src_grid.extent(0)*2 == fine_src_grid.extent(0) );
 
-    size_t dmax= coarse.oldgrid->extent(0);
-    size_t hmax= coarse.oldgrid->extent(1);
-    //size_t wmax= coarse.oldgrid->extent(2);
+    size_t dmax= coarse_src_grid.extent(0);
+    size_t hmax= coarse_src_grid.extent(1);
+    //size_t wmax= coarse_src_grid.extent(2);
 
-    auto finehalo= fine.oldhalo;
+    auto finehalo= fine.src_halo;
 
-    auto lambda= [&finehalo,&dmax,&hmax]( const std::array<dash::default_index_t,3>& coord ) {
+    auto lambda= [&finehalo,&dmax,&hmax]( const auto& coord ) {
 
         auto coordf= coord;
         for( auto& c : coordf ) {
@@ -484,24 +479,24 @@ void scaledownboundary( Level& fine, Level& coarse ) {
         }
     };
 
-    coarse.oldhalo->set_fixed_halos( lambda );
-    coarse.newhalo->set_fixed_halos( lambda );
+    coarse.src_halo->set_fixed_halos( lambda );
+    coarse.target_halo->set_fixed_halos( lambda );
 }
 
 
-void scaledown( MatrixT* finegrid, MatrixT* coarsegrid ) {
+void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
 
-    uint64_t param= finegrid->local.extent(0)*finegrid->local.extent(1)*finegrid->local.extent(2);
+    uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
     MiniMonT::MiniMonRecord( 0, "scaledown", param );
 
-    assert( coarsegrid->extent(2) * 2 == finegrid->extent(2) );
-    assert( coarsegrid->extent(1) * 2 == finegrid->extent(1) );
-    assert( coarsegrid->extent(0) * 2 == finegrid->extent(0) );
+    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
+    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
+    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
 
-    const std::array< long unsigned int, 3 > extentc= coarsegrid->pattern().local_extents();
-    const std::array< long signed int, 3 >   cornerc= coarsegrid->pattern().global( {0,0,0} );
-    const std::array< long unsigned int, 3 > extentf= finegrid->pattern().local_extents();
-    const std::array< long signed int, 3 >   cornerf= finegrid->pattern().global( {0,0,0} );
+    const auto& extentc= coarsegrid.pattern().local_extents();
+    const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
+    const auto& extentf= finegrid.pattern().local_extents();
+    const auto& cornerf= finegrid.pattern().global( {0,0,0} );
 
     assert( cornerc[0] * 2 == cornerf[0] );
     assert( cornerc[1] * 2 == cornerf[1] );
@@ -515,16 +510,17 @@ void scaledown( MatrixT* finegrid, MatrixT* coarsegrid ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
+    auto* lbegin_fine = finegrid.lbegin();
+    auto next_layer = extentf[1] * extentf[2];
+    double* __restrict p_coarse= coarsegrid.lbegin();
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
+        auto next_two_layer = 2*z*next_layer;
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
 
-            constexpr size_t x= 0;
-            double* __restrict p_coarse= &coarsegrid->local[z][y][x];
-
-            const double* __restrict p_000= &finegrid->local[2*z+0][2*y+0][2*x];
-            const double* __restrict p_010= &finegrid->local[2*z+0][2*y+1][2*x];
-            const double* __restrict p_100= &finegrid->local[2*z+1][2*y+0][2*x];
-            const double* __restrict p_110= &finegrid->local[2*z+1][2*y+1][2*x];
+            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2];
+            double* __restrict p_010= p_000 + extentf[2];
+            double* __restrict p_100= p_000 + next_layer;
+            double* __restrict p_110= p_100 + extentf[2];
 
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
@@ -534,7 +530,7 @@ void scaledown( MatrixT* finegrid, MatrixT* coarsegrid ) {
                     *(p_100+0) + *(p_100+1) +
                     *(p_110+0) + *(p_110+1) );
 
-                p_coarse++;
+                ++p_coarse;
                 p_000 += 2;
                 p_010 += 2;
                 p_100 += 2;
@@ -547,19 +543,19 @@ void scaledown( MatrixT* finegrid, MatrixT* coarsegrid ) {
 }
 
 
-void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
+void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 
-    uint64_t param= coarsegrid->local.extent(0)*coarsegrid->local.extent(1)*coarsegrid->local.extent(2);
+    uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
     MiniMonT::MiniMonRecord( 0, "scaleup", param );
 
-    assert( coarsegrid->extent(2) * 2 == finegrid->extent(2) );
-    assert( coarsegrid->extent(1) * 2 == finegrid->extent(1) );
-    assert( coarsegrid->extent(0) * 2 == finegrid->extent(0) );
+    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
+    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
+    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
 
-    const std::array< long unsigned int, 3 > extentc= coarsegrid->pattern().local_extents();
-    const std::array< long signed int, 3 >   cornerc= coarsegrid->pattern().global( {0,0,0} );
-    const std::array< long unsigned int, 3 > extentf= finegrid->pattern().local_extents();
-    const std::array< long signed int, 3 >   cornerf= finegrid->pattern().global( {0,0,0} );
+    const auto& extentc= coarsegrid.pattern().local_extents();
+    const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
+    const auto& extentf= finegrid.pattern().local_extents();
+    const auto& cornerf= finegrid.pattern().global( {0,0,0} );
 
     assert( cornerc[0] * 2 == cornerf[0] );
     assert( cornerc[1] * 2 == cornerf[1] );
@@ -573,16 +569,16 @@ void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
     assert( extentc[1] * 2 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] );
 
+    auto* lbegin_fine = finegrid.lbegin();
+    auto next_layer = extentf[1] * extentf[2];
+    const double* __restrict p_coarse= coarsegrid.lbegin();
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
+        auto next_two_layer = 2*z*next_layer;
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
-
-            constexpr size_t x= 0;
-            const double* __restrict p_coarse= &coarsegrid->local[z][y][x];
-
-            double* __restrict p_000= &finegrid->local[2*z+0][2*y+0][2*x];
-            double* __restrict p_010= &finegrid->local[2*z+0][2*y+1][2*x];
-            double* __restrict p_100= &finegrid->local[2*z+1][2*y+0][2*x];
-            double* __restrict p_110= &finegrid->local[2*z+1][2*y+1][2*x];
+            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2];
+            double* __restrict p_010= p_000 + extentf[2];
+            double* __restrict p_100= p_000 + next_layer;
+            double* __restrict p_110= p_100 + extentf[2];
 
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
@@ -595,7 +591,7 @@ void scaleup( MatrixT* coarsegrid, MatrixT* finegrid ) {
                 *(p_110+0)= *p_coarse;
                 *(p_110+1)= *p_coarse;
 
-                p_coarse++;
+                ++p_coarse;
                 p_000 += 2;
                 p_010 += 2;
                 p_100 += 2;
@@ -661,24 +657,29 @@ void transfertomore( Level& source /* with smaller team*/, Level& dest /* with l
 }
 
 
-/* Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
+/* Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
 
 This specialization does not compute the residual to have a much simple code. Should be kept in sync with the following version of smoothen() */
 void smoothen( Level& level ) {
+#ifdef SCOREP
+    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
+#endif
 
-    size_t ld= level.oldgrid->local.extent(0);
-    size_t lh= level.oldgrid->local.extent(1);
-    size_t lw= level.oldgrid->local.extent(2);
+    auto& src_grid    = level.src_halo->matrix();
+    auto& target_grid = level.target_halo->matrix();
+
+    size_t ld= src_grid.local.extent(0);
+    size_t lh= src_grid.local.extent(1);
+    size_t lw= src_grid.local.extent(2);
+
     uint64_t param= ld*lh*lw;
     MiniMonT::MiniMonRecord( 0, "smoothen", param );
-
-    double res= 0.0;
 
     /// relaxation coeff.
     const double c= 1.0;
 
     // async halo update
-    level.oldhalo->update_async();
+    level.src_halo->update_async();
 
     MiniMonT::MiniMonRecord( 0, "smooth_inner", param );
 
@@ -688,29 +689,29 @@ void smoothen( Level& level ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
+
+    auto next_layer_off = lw * lh;
+    auto core_offset = lw * (lh + 1) + 1;
     for ( size_t z= 1; z < ld-1; z++ ) {
         for ( size_t y= 1; y < lh-1; y++ ) {
 
             /* this should eventually be done with Alpaka or Kokkos to look
             much nicer but still be fast */
 
-            constexpr size_t x= 1;
-            const double* __restrict p_here=  &level.oldgrid->local[z  ][y  ][x  ];
-            const double* __restrict p_east=  &level.oldgrid->local[z  ][y  ][x+1];
-            const double* __restrict p_west=  &level.oldgrid->local[z  ][y  ][x-1];
-            const double* __restrict p_north= &level.oldgrid->local[z  ][y+1][x  ];
-            const double* __restrict p_south= &level.oldgrid->local[z  ][y-1][x  ];
-            const double* __restrict p_up=    &level.oldgrid->local[z+1][y  ][x  ];
-            const double* __restrict p_down=  &level.oldgrid->local[z-1][y  ][x  ];
+            const auto* __restrict p_core = src_grid.lbegin() + core_offset;
+            const auto* __restrict p_east = p_core + 1;
+            const auto* __restrict p_west = p_core - 1;
+            const auto* __restrict p_north= p_core + lw;
+            const auto* __restrict p_south= p_core - lw;
+            const auto* __restrict p_up=    p_core + next_layer_off;
+            const auto* __restrict p_down=  p_core - next_layer_off;
 
-            double* __restrict p_new=   &level.newgrid->local[z  ][y  ][x  ];
-
+            double* __restrict p_new=   target_grid.lbegin() + core_offset;
             for ( size_t x= 1; x < lw-1; x++ ) {
 
-                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
-                *p_new= *p_here + c * dtheta;
-                res= std::max( res, std::fabs( dtheta ) );
-                p_here++;
+                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_core ;
+                *p_new= *p_core + c * dtheta;
+                p_core++;
                 p_east++;
                 p_west++;
                 p_north++;
@@ -719,7 +720,9 @@ void smoothen( Level& level ) {
                 p_down++;
                 p_new++;
             }
+            core_offset += lw;
         }
+        core_offset += 2 * lw;
     }
 
     MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
@@ -727,31 +730,29 @@ void smoothen( Level& level ) {
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
 
     // wait for async halo update
-    level.oldhalo->update_async();
+    level.src_halo->update_async();
 
     MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
 
     /* this barrier is there so that iterations are synchronized across all
     units. Otherwise some overtak others esp. on the very small grids. */
-    level.oldgrid->barrier();
+    src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_outer", param );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= level.newgrid->lbegin();
+    auto gridlocalbegin= target_grid.lbegin();
 
-    auto bend = level.oldhalo->bend();
+    auto bend = level.src_halo->bend();
     // update border area
-    for( auto it = level.oldhalo->bbegin(); it != bend; ++it ) {
+    for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
         double dtheta= ( it.value_at(0) + it.value_at(1) +
             it.value_at(2) + it.value_at(3) + it.value_at(4) + it.value_at(5) ) / 6.0 - *it;
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
-        res= std::max( res, std::fabs( dtheta ) );
     }
 
     MiniMonT::MiniMonRecord( 1, "smooth_outer", param );
-
 
     level.swap();
 
@@ -761,16 +762,23 @@ void smoothen( Level& level ) {
 
 
 /**
-Smoothen the given level from oldgrid+oldhalo to newgrid. Call Level::swap() at the end.
+Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
 
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
 double smoothen( Level& level, Allreduce& res ) {
+#ifdef SCOREP
+    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
+#endif
 
-    size_t ld= level.oldgrid->local.extent(0);
-    size_t lh= level.oldgrid->local.extent(1);
-    size_t lw= level.oldgrid->local.extent(2);
+    auto& src_grid    = level.src_halo->matrix();
+    auto& target_grid = level.target_halo->matrix();
+
+    size_t ld= src_grid.local.extent(0);
+    size_t lh= src_grid.local.extent(1);
+    size_t lw= src_grid.local.extent(2);
+
     uint64_t param= ld*lh*lw;
     MiniMonT::MiniMonRecord( 0, "smoothen", param );
 
@@ -780,7 +788,7 @@ double smoothen( Level& level, Allreduce& res ) {
     const double c= 1.0;
 
     // async halo update
-    level.oldhalo->update_async();
+    level.src_halo->update_async();
 
     MiniMonT::MiniMonRecord( 0, "smooth_inner", param );
 
@@ -790,29 +798,29 @@ double smoothen( Level& level, Allreduce& res ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
+    auto next_layer_off = lw * lh;
+    auto core_offset = lw * (lh + 1) + 1;
     for ( size_t z= 1; z < ld-1; z++ ) {
         for ( size_t y= 1; y < lh-1; y++ ) {
 
             /* this should eventually be done with Alpaka or Kokkos to look
             much nicer but still be fast */
 
-            constexpr size_t x= 1;
-            const double* __restrict p_here=  &level.oldgrid->local[z  ][y  ][x  ];
-            const double* __restrict p_east=  &level.oldgrid->local[z  ][y  ][x+1];
-            const double* __restrict p_west=  &level.oldgrid->local[z  ][y  ][x-1];
-            const double* __restrict p_north= &level.oldgrid->local[z  ][y+1][x  ];
-            const double* __restrict p_south= &level.oldgrid->local[z  ][y-1][x  ];
-            const double* __restrict p_up=    &level.oldgrid->local[z+1][y  ][x  ];
-            const double* __restrict p_down=  &level.oldgrid->local[z-1][y  ][x  ];
+            const auto* __restrict p_core = src_grid.lbegin() + core_offset;
+            const auto* __restrict p_east = p_core + 1;
+            const auto* __restrict p_west = p_core - 1;
+            const auto* __restrict p_north= p_core + lw;
+            const auto* __restrict p_south= p_core - lw;
+            const auto* __restrict p_up=    p_core + next_layer_off;
+            const auto* __restrict p_down=  p_core - next_layer_off;
 
-            double* __restrict p_new=   &level.newgrid->local[z  ][y  ][x  ];
-
+            double* __restrict p_new=   target_grid.lbegin() + core_offset;
             for ( size_t x= 1; x < lw-1; x++ ) {
 
-                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_here ;
-                *p_new= *p_here + c * dtheta;
+                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_core ;
+                *p_new= *p_core + c * dtheta;
                 localres= std::max( localres, std::fabs( dtheta ) );
-                p_here++;
+                p_core++;
                 p_east++;
                 p_west++;
                 p_north++;
@@ -821,22 +829,24 @@ double smoothen( Level& level, Allreduce& res ) {
                 p_down++;
                 p_new++;
             }
+            core_offset += lw;
         }
+        core_offset += 2 * lw;
     }
 
     MiniMonT::MiniMonRecord( 1, "smooth_inner", param );
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", param );
     // wait for async halo update
-    level.oldhalo->wait();
+    level.src_halo->wait();
     MiniMonT::MiniMonRecord( 1, "smooth_wait", param );
 
 
     MiniMonT::MiniMonRecord( 0, "smooth_col_bc", param );
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
-    res.collect( level.oldgrid->team() );
-    res.asyncbroadcast( level.oldgrid->team() );
+    res.collect( src_grid.team() );
+    res.asyncbroadcast( src_grid.team() );
     MiniMonT::MiniMonRecord( 1, "smooth_col_bc", param );
 
 
@@ -847,11 +857,11 @@ double smoothen( Level& level, Allreduce& res ) {
     MiniMonT::MiniMonRecord( 0, "smooth_outer", param );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= level.newgrid->lbegin();
+    auto gridlocalbegin= target_grid.lbegin();
 
-    auto bend = level.oldhalo->bend();
+    auto bend = level.src_halo->bend();
     // update border area
-    for( auto it = level.oldhalo->bbegin(); it != bend; ++it ) {
+    for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
         double dtheta= ( it.value_at(0) + it.value_at(1) +
             it.value_at(2) + it.value_at(3) + it.value_at(4) + it.value_at(5) ) / 6.0 - *it;
@@ -863,12 +873,12 @@ double smoothen( Level& level, Allreduce& res ) {
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait_set", param );
 
-    res.waitbroadcast( level.oldgrid->team() );
+    res.waitbroadcast( src_grid.team() );
 
     /* global residual from former iteration */
     double oldres= res.get();
 
-    res.asyncset( localres, level.oldgrid->team() );
+    res.asyncset( &localres, src_grid.team() );
 
     MiniMonT::MiniMonRecord( 1, "smooth_wait_set", param );
 
@@ -881,27 +891,29 @@ double smoothen( Level& level, Allreduce& res ) {
 
 
 /* recursive version */
-void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
+template<typename Iterator>
+void v_cycle( Iterator it, Iterator itend,
         uint32_t numiter, double epsilon, Allreduce& res ) {
+#ifdef SCOREP
+    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
+#endif
 
     if ( 0 == dash::myid() ) {
+        const auto& extents = (*it)->src_halo->matrix().extents();
         cout << "v-cycle on  " <<
-                    (*it)->oldgrid->extent(2) << "x" <<
-                    (*it)->oldgrid->extent(1) << "x" <<
-                    (*it)->oldgrid->extent(0) << endl;
+                    extents[2] << "x" <<
+                    extents[1] << "x" <<
+                    extents[0] << endl;
     }
 
-    vector<Level*>::iterator itnext( it );
-    itnext++;
-
+    Iterator itnext( it );
+    ++itnext;
     /* reached end of recursion? */
     if ( itend == itnext ) {
 
         /* smoothen completely  */
-
         uint32_t j= 0;
         while ( res.get() > epsilon ) {
-
             /* need global residual for iteration count */
             smoothen( **it, res );
 
@@ -910,7 +922,7 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
             }
             j++;
         }
-        writeToCsv( (*it)->oldgrid );
+        writeToCsv( (*it)->src_halo->matrix() );
         return;
     }
 
@@ -922,47 +934,49 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
     if ( NULL == *itnext ) {
 
         /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
-        (*it)->oldgrid->team().barrier();
+        (*it)->src_halo->matrix().team().barrier();
 
         cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
         return;
     }
 
+    auto& src_grid      = (*it)->src_halo->matrix();
+    auto& src_grid_next = (*itnext)->src_halo->matrix();
     /* stepped on a transfer level? */
-    if ( (*it)->oldgrid->team().size() != (*itnext)->oldgrid->team().size() ) {
+    if ( src_grid.team().size() != src_grid_next.team().size() ) {
 
         /* only the members of the reduced team need to work, all others do siesta. */
         //if ( 0 == (*itnext)->grid.team().position() )
-        assert( 0 == (*itnext)->oldgrid->team().position() );
+        assert( 0 == src_grid_next.team().position() );
         {
 
             cout << "transfer to " <<
-                (*it)->oldgrid->extent(2) << "x" <<
-                (*it)->oldgrid->extent(1) << "x" <<
-                (*it)->oldgrid->extent(0) << " with " << (*it)->oldgrid->team().size() << " units "
+                src_grid.extent(2) << "x" <<
+                src_grid.extent(1) << "x" <<
+                src_grid.extent(0) << " with " << src_grid.team().size() << " units "
                 " --> " <<
-                (*itnext)->oldgrid->extent(2) << "x" <<
-                (*itnext)->oldgrid->extent(1) << "x" <<
-                (*itnext)->oldgrid->extent(0) << " with " << (*itnext)->oldgrid->team().size() << " units " << endl;
+                src_grid_next.extent(2) << "x" <<
+                src_grid_next.extent(1) << "x" <<
+                src_grid_next.extent(0) << " with " << src_grid_next.team().size() << " units " << endl;
 
             transfertofewer( **it, **itnext );
 
             v_cycle( itnext, itend, numiter, epsilon, res );
 
             cout << "transfer back " <<
-            (*itnext)->oldgrid->extent(2) << "x" <<
-            (*itnext)->oldgrid->extent(1) << "x" <<
-            (*itnext)->oldgrid->extent(0) << " with " << (*itnext)->oldgrid->team().size() << " units "
+            src_grid_next.extent(2) << "x" <<
+            src_grid_next.extent(1) << "x" <<
+            src_grid_next.extent(0) << " with " << src_grid_next.team().size() << " units "
             " --> " <<
-            (*it)->oldgrid->extent(2) << "x" <<
-            (*it)->oldgrid->extent(1) << "x" <<
-            (*it)->oldgrid->extent(0) << " with " << (*it)->oldgrid->team().size() << " units " <<  endl;
+            src_grid.extent(2) << "x" <<
+            src_grid.extent(1) << "x" <<
+            src_grid.extent(0) << " with " << src_grid.team().size() << " units " <<  endl;
 
             transfertomore( **itnext, **it );
         }
 
         /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
-        (*it)->oldgrid->team().barrier();
+        src_grid.team().barrier();
 
 
         cout << "all meet again here: I'm active unit " << dash::myid() << endl;
@@ -976,21 +990,21 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
         smoothen( **it );
     }
 
-    writeToCsv( (*it)->oldgrid );
+    writeToCsv( src_grid );
 
     /* scale down */
     if ( 0 == dash::myid() ) {
         cout << "scale down " <<
-            (*it)->oldgrid->extent(2) << "x" <<
-            (*it)->oldgrid->extent(1) << "x" <<
-            (*it)->oldgrid->extent(0) <<
+            src_grid.extent(2) << "x" <<
+            src_grid.extent(1) << "x" <<
+            src_grid.extent(0) <<
             " --> " <<
-            (*itnext)->oldgrid->extent(2) << "x" <<
-            (*itnext)->oldgrid->extent(1) << "x" <<
-            (*itnext)->oldgrid->extent(0) << endl;
+            src_grid_next.extent(2) << "x" <<
+            src_grid_next.extent(1) << "x" <<
+            src_grid_next.extent(0) << endl;
     }
-    scaledown( (*it)->oldgrid, (*itnext)->oldgrid );
-    writeToCsv( (*itnext)->oldgrid );
+    scaledown( src_grid, src_grid_next );
+    writeToCsv( src_grid_next );
 
     /* recurse  */
     v_cycle( itnext, itend, numiter, epsilon, res );
@@ -998,33 +1012,36 @@ void v_cycle( vector<Level*>::iterator it, vector<Level*>::iterator itend,
     /* scale up */
     if ( 0 == dash::myid() ) {
         cout << "scale up " <<
-            (*itnext)->oldgrid->extent(2) << "x" <<
-            (*itnext)->oldgrid->extent(1) << "x" <<
-            (*itnext)->oldgrid->extent(0) <<
+            src_grid_next.extent(2) << "x" <<
+            src_grid_next.extent(1) << "x" <<
+            src_grid_next.extent(0) <<
             " --> " <<
-            (*it)->oldgrid->extent(2) << "x" <<
-            (*it)->oldgrid->extent(1) << "x" <<
-            (*it)->oldgrid->extent(0) << endl;
+            src_grid.extent(2) << "x" <<
+            src_grid.extent(1) << "x" <<
+            src_grid.extent(0) << endl;
     }
-    scaleup( (*itnext)->oldgrid, (*it)->oldgrid );
-    writeToCsv( (*it)->oldgrid );
+    scaleup( src_grid_next, src_grid );
+    writeToCsv( src_grid );
 
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
-    writeToCsv( (*it)->oldgrid );
+    writeToCsv( src_grid );
 }
 
 
-void smoothen_final( Level* level, double epsilon, Allreduce& res ) {
+void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
+#ifdef SCOREP
+    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
+#endif
 
     MiniMonT::MiniMonRecord( 0, "smoothfinal" );
 
     uint32_t j= 0;
     while ( res.get() > epsilon ) {
 
-        smoothen( *level, res );
+        smoothen( level, res );
 
         if ( 0 == dash::myid() ) {
             cout << j << ": smoothen finest with residual " << res.get() << endl;
@@ -1037,8 +1054,11 @@ void smoothen_final( Level* level, double epsilon, Allreduce& res ) {
 
 
 void do_multigrid_iteration( uint32_t howmanylevels ) {
+#ifdef SCOREP
+    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
+#endif
 
-    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    TeamSpecT teamspec{};
     teamspec.balance_extents();
 
     /* determine factors for width and height such that every unit has a power of two
@@ -1096,7 +1116,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
     initboundary( *levels.back() );
-    sanitycheck( levels.back()->oldgrid );
+    sanitycheck( levels.back()->src_halo->matrix() );
 
     dash::barrier();
 
@@ -1138,9 +1158,10 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
-    initgrid( levels.front()->oldgrid );
-    markunits( levels.front()->oldgrid );
-    writeToCsv( levels.front()->oldgrid );
+    auto& src_grid = levels.front()->src_halo->matrix();
+    initgrid( src_grid );
+    markunits( src_grid );
+    writeToCsv( src_grid );
 
     dash::Team::All().barrier();
 
@@ -1149,15 +1170,15 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     MiniMonT::MiniMonRecord( 1, "setup" );
 
-    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 10, 0.01, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 10, 0.0001, res );
+    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
     dash::Team::All().barrier();
 
     res.reset( dash::Team::All() );
-    smoothen_final( levels.front(), 0.001, res );
+    smoothen_final( *levels.front(), 0.001, res );
     for ( int i= 0; i < 5; ++i ) {
-        writeToCsv( levels.front()->oldgrid );
+        writeToCsv( src_grid );
     }
 
     dash::Team::All().barrier();
@@ -1225,13 +1246,13 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
     initboundary( *levels.back() );
-    sanitycheck( levels.back()->oldgrid );
+    sanitycheck( levels.back()->src_halo->matrix() );
 
     dash::barrier();
 
     for ( uint32_t l= 1; l < howmanylevels; l++ ) {
 
-        dash::Team& previousteam= levels.back()->oldgrid->team();
+        dash::Team& previousteam= levels.back()->src_halo->matrix().team();
         dash::Team& currentteam= ( 4 == l ) ? previousteam.split(4) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
@@ -1325,9 +1346,10 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
-    initgrid( levels.front()->oldgrid );
-    markunits( levels.front()->oldgrid );
-    writeToCsv( levels.front()->oldgrid );
+    auto& src_grid = levels.front()->src_halo->matrix();
+    initgrid( src_grid );
+    markunits( src_grid );
+    writeToCsv( src_grid );
 
     dash::Team::All().barrier();
 
@@ -1342,9 +1364,9 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     dash::Team::All().barrier();
 
     res.reset( dash::Team::All() );
-    smoothen_final( levels.front(), 0.001, res );
+    smoothen_final( *levels.front(), 0.001, res );
     for ( int i= 0; i < 5; ++i ) {
-        writeToCsv( levels.front()->oldgrid );
+        writeToCsv( src_grid );
     }
 
     dash::Team::All().barrier();
@@ -1398,9 +1420,11 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     dash::barrier();
 
     initboundary( *level );
-    initgrid( level->oldgrid );
-    markunits( level->oldgrid );
-    writeToCsv( level->oldgrid );
+
+    auto& src_grid = level->src_halo->matrix();
+    initgrid( src_grid );
+    markunits( src_grid );
+    writeToCsv( src_grid );
 
     dash::barrier();
 
@@ -1424,7 +1448,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     MiniMonT::MiniMonRecord( 1, "smoothflatfixed" );
 
-    writeToCsv( level->oldgrid );
+    writeToCsv( src_grid );
 
     MiniMonT::MiniMonRecord( 0, "smoothflatresidual" );
 
@@ -1445,7 +1469,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     MiniMonT::MiniMonRecord( 1, "smoothflatresidual" );
 
-    writeToCsv( level->oldgrid );
+    writeToCsv( src_grid );
 
     delete level;
     level= NULL;
