@@ -2,12 +2,14 @@
 
 CXX = dash-mpicxx
 
-CXXFLAGS = -std=c++14
+CXXFLAGS = -std=c++14 -mkl=sequential -O3
 
-LDFLAGS = -llapacke -L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm -ldl
+LDFLAGS = -mkl=sequential -lpthread -lm -ldl
 DART_TASK_LIB = -ldart-tasking
 
-OBJ = cholesky cholesky_tasks cholesky_tasks_prefetch
+EXTRAE_INC = /work/xg17i034/x10288/opt/extrae-3.5.2/include/
+
+OBJ = cholesky cholesky_tasks cholesky_tasks_prefetch cholesky_tasks_prefetch_extrae
 MAIN = main.cpp
 
 HEADER = common.h MatrixBlock.h
@@ -25,5 +27,7 @@ cholesky_tasks: $(MAIN) $(HEADER) CholeskyTasks.h
 cholesky_tasks_prefetch: $(MAIN) $(HEADER) CholeskyTasksPrefetch.h
 	$(CXX) $(CXXFLAGS) -DDASH_TASKS_PREFETCH -o $@ $< $(LDFLAGS) $(DART_TASK_LIB)
 
+cholesky_tasks_prefetch_extrae: $(MAIN) $(HEADER) CholeskyTasksPrefetch.h
+	$(CXX) $(CXXFLAGS) -DDASH_TASKS_PREFETCH -DUSE_EXTRAE -I$(EXTRAE_INC) -L/work/xg17i034/x10288/opt/extrae-3.5.2/lib -lptmpitrace -o $@ $< $(LDFLAGS) $(DART_TASK_LIB)
 clean:
 	rm -rf $(OBJ)

@@ -22,6 +22,7 @@
 
 using value_t = double;
 using PatternT = typename dash::ShiftTilePattern<2>;
+//using PatternT = typename dash::TilePattern<2>;
 using TiledMatrix = dash::Matrix<value_t, 2, dash::default_index_t, PatternT>;
 using Block = MatrixBlock<TiledMatrix>;
 
@@ -37,6 +38,7 @@ void print_matrix(Block &block, size_t nx, size_t ny);
 int main(int argc, char **argv)
 {
   dash::init(&argc, &argv);
+
   //const size_t  N = 15 * dash::size();
 
   if (argc < 3) {
@@ -55,9 +57,14 @@ int main(int argc, char **argv)
 
   Timer::Calibrate();
 
+  if (dash::myid() == 0) {
+    std::cout << "Allocating matrix: ";
+  }
   TiledMatrix matrix(num_elem, num_elem,
                      dash::TILE(block_size), dash::TILE(block_size));
-
+  if (dash::myid() == 0) {
+    std::cout << "Done." << std::endl;
+  }
   fill_random(matrix);
 
   matrix.barrier();
