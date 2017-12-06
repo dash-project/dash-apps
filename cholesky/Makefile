@@ -11,7 +11,7 @@ DART_TASK_LIB = -ldart-tasking
 
 EXTRAE_INC = /work/xg17i034/x10288/opt/extrae-3.5.2/include/
 
-OBJ = cholesky cholesky_prefetch cholesky_prefetch_extrae cholesky_tasks cholesky_tasks_prefetch cholesky_tasks_prefetch_extrae
+OBJ = cholesky cholesky_prefetch cholesky_prefetch_omp cholesky_prefetch_extrae cholesky_tasks cholesky_tasks_prefetch cholesky_tasks_prefetch_extrae
 MAIN = main.cpp
 
 HEADER = common.h MatrixBlock.h
@@ -25,6 +25,9 @@ cholesky: $(MAIN) $(HEADER) Cholesky.h Makefile
 
 cholesky_prefetch: $(MAIN) $(HEADER) CholeskyPrefetch.h Makefile
 	$(CXX) $(CXXFLAGS) -DDASH_PREFETCH -o $@ $< $(LDFLAGS)
+
+cholesky_prefetch_omp: $(MAIN) $(HEADER) CholeskyOMPPrefetch.h Makefile
+	$(CXX) $(CXXFLAGS) -DDASH_OMP_PREFETCH -fopenmp -o $@ $< $(LDFLAGS)
 
 cholesky_tasks: $(MAIN) $(HEADER) CholeskyTasks.h Makefile
 	$(CXX) $(CXXFLAGS) -DDASH_TASKS -o $@ $< $(LDFLAGS) $(DART_TASK_LIB)
