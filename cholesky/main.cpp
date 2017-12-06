@@ -15,6 +15,9 @@
 #elif defined (DASH_TASKS_PREFETCH)
 #include "CholeskyTasksPrefetch.h"
 #define USE_TASKS 1
+#elif defined (DASH_PREFETCH)
+#include "CholeskyPrefetch.h"
+#define USE_TASKS 0
 #else
 #include "Cholesky.h"
 #define USE_TASKS 0
