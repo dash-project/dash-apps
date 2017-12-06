@@ -14,15 +14,20 @@
 //extern "C" void Extrae_fini (void) __attribute__((weak));
 #endif
 
-#define EVENT_POTRF 1000
-#define EVENT_TRSM  1001
-#define EVENT_GEMM  1002
-#define EVENT_SYRK  1003
-#define EVENT_PREFETCH 2000
+#define EVENT_NONE  0
+#define EVENT_POTRF 1
+#define EVENT_TRSM  2
+#define EVENT_GEMM  3
+#define EVENT_SYRK  4
+#define EVENT_PREFETCH 5
 
 #ifdef USE_EXTRAE
-#define EXTRAE_ENTER(_e) Extrae_event(_e, 1)
-#define EXTRAE_EXIT(_e)  Extrae_event(_e, 0)
+static extrae_type_t et;
+static extrae_value_t ev[6] = {0, 10, 11, 12, 13, 20};
+static char *extrae_names[] = {"none", "potrf()", "trsm()", "gemm()", "syrk()", "PREFETCH"};
+
+#define EXTRAE_ENTER(_e) Extrae_event(et, ev[_e])
+#define EXTRAE_EXIT(_e)  Extrae_event(et, ev[EVENT_NONE])
 #else
 #define EXTRAE_ENTER(_e)
 #define EXTRAE_EXIT(_e)
@@ -39,6 +44,11 @@ compute(TiledMatrix& matrix, size_t block_size){
   using BlockCache    = typename std::vector<value_t>;
   using BlockCachePtr = typename std::shared_ptr<BlockCache>;
   const size_t num_blocks = matrix.pattern().blockspec().extent(0);
+
+#ifdef USE_EXTRAE
+  unsigned nvalues = 6;
+  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
+#endif 
 
   // pre-allocate a block for pre-fetching the result of potrf()
   value_t *block_k_pre = new value_t[block_size*block_size];
@@ -91,13 +101,13 @@ compute(TiledMatrix& matrix, size_t block_size){
         block_k.fetch_async(block_k_pre);
         while (!block_k.test()) {
           EXTRAE_EXIT(EVENT_PREFETCH);
-          dash::tasks::yield(1);
+          dash::tasks::yield(-1);
           EXTRAE_ENTER(EVENT_PREFETCH);
         }
 
         EXTRAE_EXIT(EVENT_PREFETCH);
       },
-      //DART_PRIO_HIGH,
+      DART_PRIO_HIGH,
       dash::tasks::in(block_k),
       dash::tasks::out(block_k_pre)
     );
@@ -120,7 +130,7 @@ compute(TiledMatrix& matrix, size_t block_size){
             EXTRAE_EXIT(EVENT_TRSM);
 
           },
-          //DART_PRIO_HIGH,
+          DART_PRIO_HIGH,
           dash::tasks::in(block_k_pre),
           dash::tasks::out(block_b)
         );
@@ -155,7 +165,7 @@ compute(TiledMatrix& matrix, size_t block_size){
                   block_kj.fetch_async(block_kj_pre);
                   while (!block_kj.test()) {
                     EXTRAE_EXIT(EVENT_PREFETCH);
-                    dash::tasks::yield(5);
+                    dash::tasks::yield(-1);
                     EXTRAE_ENTER(EVENT_PREFETCH);
                   }
                   EXTRAE_EXIT(EVENT_PREFETCH);
@@ -183,7 +193,7 @@ compute(TiledMatrix& matrix, size_t block_size){
                   block_ki.fetch_async(block_ki_pre);
                   while (!block_ki.test()) {
                     EXTRAE_EXIT(EVENT_PREFETCH);
-                    dash::tasks::yield(5);
+                    dash::tasks::yield(-1);
                     EXTRAE_ENTER(EVENT_PREFETCH);
                   }
                   EXTRAE_EXIT(EVENT_PREFETCH);
@@ -217,7 +227,7 @@ compute(TiledMatrix& matrix, size_t block_size){
                 block_ki.fetch_async(block_ki_pre);
                 while (!block_ki.test()) {
                   EXTRAE_EXIT(EVENT_PREFETCH);
-                  dash::tasks::yield(5);
+                  dash::tasks::yield(-1);
                   EXTRAE_ENTER(EVENT_PREFETCH);
                 }
                 EXTRAE_EXIT(EVENT_PREFETCH);
