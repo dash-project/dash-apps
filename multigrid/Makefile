@@ -9,22 +9,22 @@ all: ${PROG}
 
 ${PROG}_csv: multigrid3d.cpp allreduce.h minimonitoring.h
 	$(CXX) -march=native -DWITHCSVOUTPUT -o $@.o -c $(INC) $<
-	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+	$(CXX) -march=native -o $@ $@.o $(LIB)
 
 ${PROG}: multigrid3d.cpp allreduce.h minimonitoring.h
-	$(CXX) -march=native -c $(INC) $<
-	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma -lhwloc
+	$(CXX) -march=native -c -o $@.o $(INC) $<
+	$(CXX) -march=native -o $@ $@.o $(LIB)
 
 multigrid3d_plain.cpp: multigrid3d.cpp
 	grep -v -i "minimon"   multigrid3d.cpp > multigrid3d_plain.cpp
 
 multigrid3d_plain: multigrid3d_plain.cpp
 	$(CXX) -march=native -c $(INC) $?
-	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+	$(CXX) -march=native -o $@ $@.o $(LIB)
 
 multigrid3d_elastic: multigrid3d_elastic.cpp minimonitoring.h
 	$(CXX) -march=native -c $(INC) $?
-	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+	$(CXX) -march=native -o $@ $@.o $(LIB)
 
 .phony: printenv
 printenv :
