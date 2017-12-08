@@ -21,17 +21,26 @@ struct MiniMonT {
    uint16_t step; /* 0 == start, 1 == stop, other values as you like */
    std::chrono::time_point<std::chrono::high_resolution_clock> time;
    char name[NAMELEN];
-   uint64_t param; /* one extra parameter to use as desired */
+   uint32_t par; /* number of parallel units working on this, even though the following numbers are per process */
+   uint64_t elements; /* number of grid elements */
+   uint64_t flops; /* number of floating point operations */
+   uint64_t loads; /* number of elements (double values) read */
+   uint64_t stores; /* number of elements (double values) written */
 
    static std::vector<MiniMonT>* tape;
    static std::chrono::time_point<std::chrono::high_resolution_clock> inittime;
 
-   MiniMonT( uint8_t s, const char n[10], uint64_t p= 1 ) {
+   MiniMonT( uint8_t s, const char n[10], uint32_t p, uint64_t e= 1,
+         uint64_t f= 0, uint64_t r= 0, uint64_t w= 0 ) {
 
       step= s;
       time= std::chrono::high_resolution_clock::now();
       strncpy( name, n, NAMELEN ); name[NAMELEN-1]= '\0';
-      param= p;
+      par= p;
+      elements= e;
+      flops= f;
+      loads= r;
+      stores= w;
    };
 
    static void MiniMonInit() {
@@ -41,9 +50,10 @@ struct MiniMonT {
       inittime= std::chrono::high_resolution_clock::now();
    }
 
-   static void MiniMonRecord( uint8_t s, const char n[10], uint32_t p= 1 ) {
+   static void MiniMonRecord( uint8_t s, const char n[10], uint32_t p, uint64_t e= 1,
+         uint64_t f= 0, uint64_t r= 0, uint64_t w= 0 ) {
 
-      tape->push_back( MiniMonT( s, n, p ) );
+      tape->push_back( MiniMonT( s, n, p, e, f, r, w ) );
    }
 
    static void MiniMonPrint( uint32_t id, uint32_t num );
@@ -66,8 +76,7 @@ void MiniMonT::MiniMonPrint( uint32_t id, uint32_t num ) {
    ofstream file;
    file.open( filename );
 
-   file << "# Unit;Function_name;Step;Param;Timestamp;"
-      "Duration;" << endl;
+   file << "# Unit;Function_name;Step;Par;Timestamp;Duration;Elements;Flops;Loads;Stores" << endl;
 
    /* keep a set of past MiniMonT entries, compare only by name.
    If step increases for the same name then also print the duration.
@@ -83,19 +92,21 @@ void MiniMonT::MiniMonPrint( uint32_t id, uint32_t num ) {
          if ( old->step +1 == it->step ) {
 
             /* step values match, print with duration */
-            file << id << ";" << it->name << ";" << it->step << ";" << it->param << ";" <<
+            file << id << ";" << it->name << ";" << it->step << ";" << (uint32_t) it->par << ";" <<
                std::setprecision(12) <<
                1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - inittime ).count() << ";" <<
                std::setprecision(12) <<
-               1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - old->time ).count()<< ";" << endl;
+               1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - old->time ).count()<< ";" << 
+               it->elements << ";" << it->flops << ";" << it->loads << ";" << it->stores << endl;
 
          } else {
 
             /* step values don't match, print without duration */
-            file << id << ";" << it->name << ";" << it->step << ";" << it->param << ";" <<
+            file << id << ";" << it->name << ";" << it->step << ";" << (uint32_t) it->par << ";" <<
                std::setprecision(12) <<
                1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - inittime ).count() <<
-               ";;" << endl;
+               ";;" << 
+               it->elements << ";" << it->flops << ";" << it->loads << ";" << it->stores << endl;
          }
 
          /* replace old entry with current one */
@@ -105,10 +116,11 @@ void MiniMonT::MiniMonPrint( uint32_t id, uint32_t num ) {
       } else {
 
          /* no old time value found, print none, print wiothout duration */
-         file << id << ";" << it->name << ";" << it->step << ";" << it->param << ";" <<
+         file << id << ";" << it->name << ";" << it->step << ";" << (uint32_t) it->par << ";" <<
             std::setprecision(12) <<
             1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - inittime ).count() <<
-            ";;" << endl;
+            ";;" << 
+            it->elements << ";" << it->flops << ";" << it->loads << ";" << it->stores << endl;
 
          oldtimes.insert( *it );
       }
