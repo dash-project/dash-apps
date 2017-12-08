@@ -14,13 +14,13 @@
 using namespace std;
 using time_point_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-const size_t NAMELEN= 12;
+const size_t NAMELEN= 30;
 
 struct MiniMonT {
 
    uint16_t step; /* 0 == start, 1 == stop, other values as you like */
    std::chrono::time_point<std::chrono::high_resolution_clock> time;
-   char name[NAMELEN];
+   const char* name;
    uint32_t par; /* number of parallel units working on this, even though the following numbers are per process */
    uint64_t elements; /* number of grid elements */
    uint64_t flops; /* number of floating point operations */
@@ -30,12 +30,12 @@ struct MiniMonT {
    static std::vector<MiniMonT>* tape;
    static std::chrono::time_point<std::chrono::high_resolution_clock> inittime;
 
-   MiniMonT( uint8_t s, const char n[10], uint32_t p, uint64_t e= 1,
+   MiniMonT( uint8_t s, const char* n, uint32_t p, uint64_t e= 1,
          uint64_t f= 0, uint64_t r= 0, uint64_t w= 0 ) {
 
       step= s;
       time= std::chrono::high_resolution_clock::now();
-      strncpy( name, n, NAMELEN ); name[NAMELEN-1]= '\0';
+      name= n;
       par= p;
       elements= e;
       flops= f;
@@ -50,7 +50,7 @@ struct MiniMonT {
       inittime= std::chrono::high_resolution_clock::now();
    }
 
-   static void MiniMonRecord( uint8_t s, const char n[10], uint32_t p, uint64_t e= 1,
+   static void MiniMonRecord( uint8_t s, const char* n, uint32_t p, uint64_t e= 1,
          uint64_t f= 0, uint64_t r= 0, uint64_t w= 0 ) {
 
       tape->push_back( MiniMonT( s, n, p, e, f, r, w ) );
