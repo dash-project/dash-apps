@@ -664,9 +664,7 @@ void transfertomore( Level& source /* with smaller team*/, Level& dest /* with l
 This specialization does not compute the residual to have a much simple code. Should be kept in sync 
 with the following version of smoothen() */
 void smoothen( Level& level ) {
-#ifdef SCOREP
-    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+    SCOREP_USER_FUNC()
 
     auto& src_grid    = level.src_halo->matrix();
     auto& target_grid = level.target_halo->matrix();
@@ -774,9 +772,7 @@ The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
 double smoothen( Level& level, Allreduce& res ) {
-#ifdef SCOREP
-    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+    SCOREP_USER_FUNC()
 
     auto& src_grid    = level.src_halo->matrix();
     auto& target_grid = level.target_halo->matrix();
@@ -904,9 +900,7 @@ double smoothen( Level& level, Allreduce& res ) {
 template<typename Iterator>
 void v_cycle( Iterator it, Iterator itend,
         uint32_t numiter, double epsilon, Allreduce& res ) {
-#ifdef SCOREP
-    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+    SCOREP_USER_FUNC()
 
     if ( 0 == dash::myid() ) {
         const auto& extents = (*it)->src_halo->matrix().extents();
@@ -1042,9 +1036,7 @@ void v_cycle( Iterator it, Iterator itend,
 
 
 void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
-#ifdef SCOREP
-    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+    SCOREP_USER_FUNC()
 
     uint64_t par= level.src_halo->matrix().team().size() ;
     MiniMonT::MiniMonRecord( 0, "smoothfinal", par );
@@ -1065,9 +1057,7 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
 
 
 void do_multigrid_iteration( uint32_t howmanylevels ) {
-#ifdef SCOREP
-    SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+    SCOREP_USER_FUNC()
 
     MiniMonT::MiniMonRecord( 0, "setup", dash::Team::All().size() );
 

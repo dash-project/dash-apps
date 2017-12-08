@@ -15,6 +15,10 @@ ${PROG}: multigrid3d.cpp allreduce.h minimonitoring.h
 	$(CXX) -march=native -c -o $@.o $(INC) $<
 	$(CXX) -march=native -o $@ $@.o $(LIB)
 
+${PROG}_scorep: multigrid3d.cpp allreduce.h minimonitoring.h
+	$(SCOREP) $(CXX) -march=native -o $@.o -c $(INC) $<
+	$(SCOREP) $(CXX) -march=native -o $@ $@.o $(LIB)
+
 multigrid3d_plain.cpp: multigrid3d.cpp
 	grep -v -i "minimon"   multigrid3d.cpp > multigrid3d_plain.cpp
 

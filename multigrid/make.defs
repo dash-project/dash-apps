@@ -3,6 +3,7 @@
 DASH_ROOT ?= /home/knue/local/dash-0.3.0
 DART_IMPL ?= mpi
 LIBS ?= -lnuma -lhwloc
+SCOREP_FLAGS ?= --user --nocompiler
 
 INC=-I$(DASH_ROOT)/include
 LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lrt $(LIBS)
@@ -11,3 +12,5 @@ LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lrt 
 CXXFLAGS= -O3 -march=native -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 
 CXX       = mpicxx -std=c++14 $(CXXFLAGS)
+
+SCOREP=scorep $(SCOREP_FLAGS)

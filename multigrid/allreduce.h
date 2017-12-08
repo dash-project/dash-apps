@@ -3,8 +3,12 @@
 
 #include <libdash.h>
 
-#ifdef SCOREP
+#ifdef SCOREP_USER_ENABLE
 #include <scorep/SCOREP_User.h>
+#define SCOREP_USER_FUNC() SCOREP_USER_REGION(__PRETTY_FUNCTION__, \
+                                                SCOREP_USER_REGION_TYPE_FUNCTION)
+#else
+#define SCOREP_USER_FUNC()
 #endif
 
 /* The class is used for the async lazy residual computation.
@@ -34,9 +38,7 @@ public:
 
     /* can be used with a subteam of the team used in the constructor */
     void reset( dash::Team& team ) {
-#ifdef SCOREP
-      SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+        SCOREP_USER_FUNC()
         /* really only unit 0 in the given team is doing something.
         std::fill is the really the correct algorithm */
         std::fill( centralized.lbegin(), centralized.lend(), std::numeric_limits<double>::max() );
@@ -47,9 +49,7 @@ public:
     /* can be used with a subteam of the team used in the constructor,
     does a barrier in the given team */
     void collect( dash::Team& team ) {
-#ifdef SCOREP
-      SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+        SCOREP_USER_FUNC()
         centralized.flush();
         team.barrier();
 
@@ -66,9 +66,7 @@ public:
     /* broadcast the value from unit 0 to all units in the given team
     which might be a subteam of the team from constuction time */
     void asyncbroadcast( dash::Team& team ) {
-#ifdef SCOREP
-      SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+        SCOREP_USER_FUNC()
 
         /* all but unit 0 fetch the value because unit 0 cannot know
         everybody else's local element in 'distributed' */
@@ -79,9 +77,7 @@ public:
     }
 
     void waitbroadcast( dash::Team& team ) {
-#ifdef SCOREP
-      SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+        SCOREP_USER_FUNC()
 
         distributed.async.flush();
         team.barrier();
@@ -90,9 +86,7 @@ public:
     /* send local residual to the correct place in unit 0's array,
     need to be followed by collect() eventually */
     void asyncset( double* res, dash::Team& team ) {
-#ifdef SCOREP
-      SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+        SCOREP_USER_FUNC()
       //std::cout << "TEST - " << team.myid() << " -> " << res << std::endl;
       if(team.myid() != 0)
         centralized.async[team.myid()].set(res);
@@ -101,9 +95,7 @@ public:
     }
 
     double get() const {
-#ifdef SCOREP
-      SCOREP_USER_REGION(__FUNCTION__, SCOREP_USER_REGION_TYPE_FUNCTION);
-#endif
+        SCOREP_USER_FUNC()
         return distributed.local[0];
     }
 };
