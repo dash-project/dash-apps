@@ -13,7 +13,7 @@ ${PROG}_csv: multigrid3d.cpp allreduce.h minimonitoring.h
 
 ${PROG}: multigrid3d.cpp allreduce.h minimonitoring.h
 	$(CXX) -march=native -c $(INC) $<
-	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma
+	$(CXX) -march=native -o $@ $@.o $(LIB) -lrt -lnuma -lhwloc
 
 multigrid3d_plain.cpp: multigrid3d.cpp
 	grep -v -i "minimon"   multigrid3d.cpp > multigrid3d_plain.cpp
