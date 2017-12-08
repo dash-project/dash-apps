@@ -13,4 +13,4 @@ LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base
 #CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 CXXFLAGS= -O3 -march=native -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 
-CXX       = mpicxx -std=c++11 $(CXXFLAGS)
+CXX       = mpicxx -std=c++14 $(CXXFLAGS)
