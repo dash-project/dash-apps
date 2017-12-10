@@ -37,6 +37,7 @@ plot \
     'trace.csv' using 7:( strcol(2) eq "smooth_outer" ? $6 : 1/0 ) with points ps 1 t "smooth oute", \
     'trace.csv' using 7:( strcol(2) eq "smooth_wait" ? $6 : 1/0 ) with points ps 1 t "smooth wait", \
     'trace.csv' using 7:( strcol(2) eq "smoothen" ? $6 : 1/0 ) with points ps 1 t "smoothen", \
+    'trace.csv' using 7:( strcol(2) eq "smoothen res" ? $6 : 1/0 ) with points ps 1 t "smoothen res", \
     'trace.csv' using 7:( strcol(2) eq "smoothfinal" ? $6 : 1/0 ) with points ps 1 t "smooth final"
 
 set output "trace_sep.png"
@@ -45,6 +46,7 @@ plot \
     'trace.csv' using 7:( strcol(2) eq "smooth_outer" ? $6 : 1/0 ) with points ps 1 t "smooth oute", \
     'trace.csv' using 7:( strcol(2) eq "smooth_wait" ? $6 : 1/0 ) with points ps 1 t "smooth wait", \
     'trace.csv' using 7:( strcol(2) eq "smoothen" ? $6 : 1/0 ) with points ps 1 t "smoothen", \
+    'trace.csv' using 7:( strcol(2) eq "smoothen res" ? $6 : 1/0 ) with points ps 1 t "smoothen res"
 
 set ylabel "Flop/s"
 
@@ -53,3 +55,4 @@ plot \
     'trace.csv' using 7:( strcol(2) eq "smooth_inner" ? $8/$6 : 1/0 ) with points ps 1 t "smooth inne", \
     'trace.csv' using 7:( strcol(2) eq "smooth_outer" ? $8/$6 : 1/0 ) with points ps 1 t "smooth oute", \
     'trace.csv' using 7:( strcol(2) eq "smoothen" ? $8/$6 : 1/0 ) with points ps 1 t "smoothen", \
+    'trace.csv' using 7:( strcol(2) eq "smoothen res" ? $8/$6 : 1/0 ) with points ps 1 t "smoothen res"
