@@ -18,7 +18,7 @@ compute(TiledMatrix& matrix, size_t block_size){
   using Block         = MatrixBlock<TiledMatrix>;
   using BlockCache    = typename std::vector<value_t>;
   using BlockCachePtr = typename std::shared_ptr<BlockCache>;
-  const size_t num_blocks = matrix.pattern().blockspec().extent(0);
+  const size_t num_blocks = matrix.pattern().extent(0) / block_size;
 
 #ifdef USE_EXTRAE
   unsigned nvalues = 6;

@@ -17,7 +17,9 @@ compute(TiledMatrix& matrix, size_t block_size){
   using Block         = MatrixBlock<TiledMatrix>;
   using BlockCache    = typename std::vector<value_t>;
   using BlockCachePtr = typename std::shared_ptr<BlockCache>;
-  const size_t num_blocks = matrix.pattern().blockspec().extent(0);
+  const size_t num_blocks = matrix.pattern().extent(0) / block_size;
+
+  std::cout << "local_size: " << matrix.local_size() << std::endl;
 
 #ifdef USE_EXTRAE
   unsigned nvalues = 6;
@@ -118,11 +120,11 @@ compute(TiledMatrix& matrix, size_t block_size){
      */
     for (size_t i = k+1; i < num_blocks; ++i) {
 
-      Block block_ki(matrix, k, i);
-      Block block_ii(matrix, i, i);
+      Block block_ki(matrix, k, i); // result of trsm() above
+      Block block_ii(matrix, i, i); // diagonal blocks
 
       for (size_t j = k+1; j < i; ++j) {
-        Block block_c(matrix, j, i);
+        Block block_c(matrix, j, i); // lower triangular blocks below current row
         if (block_c.is_local()) {
           if (prefetch_blocks.find(j) == prefetch_blocks.end()) {
             // prefetch block_kj

@@ -27,7 +27,8 @@
 #endif
 
 using value_t = double;
-using PatternT = typename dash::ShiftTilePattern<2>;
+//using PatternT = typename dash::ShiftTilePattern<2>;
+using PatternT = typename dash::BlockPattern<2>;
 //using PatternT = typename dash::TilePattern<2>;
 using TiledMatrix = dash::Matrix<value_t, 2, dash::default_index_t, PatternT>;
 using Block = MatrixBlock<TiledMatrix>;
@@ -66,8 +67,12 @@ int main(int argc, char **argv)
   if (dash::myid() == 0) {
     std::cout << "Allocating matrix: ";
   }
+  /*
   TiledMatrix matrix(num_elem, num_elem,
                      dash::TILE(block_size), dash::TILE(block_size));
+  */
+  TiledMatrix matrix(num_elem, num_elem,
+                     dash::NONE, dash::BLOCKCYCLIC(block_size), dash::TeamSpec<2>(1, dash::size()));
   if (dash::myid() == 0) {
     std::cout << "Done." << std::endl;
   }

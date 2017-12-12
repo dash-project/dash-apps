@@ -15,22 +15,24 @@ public:
     size_t block_col_idx)
   : _matrix(&matrix) {
     auto& pattern       = matrix.pattern();
-    auto  glob_index    = block_row_idx*pattern.blocksize(0)*pattern.extent(1) + block_col_idx*pattern.blocksize(1);
+    // figure out the block-size (one dimension might be 'NONE')
+    auto blocksize = std::min(pattern.blocksize(0), pattern.blocksize(1));
+    auto  glob_index    = block_row_idx*blocksize*pattern.extent(1) + block_col_idx*blocksize;
     this->_glob_idx     = glob_index;
     this->_is_local = pattern.is_local(glob_index);
     if (_is_local) {
       _local_ptr = matrix.lbegin() +
                     pattern.local_index(
                       {static_cast<typename MatrixT::index_type>(
-                        block_row_idx*pattern.blocksize(0)),
+                        block_row_idx*blocksize),
                        static_cast<typename MatrixT::index_type>(
-                         block_col_idx*pattern.blocksize(1))}
+                         block_col_idx*blocksize)}
                     ).index;
     }
-    this->_size = pattern.blocksize(0) * pattern.blocksize(1);
+    this->_size = blocksize*blocksize;
 #ifdef DEBUG
     std::cout << "BlockCache: " << block_row_idx << "x" << block_col_idx << " "
-              << pattern.blocksize(0) << "x" << pattern.blocksize(1)
+              << blocksize << "x" << blocksize
               << " (size=" << _size << ", is_local=" << _is_local
               << ", glob_idx=" << glob_index
               << std::endl;
