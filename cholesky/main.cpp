@@ -28,7 +28,7 @@
 
 using value_t = double;
 //using PatternT = typename dash::ShiftTilePattern<2>;
-using PatternT = typename dash::BlockPattern<2>;
+using PatternT = typename dash::TilePattern<2>;
 //using PatternT = typename dash::TilePattern<2>;
 using TiledMatrix = dash::Matrix<value_t, 2, dash::default_index_t, PatternT>;
 using Block = MatrixBlock<TiledMatrix>;
