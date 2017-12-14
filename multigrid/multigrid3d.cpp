@@ -834,15 +834,16 @@ cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin()
 template<
     unsigned int NTHREADS
 >
-static inline void update_inner(
-    size_t ld, size_t lh, size_t lw,
-    const double rz, const double ry, const double rx, const double c,
-    const double* src, double* dst)
+struct UpdateInner
 {
-    auto layer_size = lw * lh;
-    auto rs= rz + ry + rx;
+    void operator()(
+        const size_t z, size_t lh, size_t lw,
+        const double rz, const double ry, const double rx, const double c,
+        const double* src, double* dst) const
+    {
+        auto layer_size = lw * lh;
+        auto rs= rz + ry + rx;
 
-    for ( size_t z= 0; z < ld-2; z++ ) {
         for ( size_t y= 0; y < lh-2; y++ ) {
             auto core_offset = (z + 1) * layer_size + lw + 1
                                + y * lw;
@@ -872,6 +873,19 @@ static inline void update_inner(
             }
         }
     }
+};
+
+template<
+    unsigned int NTHREADS
+>
+static inline void update_inner(
+    size_t ld, size_t lh, size_t lw,
+    const double rz, const double ry, const double rx, const double c,
+    const double* src, double* dst)
+{
+    UpdateInner<NTHREADS> kernel;
+    for ( size_t z= 0; z < ld-2; z++ )
+        kernel(z, lh, lw, rz, ry, rx, c, src, dst);
 }
 
 /* Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
