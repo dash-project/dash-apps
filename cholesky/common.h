@@ -1,8 +1,7 @@
 #ifndef CHOLESKY_COMMON_H
 #define CHOLESKY_COMMON_H
 
-#include <cblas.h>
-#include <lapacke.h>
+#include <mkl.h>
 #include "MatrixBlock.h"
 
 typedef dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
