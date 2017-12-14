@@ -831,6 +831,45 @@ cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin()
     //std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
 }
 
+static inline void update_inner(
+    size_t ld, size_t lh, size_t lw,
+    const double rz, const double ry, const double rx, const double c,
+    const double* src, double* dst)
+{
+    auto next_layer_off = lw * lh;
+    auto core_offset = lw * (lh + 1) + 1;
+    auto rs= rz+ry+rx;
+
+    for ( size_t z= 1; z < ld-1; z++ ) {
+        for ( size_t y= 1; y < lh-1; y++ ) {
+
+            /* this should eventually be done with Alpaka or Kokkos to look
+            much nicer but still be fast */
+
+            const auto* p_core = src + core_offset;
+            auto* p_new        = dst + core_offset;
+
+            for ( size_t x= 1; x < lw-1; x++ ) {
+
+                /* 
+                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+                */
+
+                double dtheta=
+                    rx * p_core[-1] +              rx * p_core[1] +              /* x */
+                    ry * p_core[-lw] +             ry * p_core[lw] +             /* y */
+                    rz * p_core[-next_layer_off] + rz * p_core[next_layer_off] - /* z */
+                    *p_core * 2 * rs;
+                *p_new= *p_core + c * dtheta;
+                p_core++;
+                p_new++;
+            }
+            core_offset += lw;
+        }
+        core_offset += 2 * lw;
+    }
+}
 
 /* Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
 
@@ -870,36 +909,7 @@ void smoothen( Level& level ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
-    auto next_layer_off = lw * lh;
-    auto core_offset = lw * (lh + 1) + 1;
-    for ( size_t z= 1; z < ld-1; z++ ) {
-        for ( size_t y= 1; y < lh-1; y++ ) {
-
-            /* this should eventually be done with Alpaka or Kokkos to look
-            much nicer but still be fast */
-
-            const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
-            double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
-            for ( size_t x= 1; x < lw-1; x++ ) {
-
-                /* 
-                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
-                */
-
-                double dtheta=
-                    rx * p_core[-1] +              rx * p_core[1] +              /* x */
-                    ry * p_core[-lw] +             ry * p_core[lw] +             /* y */
-                    rz * p_core[-next_layer_off] + rz * p_core[next_layer_off] - /* z */
-                    *p_core * 2 * rs;
-                *p_new= *p_core + c * dtheta;
-                p_core++;
-                p_new++;
-            }
-            core_offset += lw;
-        }
-        core_offset += 2 * lw;
-    }
+    update_inner(ld, lh, lw, rz, ry, rx, c, level.src_grid->lbegin(), level.dst_grid->lbegin());
 
     minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
