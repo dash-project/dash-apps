@@ -870,7 +870,6 @@ void smoothen( Level& level ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
-
     auto next_layer_off = lw * lh;
     auto core_offset = lw * (lh + 1) + 1;
     for ( size_t z= 1; z < ld-1; z++ ) {
@@ -880,14 +879,7 @@ void smoothen( Level& level ) {
             much nicer but still be fast */
 
             const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
-            const auto* __restrict p_east = p_core + 1;
-            const auto* __restrict p_west = p_core - 1;
-            const auto* __restrict p_north= p_core + lw;
-            const auto* __restrict p_south= p_core - lw;
-            const auto* __restrict p_up=    p_core + next_layer_off;
-            const auto* __restrict p_down=  p_core - next_layer_off;
             double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
-
             for ( size_t x= 1; x < lw-1; x++ ) {
 
                 /* 
@@ -896,18 +888,12 @@ void smoothen( Level& level ) {
                 */
 
                 double dtheta=
-                    *p_east * rx + *p_west * rx + 
-                    *p_north * ry + *p_south * ry + 
-                    *p_up * rz + *p_down * rz -
+                    rx * p_core[-1] +              rx * p_core[1] +              /* x */
+                    ry * p_core[-lw] +             ry * p_core[lw] +             /* y */
+                    rz * p_core[-next_layer_off] + rz * p_core[next_layer_off] - /* z */
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
                 p_core++;
-                p_east++;
-                p_west++;
-                p_north++;
-                p_south++;
-                p_up++;
-                p_down++;
                 p_new++;
             }
             core_offset += lw;
@@ -960,7 +946,7 @@ Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
-double smoothen( Level& level, Allreduce& res ) {
+void smoothen( Level& level, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
     uint32_t par= level.src_grid->team().size();
@@ -1005,13 +991,6 @@ double smoothen( Level& level, Allreduce& res ) {
             much nicer but still be fast */
 
             const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
-            const auto* __restrict p_east = p_core + 1;
-            const auto* __restrict p_west = p_core - 1;
-            const auto* __restrict p_north= p_core + lw;
-            const auto* __restrict p_south= p_core - lw;
-            const auto* __restrict p_up=    p_core + next_layer_off;
-            const auto* __restrict p_down=  p_core - next_layer_off;
-
             double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
 
             for ( size_t x= 1; x < lw-1; x++ ) {
@@ -1022,21 +1001,15 @@ double smoothen( Level& level, Allreduce& res ) {
                 */
 
                 double dtheta=
-                    *p_east * rx + *p_west * rx + 
-                    *p_north * ry + *p_south * ry + 
-                    *p_up * rz + *p_down * rz -
+                    rx * p_core[-1] +              rx * p_core[1] +              /* x */
+                    ry * p_core[-lw] +             ry * p_core[lw] +             /* y */
+                    rz * p_core[-next_layer_off] + rz * p_core[next_layer_off] - /* z */
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
 
                 localres= std::max( localres, std::fabs( dtheta ) );
 
                 p_core++;
-                p_east++;
-                p_west++;
-                p_north++;
-                p_south++;
-                p_up++;
-                p_down++;
                 p_new++;
             }
             core_offset += lw;
@@ -1102,8 +1075,6 @@ double smoothen( Level& level, Allreduce& res ) {
 
     minimon.stop( "smooth_res", par, /* elements */ ld*lh*lw,
         /* flops */ 16*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
-
-    return oldres;
 }
 
 
