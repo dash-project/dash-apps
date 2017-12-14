@@ -142,8 +142,6 @@ compute(TiledMatrix& matrix, size_t block_size){
     dart_flush_all(matrix.begin().dart_gptr());
     EXTRAE_EXIT(EVENT_PREFETCH);
 
-    dash::barrier();
-
     // walk to the right
     for (size_t i = k+1; i < num_blocks; ++i) {
       // run down to the diagonal
