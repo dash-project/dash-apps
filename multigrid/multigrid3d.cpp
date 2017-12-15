@@ -836,12 +836,13 @@ static inline void update_inner(
     const double rz, const double ry, const double rx, const double c,
     const double* src, double* dst)
 {
-    auto next_layer_off = lw * lh;
-    auto core_offset = lw * (lh + 1) + 1;
-    auto rs= rz+ry+rx;
+    auto layer_size = lw * lh;
+    auto rs= rz + ry + rx;
 
-    for ( size_t z= 1; z < ld-1; z++ ) {
-        for ( size_t y= 1; y < lh-1; y++ ) {
+    for ( size_t z= 0; z < ld-2; z++ ) {
+        for ( size_t y= 0; y < lh-2; y++ ) {
+            auto core_offset = (z + 1) * layer_size + lw + 1
+                               + y * lw;
 
             /* this should eventually be done with Alpaka or Kokkos to look
             much nicer but still be fast */
@@ -849,7 +850,7 @@ static inline void update_inner(
             const auto* p_core = src + core_offset;
             auto* p_new        = dst + core_offset;
 
-            for ( size_t x= 1; x < lw-1; x++ ) {
+            for ( size_t x= 0; x < lw-2; x++ ) {
 
                 /* 
                 stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
@@ -857,17 +858,13 @@ static inline void update_inner(
                 */
 
                 double dtheta=
-                    rx * p_core[-1] +              rx * p_core[1] +              /* x */
-                    ry * p_core[-lw] +             ry * p_core[lw] +             /* y */
-                    rz * p_core[-next_layer_off] + rz * p_core[next_layer_off] - /* z */
-                    *p_core * 2 * rs;
-                *p_new= *p_core + c * dtheta;
-                p_core++;
-                p_new++;
+                    rx * src[core_offset+x-1] +          rx * src[core_offset+x+1] +           /* x */
+                    ry * src[core_offset+x-lw] +         ry * src[core_offset+x+lw] +          /* y */
+                    rz * src[core_offset+x-layer_size] + rz * src[core_offset+x+layer_size] -  /* z */
+                    src[core_offset+x] * 2 * rs;
+                dst[core_offset+x]= src[core_offset+x] + c * dtheta;
             }
-            core_offset += lw;
         }
-        core_offset += 2 * lw;
     }
 }
 
