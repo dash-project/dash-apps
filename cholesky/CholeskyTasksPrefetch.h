@@ -6,6 +6,7 @@
 #include "MatrixBlock.h"
 #include "common.h"
 #include "ExtraeInstrumentation.h"
+#include "BlockPrefetcher.h"
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyTasksPrefetch";
 
@@ -26,14 +27,12 @@ compute(TiledMatrix& matrix, size_t block_size){
   Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
 #endif
 
+#if 0
   // pre-allocate a block for pre-fetching the result of potrf()
   value_t *block_k_pre = new value_t[block_size*block_size];
   // allocate a vector to pre-fetch the result of trsm() into
   value_t *blocks_ki_pre = new value_t[block_size*block_size*num_blocks];
-
-  std::cout << "block_k_pre: " << block_k_pre << std::endl;
-  std::cout << "blocks_ki_pre: " << blocks_ki_pre << std::endl;
-  std::cout << "matrix.lbegin: " << matrix.lbegin() << std::endl;
+#endif // 0
 
   /**
    * Algorithm taken from
@@ -45,6 +44,8 @@ compute(TiledMatrix& matrix, size_t block_size){
     std::cout << "Starting to create tasks" << std::endl;
 
   Timer t_c;
+
+  BlockPrefetcher<TiledMatrix> prefetcher(matrix, block_size, num_blocks);
 
   // iterate over column of blocks
   for (size_t k = 0; k < num_blocks; ++k) {
@@ -70,33 +71,13 @@ compute(TiledMatrix& matrix, size_t block_size){
     }
     dash::tasks::async_barrier();
 
-    // prefetch block_k after it has been computed
-    dash::tasks::async(
-      [=]() mutable {
-        EXTRAE_ENTER(EVENT_PREFETCH);
-        block_k.fetch_async(block_k_pre);
-        while (!block_k.test()) {
-          EXTRAE_EXIT(EVENT_PREFETCH);
-          dash::tasks::yield(-1);
-          EXTRAE_ENTER(EVENT_PREFETCH);
-        }
-
-        EXTRAE_EXIT(EVENT_PREFETCH);
-      },
-      DART_PRIO_HIGH,
-      dash::tasks::in(block_k),
-      dash::tasks::out(block_k_pre)
-    );
-    ++num_tasks;
-
-    std::map<size_t, value_t*> prefetch_blocks;
-
     /**
      * Solve the triangular equation system in the block
      * Only block_k needs prefetching here.
      */
     for (int i = k+1; i < num_blocks; ++i) {
       Block block_b(matrix, k, i);
+      auto block_k_pre = prefetcher.get(k, k);
       if (block_b.is_local()) {
         dash::tasks::async(
           [=]() mutable {
@@ -115,112 +96,6 @@ compute(TiledMatrix& matrix, size_t block_size){
     }
     dash::tasks::async_barrier();
 
-    /**
-     * Prefetch required blocks
-     */
-    for (size_t i = k+1; i < num_blocks; ++i) {
-
-      Block block_ki(matrix, k, i); // result of trsm() above
-      Block block_ii(matrix, i, i); // diagonal blocks
-
-      for (size_t j = k+1; j < i; ++j) {
-        Block block_c(matrix, j, i); // lower triangular blocks below current row
-        if (block_c.is_local()) {
-          if (prefetch_blocks.find(j) == prefetch_blocks.end()) {
-            // prefetch block_kj
-            Block block_kj(matrix, k, j);
-            if (block_kj.is_local()) {
-              // use local pointer
-              prefetch_blocks.insert(
-                std::make_pair(j, block_kj.lbegin()));
-            } else {
-              auto block_kj_pre = &blocks_ki_pre[j*block_size*block_size];
-              dash::tasks::async(
-                [=]() mutable {
-                  EXTRAE_ENTER(EVENT_PREFETCH);
-                  block_kj.fetch_async(block_kj_pre);
-                  while (!block_kj.test()) {
-                    EXTRAE_EXIT(EVENT_PREFETCH);
-                    dash::tasks::yield(-1);
-                    EXTRAE_ENTER(EVENT_PREFETCH);
-                  }
-                  EXTRAE_EXIT(EVENT_PREFETCH);
-                },
-                //DART_PRIO_HIGH,
-                dash::tasks::in(block_kj),
-                dash::tasks::out(block_kj_pre)
-              );
-              ++num_tasks;
-              prefetch_blocks.insert(std::make_pair(j, block_kj_pre));
-            }
-          }
-          if (prefetch_blocks.find(i) == prefetch_blocks.end()) {
-            // pre-fetch block_ki
-            if (block_ki.is_local()) {
-              // use local pointer
-              prefetch_blocks.insert(
-                std::make_pair(i, block_ki.lbegin()));
-            } else {
-              // pre-fetch
-              auto block_ki_pre = &blocks_ki_pre[i*block_size*block_size];
-              dash::tasks::async(
-                [=]() mutable {
-                  EXTRAE_ENTER(EVENT_PREFETCH);
-                  block_ki.fetch_async(block_ki_pre);
-                  while (!block_ki.test()) {
-                    EXTRAE_EXIT(EVENT_PREFETCH);
-                    dash::tasks::yield(-1);
-                    EXTRAE_ENTER(EVENT_PREFETCH);
-                  }
-                  EXTRAE_EXIT(EVENT_PREFETCH);
-                },
-                //DART_PRIO_HIGH,
-                dash::tasks::in(block_ki),
-                dash::tasks::out(block_ki_pre)
-              );
-              ++num_tasks;
-              prefetch_blocks.insert(
-                std::make_pair(i, block_ki_pre));
-            }
-          }
-        }
-      }
-
-      // pre-fetch block_ki
-      if (block_ii.is_local()) {
-        if (prefetch_blocks.find(i) == prefetch_blocks.end()) {
-          // pre-fetch block_ki
-          if (block_ki.is_local()) {
-            // use local pointer
-            prefetch_blocks.insert(
-              std::make_pair(i, block_ki.lbegin()));
-          } else {
-            // pre-fetch
-            auto block_ki_pre = &blocks_ki_pre[i*block_size*block_size];
-            dash::tasks::async(
-              [=]() mutable {
-                EXTRAE_ENTER(EVENT_PREFETCH);
-                block_ki.fetch_async(block_ki_pre);
-                while (!block_ki.test()) {
-                  EXTRAE_EXIT(EVENT_PREFETCH);
-                  dash::tasks::yield(-1);
-                  EXTRAE_ENTER(EVENT_PREFETCH);
-                }
-                EXTRAE_EXIT(EVENT_PREFETCH);
-              },
-              //DART_PRIO_HIGH,
-              dash::tasks::in(block_ki),
-              dash::tasks::out(block_ki_pre)
-            );
-            ++num_tasks;
-            prefetch_blocks.insert(
-              std::make_pair(i, block_ki_pre));
-          }
-        }
-      }
-    }
-
-
     // walk to the right
     for (size_t i = k+1; i < num_blocks; ++i) {
 
@@ -228,10 +103,8 @@ compute(TiledMatrix& matrix, size_t block_size){
       for (size_t j = k+1; j < i; ++j) {
         Block block_c(matrix, j, i);
         if (block_c.is_local()) {
-          //Block block_b(matrix, k, j);
-          assert(prefetch_blocks.find(i) != prefetch_blocks.end());
-          auto block_a_pre = prefetch_blocks[i];
-          auto block_b_pre = prefetch_blocks[j];
+          auto block_a_pre = prefetcher.get(k, i);
+          auto block_b_pre = prefetcher.get(k, j);
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t
           dash::tasks::async(
             [=]() mutable {
@@ -254,8 +127,7 @@ compute(TiledMatrix& matrix, size_t block_size){
       if (block_i.is_local()) {
         //Block block_a(matrix, k, i);
         // A[j,j] = A[j,j] - A[j,i] * (A[j,i])^t
-        assert(prefetch_blocks.find(i) != prefetch_blocks.end());
-        auto block_a_pre = prefetch_blocks[i];
+        auto block_a_pre = prefetcher.get(k, i);
         dash::tasks::async(
           [=]() mutable {
             EXTRAE_ENTER(EVENT_SYRK);
@@ -271,6 +143,9 @@ compute(TiledMatrix& matrix, size_t block_size){
       }
     }
     dash::tasks::async_barrier();
+
+    // we need to clear the prefetcher after each iteration
+    prefetcher.clear();
   }
 
   if (dash::myid() == 0)
@@ -282,9 +157,6 @@ compute(TiledMatrix& matrix, size_t block_size){
     std::cout << "Done executing " << num_tasks << " tasks after "
               << t_c.Elapsed() / 1E3 << "ms"
               << std::endl;
-
-  delete[] block_k_pre;
-  delete[] blocks_ki_pre;
 
 }
 
