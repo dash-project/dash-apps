@@ -27,3 +27,19 @@ ALPAKA_ADD_EXECUTABLE(
 TARGET_LINK_LIBRARIES(
     multigrid3d
     PUBLIC "${DASH_LIBRARIES};alpaka")
+
+ALPAKA_ADD_EXECUTABLE(
+    multigrid3d-omp
+    "multigrid3d-omp.cpp")
+TARGET_LINK_LIBRARIES(
+    multigrid3d-omp
+    PUBLIC "${DASH_LIBRARIES};alpaka")
+
+IF(ALPAKA_ACC_GPU_CUDA_ENABLE)
+    ALPAKA_ADD_EXECUTABLE(
+        multigrid3d-gpu
+        "multigrid3d-gpu.cpp")
+    TARGET_LINK_LIBRARIES(
+        multigrid3d-gpu
+        PUBLIC "${DASH_LIBRARIES};alpaka")
+ENDIF()

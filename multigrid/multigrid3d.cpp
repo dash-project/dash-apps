@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <utility>
 
+#include <alpaka/alpaka.hpp>
+
 #include "allreduce.h"
 #include "minimonitoring.h"
 
@@ -148,6 +150,187 @@ private:
     HaloMatrixWrapperT _halo_grid_1;
     HaloMatrixWrapperT _halo_grid_2;
 
+};
+
+#if !defined(GPU_NTHREADS)
+# if defined(USE_GPU)
+#  define GPU_NTHREADS 32
+# else
+#  define GPU_NTHREADS 1
+# endif
+#endif
+struct AlpakaState
+{
+    using Dim = alpaka::dim::DimInt<1>;
+    using WorkDiv = alpaka::workdiv::WorkDivMembers<Dim, size_t>;
+
+    using Host = alpaka::acc::AccCpuSerial<Dim, size_t>;
+    using StreamHost = alpaka::stream::StreamCpuSync;
+    using DevHost = alpaka::dev::Dev<Host>;
+    using PltfHost = alpaka::pltf::Pltf<DevHost>;
+
+#if defined(USE_GPU)
+    using Acc = alpaka::acc::AccGpuCudaRt<Dim, size_t>;
+    using StreamAcc = alpaka::stream::StreamCudaRtSync;
+#else
+# if defined(USE_OMP2BLOCKS)
+    using Acc = alpaka::acc::AccCpuOmp2Blocks<Dim, size_t>;
+# elif defined(USE_OMP2THREADS)
+    using Acc = alpaka::acc::AccCpuOmp2Threads<Dim, size_t>;
+# else
+    using Acc = alpaka::acc::AccCpuSerial<Dim, size_t>;
+# endif
+    using StreamAcc = alpaka::stream::StreamCpuSync;
+#endif
+    using DevAcc = alpaka::dev::Dev<Acc>;
+    using PltfAcc = alpaka::pltf::Pltf<DevAcc>;
+
+    using HostView = alpaka::mem::view::ViewPlainPtr<DevHost, double, Dim, size_t>;
+    using DevBuf = alpaka::mem::buf::Buf<DevAcc, double, Dim, size_t>;
+
+    struct BufMirror
+    {
+        BufMirror(
+            double* ptr,
+            DevHost& devHost,
+            DevAcc& devAcc,
+            size_t size)
+        :
+            m_size(size),
+            m_hostPtr(ptr, devHost, m_size)
+#if defined(USE_GPU)
+            , m_accPtr(alpaka::mem::buf::alloc<double, size_t>(devAcc, size))
+#endif
+        {
+        }
+
+        BufMirror(BufMirror const &) = default;
+        BufMirror(BufMirror &&) = default;
+        auto operator=(BufMirror const &) -> BufMirror & = default;
+        auto operator=(BufMirror &&) -> BufMirror & = default;
+        ~BufMirror() = default;
+
+        template<
+            typename TStream
+        >
+        void put(TStream& stream)
+        {
+#if defined(USE_GPU)
+            alpaka::mem::view::copy(stream, m_accPtr, m_hostPtr, m_size);
+#endif
+        }
+
+        template<
+            typename TStream
+        >
+        void get(TStream& stream)
+        {
+#if defined(USE_GPU)
+            alpaka::mem::view::copy(stream, m_hostPtr, m_accPtr, m_size);
+#endif
+        }
+
+        double* native()
+        {
+#if defined(USE_GPU)
+           return alpaka::mem::view::getPtrNative(m_accPtr);
+#else
+           return alpaka::mem::view::getPtrNative(m_hostPtr);
+#endif
+        }
+
+        size_t   m_size;
+        HostView m_hostPtr;
+#if defined(USE_GPU)
+        DevBuf   m_accPtr;
+#endif
+    };
+
+    AlpakaState(Level& level)
+    :
+        m_level(level),
+        m_devHost(alpaka::pltf::getDevByIdx<PltfHost>(0u)),
+        m_devAcc(alpaka::pltf::getDevByIdx<PltfAcc>(0u)),
+        m_streamAcc(m_devAcc),
+        m_mirrors({
+            BufMirror(m_level.src_halo->matrix().lbegin(),
+                m_devHost,
+                m_devAcc,
+                m_level.src_halo->matrix().local.size()),
+            BufMirror(m_level.dst_halo->matrix().lbegin(),
+                m_devHost,
+                m_devAcc,
+                m_level.src_halo->matrix().local.size())}),
+        m_mirror(0)
+    {
+    }
+
+    template<
+        unsigned int NTHREADS
+    >
+    WorkDiv workDiv(size_t blocks)
+    {
+        return WorkDiv(blocks, size_t(NTHREADS), size_t(1u));
+    }
+
+    template<
+        typename TWorkDiv,
+        typename TKernelFnObj,
+        typename... TArgs>
+    void exec(
+        TWorkDiv && workDiv,
+        TKernelFnObj && kernelFnObj,
+        TArgs && ... args)
+    {
+        alpaka::stream::enqueue(m_streamAcc,
+            alpaka::exec::create<Acc>(
+                std::forward<TWorkDiv>(workDiv),
+                std::forward<TKernelFnObj>(kernelFnObj),
+                std::forward<TArgs>(args)...));
+    }
+
+    void wait()
+    {
+        alpaka::wait::wait(m_streamAcc);
+    }
+
+    void putSrc()
+    {
+        m_mirrors[m_mirror].put(m_streamAcc);
+    }
+
+    void getDst()
+    {
+        m_mirrors[!m_mirror].put(m_streamAcc);
+    }
+
+    double* nativeSrc()
+    {
+        return m_mirrors[m_mirror].native();
+    }
+
+    double* nativeDst()
+    {
+        return m_mirrors[!m_mirror].native();
+    }
+
+    Level& level()
+    {
+        return m_level;
+    }
+
+    void swap()
+    {
+        m_level.swap();
+        m_mirror = !m_mirror;
+    }
+
+    Level& m_level;
+    DevHost m_devHost;
+    DevAcc m_devAcc;
+    StreamAcc m_streamAcc;
+    std::array<BufMirror, 2> m_mirrors;
+    int m_mirror;
 };
 
 
@@ -836,11 +1019,20 @@ template<
 >
 struct UpdateInner
 {
-    void operator()(
-        const size_t z, size_t lh, size_t lw,
+    template<
+        typename TAcc
+    >
+    ALPAKA_FN_HOST void operator()(
+        TAcc const& acc,
+        size_t lh, size_t lw,
         const double rz, const double ry, const double rx, const double c,
         const double* src, double* dst) const
     {
+        auto const threadId(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
+
+        /* The block id is our z-lane index */
+        auto const z(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
+
         auto layer_size = lw * lh;
         auto rs= rz + ry + rx;
 
@@ -848,28 +1040,22 @@ struct UpdateInner
             auto core_offset = (z + 1) * layer_size + lw + 1
                                + y * lw;
 
-            /* this should eventually be done with Alpaka or Kokkos to look
-            much nicer but still be fast */
+            // let all threads of the block sync with the same line
+            syncBlockThreads(acc);
 
-            const auto* p_core = src + core_offset;
-            auto* p_new        = dst + core_offset;
+            for ( size_t x= threadId; x < lw-2; x+=NTHREADS ) {
 
-            #pragma unroll
-            for (unsigned int tidx = 0; tidx < NTHREADS; tidx++) {
-                for ( size_t x= tidx; x < lw-2; x+=NTHREADS ) {
+                /* 
+                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+                */
 
-                    /* 
-                    stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-                    dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
-                    */
-
-                    double dtheta=
-                        rx * src[core_offset+x-1] +          rx * src[core_offset+x+1] +           /* x */
-                        ry * src[core_offset+x-lw] +         ry * src[core_offset+x+lw] +          /* y */
-                        rz * src[core_offset+x-layer_size] + rz * src[core_offset+x+layer_size] -  /* z */
-                        src[core_offset+x] * 2 * rs;
-                    dst[core_offset+x]= src[core_offset+x] + c * dtheta;
-                }
+                double dtheta=
+                    rx * src[core_offset+x-1] +          rx * src[core_offset+x+1] +           /* x */
+                    ry * src[core_offset+x-lw] +         ry * src[core_offset+x+lw] +          /* y */
+                    rz * src[core_offset+x-layer_size] + rz * src[core_offset+x+layer_size] -  /* z */
+                    src[core_offset+x] * 2 * rs;
+                dst[core_offset+x]= src[core_offset+x] + c * dtheta;
             }
         }
     }
@@ -879,21 +1065,35 @@ template<
     unsigned int NTHREADS
 >
 static inline void update_inner(
+    AlpakaState& alpakaState,
     size_t ld, size_t lh, size_t lw,
-    const double rz, const double ry, const double rx, const double c,
-    const double* src, double* dst)
+    const double rz, const double ry, const double rx, const double c)
 {
+    auto const workDiv(alpakaState.workDiv<NTHREADS>(ld-2));
+
+    alpakaState.putSrc();
+
     UpdateInner<NTHREADS> kernel;
-    for ( size_t z= 0; z < ld-2; z++ )
-        kernel(z, lh, lw, rz, ry, rx, c, src, dst);
+    alpakaState.exec(
+        workDiv, kernel,
+        lh, lw, rz, ry, rx, c,
+        alpakaState.nativeSrc(),
+        alpakaState.nativeDst());
+
+    //maby not neccesarry
+    alpakaState.wait();
+
+    alpakaState.getDst();
 }
 
 /* Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
 
 This specialization does not compute the residual to have a much simple code. Should be kept in sync
 with the following version of smoothen() */
-void smoothen( Level& level ) {
+void smoothen( AlpakaState& alpakaState ) {
     SCOREP_USER_FUNC()
+
+    Level& level(alpakaState.level());
 
     uint32_t par= level.src_grid->team().size();
 
@@ -926,7 +1126,7 @@ void smoothen( Level& level ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
-    update_inner<1>(ld, lh, lw, rz, ry, rx, c, level.src_grid->lbegin(), level.dst_grid->lbegin());
+    update_inner<GPU_NTHREADS>(alpakaState, ld, lh, lw, rz, ry, rx, c);
 
     minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
@@ -959,7 +1159,7 @@ void smoothen( Level& level ) {
     minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 16*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
-    level.swap();
+    alpakaState.swap();
 
     minimon.stop( "smooth", par, /* elements */ ld*lh*lw,
         /* flops */ 16*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
@@ -1203,8 +1403,9 @@ void v_cycle( Iterator it, Iterator itend,
 
 
     /* on the way down smoothen somewhat with fixed number of iterations */
+    AlpakaState alpakaState(**it);
     for ( uint32_t j= 0; j < numiter; j++ ) {
-        smoothen( **it );
+        smoothen( alpakaState );
     }
 
     writeToCsv( **it );
@@ -1257,8 +1458,11 @@ void v_cycle( Iterator it, Iterator itend,
     }
 
     /* ... before that was a fixed number of iterations just like on the way down.
-    for ( uint32_t j= 0; j < numiter; j++ ) {
-        smoothen( **it );
+    {
+        AlpakaState alpakaState(**it);
+        for ( uint32_t j= 0; j < numiter; j++ ) {
+            smoothen( alpakaState );
+        }
     }
     */
 
@@ -1777,10 +1981,11 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     // smoothflatfixed
     minimon.start();
 
+    AlpakaState alpakaState(*level);
     uint32_t j= 0;
     while ( j < 50 ) {
 
-        smoothen( *level );
+        smoothen( alpakaState );
 
         if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
             cout << j << ": smoothen grid without residual " << endl;
