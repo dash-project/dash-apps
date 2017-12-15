@@ -831,6 +831,9 @@ cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin()
     //std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
 }
 
+template<
+    unsigned int NTHREADS
+>
 static inline void update_inner(
     size_t ld, size_t lh, size_t lw,
     const double rz, const double ry, const double rx, const double c,
@@ -850,19 +853,22 @@ static inline void update_inner(
             const auto* p_core = src + core_offset;
             auto* p_new        = dst + core_offset;
 
-            for ( size_t x= 0; x < lw-2; x++ ) {
+            #pragma unroll
+            for (unsigned int tidx = 0; tidx < NTHREADS; tidx++) {
+                for ( size_t x= tidx; x < lw-2; x+=NTHREADS ) {
 
-                /* 
-                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
-                */
+                    /* 
+                    stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+                    dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+                    */
 
-                double dtheta=
-                    rx * src[core_offset+x-1] +          rx * src[core_offset+x+1] +           /* x */
-                    ry * src[core_offset+x-lw] +         ry * src[core_offset+x+lw] +          /* y */
-                    rz * src[core_offset+x-layer_size] + rz * src[core_offset+x+layer_size] -  /* z */
-                    src[core_offset+x] * 2 * rs;
-                dst[core_offset+x]= src[core_offset+x] + c * dtheta;
+                    double dtheta=
+                        rx * src[core_offset+x-1] +          rx * src[core_offset+x+1] +           /* x */
+                        ry * src[core_offset+x-lw] +         ry * src[core_offset+x+lw] +          /* y */
+                        rz * src[core_offset+x-layer_size] + rz * src[core_offset+x+layer_size] -  /* z */
+                        src[core_offset+x] * 2 * rs;
+                    dst[core_offset+x]= src[core_offset+x] + c * dtheta;
+                }
             }
         }
     }
@@ -906,7 +912,7 @@ void smoothen( Level& level ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
-    update_inner(ld, lh, lw, rz, ry, rx, c, level.src_grid->lbegin(), level.dst_grid->lbegin());
+    update_inner<1>(ld, lh, lw, rz, ry, rx, c, level.src_grid->lbegin(), level.dst_grid->lbegin());
 
     minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
