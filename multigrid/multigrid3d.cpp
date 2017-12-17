@@ -14,7 +14,10 @@
 
 #ifdef WITHCSVOUTPUT
 
-uint32_t filenumber= 0;
+/* make it a shared value to keep it in sync over all units 
+even in elastic mode when some units take part in some iterations 
+and some do not. Having everyone ++ it individually won't work anymore. */
+dash::Shared<uint32_t>* filenumber;
 
 #endif /* WITHCSVOUTPUT */
 
@@ -70,6 +73,8 @@ private:
     before both are swapped in swap() */
 
 public:
+    MatrixT* src_grid;
+    MatrixT* target_grid;
     HaloMatrixWrapperT* src_halo;
     HaloMatrixWrapperT* target_halo;
 
@@ -83,7 +88,14 @@ public:
             team, teamspec ),
         _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
         _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
+        src_grid(&_grid_1), target_grid(&_grid_2),
         src_halo(&_halo_grid_1), target_halo(&_halo_grid_2) {
+
+        cout << "    new Level " << d << "x" << h << "x" << w << 
+            " with team of " << team.size() << 
+            " global size " << _grid_1.extent(0) << "x" << _grid_1.extent(1) << "x" << _grid_1.extent(2) << 
+            " local size " << _grid_1.local.extent(0) << "x" << _grid_1.local.extent(1) << "x" << _grid_1.local.extent(2) << 
+            endl;
     }
 
     Level() = delete;
@@ -92,6 +104,7 @@ public:
     void swap() {
 // smooth_inner
         std::swap( src_halo, target_halo );
+        std::swap( src_grid, target_grid );
     }
 
 private:
@@ -141,13 +154,16 @@ Here is still a slight shift in the output when the actual grid is larger than t
 
     std::ofstream csvfile;
     std::ostringstream num_string;
-    num_string << std::setw(5) << std::setfill('0') << filenumber++;
+    num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
     csvfile.open( "image_unit" + std::to_string(dash::myid()) +
         ".csv." + num_string.str() );
 
+    filenumber->barrier();
     if ( 0 == dash::myid() ) {
         csvfile << " z coord, y coord, x coord, heat" << "\n";
+        filenumber->set( 1 + (uint32_t) filenumber->get()  );
     }
+    filenumber->barrier();
 
     /* Write according to the fixed grid size. If the real grid is even finer
     then pick any point that matches the coordinates. If the real grid is
@@ -207,9 +223,13 @@ void writeToCsvFullGrid( const MatrixT& grid ) {
     size_t hl= grid.local.extent(1);
     size_t wl= grid.local.extent(2);
 
+    cout << "writeToCsvFullGrid " << 
+        dl << "," << hl << "," << wl << " of " << 
+        d << "," << h << "," << w << endl;
+
     std::ofstream csvfile;
     std::ostringstream num_string;
-    num_string << std::setw(5) << std::setfill('0') << filenumber++;
+    num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
     csvfile.open( "image_unit" + std::to_string(dash::myid()) +
         ".csv." + num_string.str() );
 
@@ -678,9 +698,8 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 
 void transfertofewer( Level& source /* with larger team*/, Level& dest /* with smaller team */ ) {
 
-#if 0
     /* should only be called by the smaller team */
-    assert( 0 == dest.oldgrid->team().position() );
+    assert( 0 == dest.src_grid->team().position() );
 
 cout << "unit " << dash::myid() << " transfertofewer" << endl;
 
@@ -689,17 +708,23 @@ cout << "unit " << dash::myid() << " transfertofewer" << endl;
 
     /* we can safely assume that the source blocks are copied entirely */
 
-    std::array< long int, 3 > corner= dest.oldgrid->pattern().global( {0,0,0} );
-    std::array< long unsigned int, 3 > sizes= dest.oldgrid->pattern().local_extents();
+    std::array< long int, 3 > corner= dest.src_grid->pattern().global( {0,0,0} );
+    std::array< long unsigned int, 3 > sizes= dest.src_grid->pattern().local_extents();
 
 cout << "    start coord: " <<
     corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
 cout << "    extents: " <<
         sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
-cout << "    dest local  dist " << dest.oldgrid->lend() - dest.oldgrid->lbegin() << endl;
-cout << "    dest global dist " << dest.oldgrid->end() - dest.oldgrid->begin() << endl;
-cout << "    src  local  dist " << source.oldgrid->lend() - source.oldgrid->lbegin() << endl;
-cout << "    src  global dist " << source.oldgrid->end() - source.oldgrid->begin() << endl;
+cout << "    dest local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
+cout << "    dest global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
+cout << "    src  local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
+cout << "    src  global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
+
+    /* stupid but functional version for the case with only one unit in the smaller team,
+    very slow individual accesses */
+    std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
+
+#if 0
 
     /* Can I do this any cleverer than loops over the n-1 non-contiguous
     dimensions and then a dash::copy for the 1 contiguous dimension? */
@@ -713,9 +738,9 @@ cout << "    src  global dist " << source.oldgrid->end() - source.oldgrid->begin
                 corner[0]+z << "," << corner[1]+y << "," << corner[2] + sizes[2] << " == " <<
                 ((corner[0]+z)*sizes[1]+y)*sizes[2] << " - " << ((corner[0]+z)*sizes[1]+y)*sizes[2]+sizes[2] << endl;
 
-            auto start= source.oldgrid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
+            auto start= source.src_grid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
 
-            dash::copy( start, start + sizes[2], &dest.oldgrid->local[z][y][0] );
+            dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
             //dash::copy( start, start + sizes[2], buf );
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
         }
@@ -726,6 +751,31 @@ cout << "    src  global dist " << source.oldgrid->end() - source.oldgrid->begin
 
 void transfertomore( Level& source /* with smaller team*/, Level& dest /* with larger team */ ) {
 
+    /* should only be called by the smaller team */
+    assert( 0 == source.src_grid->team().position() );
+
+cout << "unit " << dash::myid() << " transfertomore" << endl;
+
+    /* we need to find the coordinates that the local unit needs to receive
+    from several other units that are not in this team */
+
+    /* we can safely assume that the source blocks are copied entirely */
+
+    std::array< long int, 3 > corner= source.src_grid->pattern().global( {0,0,0} );
+    std::array< long unsigned int, 3 > sizes= source.src_grid->pattern().local_extents();
+
+cout << "    start coord: " <<
+    corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
+cout << "    extents: " <<
+        sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
+cout << "    dest local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
+cout << "    dest global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
+cout << "    src  local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
+cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
+
+    /* stupid but functional version for the case with only one unit in the smaller team,
+    very slow individual accesses */
+    std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
 }
 
 
@@ -1040,7 +1090,7 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* stepped on the dummy level? ... which is there to signal that it is not
     the end of the parallel recursion on the coarsest level but a subteam is
-    going on to solve the coarser levels but this unit is not in that subteam.
+    going on to solve the coarser levels and this unit is not in that subteam.
     ... sounds complicated, is complicated, change only if you know what you
     are doing. */
     if ( NULL == *itnext ) {
@@ -1049,6 +1099,7 @@ void v_cycle( Iterator it, Iterator itend,
         (*it)->src_halo->matrix().team().barrier();
 
         cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
+
         return;
     }
 
@@ -1319,6 +1370,99 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 }
 
 
+void do_multigrid_testelastic( uint32_t howmanylevels ) {
+
+    dash::Team& firstteam= dash::Team::All();
+    TeamSpecT teamspec( firstteam.size(), 1, 1 );
+    teamspec.balance_extents();
+
+    uint32_t factor_z= teamspec.num_units(0);
+    uint32_t factor_y= teamspec.num_units(1);
+    uint32_t factor_x= teamspec.num_units(2);
+
+    uint32_t factor_max= factor_z;
+    factor_max= std::max( factor_max, factor_y );
+    factor_max= std::max( factor_max, factor_x );
+    while ( factor_z < 0.75 * factor_max ) { factor_z *= 2; }
+    while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
+    while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
+
+    vector<Level*> levels;
+
+    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
+    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
+    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
+
+    if ( 0 == firstteam.myid() ) {
+        cout << "full-team level " << " is " <<
+            (1<<(howmanylevels))*factor_z << "x" <<
+            (1<<(howmanylevels))*factor_y << "x" <<
+            (1<<(howmanylevels))*factor_x <<
+            " distributed over " <<
+            teamspec.num_units(0) << "x" <<
+            teamspec.num_units(1) << "x" <<
+            teamspec.num_units(2) << " units ()" << endl;
+    }
+
+    levels.push_back( new Level(
+        (1<<(howmanylevels))*factor_z ,
+        (1<<(howmanylevels))*factor_y ,
+        (1<<(howmanylevels))*factor_x ,
+        firstteam, teamspec ) );
+
+    /* init with 42.0 */
+    dash::fill( levels.back()->src_halo->matrix().begin(), 
+        levels.back()->src_halo->matrix().end(), 42.0 );
+    writeToCsvFullGrid( *(levels[0]->src_grid) );
+
+    dash::barrier();
+
+    dash::Team& previousteam= levels.back()->src_halo->matrix().team();
+    dash::Team& currentteam= previousteam.split(4);
+    TeamSpecT localteamspec( currentteam.size(), 1, 1 );
+    localteamspec.balance_extents();
+
+    if ( 0 == currentteam.position() ) {
+
+        if ( 0 == currentteam.myid() ) {
+            cout << "reduced-team level " << " is " <<
+                (1<<(howmanylevels))*factor_z << "x" <<
+                (1<<(howmanylevels))*factor_y << "x" <<
+                (1<<(howmanylevels))*factor_x <<
+                " distributed over " <<
+                localteamspec.num_units(0) << "x" <<
+                localteamspec.num_units(1) << "x" <<
+                localteamspec.num_units(2) << " units ()" << endl;
+        }
+
+        levels.push_back(new Level( 
+            (1<<(howmanylevels))*factor_z ,
+            (1<<(howmanylevels))*factor_y ,
+            (1<<(howmanylevels))*factor_x ,
+            currentteam, localteamspec ) );
+
+        dash::fill( levels[1]->src_halo->matrix().begin(), 
+            levels[1]->src_halo->matrix().end(), 0.0 );
+
+        transfertofewer( *(levels[0]), *(levels[1]) );
+
+        writeToCsvFullGrid( *(levels[1]->src_grid) );
+
+        dash::fill( levels[1]->src_halo->matrix().begin(), 
+            levels[1]->src_halo->matrix().end(), 43.0 );
+
+        transfertomore( *(levels[1]), *(levels[0]) );
+
+    } else {
+
+        cout << "I'm passive" << endl;
+    }
+
+    dash::barrier();
+
+    writeToCsvFullGrid( *(levels[0]->src_grid) );
+}
+
 
 void do_multigrid_elastic( uint32_t howmanylevels ) {
 
@@ -1496,7 +1640,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 10, 0.0001, res );
+    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
     dash::Team::All().barrier();
 
     res.reset( dash::Team::All() );
@@ -1622,10 +1766,16 @@ int main( int argc, char* argv[] ) {
     auto id= dash::myid();
     MiniMonT::MiniMonRecord( 1, "dash::init", dash::Team::All().size() );
 
+    filenumber= new dash::Shared<uint32_t>();
+    if ( 0 == dash::myid() ) {
+        filenumber->set( 0 );
+    }
+    filenumber->barrier();
+
     bool do_flatsolver= false;
     bool do_elastic= false;
+    bool do_testelastic= false;
     uint32_t howmanylevels= 5;
-
 
     for ( int a= 1; a < argc; a++ ) {
 
@@ -1656,6 +1806,15 @@ int main( int argc, char* argv[] ) {
                 cout << "do multigrid iteration with changing number of units per grid" << endl;
             }
 
+        } else if ( 0 == strncmp( "-t", argv[a], 2  ) ||
+                0 == strncmp( "--testelastic", argv[a], 7 )) {
+
+            do_testelastic= true;
+            if ( 0 == dash::myid() ) {
+
+                cout << "test elastic mode" << endl;
+            }
+
         } else {
 
             /* otherwise interpret as number of grid levels to employ */
@@ -1678,10 +1837,17 @@ int main( int argc, char* argv[] ) {
 
         do_multigrid_elastic( howmanylevels );
 
+    } else if ( do_testelastic ) {
+
+        do_multigrid_testelastic( howmanylevels );
+
+        
     } else {
 
         do_multigrid_iteration( howmanylevels );
     }
+
+    delete filenumber;
 
     MiniMonT::MiniMonRecord( 0, "dash::finalize", dash::Team::All().size() );
     dash::finalize();
