@@ -68,15 +68,15 @@ private:
   using HaloMatrixWrapperT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
 
 
-    /* now with double-buffering. oldgrid and src_halo should only be read,
-    newgrid should only be written. target_halo is only there to keep newgrid's halo
+    /* now with double-buffering. src_grid and src_halo should only be read,
+    newgrid should only be written. dst_grid and dst_halo are only there to keep the other ones
     before both are swapped in swap() */
 
 public:
     MatrixT* src_grid;
-    MatrixT* target_grid;
+    MatrixT* dst_grid;
     HaloMatrixWrapperT* src_halo;
-    HaloMatrixWrapperT* target_halo;
+    HaloMatrixWrapperT* dst_halo;
 
 
     Level( size_t d, size_t h, size_t w, dash::Team& team, TeamSpecT teamspec )
@@ -88,8 +88,8 @@ public:
             team, teamspec ),
         _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
         _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
-        src_grid(&_grid_1), target_grid(&_grid_2),
-        src_halo(&_halo_grid_1), target_halo(&_halo_grid_2) {
+        src_grid(&_grid_1), dst_grid(&_grid_2),
+        src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
 
         cout << "    new Level " << d << "x" << h << "x" << w << 
             " with team of " << team.size() << 
@@ -103,8 +103,8 @@ public:
     /** swap grid and halos for the double buffering scheme */
     void swap() {
 // smooth_inner
-        std::swap( src_halo, target_halo );
-        std::swap( src_grid, target_grid );
+        std::swap( src_halo, dst_halo );
+        std::swap( src_grid, dst_grid );
     }
 
 private:
@@ -302,9 +302,9 @@ void initgrid( MatrixT& grid ) {
 void initboundary_3hot3cold( Level& level ) {
     using index_t = dash::default_index_t;
 
-    double gw= level.src_halo->matrix().extent(2);
-    double gh= level.src_halo->matrix().extent(1);
-    double gd= level.src_halo->matrix().extent(0);
+    double gw= level.src_grid->extent(2);
+    double gh= level.src_grid->extent(1);
+    double gd= level.src_grid->extent(0);
 
     /* with this way of setting the boundary conditions on every level separatel (in
     contrast to scaling it down step by step) one needs to make sure that the boundary
@@ -347,7 +347,7 @@ void initboundary_3hot3cold( Level& level ) {
     };
 
     level.src_halo->set_fixed_halos( lambda );
-    level.target_halo->set_fixed_halos( lambda );
+    level.dst_halo->set_fixed_halos( lambda );
 
 }
 
@@ -359,9 +359,9 @@ void initboundary( Level& level ) {
 
     using index_t = dash::default_index_t;
 
-    double gw= level.src_halo->matrix().extent(2);
-    double gh= level.src_halo->matrix().extent(1);
-    double gd= level.src_halo->matrix().extent(0);
+    double gw= level.src_grid->extent(2);
+    double gh= level.src_grid->extent(1);
+    double gd= level.src_grid->extent(0);
 
     /* This way of setting boundaries uses subsampling on the top and bottom
     planes to determine the border values. This is another logical way that
@@ -419,7 +419,7 @@ void initboundary( Level& level ) {
     };
 
     level.src_halo->set_fixed_halos( lambda );
-    level.target_halo->set_fixed_halos( lambda );
+    level.dst_halo->set_fixed_halos( lambda );
 }
 
 
@@ -570,7 +570,7 @@ void scaledownboundary( Level& fine, Level& coarse ) {
     };
 
     coarse.src_halo->set_fixed_halos( lambda );
-    coarse.target_halo->set_fixed_halos( lambda );
+    coarse.dst_halo->set_fixed_halos( lambda );
 }
 
 
@@ -786,8 +786,8 @@ with the following version of smoothen() */
 void smoothen( Level& level ) {
     SCOREP_USER_FUNC()
 
-    auto& src_grid    = level.src_halo->matrix();
-    auto& target_grid = level.target_halo->matrix();
+    auto& src_grid = level.src_halo->matrix();
+    auto& dst_grid = level.dst_halo->matrix();
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     src_grid.barrier();
@@ -835,7 +835,7 @@ void smoothen( Level& level ) {
             const auto* __restrict p_south= p_core - lw;
             const auto* __restrict p_up=    p_core + next_layer_off;
             const auto* __restrict p_down=  p_core - next_layer_off;
-            double* __restrict p_new=   target_grid.lbegin() + core_offset;
+            double* __restrict p_new= dst_grid.lbegin() + core_offset;
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
@@ -875,7 +875,7 @@ void smoothen( Level& level ) {
     MiniMonT::MiniMonRecord( 0, "smooth_outer", par );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= target_grid.lbegin();
+    auto gridlocalbegin= dst_grid.lbegin();
 
     auto bend = level.src_halo->bend();
     // update border area
@@ -909,8 +909,8 @@ if it is not NULL because then the expensive parallel reduction is just avoided.
 double smoothen( Level& level, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
-    auto& src_grid    = level.src_halo->matrix();
-    auto& target_grid = level.target_halo->matrix();
+    auto& src_grid= level.src_halo->matrix();
+    auto& dst_grid= level.dst_halo->matrix();
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     src_grid.barrier();
@@ -960,7 +960,7 @@ double smoothen( Level& level, Allreduce& res ) {
             const auto* __restrict p_up=    p_core + next_layer_off;
             const auto* __restrict p_down=  p_core - next_layer_off;
 
-            double* __restrict p_new=   target_grid.lbegin() + core_offset;
+            double* __restrict p_new= dst_grid.lbegin() + core_offset;
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
@@ -1009,7 +1009,7 @@ double smoothen( Level& level, Allreduce& res ) {
     MiniMonT::MiniMonRecord( 0, "smooth_outer", par );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= target_grid.lbegin();
+    auto gridlocalbegin= dst_grid.lbegin();
 
     auto bend = level.src_halo->bend();
     // update border area
@@ -1057,7 +1057,7 @@ void v_cycle( Iterator it, Iterator itend,
     SCOREP_USER_FUNC()
 
     if ( 0 == dash::myid() ) {
-        const auto& extents = (*it)->src_halo->matrix().extents();
+        const auto& extents = (*it)->src_grid->extents();
         cout << "v-cycle on  " <<
                     extents[2] << "x" <<
                     extents[1] << "x" <<
@@ -1070,7 +1070,7 @@ void v_cycle( Iterator it, Iterator itend,
     if ( itend == itnext ) {
 
         // additional barrier becaus of stray value errors -- some of them are surplus, check again
-        (*it)->src_halo->matrix().barrier();
+        (*it)->src_grid->barrier();
 
         /* smoothen completely  */
         uint32_t j= 0;
@@ -1096,7 +1096,7 @@ void v_cycle( Iterator it, Iterator itend,
     if ( NULL == *itnext ) {
 
         /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
-        (*it)->src_halo->matrix().team().barrier();
+        (*it)->src_grid->team().barrier();
 
         cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
 
@@ -1220,7 +1220,7 @@ void v_cycle( Iterator it, Iterator itend,
 void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
-    uint64_t par= level.src_halo->matrix().team().size() ;
+    uint64_t par= level.src_grid->team().size() ;
     MiniMonT::MiniMonRecord( 0, "smoothfinal", par );
 
     uint32_t j= 0;
@@ -1411,13 +1411,13 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
         firstteam, teamspec ) );
 
     /* init with 42.0 */
-    dash::fill( levels.back()->src_halo->matrix().begin(), 
-        levels.back()->src_halo->matrix().end(), 42.0 );
+    dash::fill( levels.back()->src_grid->begin(), 
+        levels.back()->src_grid->end(), 42.0 );
     writeToCsvFullGrid( *(levels[0]->src_grid) );
 
     dash::barrier();
 
-    dash::Team& previousteam= levels.back()->src_halo->matrix().team();
+    dash::Team& previousteam= levels.back()->src_grid->team();
     dash::Team& currentteam= previousteam.split(4);
     TeamSpecT localteamspec( currentteam.size(), 1, 1 );
     localteamspec.balance_extents();
@@ -1441,15 +1441,15 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
             (1<<(howmanylevels))*factor_x ,
             currentteam, localteamspec ) );
 
-        dash::fill( levels[1]->src_halo->matrix().begin(), 
-            levels[1]->src_halo->matrix().end(), 0.0 );
+        dash::fill( levels[1]->src_grid->begin(), 
+            levels[1]->src_grid->end(), 0.0 );
 
         transfertofewer( *(levels[0]), *(levels[1]) );
 
         writeToCsvFullGrid( *(levels[1]->src_grid) );
 
-        dash::fill( levels[1]->src_halo->matrix().begin(), 
-            levels[1]->src_halo->matrix().end(), 43.0 );
+        dash::fill( levels[1]->src_grid->begin(), 
+            levels[1]->src_grid->end(), 43.0 );
 
         transfertomore( *(levels[1]), *(levels[0]) );
 
@@ -1532,7 +1532,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     for ( uint32_t l= 1; l < howmanylevels; l++ ) {
 
-        dash::Team& previousteam= levels.back()->src_halo->matrix().team();
+        dash::Team& previousteam= levels.back()->src_grid->team();
         dash::Team& currentteam= ( 4 == l ) ? previousteam.split(4) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
