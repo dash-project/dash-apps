@@ -40,4 +40,4 @@ printenv :
 
 .phony: clean
 clean:
-	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon multigrid3d_elastic halo_heat_eqn *.o *.gch
+	rm -f heat_equation*d multigrid multigrid*d multigrid*d+minimon multigrid3d_csv multigrid3d_elastic halo_heat_eqn *.o *.gch
