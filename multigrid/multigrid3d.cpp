@@ -127,7 +127,7 @@ Here is still a slight shift in the output when the actual grid is larger than t
 #ifdef WITHCSVOUTPUT
 
     /* do not barrier, this must not add a barrier that is absent when CSV output is disabled */
-    // grid.barrier();
+    //grid.barrier();
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
@@ -195,7 +195,7 @@ void writeToCsvFullGrid( const MatrixT& grid ) {
 #ifdef WITHCSVOUTPUT
 
     /* do not barrier, this must not add a barrier that is absent when CSV output is disabled */
-    // grid.barrier();
+    //grid.barrier();
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
@@ -431,10 +431,10 @@ void markunits( MatrixT& grid ) {
 }
 
 
-/* check some grid values for 3d mirror symmetry. This should hold for 
-appropriate boundary conditions and a correct solver. 
+/* check some grid values for 3d mirror symmetry. This should hold for
+appropriate boundary conditions and a correct solver.
 
-Here we use global accesses for simplicity. 
+Here we use global accesses for simplicity.
 */
 bool check_symmetry( MatrixT& grid, double eps ) {
 
@@ -444,7 +444,7 @@ bool check_symmetry( MatrixT& grid, double eps ) {
         size_t h= grid.extent(1);
         size_t d= grid.extent(0);
 
-        size_t m= std::min( std::min( w, h ), d ) /2; 
+        size_t m= std::min( std::min( w, h ), d ) /2;
 
         /* x-y-z diagonals */
         for ( size_t t= 0; t < m; ++t ) {
@@ -731,16 +731,17 @@ void transfertomore( Level& source /* with smaller team*/, Level& dest /* with l
 
 /* Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
 
-This specialization does not compute the residual to have a much simple code. Should be kept in sync 
+This specialization does not compute the residual to have a much simple code. Should be kept in sync
 with the following version of smoothen() */
 void smoothen( Level& level ) {
     SCOREP_USER_FUNC()
 
     auto& src_grid    = level.src_halo->matrix();
     auto& target_grid = level.target_halo->matrix();
+    src_grid.barrier();
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     size_t ld= src_grid.local.extent(0);
     size_t lh= src_grid.local.extent(1);
@@ -753,7 +754,7 @@ void smoothen( Level& level ) {
     const double c= 1.0;
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     // async halo update
     level.src_halo->update_async();
@@ -761,7 +762,7 @@ void smoothen( Level& level ) {
     MiniMonT::MiniMonRecord( 0, "smooth_inner", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     // update inner
 
@@ -786,7 +787,6 @@ void smoothen( Level& level ) {
             const auto* __restrict p_up=    p_core + next_layer_off;
             const auto* __restrict p_down=  p_core - next_layer_off;
             double* __restrict p_new=   target_grid.lbegin() + core_offset;
-
             for ( size_t x= 1; x < lw-1; x++ ) {
 
                 double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_core ;
@@ -805,22 +805,22 @@ void smoothen( Level& level ) {
         core_offset += 2 * lw;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), 
+    MiniMonT::MiniMonRecord( 1, "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", par );
 
     // wait for async halo update
-    level.src_halo->update_async();
+    level.src_halo->wait();
 
     MiniMonT::MiniMonRecord( 1, "smooth_wait", par, /* elements */ ld*lh*lw );
 
     /* this barrier is there so that iterations are synchronized across all
     units. Otherwise some overtak others esp. on the very small grids. */
-    src_grid.barrier();
+    //src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_outer", par );
 
@@ -836,15 +836,15 @@ void smoothen( Level& level ) {
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld), 
+    MiniMonT::MiniMonRecord( 1, "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     level.swap();
 
-    MiniMonT::MiniMonRecord( 1, "smoothen", par, /* elements */ ld*lh*lw, 
+    MiniMonT::MiniMonRecord( 1, "smoothen", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 }
 
@@ -878,7 +878,7 @@ double smoothen( Level& level, Allreduce& res ) {
     const double c= 1.0;
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     // async halo update
     level.src_halo->update_async();
@@ -886,7 +886,7 @@ double smoothen( Level& level, Allreduce& res ) {
     MiniMonT::MiniMonRecord( 0, "smooth_inner", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     // update inner
 
@@ -931,11 +931,11 @@ double smoothen( Level& level, Allreduce& res ) {
         core_offset += 2 * lw;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), 
+    MiniMonT::MiniMonRecord( 1, "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait", par );
     // wait for async halo update
@@ -943,18 +943,18 @@ double smoothen( Level& level, Allreduce& res ) {
     MiniMonT::MiniMonRecord( 1, "smooth_wait", par, /* elements */ ld*lh*lw );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_col_bc", par );
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
-    res.collect( src_grid.team() );
-    res.asyncbroadcast( src_grid.team() );
+    res.collect_and_spread( src_grid.team() );
+
     MiniMonT::MiniMonRecord( 1, "smooth_col_bc", par );
 
 
     /* the former contains a barrier that keeps the iterations in sync -- or does it? */
-    src_grid.barrier();
+    //src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_outer", par );
 
@@ -971,29 +971,29 @@ double smoothen( Level& level, Allreduce& res ) {
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld), 
+    MiniMonT::MiniMonRecord( 1, "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     MiniMonT::MiniMonRecord( 0, "smooth_wait_set", par );
 
-    res.waitbroadcast( src_grid.team() );
+    res.wait( src_grid.team() );
 
     /* global residual from former iteration */
     double oldres= res.get();
 
-    res.asyncset( &localres, src_grid.team() );
+    res.set( &localres, src_grid.team() );
 
     MiniMonT::MiniMonRecord( 1, "smooth_wait_set", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     level.swap();
 
-    MiniMonT::MiniMonRecord( 1, "smoothen res", par, /* elements */ ld*lh*lw, 
+    MiniMonT::MiniMonRecord( 1, "smoothen res", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 
     return oldres;
@@ -1020,7 +1020,8 @@ void v_cycle( Iterator it, Iterator itend,
     if ( itend == itnext ) {
 
         // additional barrier becaus of stray value errors -- some of them are surplus, check again
-        (*it)->src_halo->matrix().barrier();
+        //useless
+        //(*it)->src_halo->matrix().barrier();
 
         /* smoothen completely  */
         uint32_t j= 0;
@@ -1098,7 +1099,8 @@ void v_cycle( Iterator it, Iterator itend,
     /* normal recursion */
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //useless
+    //src_grid.barrier();
 
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
@@ -1106,7 +1108,6 @@ void v_cycle( Iterator it, Iterator itend,
     }
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
 
     writeToCsv( src_grid );
 
@@ -1123,19 +1124,19 @@ void v_cycle( Iterator it, Iterator itend,
     }
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     scaledown( src_grid, src_grid_next );
     writeToCsv( src_grid_next );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     /* recurse  */
     v_cycle( itnext, itend, numiter, epsilon, res );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     /* scale up */
     if ( 0 == dash::myid() ) {
@@ -1152,7 +1153,7 @@ void v_cycle( Iterator it, Iterator itend,
     writeToCsv( src_grid );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
@@ -1160,7 +1161,7 @@ void v_cycle( Iterator it, Iterator itend,
     }
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    //src_grid.barrier();
 
     writeToCsv( src_grid );
 }
@@ -1300,7 +1301,8 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     dash::Team::All().barrier();
 
     Allreduce res( dash::Team::All() );
-    res.reset( dash::Team::All() );
+    // already done in constructor of Allreduce
+    //res.reset( dash::Team::All() );
 
     MiniMonT::MiniMonRecord( 1, "setup", dash::Team::All().size() );
 
