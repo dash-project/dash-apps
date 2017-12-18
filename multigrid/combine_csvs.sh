@@ -6,8 +6,7 @@
 cat trace_0*.csv >"trace"$1".csv"
 rm -Rf trace_0*.csv
 
-ls image_unit0.csv.* 2>/dev/null || exit 0
-
+shopt -s nullglob
 for i in image_unit0.csv.*; do
     NUM=`echo $i|sed -e 's/image_unit0.csv.//'`
     echo -n $NUM" "
