@@ -7,8 +7,6 @@
 #include <cstdio>
 #include <utility>
 
-#include <libdash.h>
-
 #include "allreduce.h"
 #include "minimonitoring.h"
 
@@ -28,11 +26,7 @@ uint32_t filenumber= 0;
 
 */
 
-
-/* for MiniMonT */
-std::vector<MiniMonT>* MiniMonT::tape;
-std::chrono::time_point<std::chrono::high_resolution_clock> MiniMonT::inittime;
-
+MiniMon minimon;
 
 using std::cout;
 using std::setfill;
@@ -556,9 +550,10 @@ void scaledownboundary( Level& fine, Level& coarse ) {
 
 void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
 
+    //minimon.start( "scaledown", par, param );
+
     uint64_t par= finegrid.team().size();
     uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
-    MiniMonT::MiniMonRecord( 0, "scaledown", par, param );
 
     assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
     assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
@@ -610,15 +605,16 @@ void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
         }
     }
 
-    MiniMonT::MiniMonRecord( 1, "scaledown", par, param );
+    //minimon.stop( "scaledown", par, param );
 }
 
 
 void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 
+    //minimon.start( "scaleup", par, param );
+
     uint64_t par= coarsegrid.team().size();
     uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
-    MiniMonT::MiniMonRecord( 0, "scaleup", par, param );
 
     assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
     assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
@@ -672,7 +668,7 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
         }
     }
 
-    MiniMonT::MiniMonRecord( 1, "scaleup", par, param );
+    //minimon.stop( "scaleup", par, param );
 }
 
 
@@ -736,8 +732,11 @@ with the following version of smoothen() */
 void smoothen( Level& level ) {
     SCOREP_USER_FUNC()
 
+    //minimon.start( "smoothen", par );
+
     auto& src_grid    = level.src_halo->matrix();
     auto& target_grid = level.target_halo->matrix();
+
     src_grid.barrier();
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
@@ -748,7 +747,6 @@ void smoothen( Level& level ) {
     size_t lw= src_grid.local.extent(2);
 
     uint32_t par= src_grid.team().size();
-    MiniMonT::MiniMonRecord( 0, "smoothen", par );
 
     /// relaxation coeff.
     const double c= 1.0;
@@ -759,7 +757,7 @@ void smoothen( Level& level ) {
     // async halo update
     level.src_halo->update_async();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_inner", par );
+    //minimon.start( "smooth_inner", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
@@ -805,24 +803,24 @@ void smoothen( Level& level ) {
         core_offset += 2 * lw;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
+    //minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_wait", par );
+    //minimon.start( "smooth_wait", par );
 
     // wait for async halo update
     level.src_halo->wait();
 
-    MiniMonT::MiniMonRecord( 1, "smooth_wait", par, /* elements */ ld*lh*lw );
+    //minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
 
     /* this barrier is there so that iterations are synchronized across all
     units. Otherwise some overtak others esp. on the very small grids. */
     //src_grid.barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_outer", par );
+    //minimon.start( "smooth_outer", par );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
     auto gridlocalbegin= target_grid.lbegin();
@@ -836,7 +834,7 @@ void smoothen( Level& level ) {
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
+    //minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
@@ -844,7 +842,7 @@ void smoothen( Level& level ) {
 
     level.swap();
 
-    MiniMonT::MiniMonRecord( 1, "smoothen", par, /* elements */ ld*lh*lw,
+    //minimon.stop( "smoothen", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 }
 
@@ -859,6 +857,8 @@ if it is not NULL because then the expensive parallel reduction is just avoided.
 double smoothen( Level& level, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
+    //minimon.start( "smoothen res", par );
+
     auto& src_grid    = level.src_halo->matrix();
     auto& target_grid = level.target_halo->matrix();
 
@@ -870,7 +870,6 @@ double smoothen( Level& level, Allreduce& res ) {
     size_t lw= src_grid.local.extent(2);
 
     uint32_t par= src_grid.team().size();
-    MiniMonT::MiniMonRecord( 0, "smoothen res", par );
 
     double localres= 0.0;
 
@@ -883,7 +882,7 @@ double smoothen( Level& level, Allreduce& res ) {
     // async halo update
     level.src_halo->update_async();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_inner", par );
+    //minimon.start( "smooth_inner", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
@@ -931,32 +930,32 @@ double smoothen( Level& level, Allreduce& res ) {
         core_offset += 2 * lw;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
+    //minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_wait", par );
+    //minimon.start( "smooth_wait", par );
     // wait for async halo update
     level.src_halo->wait();
-    MiniMonT::MiniMonRecord( 1, "smooth_wait", par, /* elements */ ld*lh*lw );
+    //minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_col_bc", par );
+    //minimon.start( "smooth_col_bc", par );
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
     res.collect_and_spread( src_grid.team() );
 
-    MiniMonT::MiniMonRecord( 1, "smooth_col_bc", par );
+    //minimon.stop( "smooth_col_bc", par );
 
 
     /* the former contains a barrier that keeps the iterations in sync -- or does it? */
     //src_grid.barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_outer", par );
+    //minimon.start( "smooth_outer", par );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
     auto gridlocalbegin= target_grid.lbegin();
@@ -971,13 +970,13 @@ double smoothen( Level& level, Allreduce& res ) {
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
-    MiniMonT::MiniMonRecord( 1, "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
+    //minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smooth_wait_set", par );
+    //minimon.start( "smooth_wait_set", par );
 
     res.wait( src_grid.team() );
 
@@ -986,14 +985,14 @@ double smoothen( Level& level, Allreduce& res ) {
 
     res.set( &localres, src_grid.team() );
 
-    MiniMonT::MiniMonRecord( 1, "smooth_wait_set", par );
+    //minimon.stop( "smooth_wait_set", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
     //src_grid.barrier();
 
     level.swap();
 
-    MiniMonT::MiniMonRecord( 1, "smoothen res", par, /* elements */ ld*lh*lw,
+    //minimon.stop( "smoothen res", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 
     return oldres;
@@ -1171,7 +1170,7 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
     uint64_t par= level.src_halo->matrix().team().size() ;
-    MiniMonT::MiniMonRecord( 0, "smoothfinal", par );
+    //minimon.start( "smoothfinal", par );
 
     uint32_t j= 0;
     while ( res.get() > epsilon ) {
@@ -1184,14 +1183,14 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
         j++;
     }
 
-    MiniMonT::MiniMonRecord( 1, "smoothfinal", par );
+    //minimon.stop( "smoothfinal", par );
 }
 
 
 void do_multigrid_iteration( uint32_t howmanylevels ) {
     SCOREP_USER_FUNC()
 
-    MiniMonT::MiniMonRecord( 0, "setup", dash::Team::All().size() );
+    //minimon.start( "setup", dash::Team::All().size() );
 
     TeamSpecT teamspec{};
     teamspec.balance_extents();
@@ -1304,7 +1303,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     // already done in constructor of Allreduce
     //res.reset( dash::Team::All() );
 
-    MiniMonT::MiniMonRecord( 1, "setup", dash::Team::All().size() );
+    //minimon.stop( "setup", dash::Team::All().size() );
 
     v_cycle( levels.begin(), levels.end(), 10, 0.01, res );
     dash::Team::All().barrier();
@@ -1324,7 +1323,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
 void do_multigrid_elastic( uint32_t howmanylevels ) {
 
-    MiniMonT::MiniMonRecord( 0, "setup", dash::Team::All().size() );
+    //minimon.start( "setup", dash::Team::All().size() );
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -1494,7 +1493,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     Allreduce res( dash::Team::All() );
     res.reset( dash::Team::All() );
 
-    MiniMonT::MiniMonRecord( 1, "setup", dash::Team::All().size() );
+    //minimon.stop( "setup", dash::Team::All().size() );
 
     v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
     dash::Team::All().barrier();
@@ -1570,7 +1569,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     //dash::barrier();
 
-    MiniMonT::MiniMonRecord( 0, "smoothflatfixed", dash::Team::All().size() );
+    //minimon.start( "smoothflatfixed", dash::Team::All().size() );
 
     uint32_t j= 0;
     while ( j < 40 ) {
@@ -1584,11 +1583,11 @@ void do_flat_iteration( uint32_t howmanylevels ) {
         //writeToCsv( level->oldgrid );
     }
 
-    MiniMonT::MiniMonRecord( 1, "smoothflatfixed", dash::Team::All().size() );
+    //minimon.stop( "smoothflatfixed", dash::Team::All().size() );
 
     writeToCsv( src_grid );
 
-    MiniMonT::MiniMonRecord( 0, "smoothflatresidual", dash::Team::All().size() );
+    //minimon.start( "smoothflatresidual", dash::Team::All().size() );
 
     Allreduce res( dash::Team::All() );
     res.reset( dash::Team::All() );
@@ -1605,7 +1604,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
         //writeToCsv( level->oldgrid );
     }
 
-    MiniMonT::MiniMonRecord( 1, "smoothflatresidual", dash::Team::All().size() );
+    //minimon.stop( "smoothflatresidual", dash::Team::All().size() );
 
     writeToCsv( src_grid );
 
@@ -1616,13 +1615,12 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
 int main( int argc, char* argv[] ) {
 
-    MiniMonT::MiniMonInit();
-    MiniMonT::MiniMonRecord( 0, "main", dash::Team::All().size() );
+    minimon.start( "main", dash::Team::All().size() );
 
-    MiniMonT::MiniMonRecord( 0, "dash::init", dash::Team::All().size() );
+    //minimon.start( "dash::init", dash::Team::All().size() );
     dash::init(&argc, &argv);
     auto id= dash::myid();
-    MiniMonT::MiniMonRecord( 1, "dash::init", dash::Team::All().size() );
+    //minimon.stop( "dash::init", dash::Team::All().size() );
 
     bool do_flatsolver= false;
     bool do_elastic= false;
@@ -1685,12 +1683,12 @@ int main( int argc, char* argv[] ) {
         do_multigrid_iteration( howmanylevels );
     }
 
-    MiniMonT::MiniMonRecord( 0, "dash::finalize", dash::Team::All().size() );
+    //minimon.start( "dash::finalize", dash::Team::All().size() );
     dash::finalize();
-    MiniMonT::MiniMonRecord( 1, "dash::finalize", dash::Team::All().size() );
+    //minimon.stop( "dash::finalize", dash::Team::All().size() );
 
-    MiniMonT::MiniMonRecord( 1, "main", dash::Team::All().size() );
-    MiniMonT::MiniMonPrint( id, dash::Team::All().size() );
+    minimon.stop( "main", dash::Team::All().size() );
+    minimon.print(id);
 
     return 0;
 }

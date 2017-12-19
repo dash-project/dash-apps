@@ -4,22 +4,19 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <map>
+#include <deque>
+#include <stack>
 #include <chrono>
-#include <ostream>
-#include <cstring>
 
 #include <libdash.h>
 
-using namespace std;
 using time_point_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using time_diff_t  = std::chrono::duration<double>;
 
 const size_t NAMELEN= 30;
 
-struct MiniMonT {
-
-   uint16_t step; /* 0 == start, 1 == stop, other values as you like */
-   std::chrono::time_point<std::chrono::high_resolution_clock> time;
+struct Entry {
+   time_point_t time;
    const char* name;
    uint32_t par; /* number of parallel units working on this, even though the following numbers are per process */
    uint64_t elements; /* number of grid elements */
@@ -27,119 +24,72 @@ struct MiniMonT {
    uint64_t loads; /* number of elements (double values) read */
    uint64_t stores; /* number of elements (double values) written */
 
-   static std::vector<MiniMonT>* tape;
-   static std::chrono::time_point<std::chrono::high_resolution_clock> inittime;
-
-   MiniMonT( uint8_t s, const char* n, uint32_t p, uint64_t e= 1,
-         uint64_t f= 0, uint64_t r= 0, uint64_t w= 0 ) {
-
-      step= s;
-      time= std::chrono::high_resolution_clock::now();
-      name= n;
-      par= p;
-      elements= e;
-      flops= f;
-      loads= r;
-      stores= w;
-   };
-
-   static void MiniMonInit() {
-
-      tape= new vector<MiniMonT>();
-      tape->reserve( 1000 );
-      inittime= std::chrono::high_resolution_clock::now();
-   }
-
-   static void MiniMonRecord( uint8_t s, const char* n, uint32_t p, uint64_t e= 1,
-         uint64_t f= 0, uint64_t r= 0, uint64_t w= 0 ) {
-
-      tape->push_back( MiniMonT( s, n, p, e, f, r, w ) );
-   }
-
-   static void MiniMonPrint( uint32_t id, uint32_t num );
 
 };
 
-struct cmpByNameOnly {
-   bool operator()(const MiniMonT& a, const MiniMonT& b) const {
-        return ( 0 > strncmp( a.name, b.name, NAMELEN ) );
-   }
+struct ResultEntry {
+   time_diff_t diff;
+   const char* name;
+   uint32_t    par; /* number of parallel units working on this, even though the following numbers are per process */
+   uint64_t    elements; /* number of grid elements */
+   uint64_t    flops; /* number of floating point operations */
+   uint64_t    loads; /* number of elements (double values) read */
+   uint64_t    stores; /* number of elements (double values) written */
+
 };
 
+class MiniMon {
 
-void MiniMonT::MiniMonPrint( uint32_t id, uint32_t num ) {
+public:
 
-   /* print out log to individual files */
-   char filename[31];
-   std::snprintf( filename, 30, "trace%05u.csv", id );
+   MiniMon() = default;
 
-   ofstream file;
-   file.open( filename );
+   void start( const char n[NAMELEN], uint32_t p, uint64_t e = 1,
+          uint64_t f = 0, uint64_t r = 0, uint64_t w = 0 ) {
 
-   file << "# Unit;Function_name;Step;Par;Timestamp;Duration;Elements;Flops;Loads;Stores" << endl;
+      _entries.push({std::chrono::high_resolution_clock::now(), n, p, e, f, r ,w});
+   }
 
-   /* keep a set of past MiniMonT entries, compare only by name.
-   If step increases for the same name then also print the duration.
-   This does not work for recursive functions but is otherwise good enough. */
+   void stop( const char n[NAMELEN], uint32_t p, uint64_t e = 1,
+         uint64_t f = 0, uint64_t r = 0, uint64_t w = 0 ) {
 
-   std::set<MiniMonT,cmpByNameOnly> oldtimes;
+      auto& top = _entries.top();
+      _results.push_back({std::chrono::high_resolution_clock::now() - top.time,
+          n, p, e, f, r, w });
+      _entries.pop();
+   }
 
-   for ( auto it= tape->begin(); it != tape->end(); ++it ) {
+   void print(uint32_t id) {
+      /* print out log to individual files */
 
-      auto old= oldtimes.find( *it );
-      if ( old != oldtimes.end() ) {
+      std::ofstream file;
+      std::ostringstream file_name;
+      file_name << "trace_" << std::setw(5) << std::setfill('0') << id << ".csv";
+      file.open(file_name.str());
 
-         if ( old->step +1 == it->step ) {
+      file << "# Unit;Function_name;Par;Duration;Elements;Flops;Loads;Stores"
+           << std::endl;
 
-            /* step values match, print with duration */
-            file << id << ";" << it->name << ";" << it->step << ";" << (uint32_t) it->par << ";" <<
-               std::setprecision(12) <<
-               1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - inittime ).count() << ";" <<
-               std::setprecision(12) <<
-               1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - old->time ).count()<< ";" << 
-               it->elements << ";" << it->flops << ";" << it->loads << ";" << it->stores << endl;
+      /* keep a set of past MiniMonT entries, compare only by name.
+       If step increases for the same name then also print the duration.
+      This does not work for recursive functions but is otherwise good enough. */
 
-         } else {
 
-            /* step values don't match, print without duration */
-            file << id << ";" << it->name << ";" << it->step << ";" << (uint32_t) it->par << ";" <<
-               std::setprecision(12) <<
-               1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - inittime ).count() <<
-               ";;" << 
-               it->elements << ";" << it->flops << ";" << it->loads << ";" << it->stores << endl;
-         }
-
-         /* replace old entry with current one */
-         oldtimes.erase( old );
-         oldtimes.insert( *it );
-
-      } else {
-
-         /* no old time value found, print none, print wiothout duration */
-         file << id << ";" << it->name << ";" << it->step << ";" << (uint32_t) it->par << ";" <<
-            std::setprecision(12) <<
-            1e-9 * chrono::duration_cast<chrono::nanoseconds>( it->time - inittime ).count() <<
-            ";;" << 
-            it->elements << ";" << it->flops << ";" << it->loads << ";" << it->stores << endl;
-
-         oldtimes.insert( *it );
+      for(const auto& result : _results) {
+          file << id << ";" << result.name << ";" << result.par << ";"
+               << std::setprecision(12) << result.diff.count() << ";"
+               << result.elements << ";" << result.flops << ";" << result.loads
+               << ";" << result.stores << std::endl;
       }
+
+      file.close();
    }
 
-   file.close();
-}
 
 
-std::ostream& operator<< ( std::ostream& stream, const MiniMonT& record );
-
-std::ostream& operator<<( std::ostream& stream, const MiniMonT& record ) {
-
-   stream << record.step << "; " << record.time.time_since_epoch().count() << "; " << record.name;
-
-   return stream;
-}
-
-
-
+private:
+   std::deque<ResultEntry>               _results;
+   std::stack<Entry, std::vector<Entry>> _entries;
+};
 
 #endif /* MINIMONITORING_H */

@@ -10,5 +10,5 @@ for i in image_unit0.csv.*; do
     rm "image_unit"*".csv."$NUM
 done
 
-cat trace0*.csv >"trace_"$1".csv"
-rm -Rf trace0*.csv
+cat trace_0*.csv >"trace"$1".csv"
+rm -Rf trace_0*.csv
