@@ -452,8 +452,7 @@ void markunits( MatrixT& grid ) {
 /* check some grid values for 3d mirror symmetry. This should hold for
 appropriate boundary conditions and a correct solver.
 
-Here we use global accesses for simplicity.
-*/
+Here we use global accesses for simplicity. */
 bool check_symmetry( MatrixT& grid, double eps ) {
 
     if ( 0 == dash::myid() ) {
@@ -517,16 +516,13 @@ bool check_symmetry( MatrixT& grid, double eps ) {
 
 void scaledownboundary( Level& fine, Level& coarse ) {
 
-    auto& coarse_src_grid = coarse.src_halo->matrix();
-    auto& fine_src_grid = fine.src_halo->matrix();
+    assert( coarse.src_grid->extent(2)*2 == fine.src_grid->extent(2) );
+    assert( coarse.src_grid->extent(1)*2 == fine.src_grid->extent(1) );
+    assert( coarse.src_grid->extent(0)*2 == fine.src_grid->extent(0) );
 
-    assert( coarse_src_grid.extent(2)*2 == fine_src_grid.extent(2) );
-    assert( coarse_src_grid.extent(1)*2 == fine_src_grid.extent(1) );
-    assert( coarse_src_grid.extent(0)*2 == fine_src_grid.extent(0) );
-
-    size_t dmax= coarse_src_grid.extent(0);
-    size_t hmax= coarse_src_grid.extent(1);
-    //size_t wmax= coarse_src_grid.extent(2);
+    size_t dmax= coarse.src_grid->extent(0);
+    size_t hmax= coarse.src_grid->extent(1);
+    //size_t wmax= coarse.src_grid->extent(2);
 
     auto finehalo= fine.src_halo;
 
@@ -784,28 +780,24 @@ with the following version of smoothen() */
 void smoothen( Level& level ) {
     SCOREP_USER_FUNC()
 
-    //minimon.start( "smoothen", par );
-    auto& src_grid = level.src_halo->matrix();
-    auto& dst_grid = level.dst_halo->matrix();
-
-    uint32_t par= src_grid.team().size();
+    uint32_t par= level.src_grid->team().size();
 
     minimon.start( "smoothen", par );
 
-    src_grid.barrier();
+    level.src_grid->barrier();
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    //level.src_grid->barrier();
 
-    size_t ld= src_grid.local.extent(0);
-    size_t lh= src_grid.local.extent(1);
-    size_t lw= src_grid.local.extent(2);
+    size_t ld= level.src_grid->local.extent(0);
+    size_t lh= level.src_grid->local.extent(1);
+    size_t lw= level.src_grid->local.extent(2);
 
     /// relaxation coeff.
     const double c= 1.0;
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    //level.src_grid->barrier();
 
     // async halo update
     level.src_halo->update_async();
@@ -813,7 +805,7 @@ void smoothen( Level& level ) {
     minimon.start( "smooth_inner", par );
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    //level.src_grid->barrier();
 
     // update inner
 
@@ -830,14 +822,14 @@ void smoothen( Level& level ) {
             /* this should eventually be done with Alpaka or Kokkos to look
             much nicer but still be fast */
 
-            const auto* __restrict p_core = src_grid.lbegin() + core_offset;
+            const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
             const auto* __restrict p_east = p_core + 1;
             const auto* __restrict p_west = p_core - 1;
             const auto* __restrict p_north= p_core + lw;
             const auto* __restrict p_south= p_core - lw;
             const auto* __restrict p_up=    p_core + next_layer_off;
             const auto* __restrict p_down=  p_core - next_layer_off;
-            double* __restrict p_new= dst_grid.lbegin() + core_offset;
+            double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
@@ -877,7 +869,7 @@ void smoothen( Level& level ) {
     minimon.start( "smooth_outer", par );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= dst_grid.lbegin();
+    auto gridlocalbegin= level.dst_grid->lbegin();
 
     auto bend = level.src_halo->bend();
     // update border area
@@ -911,21 +903,17 @@ if it is not NULL because then the expensive parallel reduction is just avoided.
 double smoothen( Level& level, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
-    //minimon.start( "smoothen res", par );
 
-    auto& src_grid= level.src_halo->matrix();
-    auto& dst_grid= level.dst_halo->matrix();
-
-    uint32_t par= src_grid.team().size();
+    uint32_t par= level.src_grid->team().size();
     minimon.start( "smoothen res", par );
 
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    src_grid.barrier();
+    level.src_grid->barrier();
 
-    size_t ld= src_grid.local.extent(0);
-    size_t lh= src_grid.local.extent(1);
-    size_t lw= src_grid.local.extent(2);
+    size_t ld= level.src_grid->local.extent(0);
+    size_t lh= level.src_grid->local.extent(1);
+    size_t lw= level.src_grid->local.extent(2);
 
     double localres= 0.0;
 
@@ -957,7 +945,7 @@ double smoothen( Level& level, Allreduce& res ) {
             /* this should eventually be done with Alpaka or Kokkos to look
             much nicer but still be fast */
 
-            const auto* __restrict p_core = src_grid.lbegin() + core_offset;
+            const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
             const auto* __restrict p_east = p_core + 1;
             const auto* __restrict p_west = p_core - 1;
             const auto* __restrict p_north= p_core + lw;
@@ -965,7 +953,7 @@ double smoothen( Level& level, Allreduce& res ) {
             const auto* __restrict p_up=    p_core + next_layer_off;
             const auto* __restrict p_down=  p_core - next_layer_off;
 
-            double* __restrict p_new= dst_grid.lbegin() + core_offset;
+            double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
@@ -1003,7 +991,7 @@ double smoothen( Level& level, Allreduce& res ) {
     minimon.start( "smooth_col_bc", par );
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
-    res.collect_and_spread( src_grid.team() );
+    res.collect_and_spread( level.src_grid->team() );
 
     minimon.stop( "smooth_col_bc", par );
 
@@ -1014,7 +1002,7 @@ double smoothen( Level& level, Allreduce& res ) {
     minimon.start( "smooth_outer", par );
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= dst_grid.lbegin();
+    auto gridlocalbegin= level.dst_grid->lbegin();
 
     auto bend = level.src_halo->bend();
     // update border area
@@ -1034,12 +1022,12 @@ double smoothen( Level& level, Allreduce& res ) {
 
     minimon.start( "smooth_wait_set", par );
 
-    res.wait( src_grid.team() );
+    res.wait( level.src_grid->team() );
 
     /* global residual from former iteration */
     double oldres= res.get();
 
-    res.set( &localres, src_grid.team() );
+    res.set( &localres, level.src_grid->team() );
 
     minimon.stop( "smooth_wait_set", par );
 
@@ -1348,10 +1336,10 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
-    auto& src_grid = levels.front()->src_halo->matrix();
-    initgrid( src_grid );
-    markunits( src_grid );
-    writeToCsv( src_grid );
+    initgrid( *levels.front()->src_grid );
+    markunits( *levels.front()->src_grid );
+
+    writeToCsv( *levels.front()->src_grid );
 
     dash::Team::All().barrier();
 
@@ -1369,10 +1357,18 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     res.reset( dash::Team::All() );
     smoothen_final( *levels.front(), 0.001, res );
     for ( int i= 0; i < 5; ++i ) {
-        writeToCsv( src_grid );
+        writeToCsv( *levels.front()->src_grid );
     }
 
     dash::Team::All().barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        if ( ! check_symmetry( *levels.front()->src_grid, 0.001 ) ) {
+
+            cerr << "test for asymmetry of soution failed!" << endl;
+        }
+    }
 }
 
 
@@ -1632,10 +1628,10 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
-    auto& src_grid = levels.front()->src_halo->matrix();
-    initgrid( src_grid );
-    markunits( src_grid );
-    writeToCsv( src_grid );
+    initgrid( *levels.front()->src_grid );
+    markunits( *levels.front()->src_grid );
+
+    writeToCsv( *levels.front()->src_grid );
 
     dash::Team::All().barrier();
 
@@ -1652,10 +1648,18 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     res.reset( dash::Team::All() );
     smoothen_final( *levels.front(), 0.001, res );
     for ( int i= 0; i < 5; ++i ) {
-        writeToCsv( src_grid );
+        writeToCsv( *levels.front()->src_grid );
     }
 
     dash::Team::All().barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        if ( ! check_symmetry( *levels.front()->src_grid, 0.001 ) ) {
+
+            cerr << "test for asymmetry of soution failed!" << endl;
+        }
+    }
 }
 
 
@@ -1707,10 +1711,10 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     initboundary( *level );
 
-    auto& src_grid = level->src_halo->matrix();
-    initgrid( src_grid );
-    markunits( src_grid );
-    writeToCsv( src_grid );
+    initgrid( *levels.front()->src_grid );
+    markunits( *levels.front()->src_grid );
+
+    writeToCsv( *levels.front()->src_grid );
 
     dash::barrier();
 
@@ -1734,7 +1738,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     minimon.stop( "smoothflatfixed", dash::Team::All().size() );
 
-    writeToCsv( src_grid );
+    writeToCsv( *levels.front()->src_grid );
 
     minimon.start( "smoothflatresidual", dash::Team::All().size() );
 
@@ -1755,7 +1759,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     minimon.stop( "smoothflatresidual", dash::Team::All().size() );
 
-    writeToCsv( src_grid );
+    writeToCsv( *levels.front()->src_grid );
 
     delete level;
     level= NULL;
