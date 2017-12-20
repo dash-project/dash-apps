@@ -552,7 +552,9 @@ void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
 
     uint64_t par= finegrid.team().size();
     uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
-    minimon.start( "scaledown", par, param );
+
+    // scaledown
+    minimon.start();
 
     assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
     assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
@@ -612,7 +614,9 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 
     uint64_t par= coarsegrid.team().size();
     uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
-    minimon.start( "scaleup", par, param );
+
+    // scaleup
+    minimon.start();
 
     assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
     assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
@@ -735,12 +739,10 @@ void smoothen( Level& level ) {
 
     uint32_t par= src_grid.team().size();
 
-    minimon.start( "smoothen", par );
+    // smooth
+    minimon.start();
 
     src_grid.barrier();
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
 
     size_t ld= src_grid.local.extent(0);
     size_t lh= src_grid.local.extent(1);
@@ -749,16 +751,11 @@ void smoothen( Level& level ) {
     /// relaxation coeff.
     const double c= 1.0;
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
     // async halo update
     level.src_halo->update_async();
 
-    minimon.start( "smooth_inner", par );
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    // smooth_inner
+    minimon.start();
 
     // update inner
 
@@ -804,23 +801,18 @@ void smoothen( Level& level ) {
     minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
-    minimon.start( "smooth_wait", par );
+    // smooth_wait
+    minimon.start();
 
     // wait for async halo update
     level.src_halo->wait();
 
     minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
 
-    /* this barrier is there so that iterations are synchronized across all
-    units. Otherwise some overtak others esp. on the very small grids. */
-    //src_grid.barrier();
+    // smooth_outer
+    minimon.start();
 
-    minimon.start( "smooth_outer", par );
-
-    /// begin pointer of local block, needed because halo border iterator is read-only
+    // begin pointer of local block, needed because halo border iterator is read-only
     auto gridlocalbegin= target_grid.lbegin();
 
     auto bend = level.src_halo->bend();
@@ -835,12 +827,9 @@ void smoothen( Level& level ) {
     minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
     level.swap();
 
-    minimon.stop( "smoothen", par, /* elements */ ld*lh*lw,
+    minimon.stop( "smooth", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 }
 
@@ -859,7 +848,9 @@ double smoothen( Level& level, Allreduce& res ) {
     auto& target_grid = level.target_halo->matrix();
 
     uint32_t par= src_grid.team().size();
-    minimon.start( "smoothen res", par );
+
+    // smooth_res
+    minimon.start();
 
 
     // additional barrier becaus of stray value errors -- some of them are surplus, check again
@@ -874,16 +865,11 @@ double smoothen( Level& level, Allreduce& res ) {
     /// relaxation coeff.
     const double c= 1.0;
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
     // async halo update
     level.src_halo->update_async();
 
-    minimon.start( "smooth_inner", par );
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    // smooth_res_inner
+    minimon.start();
 
     // update inner
 
@@ -928,32 +914,27 @@ double smoothen( Level& level, Allreduce& res ) {
         core_offset += 2 * lw;
     }
 
-    minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
+    minimon.stop( "smooth_res_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    // smooth_res_wait
+    minimon.start();
 
-    minimon.start( "smooth_wait", par );
     // wait for async halo update
     level.src_halo->wait();
-    minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    minimon.stop( "smooth_res_wait", par, /* elements */ ld*lh*lw );
 
-    minimon.start( "smooth_col_bc", par );
+    // smooth_res_col_bc
+    minimon.start();
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
     res.collect_and_spread( src_grid.team() );
 
-    minimon.stop( "smooth_col_bc", par );
+    minimon.stop( "smooth_res_col_bc", par );
 
-
-    /* the former contains a barrier that keeps the iterations in sync -- or does it? */
-    //src_grid.barrier();
-
-    minimon.start( "smooth_outer", par );
+    // smooth_res_outer
+    minimon.start();
 
     /// begin pointer of local block, needed because halo border iterator is read-only
     auto gridlocalbegin= target_grid.lbegin();
@@ -968,13 +949,11 @@ double smoothen( Level& level, Allreduce& res ) {
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
-    minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
+    minimon.stop( "smooth_res_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
-    minimon.start( "smooth_wait_set", par );
+    // smooth_res_wait_set
+    minimon.start();
 
     res.wait( src_grid.team() );
 
@@ -983,14 +962,11 @@ double smoothen( Level& level, Allreduce& res ) {
 
     res.set( &localres, src_grid.team() );
 
-    minimon.stop( "smooth_wait_set", par );
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
+    minimon.stop( "smooth_res_wait_set", par );
 
     level.swap();
 
-    minimon.stop( "smoothen res", par, /* elements */ ld*lh*lw,
+    minimon.stop( "smooth_res", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 
     return oldres;
@@ -1017,9 +993,6 @@ void v_cycle( Iterator it, Iterator itend,
     if ( itend == itnext ) {
 
         // additional barrier becaus of stray value errors -- some of them are surplus, check again
-        //useless
-        //(*it)->src_halo->matrix().barrier();
-
         /* smoothen completely  */
         uint32_t j= 0;
         while ( res.get() > epsilon ) {
@@ -1095,16 +1068,10 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* normal recursion */
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //useless
-    //src_grid.barrier();
-
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
 
     writeToCsv( src_grid );
 
@@ -1120,20 +1087,11 @@ void v_cycle( Iterator it, Iterator itend,
             src_grid_next.extent(0) << endl;
     }
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
     scaledown( src_grid, src_grid_next );
     writeToCsv( src_grid_next );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
     /* recurse  */
     v_cycle( itnext, itend, numiter, epsilon, res );
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
 
     /* scale up */
     if ( 0 == dash::myid() ) {
@@ -1149,16 +1107,10 @@ void v_cycle( Iterator it, Iterator itend,
     scaleup( src_grid_next, src_grid );
     writeToCsv( src_grid );
 
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
-
     /* smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
-
-    // additional barrier becaus of stray value errors -- some of them are surplus, check again
-    //src_grid.barrier();
 
     writeToCsv( src_grid );
 }
@@ -1168,7 +1120,9 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
     uint64_t par= level.src_halo->matrix().team().size() ;
-    minimon.start( "smoothfinal", par );
+
+    // smooth_final
+    minimon.start();
 
     uint32_t j= 0;
     while ( res.get() > epsilon ) {
@@ -1181,14 +1135,15 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
         j++;
     }
 
-    minimon.stop( "smoothfinal", par );
+    minimon.stop( "smooth_final", par );
 }
 
 
 void do_multigrid_iteration( uint32_t howmanylevels ) {
     SCOREP_USER_FUNC()
 
-    minimon.start( "setup", dash::Team::All().size() );
+    // setup
+    minimon.start();
 
     TeamSpecT teamspec{};
     teamspec.balance_extents();
@@ -1321,7 +1276,8 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
 void do_multigrid_elastic( uint32_t howmanylevels ) {
 
-    minimon.start( "setup", dash::Team::All().size() );
+    // setup
+    minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -1567,7 +1523,8 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     //dash::barrier();
 
-    minimon.start( "smoothflatfixed", dash::Team::All().size() );
+    // smoothflatfixed
+    minimon.start();
 
     uint32_t j= 0;
     while ( j < 40 ) {
@@ -1585,7 +1542,8 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     writeToCsv( src_grid );
 
-    minimon.start( "smoothflatresidual", dash::Team::All().size() );
+    // smoothflatresidual
+    minimon.start();
 
     Allreduce res( dash::Team::All() );
     res.reset( dash::Team::All() );
@@ -1613,9 +1571,11 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
 int main( int argc, char* argv[] ) {
 
-    minimon.start( "main", dash::Team::All().size() );
+    // main
+    minimon.start();
 
-    minimon.start( "dash::init", dash::Team::All().size() );
+    // dash::init
+    minimon.start();
     dash::init(&argc, &argv);
     auto id= dash::myid();
     minimon.stop( "dash::init", dash::Team::All().size() );
@@ -1681,7 +1641,8 @@ int main( int argc, char* argv[] ) {
         do_multigrid_iteration( howmanylevels );
     }
 
-    minimon.start( "dash::finalize", dash::Team::All().size() );
+    // dash::finalize
+    minimon.start();
     dash::finalize();
     minimon.stop( "dash::finalize", dash::Team::All().size() );
 
