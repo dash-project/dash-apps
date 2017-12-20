@@ -1605,9 +1605,6 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
     while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
 
-    vector<Level*> levels;
-    levels.reserve( howmanylevels );
-
     resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
     resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
     resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
@@ -1632,10 +1629,10 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     initboundary( *level );
 
-    initgrid( *levels.front()->src_grid );
-    markunits( *levels.front()->src_grid );
+    initgrid( *level->src_grid );
+    markunits( *level->src_grid );
 
-    writeToCsv( *levels.front()->src_grid );
+    writeToCsv( *level->src_grid );
 
     dash::barrier();
 
@@ -1650,12 +1647,12 @@ void do_flat_iteration( uint32_t howmanylevels ) {
             cout << j << ": smoothen grid without residual " << endl;
         }
         j++;
-        //writeToCsv( level->oldgrid );
+        writeToCsv( *level->src_grid );
     }
 
     minimon.stop( "smoothflatfixed", dash::Team::All().size() );
 
-    writeToCsv( *levels.front()->src_grid );
+    writeToCsv( *level->src_grid );
 
     minimon.start( "smoothflatresidual", dash::Team::All().size() );
 
@@ -1663,7 +1660,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     res.reset( dash::Team::All() );
 
     double epsilon= 0.001;
-    while ( res.get() > epsilon && j < 80 ) {
+    while ( res.get() > epsilon && j < 1000 ) {
 
         smoothen( *level, res );
 
@@ -1671,12 +1668,18 @@ void do_flat_iteration( uint32_t howmanylevels ) {
             cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
         j++;
-        //writeToCsv( level->oldgrid );
+        writeToCsv( *level->src_grid );
     }
 
     minimon.stop( "smoothflatresidual", dash::Team::All().size() );
 
-    writeToCsv( *levels.front()->src_grid );
+     if ( 0 == dash::myid() ) {
+
+        if ( ! check_symmetry( *level->src_grid, 0.001 ) ) {
+
+            cerr << "test for asymmetry of soution failed!" << endl;
+        }
+    }
 
     delete level;
     level= NULL;
