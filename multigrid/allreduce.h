@@ -48,7 +48,7 @@ public:
 
     /* can be used with a subteam of the team used in the constructor,
     does a barrier in the given team */
-    void collect( dash::Team& team ) {
+    void collect_and_spread( dash::Team& team ) {
         SCOREP_USER_FUNC()
         centralized.flush();
         team.barrier();
@@ -60,9 +60,12 @@ public:
           std::cout << std::endl;*/
           distributed.local[0] =
             *std::max_element(centralized.lbegin(), centralized.lbegin() + team.size());
+
+          for(auto i = 1; i < team.size(); ++i)
+            distributed.async[i].set(distributed.local[0]);
         }
     }
-
+#if 0
     /* broadcast the value from unit 0 to all units in the given team
     which might be a subteam of the team from constuction time */
     void asyncbroadcast( dash::Team& team ) {
@@ -76,7 +79,8 @@ public:
         }
     }
 
-    void waitbroadcast( dash::Team& team ) {
+#endif
+    void wait( dash::Team& team ) {
         SCOREP_USER_FUNC()
 
         distributed.async.flush();
@@ -85,7 +89,7 @@ public:
 
     /* send local residual to the correct place in unit 0's array,
     need to be followed by collect() eventually */
-    void asyncset( double* res, dash::Team& team ) {
+    void set( double* res, dash::Team& team ) {
         SCOREP_USER_FUNC()
       //std::cout << "TEST - " << team.myid() << " -> " << res << std::endl;
       if(team.myid() != 0)
