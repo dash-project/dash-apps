@@ -15,6 +15,9 @@
 #elif defined (DASH_TASKS_PREFETCH)
 #include "CholeskyTasksPrefetch.h"
 #define USE_TASKS 1
+#elif defined (DASH_TASKS_COPYIN)
+#include "CholeskyTasksCopyIn.h"
+#define USE_TASKS 1
 #elif defined (DASH_PREFETCH)
 #include "CholeskyPrefetch.h"
 #define USE_TASKS 0
@@ -45,6 +48,14 @@ void print_matrix(Block &block, size_t nx, size_t ny);
 int main(int argc, char **argv)
 {
   dash::init(&argc, &argv);
+
+  if (!dash::is_multithreaded()) {
+    if (dash::myid() == 0) {
+      std::cerr << "ERROR: Missing support for multi-threading!" << std::endl;
+    }
+    dash::finalize();
+    exit(1);
+  }
 
   //const size_t  N = 15 * dash::size();
 
