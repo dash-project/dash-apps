@@ -1469,7 +1469,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
     writeToCsvFullGrid( *(levels[0]->src_grid) );
 }
 
-
+/* elastic mode runs but still seems to have errors in it */
 void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     minimon.start( "setup", dash::Team::All().size() );
