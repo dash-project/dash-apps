@@ -72,12 +72,20 @@ public:
     HaloMatrixWrapperT* src_halo;
     HaloMatrixWrapperT* dst_halo;
 
+    /* coefficients for the smoothing step in z, y, x directions */
+    double rz, ry, rx;
 
-    Level( size_t d, size_t h, size_t w, dash::Team& team, TeamSpecT teamspec )
-      : _grid_1( SizeSpecT( d, h, w ),
+    /*** 
+    lz, ly, lx are the dimensions in meters of the grid excluding the boundary regions,
+    nz, ny, nx are th number of grid points per dimension, also excluding the boundary regions
+    */
+    Level( double lz, double ly, double lx, 
+           size_t nz, size_t ny, size_t nx, 
+           dash::Team& team, TeamSpecT teamspec )
+      : _grid_1( SizeSpecT( nz, ny, nx ),
             DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
             team, teamspec ),
-        _grid_2( SizeSpecT( d, h, w ),
+        _grid_2( SizeSpecT( nz, ny, nx ),
             DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
             team, teamspec ),
         _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
@@ -85,11 +93,37 @@ public:
         src_grid(&_grid_1), dst_grid(&_grid_2),
         src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
 
-        cout << "    new Level " << d << "x" << h << "x" << w <<
+        assert( 1 < nz );
+        assert( 1 < ny );
+        assert( 1 < nx );
+
+        /* 
+        stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+        */
+
+        double hz= lz/(nz-1);
+        double hy= ly/(ny-1);
+        double hx= lx/(nx-1);
+
+        double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
+
+        rz= dt/(hz*hz);
+        ry= dt/(hy*hy);
+        rx= dt/(hx*hx);
+
+        cout << "    new Level " << 
+            "dimensions " << lz << "m x " << ly << "m x " << lz << "m " <<
+            " in grid of " << nz << " x " << ny << " x " << nz <<
             " with team of " << team.size() <<
-            " global size " << _grid_1.extent(0) << "x" << _grid_1.extent(1) << "x" << _grid_1.extent(2) <<
-            " local size " << _grid_1.local.extent(0) << "x" << _grid_1.local.extent(1) << "x" << _grid_1.local.extent(2) <<
-            endl;
+            " global size " << _grid_1.extent(0) << " x " << _grid_1.extent(1) << " x " << _grid_1.extent(2) <<
+            " local size " << _grid_1.local.extent(0) << " x " << _grid_1.local.extent(1) << " x " << _grid_1.local.extent(2) <<
+            " --> dt= " << dt << " r_= " << rz << ", " << ry << ", " << rx << endl;
+
+
+        assert( rz <= 0.5 );
+        assert( ry <= 0.5 );
+        assert( rx <= 0.5 );
     }
 
     Level() = delete;
@@ -788,8 +822,13 @@ void smoothen( Level& level ) {
     size_t lh= level.src_grid->local.extent(1);
     size_t lw= level.src_grid->local.extent(2);
 
+    double rz= level.rz;
+    double ry= level.ry;
+    double rx= level.rx;
+    double rs= rz+ry+rx;
+
     /// relaxation coeff.
-    const double c= 1.0;
+    const double c= 0.2;
 
     // async halo update
     level.src_halo->update_async();
@@ -823,7 +862,16 @@ void smoothen( Level& level ) {
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
-                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_core ;
+                /* 
+                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+                */
+
+                double dtheta=
+                    *p_east * rx + *p_west * rx + 
+                    *p_north * ry + *p_south * ry + 
+                    *p_up * rz + *p_down * rz -
+                    *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
                 p_core++;
                 p_east++;
@@ -839,8 +887,7 @@ void smoothen( Level& level ) {
         core_offset += 2 * lw;
     }
 
-    minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
-        /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
+    minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // smooth_wait
     minimon.start();
@@ -898,8 +945,13 @@ double smoothen( Level& level, Allreduce& res ) {
 
     double localres= 0.0;
 
+    double rz= level.rz;
+    double ry= level.ry;
+    double rx= level.rx;
+    double rs= rz+ry+rx;
+
     /// relaxation coeff.
-    const double c= 1.0;
+    const double c= 0.2;
 
     // async halo update
     level.src_halo->update_async();
@@ -933,9 +985,17 @@ double smoothen( Level& level, Allreduce& res ) {
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
-                double dtheta= ( *p_east + *p_west + *p_north + *p_south + *p_up + *p_down ) / 6.0 - *p_core ;
+                /* 
+                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+                */
+
+                double dtheta=
+                    *p_east * rx + *p_west * rx + 
+                    *p_north * ry + *p_south * ry + 
+                    *p_up * rz + *p_down * rz -
+                    *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
-                localres= std::max( localres, std::fabs( dtheta ) );
                 p_core++;
                 p_east++;
                 p_west++;
@@ -950,8 +1010,7 @@ double smoothen( Level& level, Allreduce& res ) {
         core_offset += 2 * lw;
     }
 
-    minimon.stop( "smooth_res_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
-        /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
+    minimon.stop( "smooth_res_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // smooth_res_wait
     minimon.start();
@@ -1232,7 +1291,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
             " distributed over " << dash::Team::All().size() << " units " << endl;
     }
 
-    levels.push_back( new Level(
+    levels.push_back( new Level( 1.0, 1.0, 1.0,
         (1<<(howmanylevels))*factor_z ,
         (1<<(howmanylevels))*factor_y ,
         (1<<(howmanylevels))*factor_x ,
@@ -1263,10 +1322,11 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
         Level& previouslevel= *levels.back();
 
         levels.push_back(
-            new Level( (1<<(howmanylevels-l))*factor_z ,
-                        (1<<(howmanylevels-l))*factor_y ,
-                        (1<<(howmanylevels-l))*factor_x ,
-            dash::Team::All(), teamspec ) );
+            new Level( 1.0, 1.0, 1.0,
+                       (1<<(howmanylevels-l))*factor_z ,
+                       (1<<(howmanylevels-l))*factor_y ,
+                       (1<<(howmanylevels-l))*factor_x ,
+                       dash::Team::All(), teamspec ) );
 
         /* scaledown boundary instead of initializing it from the same
         procedure, because this is very prone to subtle mistakes which
@@ -1295,9 +1355,9 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     minimon.stop( "setup", dash::Team::All().size() );
 
-    v_cycle( levels.begin(), levels.end(), 10, 0.01, res );
+    v_cycle( levels.begin(), levels.end(), 200, 0.01, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 200, 0.001, res );
     dash::Team::All().barrier();
 
     res.reset( dash::Team::All() );
@@ -1352,7 +1412,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
             teamspec.num_units(2) << " units ()" << endl;
     }
 
-    levels.push_back( new Level(
+    levels.push_back( new Level( 1.0, 1.0, 1.0, 
         (1<<(howmanylevels))*factor_z ,
         (1<<(howmanylevels))*factor_y ,
         (1<<(howmanylevels))*factor_x ,
@@ -1383,7 +1443,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
                 localteamspec.num_units(2) << " units ()" << endl;
         }
 
-        levels.push_back(new Level(
+        levels.push_back(new Level( 1.0, 1.0, 1.0,
             (1<<(howmanylevels))*factor_z ,
             (1<<(howmanylevels))*factor_y ,
             (1<<(howmanylevels))*factor_x ,
@@ -1467,7 +1527,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
             " distributed over " << dash::Team::All().size() << " units " << endl;
     }
 
-    levels.push_back( new Level(
+    levels.push_back( new Level( 1.0, 1.0, 1.0, 
         (1<<(howmanylevels))*factor_z ,
         (1<<(howmanylevels))*factor_y ,
         (1<<(howmanylevels))*factor_x ,
@@ -1508,10 +1568,11 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                 }
 
                 levels.push_back(
-                    new Level( (1<<(howmanylevels-l+1))*factor_z ,
-                                (1<<(howmanylevels-l+1))*factor_y ,
-                                (1<<(howmanylevels-l+1))*factor_x ,
-                    currentteam, localteamspec ) );
+                    new Level( 1.0, 1.0, 1.0,
+                               (1<<(howmanylevels-l+1))*factor_z,
+                               (1<<(howmanylevels-l+1))*factor_y,
+                               (1<<(howmanylevels-l+1))*factor_x,
+                               currentteam, localteamspec ) );
             }
 
             /*
@@ -1536,10 +1597,11 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                 (1<<(howmanylevels-l))*factor_x < currentteam.size() * (1<<27) );
 
             levels.push_back(
-                new Level( (1<<(howmanylevels-l))*factor_z ,
-                            (1<<(howmanylevels-l))*factor_y ,
-                            (1<<(howmanylevels-l))*factor_x ,
-                currentteam, localteamspec ) );
+                new Level( 1.0, 1.0, 1.0,
+                           (1<<(howmanylevels-l))*factor_z ,
+                           (1<<(howmanylevels-l))*factor_y ,
+                           (1<<(howmanylevels-l))*factor_x ,
+                           currentteam, localteamspec ) );
 
             currentteam.barrier();
 
@@ -1580,9 +1642,9 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     minimon.stop( "setup", dash::Team::All().size() );
 
-    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 200, 0.01, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 10, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 200, 0.001, res );
     dash::Team::All().barrier();
 
     res.reset( dash::Team::All() );
@@ -1638,18 +1700,18 @@ void do_flat_iteration( uint32_t howmanylevels ) {
             endl << endl;
     }
 
-    Level* level= new Level(
-        (1<<(howmanylevels))*factor_z ,
-        (1<<(howmanylevels))*factor_y ,
-        (1<<(howmanylevels))*factor_x ,
-        dash::Team::All(), teamspec );
+    Level* level= new Level( 1.0, 1.0, 1.0,
+                             (1<<(howmanylevels))*factor_z ,
+                             (1<<(howmanylevels))*factor_y ,
+                             (1<<(howmanylevels))*factor_x ,
+                             dash::Team::All(), teamspec );
 
     dash::barrier();
 
     initboundary( *level );
 
     initgrid( *level->src_grid );
-    markunits( *level->src_grid );
+    //markunits( *level->src_grid );
 
     writeToCsv( *level->src_grid );
 
@@ -1659,7 +1721,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     minimon.start();
 
     uint32_t j= 0;
-    while ( j < 40 ) {
+    while ( j < 5*0 ) {
 
         smoothen( *level );
 
@@ -1681,7 +1743,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     res.reset( dash::Team::All() );
 
     double epsilon= 0.001;
-    while ( res.get() > epsilon && j < 1000 ) {
+    while ( res.get() > epsilon && j < 50 ) {
 
         smoothen( *level, res );
 
