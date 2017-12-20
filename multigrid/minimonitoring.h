@@ -44,17 +44,16 @@ public:
 
    MiniMon() = default;
 
-   void start( const char n[NAMELEN], uint32_t p, uint64_t e = 1,
-          uint64_t f = 0, uint64_t r = 0, uint64_t w = 0 ) {
+   void start() {
 
-      _entries.push({std::chrono::high_resolution_clock::now(), n, p, e, f, r ,w});
+      _entries.push(std::chrono::high_resolution_clock::now());
    }
 
    void stop( const char n[NAMELEN], uint32_t p, uint64_t e = 1,
          uint64_t f = 0, uint64_t r = 0, uint64_t w = 0 ) {
 
       auto& top = _entries.top();
-      _results.push_back({std::chrono::high_resolution_clock::now() - top.time,
+      _results.push_back({std::chrono::high_resolution_clock::now() - top,
           n, p, e, f, r, w });
       _entries.pop();
    }
@@ -70,11 +69,6 @@ public:
       file << "# Unit;Function_name;Par;Duration;Elements;Flops;Loads;Stores"
            << std::endl;
 
-      /* keep a set of past MiniMonT entries, compare only by name.
-       If step increases for the same name then also print the duration.
-      This does not work for recursive functions but is otherwise good enough. */
-
-
       for(const auto& result : _results) {
           file << id << ";" << result.name << ";" << result.par << ";"
                << std::setprecision(12) << result.diff.count() << ";"
@@ -88,8 +82,8 @@ public:
 
 
 private:
-   std::deque<ResultEntry>               _results;
-   std::stack<Entry, std::vector<Entry>> _entries;
+   std::deque<ResultEntry>                             _results;
+   std::stack<time_point_t, std::vector<time_point_t>> _entries;
 };
 
 #endif /* MINIMONITORING_H */

@@ -12,8 +12,8 @@
 
 #ifdef WITHCSVOUTPUT
 
-/* make it a shared value to keep it in sync over all units 
-even in elastic mode when some units take part in some iterations 
+/* make it a shared value to keep it in sync over all units
+even in elastic mode when some units take part in some iterations
 and some do not. Having everyone ++ it individually won't work anymore. */
 dash::Shared<uint32_t>* filenumber;
 
@@ -85,10 +85,10 @@ public:
         src_grid(&_grid_1), dst_grid(&_grid_2),
         src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
 
-        cout << "    new Level " << d << "x" << h << "x" << w << 
-            " with team of " << team.size() << 
-            " global size " << _grid_1.extent(0) << "x" << _grid_1.extent(1) << "x" << _grid_1.extent(2) << 
-            " local size " << _grid_1.local.extent(0) << "x" << _grid_1.local.extent(1) << "x" << _grid_1.local.extent(2) << 
+        cout << "    new Level " << d << "x" << h << "x" << w <<
+            " with team of " << team.size() <<
+            " global size " << _grid_1.extent(0) << "x" << _grid_1.extent(1) << "x" << _grid_1.extent(2) <<
+            " local size " << _grid_1.local.extent(0) << "x" << _grid_1.local.extent(1) << "x" << _grid_1.local.extent(2) <<
             endl;
     }
 
@@ -144,7 +144,7 @@ Here is still a slight shift in the output when the actual grid is larger than t
     size_t hl= grid.local.extent(1);
     size_t wl= grid.local.extent(2);
 
-    /* sync filenmuber but DON'T use filenumber->barrier(), because 
+    /* sync filenmuber but DON'T use filenumber->barrier(), because
     it my be called by a sub-team  */
     grid.barrier();
 
@@ -215,8 +215,8 @@ void writeToCsvFullGrid( const MatrixT& grid ) {
     size_t hl= grid.local.extent(1);
     size_t wl= grid.local.extent(2);
 
-    cout << "writeToCsvFullGrid " << 
-        dl << "," << hl << "," << wl << " of " << 
+    cout << "writeToCsvFullGrid " <<
+        dl << "," << hl << "," << wl << " of " <<
         d << "," << h << "," << w << endl;
 
     std::ofstream csvfile;
@@ -565,7 +565,9 @@ void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
 
     uint64_t par= finegrid.team().size();
     uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
-    minimon.start( "scaledown", par, param );
+
+    // scaledown
+    minimon.start();
 
     assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
     assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
@@ -625,7 +627,9 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 
     uint64_t par= coarsegrid.team().size();
     uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
-    minimon.start( "scaleup", par, param );
+
+    // scaleup
+    minimon.start();
 
     assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
     assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
@@ -775,7 +779,8 @@ void smoothen( Level& level ) {
 
     uint32_t par= level.src_grid->team().size();
 
-    minimon.start( "smoothen", par );
+    // smooth
+    minimon.start();
 
     level.src_grid->barrier();
 
@@ -789,7 +794,8 @@ void smoothen( Level& level ) {
     // async halo update
     level.src_halo->update_async();
 
-    minimon.start( "smooth_inner", par );
+    // smooth_inner
+    minimon.start();
 
     // update inner
 
@@ -836,15 +842,16 @@ void smoothen( Level& level ) {
     minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
-
-    minimon.start( "smooth_wait", par );
+    // smooth_wait
+    minimon.start();
 
     // wait for async halo update
     level.src_halo->wait();
 
     minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
 
-    minimon.start( "smooth_outer", par );
+    // smooth_outer
+    minimon.start();
 
     /// begin pointer of local block, needed because halo border iterator is read-only
     auto gridlocalbegin= level.dst_grid->lbegin();
@@ -863,7 +870,7 @@ void smoothen( Level& level ) {
 
     level.swap();
 
-    minimon.stop( "smoothen", par, /* elements */ ld*lh*lw,
+    minimon.stop( "smooth", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 }
 
@@ -878,9 +885,10 @@ if it is not NULL because then the expensive parallel reduction is just avoided.
 double smoothen( Level& level, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
-
     uint32_t par= level.src_grid->team().size();
-    minimon.start( "smoothen res", par );
+
+    // smooth_res
+    minimon.start();
 
     level.src_grid->barrier();
 
@@ -893,11 +901,11 @@ double smoothen( Level& level, Allreduce& res ) {
     /// relaxation coeff.
     const double c= 1.0;
 
-
     // async halo update
     level.src_halo->update_async();
 
-    minimon.start( "smooth_inner", par );
+    // smooth_res_inner
+    minimon.start();
 
     // update inner
 
@@ -942,22 +950,28 @@ double smoothen( Level& level, Allreduce& res ) {
         core_offset += 2 * lw;
     }
 
-    minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
+    minimon.stop( "smooth_res_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2),
         /* flops */ 9*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
-    minimon.start( "smooth_wait", par );
+    // smooth_res_wait
+    minimon.start();
     // wait for async halo update
-    level.src_halo->wait();
-    minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
 
-    minimon.start( "smooth_col_bc", par );
+    level.src_halo->wait();
+
+    minimon.stop( "smooth_res_wait", par, /* elements */ ld*lh*lw );
+
+    // smooth_res_col_bc
+    minimon.start();
+
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
     res.collect_and_spread( level.src_grid->team() );
 
-    minimon.stop( "smooth_col_bc", par );
+    minimon.stop( "smooth_res_col_bc", par );
 
-    minimon.start( "smooth_outer", par );
+    // smooth_res_outer
+    minimon.start();
 
     /// begin pointer of local block, needed because halo border iterator is read-only
     auto gridlocalbegin= level.dst_grid->lbegin();
@@ -972,10 +986,11 @@ double smoothen( Level& level, Allreduce& res ) {
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
-    minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
+    minimon.stop( "smooth_res_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
-    minimon.start( "smooth_wait_set", par );
+    // smooth_res_wait_set
+    minimon.start();
 
     res.wait( level.src_grid->team() );
 
@@ -984,11 +999,11 @@ double smoothen( Level& level, Allreduce& res ) {
 
     res.set( &localres, level.src_grid->team() );
 
-    minimon.stop( "smooth_wait_set", par );
+    minimon.stop( "smooth_res_wait_set", par );
 
     level.swap();
 
-    minimon.stop( "smoothen res", par, /* elements */ ld*lh*lw,
+    minimon.stop( "smooth_res", par, /* elements */ ld*lh*lw,
         /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 
     return oldres;
@@ -1142,7 +1157,9 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
     uint64_t par= level.src_grid->team().size() ;
-    minimon.start( "smoothfinal", par );
+
+    // smooth_final
+    minimon.start();
 
     uint32_t j= 0;
     while ( res.get() > epsilon ) {
@@ -1155,14 +1172,15 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
         j++;
     }
 
-    minimon.stop( "smoothfinal", par );
+    minimon.stop( "smooth_final", par );
 }
 
 
 void do_multigrid_iteration( uint32_t howmanylevels ) {
     SCOREP_USER_FUNC()
 
-    minimon.start( "setup", dash::Team::All().size() );
+    // setup
+    minimon.start();
 
     TeamSpecT teamspec{};
     teamspec.balance_extents();
@@ -1341,7 +1359,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
         firstteam, teamspec ) );
 
     /* init with 42.0 */
-    dash::fill( levels.back()->src_grid->begin(), 
+    dash::fill( levels.back()->src_grid->begin(),
         levels.back()->src_grid->end(), 42.0 );
     writeToCsvFullGrid( *(levels[0]->src_grid) );
 
@@ -1365,20 +1383,20 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
                 localteamspec.num_units(2) << " units ()" << endl;
         }
 
-        levels.push_back(new Level( 
+        levels.push_back(new Level(
             (1<<(howmanylevels))*factor_z ,
             (1<<(howmanylevels))*factor_y ,
             (1<<(howmanylevels))*factor_x ,
             currentteam, localteamspec ) );
 
-        dash::fill( levels[1]->src_grid->begin(), 
+        dash::fill( levels[1]->src_grid->begin(),
             levels[1]->src_grid->end(), 0.0 );
 
         transfertofewer( *(levels[0]), *(levels[1]) );
 
         writeToCsvFullGrid( *(levels[1]->src_grid) );
 
-        dash::fill( levels[1]->src_grid->begin(), 
+        dash::fill( levels[1]->src_grid->begin(),
             levels[1]->src_grid->end(), 43.0 );
 
         transfertomore( *(levels[1]), *(levels[0]) );
@@ -1396,7 +1414,8 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
 /* elastic mode runs but still seems to have errors in it */
 void do_multigrid_elastic( uint32_t howmanylevels ) {
 
-    minimon.start( "setup", dash::Team::All().size() );
+    // setup
+    minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -1636,7 +1655,8 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     dash::barrier();
 
-    minimon.start( "smoothflatfixed", dash::Team::All().size() );
+    // smoothflatfixed
+    minimon.start();
 
     uint32_t j= 0;
     while ( j < 40 ) {
@@ -1654,7 +1674,8 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     writeToCsv( *level->src_grid );
 
-    minimon.start( "smoothflatresidual", dash::Team::All().size() );
+    // smoothflatresidual
+    minimon.start();
 
     Allreduce res( dash::Team::All() );
     res.reset( dash::Team::All() );
@@ -1688,9 +1709,11 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
 int main( int argc, char* argv[] ) {
 
-    minimon.start( "main", dash::Team::All().size() );
+    // main
+    minimon.start();
 
-    minimon.start( "dash::init", dash::Team::All().size() );
+    // dash::init
+    minimon.start();
     dash::init(&argc, &argv);
     auto id= dash::myid();
     minimon.stop( "dash::init", dash::Team::All().size() );
@@ -1783,9 +1806,11 @@ int main( int argc, char* argv[] ) {
 
 #endif /* WITHCSVOUTPUT */
 
-    minimon.start( "dash::finalize", dash::Team::All().size() );
+    // dash::finalize
+    minimon.start();
 
     dash::finalize();
+
     minimon.stop( "dash::finalize", dash::Team::All().size() );
 
     minimon.stop( "main", dash::Team::All().size() );
