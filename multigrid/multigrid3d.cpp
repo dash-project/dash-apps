@@ -159,11 +159,7 @@ defined by the previous three global variables. So an animations of the
 multigrid procedure is possible. */
 void writeToCsv( const MatrixT& grid ) {
 
-/* TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-
-Here is still a slight shift in the output when the actual grid is larger than the output grid!
-
-*/
+// TODO Here is still a slight shift in the output when the actual grid is larger than the output grid 
 
 #ifdef WITHCSVOUTPUT
 
