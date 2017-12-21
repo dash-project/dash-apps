@@ -104,7 +104,7 @@ int main(int argc, char **argv)
   }
 
 #if defined(CHECK_RESULT)
-  TiledMatrix matrix_single(num_elem, num_elem,
+  decltype(matrix) matrix_single(num_elem, num_elem,
                             dash::TILE(block_size), dash::TILE(block_size));
   // copy the matrix before compute
   std::copy(matrix.lbegin(), matrix.lend(), matrix_single.lbegin());
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 static
 void fill_random(TiledMatrix &matrix)
 {
-#if 0 /*defined(DEBUG) || defined(CHECK_RESULT)*/
+#if defined(DEBUG) || defined(CHECK_RESULT)
   // have unit 0 fill the whole matrix
   //int c = 0;
   if (dash::myid() == 0)
@@ -182,6 +182,13 @@ void fill_random(TiledMatrix &matrix)
       }
     });
   dash::tasks::complete();
+#elif defined(FAST_INIT) && defined(_OPENMP)
+  auto lbegin = matrix.lbegin();
+  constexpr int rand_max = 100;
+#pragma omp parallel for
+  for (size_t i = 0; i < matrix.local_size(); ++i) {
+    lbegin[i] = (rand())%(rand_max);
+  }
 #else
   constexpr int rand_max = 100;
   for (auto it = matrix.lbegin(); it != matrix.lend(); ++it) {
