@@ -1743,7 +1743,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
         smoothen( *level );
 
-        if ( 0 == dash::myid() ) {
+        if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
             cout << j << ": smoothen grid without residual " << endl;
         }
         j++;
@@ -1761,11 +1761,11 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     res.reset( dash::Team::All() );
 
     double epsilon= 0.001;
-    while ( res.get() > epsilon && j < 50 ) {
+    while ( res.get() > epsilon && j < 100 ) {
 
         smoothen( *level, res );
 
-        if ( 0 == dash::myid() ) {
+        if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
             cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
         j++;
