@@ -8,7 +8,7 @@
 #include "common.h"
 #include "ExtraeInstrumentation.h"
 
-constexpr const char *CHOLESKY_IMPL = "CholeskyTasksPrefetch";
+constexpr const char *CHOLESKY_IMPL = "CholeskyOpenMPPrefetch";
 
 template<typename TiledMatrix>
 void
@@ -34,6 +34,8 @@ compute(TiledMatrix& matrix, size_t block_size){
   std::cout << "blocks_ki_pre: " << blocks_ki_pre << std::endl;
   std::cout << "matrix.lbegin: " << matrix.lbegin() << std::endl;
 
+  int barrier_sentinel; // dummy variable for barrier synchronization
+
   /**
    * Algorithm taken from
    * https://pm.bsc.es/ompss-docs/examples/01-examples/cholesky
@@ -44,6 +46,10 @@ compute(TiledMatrix& matrix, size_t block_size){
 
   Timer t_c;
 
+#pragma omp parallel shared(matrix, barrier_sentinel)
+{
+#pragma omp master
+{
   // iterate over column of blocks
   for (size_t k = 0; k < num_blocks; ++k) {
 
@@ -53,20 +59,28 @@ compute(TiledMatrix& matrix, size_t block_size){
      * Compute cholesky factorization of block on diagonal
      */
     if (block_k.is_local()) {
+      auto block_k_ptr = block_k.lbegin();
+#pragma omp task depend(out:block_k_ptr, barrier_sentinel) firstprivate(block_k)
+      {
         EXTRAE_ENTER(EVENT_POTRF);
         std::cout << "[" << dash::myid() << ", " << omp_get_thread_num() << "] potrf() on row " << k << "/" << num_blocks << ": ";
-        potrf(block_k.lbegin(), block_size, block_size);
+        potrf(block_k_ptr, block_size, block_size);
         std::cout << "Done." << std::endl;
         EXTRAE_EXIT(EVENT_POTRF);
+      }
     }
-    dash::barrier();
+
+#pragma omp task depend(out: barrier_sentinel)
+    {dash::barrier();}
 
     // prefetch block_k after it has been computed
+#pragma omp task depend(out: block_k_pre) depend(in: barrier_sentinel) firstprivate(block_k_pre, block_k)
+  {
     EXTRAE_ENTER(EVENT_PREFETCH);
     dash::dart_storage<value_t> ds(block_size*block_size);
     dart_get_blocking(block_k_pre, block_k.begin().dart_gptr(), ds.nelem, ds.dtype);
     EXTRAE_EXIT(EVENT_PREFETCH);
-
+  }
     std::map<size_t, value_t*> prefetch_blocks;
 
     /**
@@ -76,17 +90,18 @@ compute(TiledMatrix& matrix, size_t block_size){
     for (int i = k+1; i < num_blocks; ++i) {
       Block block_b(matrix, k, i);
       if (block_b.is_local()) {
-#pragma omp task firstprivate(block_k_pre, block_b)
-{
+        auto block_b_ptr = block_b.lbegin();
+#pragma omp task depend(in: block_k_pre, block_b_ptr, barrier_sentinel) firstprivate(block_k_pre, block_b_ptr)
+  {
         EXTRAE_ENTER(EVENT_TRSM);
         trsm(block_k_pre,
-            block_b.lbegin(), block_size, block_size);
+             block_b_ptr, block_size, block_size);
         EXTRAE_EXIT(EVENT_TRSM);
-}
+  }
       }
     }
-#pragma omp taskwait
-    dash::barrier();
+#pragma omp task depend(out: barrier_sentinel)
+    {dash::barrier();}
 
     /**
      * Prefetch required blocks
@@ -108,7 +123,7 @@ compute(TiledMatrix& matrix, size_t block_size){
                 std::make_pair(j, block_kj.lbegin()));
             } else {
               value_t* block_kj_pre = &blocks_ki_pre[j*block_size*block_size];
-#pragma omp task firstprivate(block_kj_pre, block_kj) depend(out: *block_kj_pre)
+#pragma omp task firstprivate(block_kj_pre, block_kj) depend(out: block_kj_pre[0]) depend(in: barrier_sentinel)
 {
                   EXTRAE_ENTER(EVENT_PREFETCH);
                   block_kj.fetch_async(block_kj_pre);
@@ -131,7 +146,7 @@ compute(TiledMatrix& matrix, size_t block_size){
             } else {
               // pre-fetch
               value_t* block_ki_pre = &blocks_ki_pre[i*block_size*block_size];
-#pragma omp task depend(out: *block_ki_pre) firstprivate(block_ki_pre, block_ki)
+#pragma omp task depend(out: block_ki_pre[0]) firstprivate(block_ki_pre, block_ki) depend(in: barrier_sentinel)
 {
                   EXTRAE_ENTER(EVENT_PREFETCH);
                   block_ki.fetch_async(block_ki_pre);
@@ -160,7 +175,7 @@ compute(TiledMatrix& matrix, size_t block_size){
           } else {
             // pre-fetch
             value_t* block_ki_pre = &blocks_ki_pre[i*block_size*block_size];
-#pragma omp task depend(out: *block_ki_pre) firstprivate(block_ki_pre, block_ki)
+#pragma omp task depend(out: block_ki_pre[0]) firstprivate(block_ki_pre, block_ki) depend(in: barrier_sentinel)
 {
                 EXTRAE_ENTER(EVENT_PREFETCH);
                 block_ki.fetch_async(block_ki_pre);
@@ -192,7 +207,7 @@ compute(TiledMatrix& matrix, size_t block_size){
           value_t* block_b_pre = prefetch_blocks[j];
           value_t* block_c_pre = block_c.lbegin();
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t#
-#pragma omp task depend(in: *block_a_pre, *block_b_pre) depend(out: *block_c_pre) firstprivate(block_a_pre, block_b_pre, block_c_pre)
+#pragma omp task depend(in: block_a_pre[0], block_b_pre[0], barrier_sentinel) depend(out: block_c_pre[0]) firstprivate(block_a_pre, block_b_pre, block_c_pre)
 {
               EXTRAE_ENTER(EVENT_GEMM);
               gemm(block_a_pre,
@@ -211,7 +226,7 @@ compute(TiledMatrix& matrix, size_t block_size){
         assert(prefetch_blocks.find(i) != prefetch_blocks.end());
         value_t* block_a_pre = prefetch_blocks[i];
         value_t* block_i_pre = block_i.lbegin();
-#pragma omp task depend(in: *block_a_pre, *block_i_pre) firstprivate(block_a_pre, block_i_pre)
+#pragma omp task depend(in: block_a_pre[0], block_i_pre[0], barrier_sentinel) firstprivate(block_a_pre, block_i_pre)
 {
             EXTRAE_ENTER(EVENT_SYRK);
             syrk(block_a_pre,
@@ -220,9 +235,11 @@ compute(TiledMatrix& matrix, size_t block_size){
 }
       }
     }
-#pragma omp taskwait
-    dash::barrier();
+#pragma omp task depend(out: barrier_sentinel)
+    {dash::barrier();}
   }
+} // pragma omp master
+} // pragma omp parallel
 
   delete[] block_k_pre;
   delete[] blocks_ki_pre;
