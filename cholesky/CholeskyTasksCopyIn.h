@@ -130,8 +130,8 @@ compute(TiledMatrix& matrix, size_t block_size){
                               ? block_b.lbegin()
                               : &blocks_ki_pre[j*block_size*block_size];
           auto block_b_dep = block_b.is_local()
-                              ? dash::tasks::in(block_a)
-                              : dash::tasks::copyin(block_b, block_size*block_size, block_a_pre);
+                              ? dash::tasks::in(block_b)
+                              : dash::tasks::copyin(block_b, block_size*block_size, block_b_pre);
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t
           dash::tasks::async(
             [=]() mutable {
