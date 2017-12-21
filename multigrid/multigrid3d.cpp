@@ -903,18 +903,21 @@ void smoothen( Level& level ) {
     // update border area
     for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
-        double dtheta= ( it.value_at(0) + it.value_at(1) +
-            it.value_at(2) + it.value_at(3) + it.value_at(4) + it.value_at(5) ) / 6.0 - *it;
+        double dtheta= 
+            it.value_at(4) * rx + it.value_at(5) * rx +
+            it.value_at(2) * ry + it.value_at(3) * ry + 
+            it.value_at(0) * rz + it.value_at(1) * rz -
+            *it * 2 * rs ;
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
     }
 
     minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
-        /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
+        /* flops */ 16*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
     level.swap();
 
     minimon.stop( "smooth", par, /* elements */ ld*lh*lw,
-        /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
+        /* flops */ 16*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 }
 
 
@@ -1035,14 +1038,18 @@ double smoothen( Level& level, Allreduce& res ) {
     // update border area
     for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
-        double dtheta= ( it.value_at(0) + it.value_at(1) +
-            it.value_at(2) + it.value_at(3) + it.value_at(4) + it.value_at(5) ) / 6.0 - *it;
+        double dtheta= 
+            it.value_at(4) * rx + it.value_at(5) * rx +
+            it.value_at(2) * ry + it.value_at(3) * ry + 
+            it.value_at(0) * rz + it.value_at(1) * rz -
+            *it * 2 * rs ;
+
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
     minimon.stop( "smooth_res_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
-        /* flops */ 9*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
+        /* flops */ 16*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
     // smooth_res_wait_set
     minimon.start();
@@ -1059,7 +1066,7 @@ double smoothen( Level& level, Allreduce& res ) {
     level.swap();
 
     minimon.stop( "smooth_res", par, /* elements */ ld*lh*lw,
-        /* flops */ 9*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
+        /* flops */ 16*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 
     return oldres;
 }
@@ -1086,11 +1093,12 @@ void v_cycle( Iterator it, Iterator itend,
 
         /* smoothen completely  */
         uint32_t j= 0;
+        res.reset( (*it)->src_grid->team() );
         while ( res.get() > epsilon ) {
             /* need global residual for iteration count */
             smoothen( **it, res );
 
-            if ( 0 == dash::myid() ) {
+            if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
                 cout << j << ": smoothen coarsest with residual " << res.get() << endl;
             }
             j++;
@@ -1160,7 +1168,7 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* normal recursion */
 
-    /* smoothen somewhat with fixed number of iterations */
+    /* on the way down smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
@@ -1199,10 +1207,26 @@ void v_cycle( Iterator it, Iterator itend,
     scaleup( src_grid_next, src_grid );
     writeToCsv( src_grid );
 
-    /* smoothen somewhat with fixed number of iterations */
+    /* on the way up it ought to solve the grid rather completley, 
+    thus repeat until rey < eps here too.*/
+
+    uint32_t j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon ) {
+
+        smoothen( **it, res );
+
+        if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
+            cout << j << ": smoothen on way up with residual " << res.get() << endl;
+        }
+        j++;
+    }
+
+    /* ... before that was a fixed number of iterations just like on the way down.
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
+    */
 
     writeToCsv( src_grid );
 }
@@ -1217,6 +1241,7 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     minimon.start();
 
     uint32_t j= 0;
+    res.reset( level.src_grid->team() );
     while ( res.get() > epsilon ) {
 
         smoothen( level, res );
@@ -1346,17 +1371,14 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     dash::Team::All().barrier();
 
     Allreduce res( dash::Team::All() );
-    // already done in constructor of Allreduce
-    //res.reset( dash::Team::All() );
 
     minimon.stop( "setup", dash::Team::All().size() );
 
-    v_cycle( levels.begin(), levels.end(), 200, 0.01, res );
+    v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 200, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
 
-    res.reset( dash::Team::All() );
     smoothen_final( *levels.front(), 0.001, res );
     for ( int i= 0; i < 5; ++i ) {
         writeToCsv( *levels.front()->src_grid );
@@ -1717,7 +1739,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     minimon.start();
 
     uint32_t j= 0;
-    while ( j < 5*0 ) {
+    while ( j < 50 ) {
 
         smoothen( *level );
 
