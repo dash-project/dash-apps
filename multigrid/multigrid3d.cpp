@@ -995,6 +995,7 @@ double smoothen( Level& level, Allreduce& res ) {
                     *p_up * rz + *p_down * rz -
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
+                localres= std::max( localres, std::fabs( dtheta ) );
                 p_core++;
                 p_east++;
                 p_west++;
