@@ -743,9 +743,7 @@ cout << "    src  global dist " << source.src_grid->end() - source.src_grid->beg
 
     /* Can I do this any cleverer than loops over the n-1 non-contiguous
     dimensions and then a dash::copy for the 1 contiguous dimension? */
-
-    
-
+/*
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
             for ( uint32_t x= 0; x < sizes[2]; x++ ) {
@@ -754,26 +752,18 @@ cout << "    src  global dist " << source.src_grid->end() - source.src_grid->beg
             }
         }
     }
-
-    /*
-    double buf[512];
-
+*/
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
 
-            cout << "copy " << corner[0]+z << "," << corner[1]+y << "," <<corner[2] << " -- " <<
-                corner[0]+z << "," << corner[1]+y << "," << corner[2] + sizes[2] << " == " <<
-                ((corner[0]+z)*sizes[1]+y)*sizes[2] << " - " << ((corner[0]+z)*sizes[1]+y)*sizes[2]+sizes[2] << endl;
-
             auto start= source.src_grid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
-
             std::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
+
             //dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
-            //dash::copy( start, start + sizes[2], buf );
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
         }
     }
-*/
+
 }
 
 
@@ -802,13 +792,25 @@ cout << "    src  local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin
 cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
 
     /* stupid but functional version for the case with only one unit in the smaller team, very slow individual accesses */
-
+/*
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
             for ( uint32_t x= 0; x < sizes[2]; x++ ) {
 
                 (*dest.src_grid)(z,y,x)= (*source.src_grid)(z,y,x);
             }
+        }
+    }
+*/
+    for ( uint32_t z= 0; z < sizes[0]; z++ ) {
+        for ( uint32_t y= 0; y < sizes[1]; y++ ) {
+
+            double* start= &source.src_grid->local[z][y][0];
+            auto to= dest.src_grid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
+            std::copy( start, start + sizes[2], to );
+
+            //dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
+            //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
         }
     }
 
@@ -1186,7 +1188,8 @@ void v_cycle( Iterator it, Iterator itend,
         return;
     }
 
-    /* normal recursion */
+
+    /* **** normal recursion **** **** **** **** **** **** **** **** **** */
 
 
     /* on the way down smoothen somewhat with fixed number of iterations */
@@ -1591,7 +1594,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     for ( uint32_t l= 1; l < howmanylevels; l++ ) {
 
         dash::Team& previousteam= levels.back()->src_grid->team();
-        dash::Team& currentteam= ( 4 == l ) ? previousteam.split(4) : previousteam;
+        dash::Team& currentteam= ( 5 == l || 4 == l ) ? previousteam.split(2) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
 
