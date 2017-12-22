@@ -2,6 +2,12 @@
 
 # if present, the first command line argument is used as a label. It should not contain spaces.
 
+
+cat trace_0*.csv >"trace"$1".csv"
+rm -Rf trace_0*.csv
+
+ls image_unit0.csv.* 2>/dev/null || exit 0
+
 for i in image_unit0.csv.*; do
     NUM=`echo $i|sed -e 's/image_unit0.csv.//'`
     echo -n $NUM" "
@@ -9,6 +15,3 @@ for i in image_unit0.csv.*; do
     sort -n -m "image_unit"*".csv."$NUM > "image_"$1".csv."$NUM
     rm "image_unit"*".csv."$NUM
 done
-
-cat trace_0*.csv >"trace"$1".csv"
-rm -Rf trace_0*.csv
