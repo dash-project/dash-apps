@@ -741,15 +741,21 @@ cout << "    dest global dist " << dest.src_grid->end() - dest.src_grid->begin()
 cout << "    src  local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
 cout << "    src  global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
 
-    /* stupid but functional version for the case with only one unit in the smaller team,
-    very slow individual accesses */
-    std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
-
-#if 0
-
     /* Can I do this any cleverer than loops over the n-1 non-contiguous
     dimensions and then a dash::copy for the 1 contiguous dimension? */
 
+    
+
+    for ( uint32_t z= 0; z < sizes[0]; z++ ) {
+        for ( uint32_t y= 0; y < sizes[1]; y++ ) {
+            for ( uint32_t x= 0; x < sizes[2]; x++ ) {
+
+                (*dest.src_grid)(z,y,x)= (*source.src_grid)(z,y,x);
+            }
+        }
+    }
+
+    /*
     double buf[512];
 
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
@@ -761,12 +767,13 @@ cout << "    src  global dist " << source.src_grid->end() - source.src_grid->beg
 
             auto start= source.src_grid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
 
-            dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
+            std::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
+            //dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
             //dash::copy( start, start + sizes[2], buf );
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
         }
     }
-#endif /* 0 */
+*/
 }
 
 
@@ -794,9 +801,18 @@ cout << "    dest global dist " << source.src_grid->end() - source.src_grid->beg
 cout << "    src  local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
 cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
 
-    /* stupid but functional version for the case with only one unit in the smaller team,
-    very slow individual accesses */
-    std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
+    /* stupid but functional version for the case with only one unit in the smaller team, very slow individual accesses */
+
+    for ( uint32_t z= 0; z < sizes[0]; z++ ) {
+        for ( uint32_t y= 0; y < sizes[1]; y++ ) {
+            for ( uint32_t x= 0; x < sizes[2]; x++ ) {
+
+                (*dest.src_grid)(z,y,x)= (*source.src_grid)(z,y,x);
+            }
+        }
+    }
+
+    //std::copy( source.src_grid->begin(), source.src_grid->end(), dest.src_grid->begin() );
 }
 
 
@@ -1081,6 +1097,7 @@ void v_cycle( Iterator it, Iterator itend,
         uint32_t numiter, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
+
     if ( 0 == dash::myid() ) {
         const auto& extents = (*it)->src_grid->extents();
         cout << "v-cycle on  " <<
@@ -1171,6 +1188,7 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* normal recursion */
 
+
     /* on the way down smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
@@ -1219,7 +1237,7 @@ void v_cycle( Iterator it, Iterator itend,
 
         smoothen( **it, res );
 
-        if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
+        if ( 0 == dash::myid() /* && ( 1 == j % 10 ) */ ) {
             cout << j << ": smoothen on way up with residual " << res.get() << endl;
         }
         j++;
@@ -1265,7 +1283,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     // setup
     minimon.start();
 
-    TeamSpecT teamspec{};
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
 
     /* determine factors for width and height such that every unit has a power of two
@@ -1312,7 +1330,10 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
             (1<<(howmanylevels))*factor_z << "x" <<
             (1<<(howmanylevels))*factor_y << "x" <<
             (1<<(howmanylevels))*factor_x <<
-            " distributed over " << dash::Team::All().size() << " units " << endl;
+            " distributed over " <<
+            teamspec.num_units(0) << "x" <<
+            teamspec.num_units(1) << "x" <<
+            teamspec.num_units(2) << " units" << endl;
     }
 
     levels.push_back( new Level( 1.0, 1.0, 1.0,
@@ -1334,7 +1355,10 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
                 (1<<(howmanylevels-l))*factor_z << "x" <<
                 (1<<(howmanylevels-l))*factor_y << "x" <<
                 (1<<(howmanylevels-l))*factor_x <<
-                " distributed over " << dash::Team::All().size() << " units " << endl;
+                " distributed over " <<
+                teamspec.num_units(0) << "x" <<
+                teamspec.num_units(1) << "x" <<
+                teamspec.num_units(2) << " units" << endl;
         }
 
         /* do not try to allocate >= 8GB per core -- try to prevent myself
@@ -1355,7 +1379,11 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
         /* scaledown boundary instead of initializing it from the same
         procedure, because this is very prone to subtle mistakes which
         makes the entire multigrid algorithm misbehave. */
-        scaledownboundary( previouslevel, *levels.back() );
+        //scaledownboundary( previouslevel, *levels.back() );
+
+        /* as a test do initboundary instead of scaledownboundary to make it 
+        identical to the elastic case */
+        initboundary( *levels.back() );
 
         dash::barrier();
     }
@@ -1381,11 +1409,8 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     dash::Team::All().barrier();
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
-
     smoothen_final( *levels.front(), 0.001, res );
-    for ( int i= 0; i < 5; ++i ) {
-        writeToCsv( *levels.front()->src_grid );
-    }
+    writeToCsv( *levels.front()->src_grid );
 
     dash::Team::All().barrier();
 
@@ -1430,7 +1455,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
             " distributed over " <<
             teamspec.num_units(0) << "x" <<
             teamspec.num_units(1) << "x" <<
-            teamspec.num_units(2) << " units ()" << endl;
+            teamspec.num_units(2) << " units" << endl;
     }
 
     levels.push_back( new Level( 1.0, 1.0, 1.0, 
@@ -1545,7 +1570,10 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
             (1<<(howmanylevels))*factor_z << "x" <<
             (1<<(howmanylevels))*factor_y << "x" <<
             (1<<(howmanylevels))*factor_x <<
-            " distributed over " << dash::Team::All().size() << " units " << endl;
+            " distributed over " <<
+            teamspec.num_units(0) << "x" <<
+            teamspec.num_units(1) << "x" <<
+            teamspec.num_units(2) << " units" << endl;
     }
 
     levels.push_back( new Level( 1.0, 1.0, 1.0, 
@@ -1585,7 +1613,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                         " distributed over " <<
                         localteamspec.num_units(0) << "x" <<
                         localteamspec.num_units(1) << "x" <<
-                        localteamspec.num_units(2) << " units ()" << endl;
+                        localteamspec.num_units(2) << " units" << endl;
                 }
 
                 levels.push_back(
@@ -1594,6 +1622,8 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                                (1<<(howmanylevels-l+1))*factor_y,
                                (1<<(howmanylevels-l+1))*factor_x,
                                currentteam, localteamspec ) );
+                initboundary( *levels.back() );
+
             }
 
             /*
@@ -1608,7 +1638,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                     " distributed over " <<
                     localteamspec.num_units(0) << "x" <<
                     localteamspec.num_units(1) << "x" <<
-                    localteamspec.num_units(2) << " units ()" << endl;
+                    localteamspec.num_units(2) << " units" << endl;
             }
 
             /* do not try to allocate >= 8GB per core -- try to prevent myself
@@ -1623,8 +1653,6 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                            (1<<(howmanylevels-l))*factor_y ,
                            (1<<(howmanylevels-l))*factor_x ,
                            currentteam, localteamspec ) );
-
-            currentteam.barrier();
 
             /* should use scaledownboundary() but it is more complicated here
             ... let's find out which is better in the end */
@@ -1659,20 +1687,15 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     dash::Team::All().barrier();
 
     Allreduce res( dash::Team::All() );
-    res.reset( dash::Team::All() );
 
     minimon.stop( "setup", dash::Team::All().size() );
 
-    v_cycle( levels.begin(), levels.end(), 200, 0.01, res );
+    v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
     dash::Team::All().barrier();
-    v_cycle( levels.begin(), levels.end(), 200, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
-
-    res.reset( dash::Team::All() );
     smoothen_final( *levels.front(), 0.001, res );
-    for ( int i= 0; i < 5; ++i ) {
-        writeToCsv( *levels.front()->src_grid );
-    }
+    writeToCsv( *levels.front()->src_grid );
 
     dash::Team::All().barrier();
 
@@ -1761,7 +1784,6 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     minimon.start();
 
     Allreduce res( dash::Team::All() );
-    res.reset( dash::Team::All() );
 
     double epsilon= 0.001;
     while ( res.get() > epsilon && j < 100 ) {
