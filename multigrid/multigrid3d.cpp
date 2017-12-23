@@ -75,6 +75,9 @@ public:
     /* coefficients for the smoothing step in z, y, x directions */
     double rz, ry, rx;
 
+    /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
+    double sz, sy, sx;
+
     /*** 
     lz, ly, lx are the dimensions in meters of the grid excluding the boundary regions,
     nz, ny, nx are th number of grid points per dimension, also excluding the boundary regions
@@ -112,6 +115,10 @@ public:
         ry= dt/(hy*hy);
         rx= dt/(hx*hx);
 
+        sz= lz;
+        sy= ly;
+        sx= lx;
+        
         cout << "    new Level " << 
             "dimensions " << lz << "m x " << ly << "m x " << lz << "m " <<
             " in grid of " << nz << " x " << ny << " x " << nz <<
@@ -187,7 +194,7 @@ void writeToCsv( const Level& level ) {
 
     grid.barrier();
     if ( 0 == dash::myid() ) {
-        csvfile << " z coord, y coord, x coord, heat" << "\n";
+        csvfile << " z-index,y-index,x-index,z-coord,y-coord,x-coord,heat" << "\n";
         filenumber->set( 1 + (uint32_t) filenumber->get()  );
     }
     grid.barrier();
@@ -217,9 +224,13 @@ void writeToCsv( const Level& level ) {
         for ( size_t y = 0; y < localResolutionForCSVh; ++y ) {
             for ( size_t x = 0; x < localResolutionForCSVw; ++x ) {
 
-                csvfile << setfill('0') << setw(4) << corner[0]+z << "," <<
+                csvfile << 
+                    setfill('0') << setw(4) << corner[0]+z << "," <<
                     setfill('0') << setw(4) << corner[1]+y << "," <<
                     setfill('0') << setw(4) << corner[2]+x << "," <<
+                    (double) level.sz * (corner[0]+z) / (resolutionForCSVd-1) << "," <<
+                    (double) level.sy * (corner[1]+y) / (resolutionForCSVh-1) << "," <<
+                    (double) level.sx * (corner[2]+x) / (resolutionForCSVw-1) << "," <<
                     (double) grid.local[ muld*z/divd ][ mulh*y/divh ][ mulw*x/divw ] << "\n";
             }
         }
