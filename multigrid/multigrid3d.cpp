@@ -1148,43 +1148,41 @@ void v_cycle( Iterator it, Iterator itend,
         return;
     }
 
-    auto& src_grid      = (*it)->src_halo->matrix();
-    auto& src_grid_next = (*itnext)->src_halo->matrix();
     /* stepped on a transfer level? */
-    if ( src_grid.team().size() != src_grid_next.team().size() ) {
+    if ( (*it)->src_grid->team().size() != (*itnext)->src_grid->team().size() ) {
 
         /* only the members of the reduced team need to work, all others do siesta. */
         //if ( 0 == (*itnext)->grid.team().position() )
-        assert( 0 == src_grid_next.team().position() );
+        assert( 0 == (*itnext)->src_grid->team().position() );
         {
 
             cout << "transfer to " <<
-                src_grid.extent(2) << "x" <<
-                src_grid.extent(1) << "x" <<
-                src_grid.extent(0) << " with " << src_grid.team().size() << " units "
+                (*it)->src_grid->extent(2) << "x" <<
+                (*it)->src_grid->extent(1) << "x" <<
+                (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units "
                 " --> " <<
-                src_grid_next.extent(2) << "x" <<
-                src_grid_next.extent(1) << "x" <<
-                src_grid_next.extent(0) << " with " << src_grid_next.team().size() << " units " << endl;
+                (*itnext)->src_grid->extent(2) << "x" <<
+                (*itnext)->src_grid->extent(1) << "x" <<
+                (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units " << endl;
 
             transfertofewer( **it, **itnext );
 
             v_cycle( itnext, itend, numiter, epsilon, res );
 
             cout << "transfer back " <<
-            src_grid_next.extent(2) << "x" <<
-            src_grid_next.extent(1) << "x" <<
-            src_grid_next.extent(0) << " with " << src_grid_next.team().size() << " units "
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units "
             " --> " <<
-            src_grid.extent(2) << "x" <<
-            src_grid.extent(1) << "x" <<
-            src_grid.extent(0) << " with " << src_grid.team().size() << " units " <<  endl;
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units " <<  endl;
 
             transfertomore( **itnext, **it );
         }
 
         /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
-        src_grid.team().barrier();
+        (*it)->src_grid->team().barrier();
 
 
         cout << "all meet again here: I'm active unit " << dash::myid() << endl;
@@ -1205,16 +1203,16 @@ void v_cycle( Iterator it, Iterator itend,
     /* scale down */
     if ( 0 == dash::myid() ) {
         cout << "scale down " <<
-            src_grid.extent(2) << "x" <<
-            src_grid.extent(1) << "x" <<
-            src_grid.extent(0) <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) <<
             " --> " <<
-            src_grid_next.extent(2) << "x" <<
-            src_grid_next.extent(1) << "x" <<
-            src_grid_next.extent(0) << endl;
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) << endl;
     }
 
-    scaledown( src_grid, src_grid_next );
+    scaledown( *(*it)->src_grid, *(*itnext)->src_grid );
     writeToCsv( **itnext );
 
     /* recurse  */
@@ -1223,15 +1221,15 @@ void v_cycle( Iterator it, Iterator itend,
     /* scale up */
     if ( 0 == dash::myid() ) {
         cout << "scale up " <<
-            src_grid_next.extent(2) << "x" <<
-            src_grid_next.extent(1) << "x" <<
-            src_grid_next.extent(0) <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) <<
             " --> " <<
-            src_grid.extent(2) << "x" <<
-            src_grid.extent(1) << "x" <<
-            src_grid.extent(0) << endl;
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) << endl;
     }
-    scaleup( src_grid_next, src_grid );
+    scaleup( *(*itnext)->src_grid, *(*it)->src_grid );
     writeToCsv( **it );
 
     /* on the way up it ought to solve the grid rather completley, 
@@ -1350,7 +1348,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
     initboundary( *levels.back() );
-    sanitycheck( levels.back()->src_halo->matrix() );
+    sanitycheck( *levels.back()->src_grid );
 
     dash::barrier();
 
@@ -1590,7 +1588,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
     initboundary( *levels.back() );
-    sanitycheck( levels.back()->src_halo->matrix() );
+    sanitycheck( *levels.back()->src_grid );
 
     dash::barrier();
 
