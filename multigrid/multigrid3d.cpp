@@ -157,12 +157,13 @@ size_t resolutionForCSVw= 0;
 read and visualize it as a structured grid. Use a fixed size for the grid as
 defined by the previous three global variables. So an animations of the
 multigrid procedure is possible. */
-void writeToCsv( const MatrixT& grid ) {
+void writeToCsv( const Level& level ) {
 
 // TODO Here is still a slight shift in the output when the actual grid is larger than the output grid 
 
 #ifdef WITHCSVOUTPUT
 
+    const MatrixT& grid= *level.src_grid;
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
@@ -231,9 +232,11 @@ void writeToCsv( const MatrixT& grid ) {
 
 
 /* write out the grid in its actual size */
-void writeToCsvFullGrid( const MatrixT& grid ) {
+void writeToCsvFullGrid( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
+
+    const MatrixT& grid= *level.src_grid;
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
 
@@ -1125,7 +1128,7 @@ void v_cycle( Iterator it, Iterator itend,
             }
             j++;
         }
-        writeToCsv( (*it)->src_halo->matrix() );
+        writeToCsv( **it );
 
         return;
     }
@@ -1197,7 +1200,7 @@ void v_cycle( Iterator it, Iterator itend,
         smoothen( **it );
     }
 
-    writeToCsv( src_grid );
+    writeToCsv( **it );
 
     /* scale down */
     if ( 0 == dash::myid() ) {
@@ -1212,7 +1215,7 @@ void v_cycle( Iterator it, Iterator itend,
     }
 
     scaledown( src_grid, src_grid_next );
-    writeToCsv( src_grid_next );
+    writeToCsv( **itnext );
 
     /* recurse  */
     v_cycle( itnext, itend, numiter, epsilon, res );
@@ -1229,7 +1232,7 @@ void v_cycle( Iterator it, Iterator itend,
             src_grid.extent(0) << endl;
     }
     scaleup( src_grid_next, src_grid );
-    writeToCsv( src_grid );
+    writeToCsv( **it );
 
     /* on the way up it ought to solve the grid rather completley, 
     thus repeat until rey < eps here too.*/
@@ -1252,7 +1255,7 @@ void v_cycle( Iterator it, Iterator itend,
     }
     */
 
-    writeToCsv( src_grid );
+    writeToCsv( **it );
 }
 
 
@@ -1400,7 +1403,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     initgrid( *levels.front()->src_grid );
     markunits( *levels.front()->src_grid );
 
-    writeToCsv( *levels.front()->src_grid );
+    writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
@@ -1413,7 +1416,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
     smoothen_final( *levels.front(), 0.001, res );
-    writeToCsv( *levels.front()->src_grid );
+    writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
@@ -1470,7 +1473,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
     /* init with 42.0 */
     dash::fill( levels.back()->src_grid->begin(),
         levels.back()->src_grid->end(), 42.0 );
-    writeToCsvFullGrid( *(levels[0]->src_grid) );
+    writeToCsvFullGrid( *levels[0] );
 
     dash::barrier();
 
@@ -1503,7 +1506,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
 
         transfertofewer( *(levels[0]), *(levels[1]) );
 
-        writeToCsvFullGrid( *(levels[1]->src_grid) );
+        writeToCsvFullGrid( *levels[1] );
 
         dash::fill( levels[1]->src_grid->begin(),
             levels[1]->src_grid->end(), 43.0 );
@@ -1517,7 +1520,7 @@ void do_multigrid_testelastic( uint32_t howmanylevels ) {
 
     dash::barrier();
 
-    writeToCsvFullGrid( *(levels[0]->src_grid) );
+    writeToCsvFullGrid( *levels[0] );
 }
 
 /* elastic mode runs but still seems to have errors in it */
@@ -1685,7 +1688,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     initgrid( *levels.front()->src_grid );
     markunits( *levels.front()->src_grid );
 
-    writeToCsv( *levels.front()->src_grid );
+    writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
@@ -1698,7 +1701,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
     smoothen_final( *levels.front(), 0.001, res );
-    writeToCsv( *levels.front()->src_grid );
+    writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
@@ -1760,7 +1763,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     initgrid( *level->src_grid );
     //markunits( *level->src_grid );
 
-    writeToCsv( *level->src_grid );
+    writeToCsv( *level );
 
     dash::barrier();
 
@@ -1776,12 +1779,12 @@ void do_flat_iteration( uint32_t howmanylevels ) {
             cout << j << ": smoothen grid without residual " << endl;
         }
         j++;
-        writeToCsv( *level->src_grid );
+        writeToCsv( *level );
     }
 
     minimon.stop( "smoothflatfixed", dash::Team::All().size() );
 
-    writeToCsv( *level->src_grid );
+    writeToCsv( *level );
 
     // smoothflatresidual
     minimon.start();
@@ -1797,7 +1800,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
             cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
         j++;
-        writeToCsv( *level->src_grid );
+        writeToCsv( *level );
     }
 
     minimon.stop( "smoothflatresidual", dash::Team::All().size() );
