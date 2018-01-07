@@ -17,6 +17,9 @@ extern "C" {
 #include "misc.h"
 
 
+uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& indexes, uint32_t startindex, uint32_t limit );
+
+
 int main( int argc, char* argv[] ) {
 
     dash::init( &argc, &argv );
@@ -170,79 +173,150 @@ int main( int argc, char* argv[] ) {
 
     matrix.barrier();
 
-#if 0
-    /* *** part 4: define a marker color and check that it is not appearing in the image yet *** */
-
-    RGB marker(0,255,0);
-
-    {
-        start= std::chrono::system_clock::now();
-
-        size_t count = 0;
-        for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
-
-            if ( marker == *it ) count++;
-        }
-
-        end = std::chrono::system_clock::now();
-        cout << "    unit " << myid << " found marker color " << count << " times "
-             << "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count()
-             << " seconds" << endl;
-    }
-
-    matrix.barrier();
-
-    /* *** part 5: count bright objects in the image by finding a bright pixel, then flood-filling all
-    bright neighbor pixels with marker color *** */
-    uint32_t sum_objects = 0;
-    {
-        dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
-        dash::fill( sums.begin(), sums.end(), 0 );
-
-        start= std::chrono::system_clock::now();
-
-        uint32_t lw= matrix.local.extent(1);
-        uint32_t lh= matrix.local.extent(0);
-        auto foundobjects = sums.lbegin();
-        for ( uint32_t y= 0; y < lh ; y++ ){
-            for ( uint32_t x= 0; x < lw ; x++ ){
-                *foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
-            }
-        }
-
-        sums.barrier();
-        end= std::chrono::system_clock::now();
-        if ( 0 == myid ) {
-            cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
-        }
-
-        /* combine the local number of objects found into the global result */
-        cout << "unit " << myid << " found " << *foundobjects << " objects locally" << endl;
-
-        if ( 0 == myid ) {
-            sum_objects = std::accumulate(sums.begin(), sums.end(), 0);
-            cout << "found " << sum_objects << " objects in total" << endl;
-        }
-    }
-
-    matrix.barrier();
-
-    if ( 0 == myid ) {
-        show_matrix( matrix, 1200, 1000 );
-    }
-#endif /* 0 */
 
     /* *** part 6: create a matching index array and do object coundting there *** */
 
-    dash::NArray<uint32_t,2> indexes( 
-        dash::SizeSpec<2>( imagesize.height, imagesize.width ),
-        distspec, dash::Team::All(), teamspec );
+    {
+        dash::NArray<uint32_t,2> indexes( 
+            dash::SizeSpec<2>( imagesize.height, imagesize.width ),
+            distspec, dash::Team::All(), teamspec );
+        dash::fill( indexes.begin(), indexes.end(), 0 );
 
-    dash::fill( indexes.begin(), indexes.end(), 0 );
+        dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
 
-    uint32_t ret= countobjects( matrix, indexes, 1 + (1<<30) / numunits, limit );
-    cout << "unit " << myid << " found " << ret << " objects locally" << endl;
+        start= std::chrono::system_clock::now();
+
+        sums.local[0]= countobjects( matrix, indexes, 1 + (1<<30) / numunits, limit );
+        sums.barrier();
+        end= std::chrono::system_clock::now();
+
+        if ( 0 == myid ) {
+            uint32_t sum_objects= std::accumulate(sums.begin(), sums.end(), 0);
+            cout << "found " << sum_objects << " objects in total in " << 
+            std::chrono::duration_cast<std::chrono::seconds> (end-start).count()<< " seconds" << endl;
+        }
+    }
 
     dash::finalize();
     return 0;
+}
+
+
+constexpr dash::StencilSpec<2,4> stencil_spec({
+    dash::Stencil<2>(-1, 0), dash::Stencil<2>( 1, 0),
+    dash::Stencil<2>( 0,-1), dash::Stencil<2>( 0, 1)});
+
+constexpr dash::CycleSpec<2> cycle_spec(
+    dash::Cycle::NONE,
+    dash::Cycle::NONE );
+
+
+/* counts the objects in the local part of the image, it doesn't use a marker color but a separate array 
+'indexes' where a object index per object is set. object index 0 means it is not part of an object. */
+uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& indexes, uint32_t startindex, uint32_t limit ) {
+
+    uint32_t found= 0;
+    std::set< std::pair<uint32_t,uint32_t> > queue;
+
+    /* step 1: go through all pixels and mark objects in the 'indexes' helper array */
+
+    uint32_t lw= matrix.local.extent(1);
+    uint32_t lh= matrix.local.extent(0);
+    for ( uint32_t y= 0; y < lh ; y++ ){
+        for ( uint32_t x= 0; x < lw ; x++ ){
+
+            RGB& pixel= matrix.local[y][x];
+            if ( ( 0 != indexes.local[y][x] ) || ( pixel.brightness() < limit ) ) {
+
+                /* was already marked or not bright enough, do not count*/
+                continue;
+            }
+
+            found++;
+
+            queue.clear();
+            queue.insert( { x, y } );
+
+            uint32_t objid= startindex++;
+            indexes.local[y][x]= objid;
+
+            while ( ! queue.empty() ) {
+
+                std::pair<uint32_t,uint32_t> next= *queue.begin();
+                uint32_t x= next.first;
+                uint32_t y= next.second;
+
+                RGB& pixel= matrix.local[y][x];
+                queue.erase( queue.begin() );
+
+                if ( pixel.brightness() < limit ) continue;
+
+                indexes.local[y][x]= objid;
+                if ( ( 0 < x    ) && ( 0 == indexes.local[y][x-1] ) ) queue.insert( {x-1,y} );
+                if ( ( x+1 < lw ) && ( 0 == indexes.local[y][x+1] ) ) queue.insert( {x+1,y} );
+                if ( ( 0 < y    ) && ( 0 == indexes.local[y-1][x] ) ) queue.insert( {x,y-1} );
+                if ( ( y+1 < lh ) && ( 0 == indexes.local[y+1][x] ) ) queue.insert( {x,y+1} );
+            }
+        }
+    }
+
+    /* step 2: create halo for helper array 'indexes', then do halo exchange */
+    dash::HaloMatrixWrapper< dash::NArray<uint32_t,2>, dash::StencilSpec<2,4> > halo( indexes, stencil_spec, cycle_spec );
+    halo.update();
+
+    /* step 3: go along the local borders, if there is a local object (indexes[y][x] != 0) and the
+    halo also has an object there ... if so, add the two object ids in a map (actually only keep 
+    those with local object id < remote object id, otherwise one would count it twice). */
+
+    std::array<long int,2> upperleft= indexes.pattern().global( {0,0} );
+    std::array<long int,2> bottomright= indexes.pattern().global( {lh-1,lw-1} );
+
+    std::set<std::pair<uint32_t,uint32_t>> touchmap;
+
+    if ( upperleft[0] > 0 ) {
+
+        /* there is an upper neighbor */
+        for ( uint32_t x= 0; x < lw ; x++ ) {
+
+            uint32_t localid= indexes.local[0][x];
+            uint32_t remoteid= *halo.halo_element_at( {upperleft[0]-1,x+upperleft[1]} );
+
+            if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
+
+                touchmap.insert( {localid, remoteid} );
+            }
+        }
+    }
+
+    if ( upperleft[1] > 0 ) {
+
+        /* there is a left neighbor */
+        cout << "  unit " << dash::myid() << " has left neigbor -- still to do" << endl;
+    }
+
+    if ( bottomright[0] < indexes.extent(0) -1 ) {
+
+        /* there is a bottom neighbor */
+        for ( uint32_t x= 0; x < lw ; x++ ) {
+
+            uint32_t localid= indexes.local[lh-1][x];
+            uint32_t remoteid= *halo.halo_element_at( {bottomright[0]+1,x+upperleft[1]} );
+
+            if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
+
+                 touchmap.insert( {localid, remoteid} );
+            }
+        }
+    }
+
+    if ( bottomright[1] < indexes.extent(1) -1 ) {
+
+        /* there is a right neighbor */
+        cout << "  unit " << dash::myid() << " has right neigbor -- still to do" << endl;
+
+    }
+
+    /* step 4: subtract the number of entries in the map from the number of found objects */
+
+    return found - touchmap.size();
 }
