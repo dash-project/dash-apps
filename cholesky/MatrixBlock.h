@@ -133,7 +133,7 @@ public:
 #endif
     dash::dart_storage<value_t> ds(_size);
     dart_get_handle(
-      target, begin.dart_gptr(), ds.nelem, ds.dtype, &_handle);
+      target, begin.dart_gptr(), ds.nelem, ds.dtype, ds.dtype, &_handle);
     //dash::copy(begin, end, this->_local_ptr);
   }
 
@@ -176,7 +176,7 @@ private:
 #endif
       dash::dart_storage<value_t> ds(_size);
       dart_get_blocking(
-        this->_local_ptr, begin.dart_gptr(), ds.nelem, ds.dtype);
+        this->_local_ptr, begin.dart_gptr(), ds.nelem, ds.dtype, ds.dtype);
       //dash::copy(begin, end, this->_local_ptr);
     }
   }

@@ -47,10 +47,12 @@ public:
           [=]() mutable {
             EXTRAE_ENTER(EVENT_PREFETCH);
             block.fetch_async(block_pre);
-            while (!block.test()) {
-              EXTRAE_EXIT(EVENT_PREFETCH);
-              dash::tasks::yield(-1);
-              EXTRAE_ENTER(EVENT_PREFETCH);
+            if (dart_task_yield) {
+              while (!block.test()) {
+                EXTRAE_EXIT(EVENT_PREFETCH);
+                dash::tasks::yield(-1);
+                EXTRAE_ENTER(EVENT_PREFETCH);
+              }
             }
             EXTRAE_EXIT(EVENT_PREFETCH);
           },

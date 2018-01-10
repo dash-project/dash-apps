@@ -52,7 +52,7 @@ compute(TiledMatrix& matrix, size_t block_size){
 
     EXTRAE_ENTER(EVENT_PREFETCH);
     dash::dart_storage<value_t> ds(block_size*block_size);
-    dart_get(block_k_pre, block_k.begin().dart_gptr(), ds.nelem, ds.dtype);
+    dart_get(block_k_pre, block_k.begin().dart_gptr(), ds.nelem, ds.dtype, ds.dtype);
     dart_flush(block_k.begin().dart_gptr());
     EXTRAE_EXIT(EVENT_PREFETCH);
 
@@ -96,7 +96,7 @@ compute(TiledMatrix& matrix, size_t block_size){
               auto block_kj_pre = &blocks_ki_pre[j*block_size*block_size];
               dash::dart_storage<value_t> ds(block_size*block_size);
               dart_get(block_kj_pre, block_kj.begin().dart_gptr(),
-                       ds.nelem, ds.dtype);
+                       ds.nelem, ds.dtype, ds.dtype);
               prefetch_blocks.insert(std::make_pair(j, block_kj_pre));
             }
           }
@@ -111,7 +111,7 @@ compute(TiledMatrix& matrix, size_t block_size){
               auto block_ki_pre = &blocks_ki_pre[i*block_size*block_size];
               dash::dart_storage<value_t> ds(block_size*block_size);
               dart_get(block_ki_pre, block_ki.begin().dart_gptr(),
-                       ds.nelem, ds.dtype);
+                       ds.nelem, ds.dtype, ds.dtype);
               prefetch_blocks.insert(
                 std::make_pair(i, block_ki_pre));
             }
@@ -132,7 +132,7 @@ compute(TiledMatrix& matrix, size_t block_size){
             auto block_ki_pre = &blocks_ki_pre[i*block_size*block_size];
             dash::dart_storage<value_t> ds(block_size*block_size);
             dart_get(block_ki_pre, block_ki.begin().dart_gptr(),
-                      ds.nelem, ds.dtype);
+                      ds.nelem, ds.dtype, ds.dtype);
             prefetch_blocks.insert(
               std::make_pair(i, block_ki_pre));
           }

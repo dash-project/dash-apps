@@ -78,7 +78,7 @@ compute(TiledMatrix& matrix, size_t block_size){
   {
     EXTRAE_ENTER(EVENT_PREFETCH);
     dash::dart_storage<value_t> ds(block_size*block_size);
-    dart_get_blocking(block_k_pre, block_k.begin().dart_gptr(), ds.nelem, ds.dtype);
+    dart_get_blocking(block_k_pre, block_k.begin().dart_gptr(), ds.nelem, ds.dtype, ds.dtype);
     EXTRAE_EXIT(EVENT_PREFETCH);
   }
     std::map<size_t, value_t*> prefetch_blocks;
