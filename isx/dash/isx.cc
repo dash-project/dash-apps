@@ -1,32 +1,32 @@
 /*
 Copyright (c) 2015, Intel Corporation
 
-Redistribution and use in source and binary forms, with or without 
-modification, are permitted provided that the following conditions 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
 are met:
 
-    * Redistributions of source code must retain the above copyright 
+    * Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above 
-      copyright notice, this list of conditions and the following 
-      disclaimer in the documentation and/or other materials provided 
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
       with the distribution.
-    * Neither the name of Intel Corporation nor the names of its 
-      contributors may be used to endorse or promote products 
-      derived from this software without specific prior written 
+    * Neither the name of Intel Corporation nor the names of its
+      contributors may be used to endorse or promote products
+      derived from this software without specific prior written
       permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
-COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN 
-ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
@@ -122,7 +122,7 @@ static char * parse_params(const int argc, char ** argv)
     case WEAK_ISOBUCKET:
       {
         NUM_KEYS_PER_PE = (uint64_t) (atoi(argv[1]));
-        BUCKET_WIDTH = ISO_BUCKET_WIDTH; 
+        BUCKET_WIDTH = ISO_BUCKET_WIDTH;
         MAX_KEY_VAL = (uint64_t) (NUM_PES * BUCKET_WIDTH);
         sprintf(scaling_msg,"WEAK_ISOBUCKET");
         break;
@@ -170,7 +170,7 @@ static char * parse_params(const int argc, char ** argv)
  */
 static int bucket_sort(void)
 {
-  int err = 0; 
+  int err = 0;
 
   init_timers(NUM_ITERATIONS);
 
@@ -181,7 +181,7 @@ static int bucket_sort(void)
   for(unsigned int i = 0; i < (NUM_ITERATIONS + BURN_IN); ++i)
   {
 
-    // Reset timers after burn in 
+    // Reset timers after burn in
     if(i == BURN_IN){ init_timers(NUM_ITERATIONS); }
 
     dash::barrier();
@@ -282,7 +282,7 @@ static uninitialized_vector<KEY_TYPE> make_input(void)
   timer_stop(&timers[TIMER_INPUT]);
 
 #ifdef DEBUG
-  
+
   char msg[1024];
   sprintf(msg,"Rank %d: Initial Keys: ", my_rank);
   for(int i = 0; i < NUM_KEYS_PER_PE; ++i){
@@ -292,7 +292,7 @@ static uninitialized_vector<KEY_TYPE> make_input(void)
   sprintf(msg + strlen(msg),"\n");
   printf("%s",msg);
   fflush(stdout);
-  
+
 #endif
   return my_keys;
 }
@@ -320,7 +320,7 @@ static inline int * count_local_bucket_sizes(
   timer_stop(&timers[TIMER_BCOUNT]);
 
 #ifdef DEBUG
-  
+
   char msg[1024];
   sprintf(msg,"Rank %d: local bucket sizes: ", my_rank);
   for(int i = 0; i < NUM_BUCKETS; ++i){
@@ -330,7 +330,7 @@ static inline int * count_local_bucket_sizes(
   sprintf(msg + strlen(msg),"\n");
   printf("%s",msg);
   fflush(stdout);
-  
+
 #endif
 
   return local_bucket_sizes;
@@ -374,7 +374,7 @@ static inline void bucketize_local_keys(
   timer_stop(&timers[TIMER_BUCKETIZE]);
 
 #ifdef DEBUG
-  
+
   char msg[1024];
   sprintf(msg,"Rank %d: local bucketed keys: ", my_rank);
   for(int i = 0; i < NUM_KEYS_PER_PE; ++i){
@@ -384,7 +384,7 @@ static inline void bucketize_local_keys(
   sprintf(msg + strlen(msg),"\n");
   printf("%s",msg);
   fflush(stdout);
-  
+
 #endif
 }
 
@@ -430,11 +430,11 @@ static inline uninitialized_vector<KEY_TYPE> exchange_keys(
     dart_get(
       my_bucket_keys.data() + offset,
       buckets(i, myid, 0).dart_gptr(),
-      my_bucket_sizes[i], DART_TYPE_INT);
+      my_bucket_sizes[i], DART_TYPE_INT, DART_TYPE_INT);
     offset += my_bucket_sizes[i];
   }
 
-  buckets.flush_all();
+  buckets.flush();
 
 //  int i = 0;
 //  for (auto val : my_bucket_keys) {
@@ -462,8 +462,8 @@ static inline uninitialized_vector<KEY_TYPE> exchange_keys(
 
 
 /*
- * Counts the occurence of each key in my bucket. 
- * Key indices into the count array are the key's value minus my bucket's 
+ * Counts the occurence of each key in my bucket.
+ * Key indices into the count array are the key's value minus my bucket's
  * minimum key value to allow indexing from 0.
  * my_bucket_keys: All keys in my bucket unsorted [my_rank * BUCKET_WIDTH, (my_rank+1)*BUCKET_WIDTH)
  */
@@ -491,7 +491,7 @@ count_local_keys(const uninitialized_vector<KEY_TYPE>& my_bucket_keys,
   timer_stop(&timers[TIMER_SORT]);
 
 #ifdef DEBUG
-  
+
   char msg[4096];
   sprintf(msg,"Rank %d: Bucket Size %lld | Local Key Counts:", my_rank, my_bucket_size);
   for(int i = 0; i < BUCKET_WIDTH; ++i){
@@ -501,14 +501,14 @@ count_local_keys(const uninitialized_vector<KEY_TYPE>& my_bucket_keys,
   sprintf(msg + strlen(msg),"\n");
   printf("%s",msg);
   fflush(stdout);
-  
+
 #endif
 
   return my_local_key_counts;
 }
 
 /*
- * Verifies the correctness of the sort. 
+ * Verifies the correctness of the sort.
  * Ensures all keys are within a PE's bucket boundaries.
  * Ensures the final number of keys is equal to the initial.
  */
@@ -603,7 +603,7 @@ static void log_times(char * log_file)
  */
 static void report_summary_stats(void)
 {
-  
+
   if(timers[TIMER_TOTAL].seconds_iter > 0) {
     const uint32_t num_records = NUM_PES * timers[TIMER_TOTAL].seconds_iter;
     double temp = 0.0;
@@ -646,7 +646,7 @@ static void print_run_info(FILE * fp)
 {
   fprintf(fp,"DASH\t");
   fprintf(fp,"NUM_PES %" PRIu64 "\t", NUM_PES);
-  fprintf(fp,"Max_Key %" PRIu64 "\t", MAX_KEY_VAL); 
+  fprintf(fp,"Max_Key %" PRIu64 "\t", MAX_KEY_VAL);
   fprintf(fp,"Num_Iters %u\t", NUM_ITERATIONS);
 
   switch(SCALING_OPTION){
@@ -684,11 +684,11 @@ static void print_run_info(FILE * fp)
 
 /*
  * Prints all of the timining information for an individual PE as a row
- * to the file specificed by 'fp'. 
+ * to the file specificed by 'fp'.
  */
 static void print_timer_values(FILE * fp)
 {
-  unsigned int num_records = NUM_PES * NUM_ITERATIONS; 
+  unsigned int num_records = NUM_PES * NUM_ITERATIONS;
 
   for(unsigned int i = 0; i < num_records; ++i) {
     for(int t = 0; t < TIMER_NTIMERS; ++t){
@@ -703,9 +703,9 @@ static void print_timer_values(FILE * fp)
   }
 }
 
-/* 
+/*
  * Aggregates the per PE timing information
- */ 
+ */
 static std::vector<double> gather_rank_times(_timer_t * const timer)
 {
   if(timer->seconds_iter > 0) {
@@ -726,7 +726,7 @@ static std::vector<double> gather_rank_times(_timer_t * const timer)
 }
 
 /*
- * Aggregates the per PE timing 'count' information 
+ * Aggregates the per PE timing 'count' information
  */
 static std::vector<unsigned int> gather_rank_counts(_timer_t * const timer)
 {
@@ -757,7 +757,7 @@ static inline pcg32_random_t seed_my_rank(void)
 
 
 /*
- * Tests whether or not a file exists. 
+ * Tests whether or not a file exists.
  * Returns 1 if file exists
  * Returns 0 if file does not exist
  */
