@@ -77,7 +77,7 @@ int main( int argc, char* argv[] ) {
     ImageSize imagesize = imagesize_shared.get();
 
     auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
-    //teamspec.balance_extents();
+    // teamspec.balance_extents();
     dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
         distspec, dash::Team::All(), teamspec );
 
@@ -291,7 +291,16 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
     if ( upperleft[1] > 0 ) {
 
         /* there is a left neighbor */
-        cout << "  unit " << dash::myid() << " has left neigbor -- still to do" << endl;
+        for ( uint32_t y= 0; y < lh ; y++ ) {
+
+            uint32_t localid= indexes.local[y][lw-1];
+            uint32_t remoteid= *halo.halo_element_at( {y+upperleft[0],upperleft[1]-1} );
+
+            if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
+
+                 touchmap.insert( {localid, remoteid} );
+            }
+        }
     }
 
     if ( bottomright[0] < indexes.extent(0) -1 ) {
@@ -312,7 +321,16 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
     if ( bottomright[1] < indexes.extent(1) -1 ) {
 
         /* there is a right neighbor */
-        cout << "  unit " << dash::myid() << " has right neigbor -- still to do" << endl;
+        for ( uint32_t y= 0; y < lh ; y++ ) {
+
+            uint32_t localid= indexes.local[y][lw-1];
+            uint32_t remoteid= *halo.halo_element_at( {y+upperleft[0],bottomright[1]+1} );
+
+            if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
+
+                 touchmap.insert( {localid, remoteid} );
+            }
+        }
 
     }
 

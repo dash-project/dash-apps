@@ -28,17 +28,16 @@ int main( int argc, char* argv[] ) {
         *it= dash::myid();
     }
 
-    
     arr.barrier();
     start= std::chrono::system_clock::now();
     arr.barrier();
-       
+
     /* Assignment: call the STL std::min_element() with arr's global iterator 
     on unit 0 just to show that one can. */
-        
+
     arr.barrier();
     end= std::chrono::system_clock::now();
-    
+
     if ( 0 == dash::myid() ) {
         cout << "std::min_element() unit " << dash::myid() << " / " << dash::size() << 
         " on " << buf << " pid= " << pid << " needed " <<
@@ -54,13 +53,13 @@ int main( int argc, char* argv[] ) {
 
     arr.barrier();
     end= std::chrono::system_clock::now();
-    
+
     if ( 0 == dash::myid() ) {
         cout << "dash::min_element() unit " << dash::myid() << " / " << dash::size() << " on " << buf << " pid= " << pid << " needed " <<
         std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() << " ms" << endl;
     }
 
     /* Assignment: Run with various numbers of units and watch how the runtimes behave. */
-    
+
     dash::finalize();
 }

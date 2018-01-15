@@ -31,12 +31,12 @@ int main( int argc, char* argv[] ) {
     start= std::chrono::system_clock::now();
     arr.barrier();
     if ( 0 == dash::myid() ) {
-        
+
         std::min_element( arr.begin(), arr.end() );
     }
     arr.barrier();
     end= std::chrono::system_clock::now();
-    
+
     if ( 0 == dash::myid() ) {
         cout << "std::min_element() unit " << dash::myid() << " / " << dash::size() << 
         " on " << buf << " pid= " << pid << " needed " <<
@@ -49,7 +49,7 @@ int main( int argc, char* argv[] ) {
     dash::min_element( arr.begin(), arr.end() );
     arr.barrier();
     end= std::chrono::system_clock::now();
-    
+
     if ( 0 == dash::myid() ) {
         cout << "dash::min_element() unit " << dash::myid() << " / " << dash::size() << " on " << buf << " pid= " << pid << " needed " <<
         std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count() << " ms" << endl;

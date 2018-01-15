@@ -74,8 +74,8 @@ int main( int argc, char* argv[] ) {
     ImageSize imagesize = imagesize_shared.get();
     cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
-    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
-    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
+    auto distspec= dash::DistributionSpec<2>( /* add something here */ );
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( /* add something here */ ),
         distspec, dash::Team::All(), teamspec );
 
     /* Assignment: declare and allocate a distributed 2d DASH matrix
