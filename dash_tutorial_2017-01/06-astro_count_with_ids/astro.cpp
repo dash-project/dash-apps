@@ -17,7 +17,7 @@ extern "C" {
 #include "misc.h"
 
 
-uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& indexes, uint32_t startindex, uint32_t limit );
+uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& ids, uint32_t startindex, uint32_t limit );
 
 
 int main( int argc, char* argv[] ) {
@@ -177,16 +177,16 @@ int main( int argc, char* argv[] ) {
     /* *** part 6: create a matching index array and do object coundting there *** */
 
     {
-        dash::NArray<uint32_t,2> indexes( 
+        dash::NArray<uint32_t,2> ids( 
             dash::SizeSpec<2>( imagesize.height, imagesize.width ),
             distspec, dash::Team::All(), teamspec );
-        dash::fill( indexes.begin(), indexes.end(), 0 );
+        dash::fill( ids.begin(), ids.end(), 0 );
 
         dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
 
         start= std::chrono::system_clock::now();
 
-        sums.local[0]= countobjects( matrix, indexes, 1 + (1<<30) / numunits, limit );
+        sums.local[0]= countobjects( matrix, ids, 1 + (1<<30) / numunits, limit );
         sums.barrier();
         end= std::chrono::system_clock::now();
 
@@ -212,13 +212,13 @@ constexpr dash::CycleSpec<2> cycle_spec(
 
 
 /* counts the objects in the local part of the image, it doesn't use a marker color but a separate array 
-'indexes' where a object index per object is set. object index 0 means it is not part of an object. */
-uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& indexes, uint32_t startindex, uint32_t limit ) {
+'ids' where a object index per object is set. object index 0 means it is not part of an object. */
+uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& ids, uint32_t startindex, uint32_t limit ) {
 
     uint32_t found= 0;
     std::set< std::pair<uint32_t,uint32_t> > queue;
 
-    /* step 1: go through all pixels and mark objects in the 'indexes' helper array */
+    /* step 1: go through all pixels and mark objects in the 'ids' helper array */
 
     uint32_t lw= matrix.local.extent(1);
     uint32_t lh= matrix.local.extent(0);
@@ -226,7 +226,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         for ( uint32_t x= 0; x < lw ; x++ ){
 
             RGB& pixel= matrix.local[y][x];
-            if ( ( 0 != indexes.local[y][x] ) || ( pixel.brightness() < limit ) ) {
+            if ( ( 0 != ids.local[y][x] ) || ( pixel.brightness() < limit ) ) {
 
                 /* was already marked or not bright enough, do not count*/
                 continue;
@@ -238,7 +238,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
             queue.insert( { x, y } );
 
             uint32_t objid= startindex++;
-            indexes.local[y][x]= objid;
+            ids.local[y][x]= objid;
 
             while ( ! queue.empty() ) {
 
@@ -251,39 +251,39 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
 
                 if ( pixel.brightness() < limit ) continue;
 
-                indexes.local[y][x]= objid;
-                if ( ( 0 < x    ) && ( 0 == indexes.local[y][x-1] ) ) queue.insert( {x-1,y} );
-                if ( ( x+1 < lw ) && ( 0 == indexes.local[y][x+1] ) ) queue.insert( {x+1,y} );
-                if ( ( 0 < y    ) && ( 0 == indexes.local[y-1][x] ) ) queue.insert( {x,y-1} );
-                if ( ( y+1 < lh ) && ( 0 == indexes.local[y+1][x] ) ) queue.insert( {x,y+1} );
+                ids.local[y][x]= objid;
+                if ( ( 0 < x    ) && ( 0 == ids.local[y][x-1] ) ) queue.insert( {x-1,y} );
+                if ( ( x+1 < lw ) && ( 0 == ids.local[y][x+1] ) ) queue.insert( {x+1,y} );
+                if ( ( 0 < y    ) && ( 0 == ids.local[y-1][x] ) ) queue.insert( {x,y-1} );
+                if ( ( y+1 < lh ) && ( 0 == ids.local[y+1][x] ) ) queue.insert( {x,y+1} );
             }
         }
     }
 
-    /* step 2: create halo for helper array 'indexes', then do halo exchange */
-    dash::HaloMatrixWrapper< dash::NArray<uint32_t,2>, dash::StencilSpec<2,4> > halo( indexes, stencil_spec, cycle_spec );
+    /* step 2: create halo for helper array 'ids', then do halo exchange */
+    dash::HaloMatrixWrapper< dash::NArray<uint32_t,2>, dash::StencilSpec<2,4> > halo( ids, stencil_spec, cycle_spec );
     halo.update();
 
-    /* step 3: go along the local borders, if there is a local object (indexes[y][x] != 0) and the
+    /* step 3: go along the local borders, if there is a local object (ids[y][x] != 0) and the
     halo also has an object there ... if so, add the two object ids in a map (actually only keep 
     those with local object id < remote object id, otherwise one would count it twice). */
 
-    std::array<long int,2> upperleft= indexes.pattern().global( {0,0} );
-    std::array<long int,2> bottomright= indexes.pattern().global( {lh-1,lw-1} );
+    std::array<long int,2> upperleft= ids.pattern().global( {0,0} );
+    std::array<long int,2> bottomright= ids.pattern().global( {lh-1,lw-1} );
 
-    std::set<std::pair<uint32_t,uint32_t>> touchmap;
+    std::set<std::pair<uint32_t,uint32_t>> touchset;
 
     if ( upperleft[0] > 0 ) {
 
         /* there is an upper neighbor */
         for ( uint32_t x= 0; x < lw ; x++ ) {
 
-            uint32_t localid= indexes.local[0][x];
+            uint32_t localid= ids.local[0][x];
             uint32_t remoteid= *halo.halo_element_at( {upperleft[0]-1,x+upperleft[1]} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
-                touchmap.insert( {localid, remoteid} );
+                touchset.insert( {localid, remoteid} );
             }
         }
     }
@@ -293,42 +293,42 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         /* there is a left neighbor */
         for ( uint32_t y= 0; y < lh ; y++ ) {
 
-            uint32_t localid= indexes.local[y][lw-1];
+            uint32_t localid= ids.local[y][lw-1];
             uint32_t remoteid= *halo.halo_element_at( {y+upperleft[0],upperleft[1]-1} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
-                 touchmap.insert( {localid, remoteid} );
+                 touchset.insert( {localid, remoteid} );
             }
         }
     }
 
-    if ( bottomright[0] < indexes.extent(0) -1 ) {
+    if ( bottomright[0] < ids.extent(0) -1 ) {
 
         /* there is a bottom neighbor */
         for ( uint32_t x= 0; x < lw ; x++ ) {
 
-            uint32_t localid= indexes.local[lh-1][x];
+            uint32_t localid= ids.local[lh-1][x];
             uint32_t remoteid= *halo.halo_element_at( {bottomright[0]+1,x+upperleft[1]} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
-                 touchmap.insert( {localid, remoteid} );
+                 touchset.insert( {localid, remoteid} );
             }
         }
     }
 
-    if ( bottomright[1] < indexes.extent(1) -1 ) {
+    if ( bottomright[1] < ids.extent(1) -1 ) {
 
         /* there is a right neighbor */
         for ( uint32_t y= 0; y < lh ; y++ ) {
 
-            uint32_t localid= indexes.local[y][lw-1];
+            uint32_t localid= ids.local[y][lw-1];
             uint32_t remoteid= *halo.halo_element_at( {y+upperleft[0],bottomright[1]+1} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
-                 touchmap.insert( {localid, remoteid} );
+                 touchset.insert( {localid, remoteid} );
             }
         }
 
@@ -336,5 +336,5 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
 
     /* step 4: subtract the number of entries in the map from the number of found objects */
 
-    return found - touchmap.size();
+    return found - touchset.size();
 }
