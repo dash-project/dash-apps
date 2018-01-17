@@ -1787,8 +1787,12 @@ void do_flat_iteration( uint32_t howmanylevels ) {
         if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
             cout << j << ": smoothen grid without residual " << endl;
         }
+
+        if ( 0 == j % 10 ) {
+            writeToCsv( *level );
+        }
+
         j++;
-        writeToCsv( *level );
     }
 
     minimon.stop( "smoothflatfixed", dash::Team::All().size() );
@@ -1808,8 +1812,12 @@ void do_flat_iteration( uint32_t howmanylevels ) {
         if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
             cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
+
+        if ( 0 == j % 10 ) {
+            writeToCsv( *level );
+        }
+
         j++;
-        writeToCsv( *level );
     }
 
     minimon.stop( "smoothflatresidual", dash::Team::All().size() );
