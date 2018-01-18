@@ -24,7 +24,6 @@ dash::Shared<uint32_t>* filenumber;
 
 - add clean version of the code:
     - without asserts
-    - without MiniMon
     - with simple loops, no optimization for contiguous lines, etc.
 
 */
@@ -78,12 +77,12 @@ public:
     /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
     double sz, sy, sx;
 
-    /*** 
+    /***
     lz, ly, lx are the dimensions in meters of the grid excluding the boundary regions,
     nz, ny, nx are th number of grid points per dimension, also excluding the boundary regions
     */
-    Level( double lz, double ly, double lx, 
-           size_t nz, size_t ny, size_t nx, 
+    Level( double lz, double ly, double lx,
+           size_t nz, size_t ny, size_t nx,
            dash::Team& team, TeamSpecT teamspec )
       : _grid_1( SizeSpecT( nz, ny, nx ),
             DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
@@ -100,7 +99,7 @@ public:
         assert( 1 < ny );
         assert( 1 < nx );
 
-        /* 
+        /*
         stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
         dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
         */
@@ -118,15 +117,18 @@ public:
         sz= lz;
         sy= ly;
         sx= lx;
-        
-        cout << "    new Level " << 
-            "dimensions " << lz << "m x " << ly << "m x " << lz << "m " <<
-            " in grid of " << nz << " x " << ny << " x " << nz <<
-            " with team of " << team.size() <<
-            " global size " << _grid_1.extent(0) << " x " << _grid_1.extent(1) << " x " << _grid_1.extent(2) <<
-            " local size " << _grid_1.local.extent(0) << " x " << _grid_1.local.extent(1) << " x " << _grid_1.local.extent(2) <<
-            " --> dt= " << dt << " r_= " << rz << ", " << ry << ", " << rx << endl;
 
+        if ( 0 == dash::myid() ) {
+            cout << "Level " <<
+                "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
+                "in grid of " << nz << "*" << ny << "*" << nz <<
+                " with team of " << team.size() << " * "
+                " local grid size " << 
+                    _grid_1.local.extent(0) << "*" << 
+                    _grid_1.local.extent(1) << "*" << 
+                    _grid_1.local.extent(2) <<
+                " --> dt= " << dt << " r_= " << rz << "," << ry << "," << rx << endl;
+        }
 
         assert( rz <= 0.5 );
         assert( ry <= 0.5 );
@@ -890,14 +892,14 @@ void smoothen( Level& level ) {
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
-                /* 
+                /*
                 stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
                 dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
                 */
 
                 double dtheta=
-                    *p_east * rx + *p_west * rx + 
-                    *p_north * ry + *p_south * ry + 
+                    *p_east * rx + *p_west * rx +
+                    *p_north * ry + *p_south * ry +
                     *p_up * rz + *p_down * rz -
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
@@ -935,9 +937,9 @@ void smoothen( Level& level ) {
     // update border area
     for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
-        double dtheta= 
+        double dtheta=
             it.value_at(4) * rx + it.value_at(5) * rx +
-            it.value_at(2) * ry + it.value_at(3) * ry + 
+            it.value_at(2) * ry + it.value_at(3) * ry +
             it.value_at(0) * rz + it.value_at(1) * rz -
             *it * 2 * rs ;
         gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
@@ -1016,14 +1018,14 @@ double smoothen( Level& level, Allreduce& res ) {
 
             for ( size_t x= 1; x < lw-1; x++ ) {
 
-                /* 
+                /*
                 stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
                 dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
                 */
 
                 double dtheta=
-                    *p_east * rx + *p_west * rx + 
-                    *p_north * ry + *p_south * ry + 
+                    *p_east * rx + *p_west * rx +
+                    *p_north * ry + *p_south * ry +
                     *p_up * rz + *p_down * rz -
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
@@ -1073,9 +1075,9 @@ double smoothen( Level& level, Allreduce& res ) {
     // update border area
     for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
-        double dtheta= 
+        double dtheta=
             it.value_at(4) * rx + it.value_at(5) * rx +
-            it.value_at(2) * ry + it.value_at(3) * ry + 
+            it.value_at(2) * ry + it.value_at(3) * ry +
             it.value_at(0) * rz + it.value_at(1) * rz -
             *it * 2 * rs ;
 
@@ -1113,15 +1115,6 @@ void v_cycle( Iterator it, Iterator itend,
         uint32_t numiter, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
-
-    if ( 0 == dash::myid() ) {
-        const auto& extents = (*it)->src_grid->extents();
-        cout << "v-cycle on  " <<
-                    extents[2] << "x" <<
-                    extents[1] << "x" <<
-                    extents[0] << endl;
-    }
-
     Iterator itnext( it );
     ++itnext;
     /* reached end of recursion? */
@@ -1134,10 +1127,10 @@ void v_cycle( Iterator it, Iterator itend,
             /* need global residual for iteration count */
             smoothen( **it, res );
 
-            if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
-                cout << j << ": smoothen coarsest with residual " << res.get() << endl;
-            }
             j++;
+        }
+        if ( 0 == dash::myid()  ) {
+            cout << j << ": smoothing coarsest " << j << " times with residual " << res.get() << endl;
         }
         writeToCsv( **it );
 
@@ -1203,8 +1196,6 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* **** normal recursion **** **** **** **** **** **** **** **** **** */
 
-
-    /* on the way down smoothen somewhat with fixed number of iterations */
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
@@ -1243,8 +1234,8 @@ void v_cycle( Iterator it, Iterator itend,
     scaleup( *(*itnext)->src_grid, *(*it)->src_grid );
     writeToCsv( **it );
 
-    /* on the way up it ought to solve the grid rather completley, 
-    thus repeat until rey < eps here too.*/
+    /* on the way up it ought to solve the grid rather completley,
+    thus repeat until rey < eps here too???
 
     uint32_t j= 0;
     res.reset( (*it)->src_grid->team() );
@@ -1252,17 +1243,16 @@ void v_cycle( Iterator it, Iterator itend,
 
         smoothen( **it, res );
 
-        if ( 0 == dash::myid() /* && ( 1 == j % 10 ) */ ) {
-            cout << j << ": smoothen on way up with residual " << res.get() << endl;
-        }
         j++;
     }
+    if ( 0 == dash::myid() ) {
+        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
+    }
+    */
 
-    /* ... before that was a fixed number of iterations just like on the way down.
     for ( uint32_t j= 0; j < numiter; j++ ) {
         smoothen( **it );
     }
-    */
 
     writeToCsv( **it );
 }
@@ -1281,18 +1271,17 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     while ( res.get() > epsilon ) {
 
         smoothen( level, res );
-
-        if ( 0 == dash::myid() ) {
-            cout << j << ": smoothen finest with residual " << res.get() << endl;
-        }
         j++;
+    }
+    if ( 0 == dash::myid() ) {
+        cout << "smoothing: " << j << " steps finest with residual " << res.get() << endl;
     }
 
     minimon.stop( "smooth_final", par );
 }
 
 
-void do_multigrid_iteration( uint32_t howmanylevels ) {
+double do_multigrid_iteration( uint32_t howmanylevels ) {
     SCOREP_USER_FUNC()
 
     // setup
@@ -1334,7 +1323,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
             (1<<(howmanylevels))*factor_z << "x" <<
             (1<<(howmanylevels))*factor_y << "x" <<
             (1<<(howmanylevels))*factor_x <<
-            endl << endl;
+            endl;
     }
 
     /* create all grid levels, starting with the finest and ending with 2x2,
@@ -1365,6 +1354,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     for ( uint32_t l= 1; l < howmanylevels; l++ ) {
 
+        /*
         if ( 0 == dash::myid() ) {
             cout << "compute level " << l << " is " <<
                 (1<<(howmanylevels-l))*factor_z << "x" <<
@@ -1375,6 +1365,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
                 teamspec.num_units(1) << "x" <<
                 teamspec.num_units(2) << " units" << endl;
         }
+        */
 
         /* do not try to allocate >= 8GB per core -- try to prevent myself
         from running too big a simulation on my laptop */
@@ -1396,7 +1387,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
         makes the entire multigrid algorithm misbehave. */
         //scaledownboundary( previouslevel, *levels.back() );
 
-        /* as a test do initboundary instead of scaledownboundary to make it 
+        /* as a test do initboundary instead of scaledownboundary to make it
         identical to the elastic case */
         initboundary( *levels.back() );
 
@@ -1438,99 +1429,6 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     }
 }
 
-
-void do_multigrid_testelastic( uint32_t howmanylevels ) {
-
-    dash::Team& firstteam= dash::Team::All();
-    TeamSpecT teamspec( firstteam.size(), 1, 1 );
-    teamspec.balance_extents();
-
-    uint32_t factor_z= teamspec.num_units(0);
-    uint32_t factor_y= teamspec.num_units(1);
-    uint32_t factor_x= teamspec.num_units(2);
-
-    uint32_t factor_max= factor_z;
-    factor_max= std::max( factor_max, factor_y );
-    factor_max= std::max( factor_max, factor_x );
-    while ( factor_z < 0.75 * factor_max ) { factor_z *= 2; }
-    while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
-    while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
-
-    vector<Level*> levels;
-
-    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
-    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
-    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
-
-    if ( 0 == firstteam.myid() ) {
-        cout << "full-team level " << " is " <<
-            (1<<(howmanylevels))*factor_z << "x" <<
-            (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x <<
-            " distributed over " <<
-            teamspec.num_units(0) << "x" <<
-            teamspec.num_units(1) << "x" <<
-            teamspec.num_units(2) << " units" << endl;
-    }
-
-    levels.push_back( new Level( 1.0, 1.0, 1.0, 
-        (1<<(howmanylevels))*factor_z ,
-        (1<<(howmanylevels))*factor_y ,
-        (1<<(howmanylevels))*factor_x ,
-        firstteam, teamspec ) );
-
-    /* init with 42.0 */
-    dash::fill( levels.back()->src_grid->begin(),
-        levels.back()->src_grid->end(), 42.0 );
-    writeToCsvFullGrid( *levels[0] );
-
-    dash::barrier();
-
-    dash::Team& previousteam= levels.back()->src_grid->team();
-    dash::Team& currentteam= previousteam.split(4);
-    TeamSpecT localteamspec( currentteam.size(), 1, 1 );
-    localteamspec.balance_extents();
-
-    if ( 0 == currentteam.position() ) {
-
-        if ( 0 == currentteam.myid() ) {
-            cout << "reduced-team level " << " is " <<
-                (1<<(howmanylevels))*factor_z << "x" <<
-                (1<<(howmanylevels))*factor_y << "x" <<
-                (1<<(howmanylevels))*factor_x <<
-                " distributed over " <<
-                localteamspec.num_units(0) << "x" <<
-                localteamspec.num_units(1) << "x" <<
-                localteamspec.num_units(2) << " units ()" << endl;
-        }
-
-        levels.push_back(new Level( 1.0, 1.0, 1.0,
-            (1<<(howmanylevels))*factor_z ,
-            (1<<(howmanylevels))*factor_y ,
-            (1<<(howmanylevels))*factor_x ,
-            currentteam, localteamspec ) );
-
-        dash::fill( levels[1]->src_grid->begin(),
-            levels[1]->src_grid->end(), 0.0 );
-
-        transfertofewer( *(levels[0]), *(levels[1]) );
-
-        writeToCsvFullGrid( *levels[1] );
-
-        dash::fill( levels[1]->src_grid->begin(),
-            levels[1]->src_grid->end(), 43.0 );
-
-        transfertomore( *(levels[1]), *(levels[0]) );
-
-    } else {
-
-        cout << "I'm passive" << endl;
-    }
-
-    dash::barrier();
-
-    writeToCsvFullGrid( *levels[0] );
-}
 
 /* elastic mode runs but still seems to have errors in it */
 void do_multigrid_elastic( uint32_t howmanylevels ) {
@@ -1724,7 +1622,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 }
 
 
-void do_flat_iteration( uint32_t howmanylevels ) {
+double do_flat_iteration( uint32_t howmanylevels ) {
 
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -1822,7 +1720,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     minimon.stop( "smoothflatresidual", dash::Team::All().size() );
 
-     if ( 0 == dash::myid() ) {
+    if ( 0 == dash::myid() ) {
 
         if ( ! check_symmetry( *level->src_grid, 0.001 ) ) {
 
@@ -1832,6 +1730,8 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     delete level;
     level= NULL;
+
+    return res.get();
 }
 
 
@@ -1856,7 +1756,6 @@ int main( int argc, char* argv[] ) {
 
     bool do_flatsolver= false;
     bool do_elastic= false;
-    bool do_testelastic= false;
     uint32_t howmanylevels= 5;
 
     for ( int a= 1; a < argc; a++ ) {
@@ -1888,15 +1787,6 @@ int main( int argc, char* argv[] ) {
                 cout << "do multigrid iteration with changing number of units per grid" << endl;
             }
 
-        } else if ( 0 == strncmp( "-t", argv[a], 2  ) ||
-                0 == strncmp( "--testelastic", argv[a], 7 )) {
-
-            do_testelastic= true;
-            if ( 0 == dash::myid() ) {
-
-                cout << "test elastic mode" << endl;
-            }
-
         } else {
 
             /* otherwise interpret as number of grid levels to employ */
@@ -1918,10 +1808,6 @@ int main( int argc, char* argv[] ) {
     } else if ( do_elastic ) {
 
         do_multigrid_elastic( howmanylevels );
-
-    } else if ( do_testelastic ) {
-
-        do_multigrid_testelastic( howmanylevels );
 
     } else {
 
