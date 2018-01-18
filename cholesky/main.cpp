@@ -81,12 +81,16 @@ int main(int argc, char **argv)
   if (dash::myid() == 0) {
     std::cout << "Allocating matrix: ";
   }
+
+  dash::TeamSpec<2> ts(dash::size(), 1);
+  ts.balance_extents();
+  TiledMatrix matrix(num_elem, num_elem,
+                     dash::TILE(block_size), dash::TILE(block_size), ts);
+
   /*
   TiledMatrix matrix(num_elem, num_elem,
-                     dash::TILE(block_size), dash::TILE(block_size));
-  */
-  TiledMatrix matrix(num_elem, num_elem,
                      dash::NONE, dash::BLOCKCYCLIC(block_size), dash::TeamSpec<2>(1, dash::size()));
+  */
   if (dash::myid() == 0) {
     std::cout << "Done." << std::endl;
   }
@@ -180,18 +184,37 @@ void fill_random(TiledMatrix &matrix)
         size_t to_copy = num_elem_total - num_elem;
         int n = std::min(to_copy,
                          static_cast<size_t>(std::numeric_limits<int>::max()));
-        dlarnv_(&intONE, &ISEED[0], &n, first);
+        dlarnv_(&intONE, &ISEED[0], &n, first + num_elem);
         num_elem += n;
       }
     });
   dash::tasks::complete();
 #elif defined(FAST_INIT) && defined(_OPENMP)
-  auto lbegin = matrix.lbegin();
   constexpr int rand_max = 100;
-#pragma omp parallel for
-  for (size_t i = 0; i < matrix.local_size(); ++i) {
-    lbegin[i] = (rand())%(rand_max);
+#pragma omp parallel
+#pragma omp single
+{
+  size_t pos = 0;
+  size_t chunk_size = matrix.local_size() / omp_get_num_threads();
+  size_t num_chunks = matrix.local_size() / chunk_size;
+  for (pos = 0; pos < matrix.local_size(); pos += chunk_size) {
+#pragma omp task
+{
+      int ISEED[4] = {0,0,0,1};
+      int intONE=1;
+      auto lbegin = matrix.lbegin() + pos;
+      size_t num_elem_total = std::min(chunk_size, matrix.local_size() - pos);
+      size_t num_elem = 0;
+      while (num_elem < num_elem_total) {
+        size_t to_copy = num_elem_total - num_elem;
+        int n = std::min(to_copy,
+                         static_cast<size_t>(std::numeric_limits<int>::max()));
+        dlarnv_(&intONE, &ISEED[0], &n, lbegin + num_elem);
+        num_elem += n;
+      }
+}
   }
+}
 #else
   constexpr int rand_max = 100;
   for (auto it = matrix.lbegin(); it != matrix.lend(); ++it) {
