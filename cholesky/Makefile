@@ -14,7 +14,7 @@ EXTRAE_ROOT = /work/xg17i034/x10288/opt/extrae-3.5.2/
 EXTRAE_INC = $(EXTRAE_ROOT)/include/
 EXTRAE_LIB = $(EXTRAE_ROOT)/lib
 
-OBJ = cholesky cholesky_prefetch cholesky_prefetch_omp cholesky_prefetch_omp_extrae cholesky_prefetch_extrae cholesky_tasks cholesky_tasks_prefetch cholesky_tasks_prefetch_extrae cholesky_tasks_copyin cholesky_tasks_copyin_extrae
+OBJ = cholesky cholesky_prefetch cholesky_prefetch_omp cholesky_prefetch_omp_extrae cholesky_prefetch_extrae cholesky_tasks cholesky_tasks_prefetch cholesky_tasks_prefetch_extrae cholesky_tasks_copyin cholesky_tasks_copyin_extrae cholesky_mpi_omp cholesky_mpi_omp_extrae
 
 MAIN = main.cpp
 
@@ -53,6 +53,14 @@ cholesky_tasks_copyin: $(MAIN) $(HEADER) CholeskyTasksCopyIn.h Makefile
 
 cholesky_tasks_copyin_extrae: $(MAIN) $(HEADER) CholeskyTasksCopyIn.h Makefile
 	$(CXX) $(CXXFLAGS) -DDASH_TASKS_COPYIN -DUSE_EXTRAE -I$(EXTRAE_INC) -o $@ $< $(LDFLAGS) $(DART_TASK_LIB) -L$(EXTRAE_LIB) -lptmpitrace
+
+cholesky_mpi_omp: $(MAIN) $(HEADER) CholeskyMPIOMP.h Makefile
+	$(CXX) $(CXXFLAGS) -DMPI_OMP -fopenmp -o $@ $< $(LDFLAGS) $(DART_TASK_LIB)
+
+cholesky_mpi_omp_extrae: $(MAIN) $(HEADER) CholeskyMPIOMP.h Makefile
+	$(CXX) $(CXXFLAGS) -DMPI_OMP -fopenmp -DUSE_EXTRAE -I$(EXTRAE_INC) -o $@ $< $(LDFLAGS) $(DART_TASK_LIB) -L$(EXTRAE_LIB) -lompitrace
+
+
 
 clean:
 	rm -rf $(OBJ)

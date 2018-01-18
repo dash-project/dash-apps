@@ -24,6 +24,9 @@
 #elif defined (DASH_OMP_PREFETCH)
 #include "CholeskyOMPPrefetch.h"
 #define USE_TASKS 0
+#elif defined (MPI_OMP)
+#include "CholeskyMPIOMP.h"
+#define USE_TASKS 0
 #else
 #include "Cholesky.h"
 #define USE_TASKS 0

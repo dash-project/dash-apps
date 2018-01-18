@@ -164,6 +164,10 @@ public:
     }
   }
 
+  size_t unit() {
+    return this->_matrix->pattern().unit_at(_glob_idx);
+  }
+
 private:
 
   void fetch_data() {
