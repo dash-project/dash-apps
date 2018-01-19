@@ -19,9 +19,6 @@ compute(TiledMatrix& matrix, size_t block_size){
   using BlockCachePtr = typename std::shared_ptr<BlockCache>;
   const size_t num_blocks = matrix.pattern().extent(0) / block_size;
 
-  std::cout << "local_size: " << matrix.local_size() << std::endl;
-
-
   // allocate a vector to pre-fetch the result of trsm() into
   value_t *blocks_ki_pre = new value_t[block_size*block_size*num_blocks];
 
@@ -61,10 +58,14 @@ compute(TiledMatrix& matrix, size_t block_size){
     if (block_k.is_local()) {
       dash::tasks::async(
         [=]() mutable {
+#ifdef DEBUG
           std::cout << "[" << dash::myid() << ", " << dart_task_thread_num()
                     << "] potrf() on row " << k << "/" << num_blocks << ": ";
+#endif
           potrf(block_k.lbegin(), block_size, block_size);
+#ifdef DEBUG
           std::cout << "Done." << std::endl;
+#endif
         },
         DART_PRIO_HIGH,
         dash::tasks::out(block_k)

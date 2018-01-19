@@ -24,10 +24,6 @@ compute(TiledMatrix& matrix, size_t block_size){
   // allocate a vector to pre-fetch the result of trsm() into
   value_t *blocks_ki_pre = new value_t[block_size*block_size*num_blocks];
 
-  std::cout << "block_k_pre: " << block_k_pre << std::endl;
-  std::cout << "blocks_ki_pre: " << blocks_ki_pre << std::endl;
-  std::cout << "matrix.lbegin: " << matrix.lbegin() << std::endl;
-
   int barrier_sentinel; // dummy variable for barrier synchronization
 
   /**
@@ -56,9 +52,13 @@ compute(TiledMatrix& matrix, size_t block_size){
       auto block_k_ptr = block_k.lbegin();
 #pragma omp task depend(out:block_k_ptr, barrier_sentinel) firstprivate(block_k)
       {
+#ifdef DEBUG
         std::cout << "[" << dash::myid() << ", " << omp_get_thread_num() << "] potrf() on row " << k << "/" << num_blocks << ": ";
+#endif
         potrf(block_k_ptr, block_size, block_size);
+#ifdef DEBUG
         std::cout << "Done." << std::endl;
+#endif
       }
     }
 

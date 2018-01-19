@@ -3,6 +3,7 @@
 
 #include <libdash.h>
 #include "MatrixBlock.h"
+#include "ExtraeInstrumentation.h"
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyNoTasks";
 
@@ -29,8 +30,10 @@ compute(TiledMatrix& matrix, size_t block_size){
   // iterate over column of blocks
   for (size_t k = 0; k < num_blocks; ++k) {
 
+#ifdef DEBUG
     if (dash::myid() == 0)
       std::cout << "Processing column " << k << std::endl;
+#endif
 
     Block block_k(matrix, k, k);
 
