@@ -3,6 +3,7 @@
 
 #include <mkl.h>
 #include "MatrixBlock.h"
+#include "ExtraeInstrumentation.h"
 
 typedef dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
 
@@ -23,7 +24,9 @@ void potrf(double * const A, int ts, int ld)
 {
    static int INFO;
    static char L = 'L';
+   EXTRAE_ENTER(EVENT_POTRF);
    dpotrf_(&L, &ts, A, &ld, &INFO);
+   EXTRAE_EXIT(EVENT_POTRF);
 }
 
 static
@@ -31,7 +34,9 @@ void trsm(double *A, double *B, int ts, int ld)
 {
    static char LO = 'L', TR = 'T', NU = 'N', RI = 'R';
    static double DONE = 1.0;
+   EXTRAE_ENTER(EVENT_TRSM);
    dtrsm_(&RI, &LO, &TR, &NU, &ts, &ts, &DONE, A, &ld, B, &ld );
+   EXTRAE_EXIT(EVENT_TRSM);
 }
 
 static
@@ -39,7 +44,9 @@ void syrk(double *A, double *B, int ts, int ld)
 {
    static char LO = 'L', NT = 'N';
    static double DONE = 1.0, DMONE = -1.0;
+   EXTRAE_ENTER(EVENT_SYRK);
    dsyrk_(&LO, &NT, &ts, &ts, &DMONE, A, &ld, &DONE, B, &ld );
+   EXTRAE_EXIT(EVENT_SYRK);
 }
 
 static
@@ -47,7 +54,9 @@ void gemm(double *A, double *B, double *C, int ts, int ld)
 {
    static const char TR = 'T', NT = 'N';
    static double DONE = 1.0, DMONE = -1.0;
+   EXTRAE_ENTER(EVENT_GEMM);
    dgemm_(&NT, &TR, &ts, &ts, &ts, &DMONE, A, &ld, B, &ld, &DONE, C, &ld);
+   EXTRAE_EXIT(EVENT_GEMM);
 }
 
 template<typename MatrixT>

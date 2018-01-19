@@ -7,7 +7,6 @@
 #include <mpi.h>
 #include "MatrixBlock.h"
 #include "common.h"
-#include "ExtraeInstrumentation.h"
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyMPIOpenMP";
 
@@ -51,11 +50,6 @@ compute(TiledMatrix& matrix, size_t block_size){
   size_t nt = num_blocks;
   size_t ts = block_size;
   size_t mype = dash::myid();
-
-#ifdef USE_EXTRAE
-  unsigned nvalues = 6;
-  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
-#endif
 
   // pre-allocate a block for pre-fetching the result of potrf()
   value_t *block_k_pre = new value_t[block_size*block_size];

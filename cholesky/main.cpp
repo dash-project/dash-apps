@@ -60,6 +60,11 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+#ifdef USE_EXTRAE
+  unsigned nvalues = 6;
+  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
+#endif
+
   //const size_t  N = 15 * dash::size();
 
   if (argc < 3) {

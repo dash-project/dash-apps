@@ -3,7 +3,6 @@
 
 #include <libdash.h>
 #include "MatrixBlock.h"
-#include "ExtraeInstrumentation.h"
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyNoTasks";
 
@@ -20,11 +19,6 @@ compute(TiledMatrix& matrix, size_t block_size){
    * Algorithm taken from
    * https://pm.bsc.es/ompss-docs/examples/01-examples/cholesky
    */
-
-#ifdef USE_EXTRAE
-  unsigned nvalues = 6;
-  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
-#endif
 
   // pre-allocate a block for pre-fetching the result of potrf()
   value_t *block_k_pre = new value_t[block_size*block_size];
@@ -44,9 +38,7 @@ compute(TiledMatrix& matrix, size_t block_size){
      * Compute cholesky factorization of block on diagonal
      */
     if (block_k.is_local()) {
-      EXTRAE_ENTER(EVENT_POTRF);
       potrf(block_k.lbegin(), block_size, block_size);
-      EXTRAE_EXIT(EVENT_POTRF);
     }
     dash::barrier();
 
@@ -62,10 +54,8 @@ compute(TiledMatrix& matrix, size_t block_size){
     for (int i = k+1; i < num_blocks; ++i) {
       Block block_b(matrix, k, i);
       if (block_b.is_local()) {
-        EXTRAE_ENTER(EVENT_TRSM);
         trsm(block_k_pre,
              block_b.lbegin(), block_size, block_size);
-        EXTRAE_EXIT(EVENT_TRSM);
       }
     }
 
@@ -151,11 +141,9 @@ compute(TiledMatrix& matrix, size_t block_size){
           auto block_a_pre = prefetch_blocks[i];
           auto block_b_pre = prefetch_blocks[j];
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t
-          EXTRAE_ENTER(EVENT_GEMM);
           gemm(block_a_pre,
                block_b_pre,
                block_c.lbegin(), block_size, block_size);
-          EXTRAE_EXIT(EVENT_GEMM);
         }
       }
 
@@ -163,10 +151,8 @@ compute(TiledMatrix& matrix, size_t block_size){
       if (block_ii.is_local()) {
         auto block_a_pre = prefetch_blocks[i];
         // A[j,j] = A[j,j] - A[j,i] * (A[j,i])^t
-        EXTRAE_ENTER(EVENT_SYRK);
         syrk(block_a_pre,
              block_ii.lbegin(), block_size, block_size);
-        EXTRAE_EXIT(EVENT_SYRK);
       }
     }
     dash::barrier();

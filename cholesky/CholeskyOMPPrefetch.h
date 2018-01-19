@@ -6,7 +6,6 @@
 #include <omp.h>
 #include "MatrixBlock.h"
 #include "common.h"
-#include "ExtraeInstrumentation.h"
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyOpenMPPrefetch";
 
@@ -19,11 +18,6 @@ compute(TiledMatrix& matrix, size_t block_size){
   using BlockCache    = typename std::vector<value_t>;
   using BlockCachePtr = typename std::shared_ptr<BlockCache>;
   const size_t num_blocks = matrix.pattern().extent(0) / block_size;
-
-#ifdef USE_EXTRAE
-  unsigned nvalues = 6;
-  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
-#endif
 
   // pre-allocate a block for pre-fetching the result of potrf()
   value_t *block_k_pre = new value_t[block_size*block_size];
@@ -62,11 +56,9 @@ compute(TiledMatrix& matrix, size_t block_size){
       auto block_k_ptr = block_k.lbegin();
 #pragma omp task depend(out:block_k_ptr, barrier_sentinel) firstprivate(block_k)
       {
-        EXTRAE_ENTER(EVENT_POTRF);
         std::cout << "[" << dash::myid() << ", " << omp_get_thread_num() << "] potrf() on row " << k << "/" << num_blocks << ": ";
         potrf(block_k_ptr, block_size, block_size);
         std::cout << "Done." << std::endl;
-        EXTRAE_EXIT(EVENT_POTRF);
       }
     }
 
@@ -76,10 +68,8 @@ compute(TiledMatrix& matrix, size_t block_size){
     // prefetch block_k after it has been computed
 #pragma omp task depend(out: block_k_pre) depend(in: barrier_sentinel) firstprivate(block_k_pre, block_k)
   {
-    EXTRAE_ENTER(EVENT_PREFETCH);
     dash::dart_storage<value_t> ds(block_size*block_size);
     dart_get_blocking(block_k_pre, block_k.begin().dart_gptr(), ds.nelem, ds.dtype, ds.dtype);
-    EXTRAE_EXIT(EVENT_PREFETCH);
   }
     std::map<size_t, value_t*> prefetch_blocks;
 
@@ -93,10 +83,8 @@ compute(TiledMatrix& matrix, size_t block_size){
         auto block_b_ptr = block_b.lbegin();
 #pragma omp task depend(in: block_k_pre, block_b_ptr, barrier_sentinel) firstprivate(block_k_pre, block_b_ptr)
   {
-        EXTRAE_ENTER(EVENT_TRSM);
         trsm(block_k_pre,
              block_b_ptr, block_size, block_size);
-        EXTRAE_EXIT(EVENT_TRSM);
   }
       }
     }
@@ -209,11 +197,9 @@ compute(TiledMatrix& matrix, size_t block_size){
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t#
 #pragma omp task depend(in: block_a_pre[0], block_b_pre[0], barrier_sentinel) depend(out: block_c_pre[0]) firstprivate(block_a_pre, block_b_pre, block_c_pre)
 {
-              EXTRAE_ENTER(EVENT_GEMM);
               gemm(block_a_pre,
                    block_b_pre,
                    block_c_pre, block_size, block_size);
-              EXTRAE_EXIT(EVENT_GEMM);
 }
         }
       }
@@ -228,10 +214,8 @@ compute(TiledMatrix& matrix, size_t block_size){
         value_t* block_i_pre = block_i.lbegin();
 #pragma omp task depend(in: block_a_pre[0], block_i_pre[0], barrier_sentinel) firstprivate(block_a_pre, block_i_pre)
 {
-            EXTRAE_ENTER(EVENT_SYRK);
             syrk(block_a_pre,
                  block_i_pre, block_size, block_size);
-            EXTRAE_EXIT(EVENT_SYRK);
 }
       }
     }

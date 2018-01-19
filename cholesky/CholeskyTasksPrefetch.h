@@ -5,7 +5,6 @@
 #include <memory>
 #include "MatrixBlock.h"
 #include "common.h"
-#include "ExtraeInstrumentation.h"
 #include "BlockPrefetcher.h"
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyTasksPrefetch";
@@ -21,11 +20,6 @@ compute(TiledMatrix& matrix, size_t block_size){
   const size_t num_blocks = matrix.pattern().extent(0) / block_size;
 
   std::cout << "local_size: " << matrix.local_size() << std::endl;
-
-#ifdef USE_EXTRAE
-  unsigned nvalues = 6;
-  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
-#endif
 
 #if 0
   // pre-allocate a block for pre-fetching the result of potrf()
@@ -58,11 +52,9 @@ compute(TiledMatrix& matrix, size_t block_size){
     if (block_k.is_local()) {
       dash::tasks::async(
         [=]() mutable {
-          EXTRAE_ENTER(EVENT_POTRF);
           std::cout << "[" << dash::myid() << ", " << dart_task_thread_num() << "] potrf() on row " << k << "/" << num_blocks << ": ";
           potrf(block_k.lbegin(), block_size, block_size);
           std::cout << "Done." << std::endl;
-          EXTRAE_EXIT(EVENT_POTRF);
         },
         DART_PRIO_HIGH,
         dash::tasks::out(block_k)
@@ -81,11 +73,8 @@ compute(TiledMatrix& matrix, size_t block_size){
       if (block_b.is_local()) {
         dash::tasks::async(
           [=]() mutable {
-            EXTRAE_ENTER(EVENT_TRSM);
             trsm(block_k_pre,
                 block_b.lbegin(), block_size, block_size);
-            EXTRAE_EXIT(EVENT_TRSM);
-
           },
           DART_PRIO_HIGH,
           dash::tasks::in(block_k_pre),
@@ -108,11 +97,9 @@ compute(TiledMatrix& matrix, size_t block_size){
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t
           dash::tasks::async(
             [=]() mutable {
-              EXTRAE_ENTER(EVENT_GEMM);
               gemm(block_a_pre,
                    block_b_pre,
                    block_c.lbegin(), block_size, block_size);
-              EXTRAE_EXIT(EVENT_GEMM);
             },
             dash::tasks::in(block_a_pre),
             dash::tasks::in(block_b_pre),
@@ -130,10 +117,8 @@ compute(TiledMatrix& matrix, size_t block_size){
         auto block_a_pre = prefetcher.get(k, i);
         dash::tasks::async(
           [=]() mutable {
-            EXTRAE_ENTER(EVENT_SYRK);
             syrk(block_a_pre,
                  block_i.lbegin(), block_size, block_size);
-            EXTRAE_EXIT(EVENT_SYRK);
           },
           DART_PRIO_HIGH,
           dash::tasks::in(block_a_pre),
