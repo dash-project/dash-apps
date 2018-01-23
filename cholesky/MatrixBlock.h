@@ -160,7 +160,7 @@ public:
     if (!_is_local && this->_local_ptr != NULL) {
       auto begin = this->_matrix->begin() + _glob_idx;
       dash::dart_storage<value_t> ds(_size);
-      dart_put_blocking(begin.dart_gptr(), _local_ptr, ds.nelem, ds.dtype);
+      dart_put_blocking(begin.dart_gptr(), _local_ptr, ds.nelem, ds.dtype, ds.dtype);
     }
   }
 
