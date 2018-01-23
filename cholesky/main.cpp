@@ -26,7 +26,9 @@
 #define USE_TASKS 0
 #elif defined (MPI_OMP)
 #include "CholeskyMPIOMP.h"
-#define USE_TASKS 0
+#elif defined (MPI_DTASKS)
+#include "CholeskyMPIDTasks.h"
+#define USE_TASKS 1
 #else
 #include "Cholesky.h"
 #define USE_TASKS 0

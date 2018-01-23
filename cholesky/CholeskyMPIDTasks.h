@@ -3,21 +3,21 @@
 
 #include <libdash.h>
 #include <memory>
-#include <omp.h>
 #include <mpi.h>
 #include "MatrixBlock.h"
 #include "common.h"
 
-constexpr const char *CHOLESKY_IMPL = "CholeskyMPIOpenMP";
+constexpr const char *CHOLESKY_IMPL = "CholeskyMPIDTasks";
 
 inline static void wait(MPI_Request *comm_req)
 {
-    int comm_comp = 0;
+    int flag = 0;
 
-    MPI_Test(comm_req, &comm_comp, MPI_STATUS_IGNORE);
-    while (!comm_comp) {
-#pragma omp taskyield
-        MPI_Test(comm_req, &comm_comp, MPI_STATUS_IGNORE);
+    MPI_Test(comm_req, &flag, MPI_STATUS_IGNORE);
+    while (1) {
+        MPI_Test(comm_req, &flag, MPI_STATUS_IGNORE);
+        if (flag) break;
+        dash::tasks::yield(-1);
     }
 //    MPI_Wait(comm_req, MPI_STATUS_IGNORE);
 }

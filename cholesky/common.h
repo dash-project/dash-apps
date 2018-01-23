@@ -173,6 +173,7 @@ void verify_matrix(MatrixT &result, MatrixT &expected)
       }
     }
   }
+  std::cout << "Verification successful!" << std::endl;
 }
 
 
