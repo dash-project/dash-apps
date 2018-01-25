@@ -23,7 +23,7 @@ int main( int argc, char* argv[] ) {
   }
 
   dash::barrier();
-  
+
   for ( auto it= arr.lbegin(); it != arr.lend(); it++ ) {
     *it= dash::myid();
   }

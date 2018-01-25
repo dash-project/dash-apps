@@ -72,16 +72,10 @@ int main( int argc, char* argv[] ) {
     imagesize_shared.barrier();
 
     ImageSize imagesize = imagesize_shared.get();
-    cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
     auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
     dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
         distspec, dash::Team::All(), teamspec );
-
-    /* Assignment: declare and allocate a distributed 2d DASH matrix
-    container with width 'w' and height 'h' with the RGB basic data type.
-    Select BLOCKED or NONE distribution in each dimension. In this case
-    the TILED distribution is not recommended, though. */
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
 
@@ -111,10 +105,11 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
+            for ( uint32_t l= 0; ( l < rowsperstrip ) && (line+l < imagesize.height); l++ ) {
 
-            /* Assignment: copy the next 'rowsperstrip' lines
-            from pointer 'rgb' with width 'w' each to the target
-            position in the distributed matrix. */
+                iter = dash::copy( rgb, rgb+imagesize.width, iter );
+                rgb += imagesize.width;
+            }
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
@@ -130,6 +125,56 @@ int main( int argc, char* argv[] ) {
     if ( 0 == myid ) {
         show_matrix( matrix, 1200, 1000 );
     }
+
+    matrix.barrier();
+
+    /* *** part 3: compute historgramm in parallel *** */
+
+    {
+        // really need 64 bits for very large images
+        constexpr uint64_t MAXKEY = 256*3;
+        constexpr uint64_t BINS = 17;
+
+        /* Assignment: Create a distributed DASH array for the histogram
+        of size ( 'BINS' x team size ) which is block distributed
+        over all units. Fill it with '0' using a DASH algorithm. */
+
+        start= std::chrono::system_clock::now();
+        /* Assignment: Iterate over all local pixels in the
+        distributed matrix using the local iterator. For every pixel
+        determine the brightness bin in the histogram of 'BINS' bins.
+        Then increment the corresponding histogram bin in the local
+        part of the histogram by 1. */
+
+        /* Assignment: Add a barrier for the histogram data structure */
+
+        if ( 0 != myid ) {
+
+            /* Assignment: For all units except unit 0, add their histogram
+            bins to the values of the histogram of unit 0. Try using a DASH
+            algorithm for that. */
+        }
+
+        /* Assignment: Add a barrier for the histogram data structure */
+
+        end= std::chrono::system_clock::now();
+
+        if ( 0 == myid ) {
+            cout << "computed parallel histogram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
+
+            /* Assignment: Use the given function 'print_histogram' to print out the global histogram. */
+
+        }
+    }
+
+    /* from the brightness histogram we learned, that we should define all but the first two histogram bins
+    as bright pixels */
+
+    /* Assignment: put here the limit where the pixel color is considered
+    part of a bright object instead of the dark background. Look at the
+    histogram you produced to find out a good limit */
+
+    const uint32_t limit= 0;
 
     dash::finalize();
     return 0;

@@ -72,7 +72,6 @@ int main( int argc, char* argv[] ) {
     imagesize_shared.barrier();
 
     ImageSize imagesize = imagesize_shared.get();
-    cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
     auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
     dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
@@ -197,17 +196,20 @@ int main( int argc, char* argv[] ) {
     {
         dash::Array<uint32_t> sums( numunits, dash::BLOCKED );
         dash::fill( sums.begin(), sums.end(), 0 );
-
         start= std::chrono::system_clock::now();
 
         uint32_t lw= matrix.local.extent(1);
         uint32_t lh= matrix.local.extent(0);
         auto foundobjects = sums.lbegin();
-        for ( uint32_t y= 0; y < lh ; y++ ){
-            for ( uint32_t x= 0; x < lw ; x++ ){
-                *foundobjects += checkobject( matrix.lbegin(), x, y, lw, lh, limit, marker );
-            }
-        }
+
+        /* Assignment: apply the given 'checkobject' function to every pixel
+        in the local part of the matrix. Use local 'x' and 'y' coordinates.
+        Count how many times it returns 1 since that gives the number of
+        bright objects touched. Count it in the local variale 'foundobjects'.
+
+        For now, we ignore that bright objects will be counted multiple
+        times if they cross the border between different blocks of the
+        DASH matrix. Correcting this is left as an exercise ... */
 
         sums.barrier();
         end= std::chrono::system_clock::now();
@@ -215,12 +217,15 @@ int main( int argc, char* argv[] ) {
             cout << "marked pixels in parallel in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl;
         }
 
-        /* combine the local number of objects found into the global result */
-        cout << "unit " << myid << " found " << *foundobjects << " objects locally" << endl;
+        /* Assignment: Sum the the local numbers of bright objects
+        from all units into the global result.
+        Use the same manner as for the histogram above. */
 
         if ( 0 == myid ) {
-            sum_objects = std::accumulate(sums.begin(), sums.end(), 0);
-            cout << "found " << sum_objects << " objects in total" << endl;
+
+            /* Assignment: put the global number of bright objects here: */
+
+            cout << "found " << ... << " objects in total" << endl;
         }
     }
 

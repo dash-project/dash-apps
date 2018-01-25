@@ -4,7 +4,7 @@ This is a set of assignments with solutions for an upcoming DASH tutorial. It us
 
 ## Input image
 
-I recommend the 31813x19425 928 MB image 'heic1620a.tif' from http://www.spacetelescope.org/images/heic1620a/. Any other astronomical image in TIFF format will do if it it stored in a 'stripped' manner.
+I recommend the 31813x19425 928 MB image 'heic1620a.tif' from http://www.spacetelescope.org/images/heic1620a/. Any other astronomical image in TIFF format will do if it is stored in a 'stripped' manner.
 
 ## Requirements:
 
@@ -33,4 +33,8 @@ The assignments are given codes with some DASH data container allocations or ope
 ### 5. Count the number of bright objects in the image.
 * For every pixel, run a given 'checkobject' function. It will report, if it was a bright pixel and, if so, mark all adjacent pixels with the marker color, so that they won't be reported again.
 * Count in parallel for every block and combine the result into the global result.
-* For simplixity, we don't correct for bright objects at the border between distributed block, which may be countet multiple time. Thie correction is left as a further exercise ...
+* For simplicity, we don't correct for bright objects at the border between distributed block, which may be counted multiple time. This correction is left as a further exercise ...
+
+The correct number of objects in the 'heic1620a.tif' image is 148498.
+
+### 6. Count the number of bright objects in the image with a separate ID matrix

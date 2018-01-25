@@ -72,7 +72,6 @@ int main( int argc, char* argv[] ) {
     imagesize_shared.barrier();
 
     ImageSize imagesize = imagesize_shared.get();
-    cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
     auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
     dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),

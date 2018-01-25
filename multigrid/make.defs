@@ -1,16 +1,15 @@
+-include local.defs
 
+#DASH_ROOT ?= /home/knue/local/dash-0.3.0
+DART_IMPL ?= mpi
+LIBS ?= -lnuma -lhwloc
+SCOREP_FLAGS ?= --user --nocompiler
 
-DASH_ROOT = /home/knue/local/dash-0.3.0_halo
-DASH_ROOT = /home/knue/local/dash-0.3.0
+INC=-I$(DASH_INC)
+LIB=-L$(DASH_LIB) -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base -lrt $(LIBS)
 
-MPIROOT = /opt/open-mpi/
+CXXFLAGS ?= -O3 -g -march=native -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
 
-DART_IMPL = mpi
+CXX       = mpicxx -std=c++14 $(CXXFLAGS)
 
-INC=-I$(DASH_ROOT)/include
-LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base
-
-#CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
-CXXFLAGS= -O3 -march=native -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
-
-CXX       = mpicxx -std=c++11 $(CXXFLAGS)
+SCOREP=scorep $(SCOREP_FLAGS)

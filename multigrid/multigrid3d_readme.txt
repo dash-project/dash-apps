@@ -17,3 +17,11 @@
 * Now add a filter to the selected group with: Filters -> Alphabetical -> Iso Volume. Then Set Minimum to 6 and Maximum to 10 -- that will be the two isosurfaces that you'll see. Farther down set Opacity to 0.5.
 
 * Afterwards play with the green time forward/backward arrows to step through the evolution of the grids on every level. You can also "Save Animation".
+
+# How to visualize the minimon trace data with gnuplot
+
+* Use the script combine_csvs.sh to merge all trace files into one
+  usage: ./combine_csvs.sh <name extension>
+
+* Build all plots with gnuplot
+  usage: gnuplot -e "filename='<name_of_tracefile.csv>'" trace.gnuplot

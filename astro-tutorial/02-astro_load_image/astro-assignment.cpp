@@ -74,9 +74,14 @@ int main( int argc, char* argv[] ) {
     ImageSize imagesize = imagesize_shared.get();
     cout << "unit " << myid << " thinks image is " << imagesize.width << " x " << imagesize.height << endl;
 
-    auto distspec= dash::DistributionSpec<2>( dash::BLOCKED, dash::NONE );
-    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( imagesize.height, imagesize.width),
+    auto distspec= dash::DistributionSpec<2>( /* add something here */ );
+    dash::NArray<RGB, 2> matrix( dash::SizeSpec<2>( /* add something here */ ),
         distspec, dash::Team::All(), teamspec );
+
+    /* Assignment: declare and allocate a distributed 2d DASH matrix
+    container with width 'w' and height 'h' with the RGB basic data type.
+    Select BLOCKED or NONE distribution in each dimension. In this case
+    the TILED distribution is not recommended, though. */
 
     /* *** part 2: load image strip by strip on unit 0, copy to distributed matrix from there, then show it *** */
 
@@ -106,11 +111,10 @@ int main( int argc, char* argv[] ) {
                 std::swap<uint8_t>( rgb.r, rgb.b );
             } );
 
-            for ( uint32_t l= 0; ( l < rowsperstrip ) && (line+l < imagesize.height); l++ ) {
 
-                iter = dash::copy( rgb, rgb+imagesize.width, iter );
-                rgb += imagesize.width;
-            }
+            /* Assignment: copy the next 'rowsperstrip' lines
+            from pointer 'rgb' with width 'w' each to the target
+            position in the distributed matrix. */
 
             if ( 0 == ( strip % 100 ) ) {
                 cout << "    strip " << strip << "/" << numstrips << "\r" << flush;
@@ -125,68 +129,6 @@ int main( int argc, char* argv[] ) {
 
     if ( 0 == myid ) {
         show_matrix( matrix, 1200, 1000 );
-    }
-
-    matrix.barrier();
-
-    /* *** part 3: compute historgramm in parallel *** */
-
-    {
-        // really need 64 bits for very large images
-        constexpr uint64_t MAXKEY = 256*3;
-        constexpr uint64_t BINS = 17;
-
-        dash::Array<uint32_t> histogram( BINS * numunits, dash::BLOCKED );
-        dash::fill( histogram.begin(), histogram.end(), 0 );
-
-        start= std::chrono::system_clock::now();
-        for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
-                histogram.local[ it->brightness() * BINS / MAXKEY ]++;
-        }
-
-        histogram.barrier();
-
-        if ( 0 != myid ) {
-
-            dash::transform<uint32_t>(
-                histogram.lbegin(), histogram.lend(), // first source
-                histogram.begin(), // second source
-                histogram.begin(), // destination
-                dash::plus<uint32_t>() );
-        }
-
-        histogram.barrier();
-        end= std::chrono::system_clock::now();
-
-        if ( 0 == myid ) {
-            cout << "computed parallel histogram in "<< std::chrono::duration_cast<std::chrono::seconds> (end-start).count() << " seconds" << endl << endl;
-            print_histogram( histogram.lbegin(), histogram.lend() );
-        }
-    }
-
-    /* from the brightness histogram we learned, that we should define all but the first two histogram bins
-    as bright pixels */
-    const uint32_t limit= 256*3*2/17;
-
-    matrix.barrier();
-
-    /* *** part 4: define a marker color and check that it is not appearing in the image yet *** */
-
-    /* Assignment: define a marker color, which is not appearing
-    in the image yet. Test with the following code if it is really not used so far. */
-    RGB marker(,,);
-
-    {
-        start= std::chrono::system_clock::now();
-
-        size_t count = 0;
-        /* Assignment: Go through all pixels in the local part of the distributed matrix
-        and count how often the marker value appears.  */
-
-        end = std::chrono::system_clock::now();
-        cout << "    unit " << myid << " found marker color " << count << " times "
-             << "in " << std::chrono::duration_cast<std::chrono::seconds> (end-start).count()
-             << " seconds" << endl;
     }
 
     dash::finalize();
