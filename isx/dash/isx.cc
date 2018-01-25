@@ -61,6 +61,8 @@ uint64_t MAX_KEY_VAL; // The maximum possible generated key value
 int my_rank;
 int comm_size;
 
+#define USE_DASH_TRANSFORM 1
+
 
 #ifdef PERMUTE
 int * permute_array;
@@ -209,7 +211,7 @@ static int bucket_sort(void)
                              bucket_sizes.end());
 
     if (my_rank == 0) {
-      std::cout << "Allocating bucket_sizes(" << NUM_PES
+      std::cout << "Allocating bucketed_keys(" << NUM_PES
                 << ", " << NUM_BUCKETS
                 << ", " << max_bucket_size << "); total = "
                 << NUM_PES * NUM_BUCKETS * max_bucket_size << std::endl;
@@ -234,8 +236,8 @@ static int bucket_sort(void)
                                                          my_bucket_size);
 
 
-    std::vector<CNT_TYPE> my_local_key_counts = count_local_keys(my_bucket_keys, my_bucket_size);
-
+    std::vector<CNT_TYPE> my_local_key_counts = count_local_keys(my_bucket_keys,
+                                                                 my_bucket_size);
     dash::barrier();
 
     timer_stop(&timers[TIMER_TOTAL]);
@@ -330,20 +332,6 @@ static inline void bucketize_local_keys(
   dash::barrier();
 
   timer_stop(&timers[TIMER_BUCKETIZE]);
-
-#ifdef DEBUG
-
-  char msg[1024];
-  sprintf(msg,"Rank %d: local bucketed keys: ", my_rank);
-  for(int i = 0; i < NUM_KEYS_PER_PE; ++i){
-    if(i < PRINT_MAX)
-    sprintf(msg + strlen(msg),"%d ", my_local_bucketed_keys[i]);
-  }
-  sprintf(msg + strlen(msg),"\n");
-  printf("%s",msg);
-  fflush(stdout);
-
-#endif
 }
 
 /*
@@ -439,7 +427,7 @@ static int verify_results(std::vector<CNT_TYPE>          &my_local_key_counts,
                           const long long int my_bucket_size)
 {
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  dash::barrier();
 
   int error = 0;
 
