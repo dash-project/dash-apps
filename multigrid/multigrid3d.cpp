@@ -643,7 +643,7 @@ void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
         auto next_two_layer = 2*z*next_layer;
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
 
-            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2];
+            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2]; // @DENIS: why is this correct? should it not be incremented after the x-loop? Add a nice long comment why this is correct!
             double* __restrict p_010= p_000 + extentf[2];
             double* __restrict p_100= p_000 + next_layer;
             double* __restrict p_110= p_100 + extentf[2];
@@ -669,6 +669,8 @@ void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
 }
 
 
+/* this version of the prolongation from the coarse grid to the fine grid is flawed! */
+// void scaleup_old( MatrixT& coarsegrid, MatrixT& finegrid ) {
 void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 
     uint64_t par= coarsegrid.team().size();
@@ -704,7 +706,7 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         auto next_two_layer = 2*z*next_layer;
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
-            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2];
+            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2]; // @DENIS: is this correct -- should it not be increased at the end of the x-loop? 
             double* __restrict p_010= p_000 + extentf[2];
             double* __restrict p_100= p_000 + next_layer;
             double* __restrict p_110= p_100 + extentf[2];
@@ -730,6 +732,147 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
     }
 
     minimon.stop( "scaleup", par, param );
+}
+
+
+/* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
+elements. Note that it is 2^n elements per dimension instead of 2^n -1!
+This version loops over the coarse grid */
+void scaleup_loop_coarse( MatrixT& coarsegrid, MatrixT& finegrid ) {
+
+    uint64_t par= coarsegrid.team().size();
+    uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
+
+    // scaleup
+    minimon.start();
+
+    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
+    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
+    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
+
+    const auto& extentc= coarsegrid.pattern().local_extents();
+    const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
+    const auto& extentf= finegrid.pattern().local_extents();
+    const auto& cornerf= finegrid.pattern().global( {0,0,0} );
+
+    assert( cornerc[0] * 2 == cornerf[0] );
+    assert( cornerc[1] * 2 == cornerf[1] );
+    assert( cornerc[2] * 2 == cornerf[2] );
+
+    assert( 0 == cornerc[0] %2 );
+    assert( 0 == cornerc[1] %2 );
+    assert( 0 == cornerc[2] %2 );
+
+    assert( extentc[0] * 2 == extentf[0] );
+    assert( extentc[1] * 2 == extentf[1] );
+    assert( extentc[2] * 2 == extentf[2] );
+
+    /* 1) start async halo exchange for coarse grid*/
+    //coarsehalo->update_async();
+
+    /* 2) first set fine grid to 0.0, becasue afterwards there are 
+    multiple += operations per fine grid element */
+
+    constexpr double coeff_close= 3.0*3.0*3.0/4.0/4.0/4.0;
+    dash::fill( finegrid.begin(), finegrid.end(), 0.0 );
+
+    /* 3) second loop over the inner of the coarse grid: add the (1/4)^n * (3/4)^m with n>=1 
+    contributions */
+
+    /* for correctness, write down the clear and simple version first and
+    try to apply the optimization from scaleup_old() again -- see above.
+    Make sure that this was correct though. And write down some good comment
+    why it is correct! */
+
+    for ( size_t z= 1; z < extentc[0]-1 ; z++ ) {
+        for ( size_t y= 1; y < extentc[1]-1 ; y++ ) {
+
+            double* __restrict p_mm0= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y-1)*extentf[2] + (2);
+            double* __restrict p_m00= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_m10= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y+1)*extentf[2] + (2);
+            double* __restrict p_m20= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y+2)*extentf[2] + (2);
+
+            double* __restrict p_0m0= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_000= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_010= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_020= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+
+            double* __restrict p_1m0= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_100= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_110= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_120= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+
+            double* __restrict p_2m0= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_200= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_210= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_220= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+
+            /* why has this wy of getting a local pointer stopped workin? Compiler upgrade or what? */
+            //double* __restrict p_coarse= &coarsegrid[z][y][1];
+            double* __restrict p_coarse= coarsegrid.lbegin() + z*extentc[1]*extentc[2] + y*extentc[2] + 1;
+
+            for ( size_t x= 1; x < extentc[2]-1; x++ ) {
+
+                double tmp= *p_coarse;
+
+                *(p_mm0-1)+= 0.25*0.25*0.25*tmp; *(p_mm0+0)+= 0.25*0.25*0.75*tmp; *(p_mm0+1)+= 0.25*0.25*0.75*tmp; *(p_mm0+2)+= 0.25*0.25*0.25*tmp;
+                *(p_m00-1)+= 0.25*0.75*0.25*tmp; *(p_m00+0)+= 0.25*0.75*0.75*tmp; *(p_m00+1)+= 0.25*0.75*0.75*tmp; *(p_m00+2)+= 0.25*0.75*0.25*tmp;
+                *(p_m10-1)+= 0.25*0.75*0.25*tmp; *(p_m10+0)+= 0.25*0.75*0.75*tmp; *(p_m10+1)+= 0.25*0.75*0.75*tmp; *(p_m10+2)+= 0.25*0.75*0.25*tmp;
+                *(p_m20-1)+= 0.25*0.25*0.25*tmp; *(p_m20+0)+= 0.25*0.25*0.75*tmp; *(p_m20+1)+= 0.25*0.25*0.75*tmp; *(p_m20+2)+= 0.25*0.25*0.25*tmp;
+
+                *(p_0m0-1)+= 0.75*0.25*0.25*tmp; *(p_0m0+0)+= 0.75*0.25*0.75*tmp; *(p_0m0+1)+= 0.75*0.25*0.75*tmp; *(p_0m0+2)+= 0.75*0.25*0.25*tmp;
+                *(p_000-1)+= 0.75*0.75*0.25*tmp; *(p_000+0)+= 0.75*0.75*0.75*tmp; *(p_000+1)+= 0.75*0.75*0.75*tmp; *(p_000+2)+= 0.75*0.75*0.25*tmp;
+                *(p_010-1)+= 0.75*0.75*0.25*tmp; *(p_010+0)+= 0.75*0.75*0.75*tmp; *(p_010+1)+= 0.75*0.75*0.75*tmp; *(p_010+2)+= 0.75*0.75*0.25*tmp;
+                *(p_020-1)+= 0.75*0.25*0.25*tmp; *(p_020+0)+= 0.75*0.25*0.75*tmp; *(p_020+1)+= 0.75*0.25*0.75*tmp; *(p_020+2)+= 0.75*0.25*0.25*tmp;
+
+                *(p_1m0-1)+= 0.75*0.25*0.25*tmp; *(p_1m0+0)+= 0.75*0.25*0.75*tmp; *(p_1m0+1)+= 0.75*0.25*0.75*tmp; *(p_1m0+2)+= 0.75*0.25*0.25*tmp;
+                *(p_100-1)+= 0.75*0.75*0.25*tmp; *(p_100+0)+= 0.75*0.75*0.75*tmp; *(p_100+1)+= 0.75*0.75*0.75*tmp; *(p_100+2)+= 0.75*0.75*0.25*tmp;
+                *(p_110-1)+= 0.75*0.75*0.25*tmp; *(p_110+0)+= 0.75*0.75*0.75*tmp; *(p_110+1)+= 0.75*0.75*0.75*tmp; *(p_110+2)+= 0.75*0.75*0.25*tmp;
+                *(p_120-1)+= 0.75*0.25*0.25*tmp; *(p_120+0)+= 0.75*0.25*0.75*tmp; *(p_120+1)+= 0.75*0.25*0.75*tmp; *(p_120+2)+= 0.75*0.25*0.25*tmp;
+
+                *(p_2m0-1)+= 0.25*0.25*0.25*tmp; *(p_2m0+0)+= 0.25*0.25*0.75*tmp; *(p_2m0+1)+= 0.25*0.25*0.75*tmp; *(p_2m0+2)+= 0.25*0.25*0.25*tmp;
+                *(p_200-1)+= 0.25*0.75*0.25*tmp; *(p_200+0)+= 0.25*0.75*0.75*tmp; *(p_200+1)+= 0.25*0.75*0.75*tmp; *(p_200+2)+= 0.25*0.75*0.25*tmp;
+                *(p_210-1)+= 0.25*0.75*0.25*tmp; *(p_210+0)+= 0.25*0.75*0.75*tmp; *(p_210+1)+= 0.25*0.75*0.75*tmp; *(p_210+2)+= 0.25*0.75*0.25*tmp;
+                *(p_220-1)+= 0.25*0.25*0.25*tmp; *(p_220+0)+= 0.25*0.25*0.75*tmp; *(p_220+1)+= 0.25*0.25*0.75*tmp; *(p_220+2)+= 0.25*0.25*0.25*tmp;
+
+
+                ++p_mm0;
+                ++p_m00;
+                ++p_m10;
+                ++p_m20;
+
+                ++p_0m0;
+                ++p_000;
+                ++p_010;
+                ++p_020;
+
+                ++p_1m0;
+                ++p_100;
+                ++p_110;
+                ++p_120;
+
+                ++p_2m0;
+                ++p_200;
+                ++p_210;
+                ++p_220;
+            }
+        }
+    }
+
+    /* 4) wait for async halo exchange */
+    //coarsehalo->wait();
+
+    /* 5) do the remaining updates with contributions from the coarse halo */
+
+    minimon.stop( "scaleup", par, param );
+}
+
+
+/* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
+elements. Note that it is 2^n elements per dimension instead of 2^n -1!
+This version loops over the fine grid */
+void scaleup_loop_fine( MatrixT& coarsegrid, MatrixT& finegrid ) {
+
 }
 
 
