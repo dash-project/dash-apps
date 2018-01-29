@@ -607,7 +607,10 @@ void scaledownboundary( Level& fine, Level& coarse ) {
 }
 
 
-void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
+void scaledown( Level& fine, Level& coarse ) {
+
+    MatrixT& finegrid= *fine.src_grid;
+    MatrixT& coarsegrid= *coarse.src_grid;
 
     uint64_t par= finegrid.team().size();
     uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
@@ -671,7 +674,10 @@ void scaledown( MatrixT& finegrid, MatrixT& coarsegrid ) {
 
 /* this version of the prolongation from the coarse grid to the fine grid is flawed! */
 // void scaleup_old( MatrixT& coarsegrid, MatrixT& finegrid ) {
-void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
+void scaleup( Level& coarse, Level& fine ) {
+
+    MatrixT& coarsegrid= *coarse.src_grid;
+    MatrixT& finegrid= *fine.src_grid;
 
     uint64_t par= coarsegrid.team().size();
     uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
@@ -738,7 +744,10 @@ void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
 /* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
 elements. Note that it is 2^n elements per dimension instead of 2^n -1!
 This version loops over the coarse grid */
-void scaleup_loop_coarse( MatrixT& coarsegrid, MatrixT& finegrid ) {
+void scaleup_loop_coarse( Level& coarse, Level& fine ) {
+
+    MatrixT& coarsegrid= *coarse.src_grid;
+    MatrixT& finegrid= *fine.src_grid;
 
     uint64_t par= coarsegrid.team().size();
     uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
@@ -871,7 +880,10 @@ void scaleup_loop_coarse( MatrixT& coarsegrid, MatrixT& finegrid ) {
 /* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
 elements. Note that it is 2^n elements per dimension instead of 2^n -1!
 This version loops over the fine grid */
-void scaleup_loop_fine( MatrixT& coarsegrid, MatrixT& finegrid ) {
+void scaleup_loop_fine( Level& coarse, Level& fine ) {
+
+    MatrixT& coarsegrid= *coarse.src_grid;
+    MatrixT& finegrid= *fine.src_grid;
 
 }
 
@@ -1357,7 +1369,7 @@ void v_cycle( Iterator it, Iterator itend,
             (*itnext)->src_grid->extent(0) << endl;
     }
 
-    scaledown( *(*it)->src_grid, *(*itnext)->src_grid );
+    scaledown( **it, **itnext );
     writeToCsv( **itnext );
 
     /* recurse  */
@@ -1374,7 +1386,7 @@ void v_cycle( Iterator it, Iterator itend,
             (*it)->src_grid->extent(1) << "x" <<
             (*it)->src_grid->extent(0) << endl;
     }
-    scaleup( *(*itnext)->src_grid, *(*it)->src_grid );
+    scaleup( **itnext, **it );
     writeToCsv( **it );
 
     /* on the way up it ought to solve the grid rather completley,
