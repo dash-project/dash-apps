@@ -777,7 +777,7 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     assert( extentc[2] * 2 == extentf[2] );
 
     /* 1) start async halo exchange for coarse grid*/
-    //coarsehalo->update_async();
+    coarse.src_halo->update_async();
 
     /* 2) first set fine grid to 0.0, becasue afterwards there are 
     multiple += operations per fine grid element */
@@ -869,9 +869,10 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     }
 
     /* 4) wait for async halo exchange */
-    //coarsehalo->wait();
+    coarse.src_halo->wait();
 
     /* 5) do the remaining updates with contributions from the coarse halo */
+    cout << "left to do: outer area in scaleup_loop_coarse()" << endl;
 
     minimon.stop( "scaleup", par, param );
 }
@@ -885,6 +886,71 @@ void scaleup_loop_fine( Level& coarse, Level& fine ) {
     MatrixT& coarsegrid= *coarse.src_grid;
     MatrixT& finegrid= *fine.src_grid;
 
+    uint64_t par= coarsegrid.team().size();
+    uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
+
+    // scaleup
+    minimon.start();
+
+    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
+    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
+    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
+
+    const auto& extentc= coarsegrid.pattern().local_extents();
+    const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
+    const auto& extentf= finegrid.pattern().local_extents();
+    const auto& cornerf= finegrid.pattern().global( {0,0,0} );
+
+    assert( cornerc[0] * 2 == cornerf[0] );
+    assert( cornerc[1] * 2 == cornerf[1] );
+    assert( cornerc[2] * 2 == cornerf[2] );
+
+    assert( 0 == cornerc[0] %2 );
+    assert( 0 == cornerc[1] %2 );
+    assert( 0 == cornerc[2] %2 );
+
+    assert( extentc[0] * 2 == extentf[0] );
+    assert( extentc[1] * 2 == extentf[1] );
+    assert( extentc[2] * 2 == extentf[2] );
+
+    /* 1) start async halo exchange for coarse grid*/
+    coarse.src_halo->update_async();
+
+    /* 2) iterate over inner area of fine grid, that is leaving a border of size 2
+    because the access pattern */
+
+    for ( size_t z= 2; z < extentf[0]-2 ; z++ ) {
+
+        size_t dz= -1 + 2*(z&1); // same as ( 0 == z%2 ) ? -1 : +1;
+
+        for ( size_t y= 2; y < extentf[1]-2 ; y++ ) {
+ 
+            size_t dy= -1 + 2*(y&1); // same as ( 0 == y%2 ) ? -1 : +1;
+
+            for ( size_t x= 2; x < extentf[2]-2 ; x++ ) {
+
+                size_t dx= -1 + 2*(x&1); // same as ( 0 == x%2 ) ? -1 : +1;
+
+                finegrid[z][y][x]= 
+                    0.75*0.75*0.75 * coarsegrid[z/2   ][y/2   ][x/2   ] + 
+                    0.75*0.75*0.25 * coarsegrid[z/2   ][y/2   ][x/2+dx] + 
+                    0.75*0.25*0.75 * coarsegrid[z/2   ][y/2+dy][x/2   ] + 
+                    0.75*0.25*0.25 * coarsegrid[z/2   ][y/2+dy][x/2+dx] + 
+                    0.25*0.75*0.75 * coarsegrid[z/2+dz][y/2   ][x/2   ] + 
+                    0.25*0.75*0.25 * coarsegrid[z/2+dz][y/2   ][x/2+dx] + 
+                    0.25*0.25*0.75 * coarsegrid[z/2+dz][y/2+dy][x/2   ] + 
+                    0.25*0.25*0.25 * coarsegrid[z/2+dz][y/2+dy][x/2+dx];
+            }
+        }
+    }
+
+    /* 4) wait for async halo exchange */
+    coarse.src_halo->wait();
+
+    /* 5) do the remaining updates with contributions from the coarse halo */
+    cout << "left to do: outer area in scaleup_loop_fine()" << endl;
+
+    minimon.stop( "scaleup", par, param );
 }
 
 
