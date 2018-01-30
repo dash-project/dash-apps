@@ -121,7 +121,7 @@ public:
         if ( 0 == dash::myid() ) {
             cout << "Level " <<
                 "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
-                "in grid of " << nz << "*" << ny << "*" << nz <<
+                "in grid of " << nz << "*" << ny << "*" << nx <<
                 " with team of " << team.size() << " * "
                 " local grid size " << 
                     _grid_1.local.extent(0) << "*" << 
@@ -142,6 +142,23 @@ public:
 // smooth_inner
         std::swap( src_halo, dst_halo );
         std::swap( src_grid, dst_grid );
+    }
+
+    void printout() {
+
+        auto n= src_grid->extents();
+
+        for ( size_t z= 0; z < n[0]; ++z ) {
+            for ( size_t y= 0; y < n[1]; ++y ) {
+                for ( size_t x= 0; x < n[2]; ++x ) {
+
+                    cout << (double) (*src_grid)[z][y][x] << " ";
+                }
+                cout << endl;
+            }
+            cout << endl;
+        }
+
     }
 
 private:
@@ -1956,6 +1973,103 @@ double do_flat_iteration( uint32_t howmanylevels ) {
 }
 
 
+bool do_test_old_scaledown() {
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 4, 4, 4, dash::Team::All(), teamspec );
+
+    dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
+    a->src_grid->barrier();
+    dash::fill( b->src_grid->begin(), b->src_grid->end(), 0 );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        a->printout();
+        b->printout();
+    }
+
+    b->src_grid->barrier();
+    scaledown( *a, *b );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        b->printout();
+    }
+
+    b->src_grid->barrier();
+
+    delete a;
+    delete b;
+
+    return true;
+}
+
+
+bool do_test_old_scaleup() {
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 4, 4, 4, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
+
+    dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
+    a->src_grid->barrier();
+    dash::fill( b->src_grid->begin(), b->src_grid->end(), 0 );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        a->printout();
+        b->printout();
+    }
+
+    b->src_grid->barrier();
+    scaleup( *a, *b );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        b->printout();
+    }
+
+    b->src_grid->barrier();
+
+    delete a;
+    delete b;
+
+    return true;
+}
+
+
+/* a number of tests ... restructure the code to headers and source files, then 
+do a separate main() with all the tests in a separate source file */
+bool do_tests( ) {
+
+    bool success;
+    bool allsuccess= true;
+
+    if (0 == dash::myid() ) { cout << "run built-in tests:" << endl; }
+
+    success= do_test_old_scaledown();
+    if (0 == dash::myid() ) { cout << "   old scaledown: " << success << endl; }
+    allsuccess &= success;
+
+    success= do_test_old_scaleup();
+    if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
+    allsuccess &= success;
+
+    if (0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
+
+    return allsuccess;
+}
+
+
 int main( int argc, char* argv[] ) {
 
     // main
@@ -1975,6 +2089,7 @@ int main( int argc, char* argv[] ) {
     filenumber->barrier();
 #endif /* WITHCSVOUTPUT */
 
+    bool do_alltests= false;
     bool do_flatsolver= false;
     bool do_elastic= false;
     uint32_t howmanylevels= 5;
@@ -1990,8 +2105,17 @@ int main( int argc, char* argv[] ) {
             }
             exit(0);
 
+        } else if ( 0 == strncmp( "-t", argv[a], 2  ) ||
+                0 == strncmp( "--tests", argv[a], 7 )) {
+
+            do_alltests= true;
+            if ( 0 == dash::myid() ) {
+
+                cout << "run tests" << endl;
+            }
+
         } else if ( 0 == strncmp( "-f", argv[a], 2  ) ||
-                0 == strncmp( "--flat", argv[a], 7 )) {
+                0 == strncmp( "--flat", argv[a], 6 )) {
 
             do_flatsolver= true;
             if ( 0 == dash::myid() ) {
@@ -2000,7 +2124,7 @@ int main( int argc, char* argv[] ) {
             }
 
         } else if ( 0 == strncmp( "-e", argv[a], 2  ) ||
-                0 == strncmp( "--elastic", argv[a], 7 )) {
+                0 == strncmp( "--elastic", argv[a], 9 )) {
 
             do_elastic= true;
             if ( 0 == dash::myid() ) {
@@ -2022,7 +2146,11 @@ int main( int argc, char* argv[] ) {
     assert( howmanylevels > 2 );
     assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
 
-    if ( do_flatsolver ) {
+    if ( do_alltests ) {
+
+        do_tests();
+
+    } else if ( do_flatsolver ) {
 
         do_flat_iteration( howmanylevels );
 
