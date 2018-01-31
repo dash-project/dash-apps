@@ -41,13 +41,20 @@ using std::vector;
 using TeamSpecT = dash::TeamSpec<3>;
 using MatrixT = dash::NArray<double,3>;
 using StencilT = dash::Stencil<3>;
-using StencilSpecT = dash::StencilSpec<3,6>;
+using StencilSpecT = dash::StencilSpec<3,14>;
 using CycleSpecT = dash::CycleSpec<3>;
 
+/* for the smoothing operation, only the 6-point stencil is needed. 
+However, the prolongation operation also needs the */
 constexpr StencilSpecT stencil_spec({
     StencilT(-1, 0, 0), StencilT( 1, 0, 0),
     StencilT( 0,-1, 0), StencilT( 0, 1, 0),
-    StencilT( 0, 0,-1), StencilT( 0, 0, 1)});
+    StencilT( 0, 0,-1), StencilT( 0, 0, 1),
+
+    StencilT(-1,-1,-1), StencilT( 1,-1,-1),
+    StencilT(-1,-1, 1), StencilT( 1,-1, 1),
+    StencilT(-1, 1,-1), StencilT( 1, 1,-1),
+    StencilT(-1, 1, 1), StencilT( 1, 1, 1)});
 
 constexpr CycleSpecT cycle_spec(
     dash::Cycle::FIXED,
@@ -152,7 +159,7 @@ public:
             for ( size_t y= 0; y < n[1]; ++y ) {
                 for ( size_t x= 0; x < n[2]; ++x ) {
 
-                    cout << (double) (*src_grid)[z][y][x] << " ";
+                    cout << std::setprecision(3) << (double) (*src_grid)[z][y][x] << " ";
                 }
                 cout << endl;
             }
@@ -813,29 +820,29 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     for ( size_t z= 1; z < extentc[0]-1 ; z++ ) {
         for ( size_t y= 1; y < extentc[1]-1 ; y++ ) {
 
-            double* __restrict p_mm0= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y-1)*extentf[2] + (2);
-            double* __restrict p_m00= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_m10= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y+1)*extentf[2] + (2);
-            double* __restrict p_m20= finegrid.lbegin() + (2*z-1)*extentf[1]*extentf[2] + (2*y+2)*extentf[2] + (2);
+            double* __restrict p_mm0= &finegrid.local[2*z-1][2*y-1][2];
+            double* __restrict p_m00= &finegrid.local[2*z-1][2*y  ][2];
+            double* __restrict p_m10= &finegrid.local[2*z-1][2*y+1][2];
+            double* __restrict p_m20= &finegrid.local[2*z-1][2*y+2][2];
 
-            double* __restrict p_0m0= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_000= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_010= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_020= finegrid.lbegin() + (2*z  )*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_0m0= &finegrid.local[2*z  ][2*y-1][2];
+            double* __restrict p_000= &finegrid.local[2*z  ][2*y  ][2];
+            double* __restrict p_010= &finegrid.local[2*z  ][2*y+1][2];
+            double* __restrict p_020= &finegrid.local[2*z  ][2*y+2][2];
 
-            double* __restrict p_1m0= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_100= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_110= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_120= finegrid.lbegin() + (2*z+1)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_1m0= &finegrid.local[2*z+1][2*y-1][2];
+            double* __restrict p_100= &finegrid.local[2*z+1][2*y  ][2];
+            double* __restrict p_110= &finegrid.local[2*z+1][2*y+1][2];
+            double* __restrict p_120= &finegrid.local[2*z+1][2*y+2][2];
 
-            double* __restrict p_2m0= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_200= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_210= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
-            double* __restrict p_220= finegrid.lbegin() + (2*z+2)*extentf[1]*extentf[2] + (2*y  )*extentf[2] + (2);
+            double* __restrict p_2m0= &finegrid.local[2*z+2][2*y-1][2];
+            double* __restrict p_200= &finegrid.local[2*z+2][2*y  ][2];
+            double* __restrict p_210= &finegrid.local[2*z+2][2*y+1][2];
+            double* __restrict p_220= &finegrid.local[2*z+2][2*y+2][2];
+
 
             /* why has this wy of getting a local pointer stopped workin? Compiler upgrade or what? */
-            //double* __restrict p_coarse= &coarsegrid[z][y][1];
-            double* __restrict p_coarse= coarsegrid.lbegin() + z*extentc[1]*extentc[2] + y*extentc[2] + 1;
+            double* __restrict p_coarse= &coarsegrid.local[z][y][1];
 
             for ( size_t x= 1; x < extentc[2]-1; x++ ) {
 
@@ -861,26 +868,27 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
                 *(p_210-1)+= 0.25*0.75*0.25*tmp; *(p_210+0)+= 0.25*0.75*0.75*tmp; *(p_210+1)+= 0.25*0.75*0.75*tmp; *(p_210+2)+= 0.25*0.75*0.25*tmp;
                 *(p_220-1)+= 0.25*0.25*0.25*tmp; *(p_220+0)+= 0.25*0.25*0.75*tmp; *(p_220+1)+= 0.25*0.25*0.75*tmp; *(p_220+2)+= 0.25*0.25*0.25*tmp;
 
+                p_coarse++;
 
-                ++p_mm0;
-                ++p_m00;
-                ++p_m10;
-                ++p_m20;
+                p_mm0 += 2;
+                p_m00 += 2;
+                p_m10 += 2;
+                p_m20 += 2;
 
-                ++p_0m0;
-                ++p_000;
-                ++p_010;
-                ++p_020;
+                p_0m0 += 2;
+                p_000 += 2;
+                p_010 += 2;
+                p_020 += 2;
 
-                ++p_1m0;
-                ++p_100;
-                ++p_110;
-                ++p_120;
+                p_1m0 += 2;
+                p_100 += 2;
+                p_110 += 2;
+                p_120 += 2;
 
-                ++p_2m0;
-                ++p_200;
-                ++p_210;
-                ++p_220;
+                p_2m0 += 2;
+                p_200 += 2;
+                p_210 += 2;
+                p_220 += 2;
             }
         }
     }
@@ -936,27 +944,30 @@ void scaleup_loop_fine( Level& coarse, Level& fine ) {
     /* 2) iterate over inner area of fine grid, that is leaving a border of size 2
     because the access pattern */
 
-    for ( size_t z= 2; z < extentf[0]-2 ; z++ ) {
+    for ( size_t z= 1; z < extentf[0]-1 ; z++ ) {
 
-        size_t dz= -1 + 2*(z&1); // same as ( 0 == z%2 ) ? -1 : +1;
+        //size_t dz= -1 + 2*(z&1); // same as ( 0 == z%2 ) ? -1 : +1;
+        size_t dz= ( 0 == z%2 ) ? -1 : +1;
 
-        for ( size_t y= 2; y < extentf[1]-2 ; y++ ) {
+        for ( size_t y= 1; y < extentf[1]-1 ; y++ ) {
  
-            size_t dy= -1 + 2*(y&1); // same as ( 0 == y%2 ) ? -1 : +1;
+            //size_t dy= -1 + 2*(y&1); // same as ( 0 == y%2 ) ? -1 : +1;
+            size_t dy= ( 0 == y%2 ) ? -1 : +1;
 
-            for ( size_t x= 2; x < extentf[2]-2 ; x++ ) {
+            for ( size_t x= 1; x < extentf[2]-1 ; x++ ) {
 
-                size_t dx= -1 + 2*(x&1); // same as ( 0 == x%2 ) ? -1 : +1;
+                //size_t dx= -1 + 2*(x&1); // same as ( 0 == x%2 ) ? -1 : +1;
+                size_t dx= ( 0 == x%2 ) ? -1 : +1;
 
-                finegrid[z][y][x]= 
-                    0.75*0.75*0.75 * coarsegrid[z/2   ][y/2   ][x/2   ] + 
-                    0.75*0.75*0.25 * coarsegrid[z/2   ][y/2   ][x/2+dx] + 
-                    0.75*0.25*0.75 * coarsegrid[z/2   ][y/2+dy][x/2   ] + 
-                    0.75*0.25*0.25 * coarsegrid[z/2   ][y/2+dy][x/2+dx] + 
-                    0.25*0.75*0.75 * coarsegrid[z/2+dz][y/2   ][x/2   ] + 
-                    0.25*0.75*0.25 * coarsegrid[z/2+dz][y/2   ][x/2+dx] + 
-                    0.25*0.25*0.75 * coarsegrid[z/2+dz][y/2+dy][x/2   ] + 
-                    0.25*0.25*0.25 * coarsegrid[z/2+dz][y/2+dy][x/2+dx];
+                finegrid.local[z][y][x]= 
+                    0.75*0.75*0.75 * coarsegrid.local[z/2   ][y/2   ][x/2   ] + 
+                    0.75*0.75*0.25 * coarsegrid.local[z/2   ][y/2   ][x/2+dx] + 
+                    0.75*0.25*0.75 * coarsegrid.local[z/2   ][y/2+dy][x/2   ] + 
+                    0.75*0.25*0.25 * coarsegrid.local[z/2   ][y/2+dy][x/2+dx] + 
+                    0.25*0.75*0.75 * coarsegrid.local[z/2+dz][y/2   ][x/2   ] + 
+                    0.25*0.75*0.25 * coarsegrid.local[z/2+dz][y/2   ][x/2+dx] + 
+                    0.25*0.25*0.75 * coarsegrid.local[z/2+dz][y/2+dy][x/2   ] + 
+                    0.25*0.25*0.25 * coarsegrid.local[z/2+dz][y/2+dy][x/2+dx];
             }
         }
     }
@@ -965,7 +976,9 @@ void scaleup_loop_fine( Level& coarse, Level& fine ) {
     coarse.src_halo->wait();
 
     /* 5) do the remaining updates with contributions from the coarse halo */
-    cout << "left to do: outer area in scaleup_loop_fine()" << endl;
+    // z-y
+    // y-x
+    //z-x
 
     minimon.stop( "scaleup", par, param );
 }
@@ -1989,7 +2002,7 @@ bool do_test_old_scaledown() {
     if ( 0 == dash::myid() ) {
 
         a->printout();
-        b->printout();
+        //b->printout();
     }
 
     b->src_grid->barrier();
@@ -2026,12 +2039,86 @@ bool do_test_old_scaleup() {
     if ( 0 == dash::myid() ) {
 
         a->printout();
-        b->printout();
+        //b->printout();
     }
 
     b->src_grid->barrier();
     scaleup( *a, *b );
     b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        b->printout();
+    }
+
+    b->src_grid->barrier();
+
+    delete a;
+    delete b;
+
+    return true;
+}
+
+
+bool do_test_new_scaleup_loop_coarse() {
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 16, 16, 16, dash::Team::All(), teamspec );
+
+    dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
+    a->src_grid->barrier();
+    dash::fill( b->src_grid->begin(), b->src_grid->end(), 0 );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        a->printout();
+        //b->printout();
+    }
+
+    b->src_grid->barrier();
+    scaleup_loop_coarse( *a, *b );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        b->printout();
+    }
+
+    b->src_grid->barrier();
+
+    delete a;
+    delete b;
+
+    return true;
+}
+
+
+bool do_test_new_scaleup_loop_fine() {
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 16, 16, 16, dash::Team::All(), teamspec );
+
+    dash::fill( a->src_grid->begin(), a->src_grid->end(), 1.0 );
+    a->src_grid->barrier();
+    dash::fill( b->src_grid->begin(), b->src_grid->end(), 0.0 );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        a->printout();
+        //b->printout();
+    }
+
+    dash::barrier();
+    scaleup_loop_fine( *a, *b );
+    dash::barrier();
 
     if ( 0 == dash::myid() ) {
 
@@ -2062,6 +2149,14 @@ bool do_tests( ) {
 
     success= do_test_old_scaleup();
     if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
+    allsuccess &= success;
+
+    //success= do_test_new_scaleup_loop_coarse();
+    //if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
+    //allsuccess &= success;
+
+    success= do_test_new_scaleup_loop_fine();
+    if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
     allsuccess &= success;
 
     if (0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
