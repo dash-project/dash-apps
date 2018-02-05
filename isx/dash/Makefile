@@ -1,14 +1,18 @@
 
 DASHROOT=$(HOME)/opt/dash-0.3.0/
+DASHROOT=$(HOME)/opt-cray/dash-cce-debug/
 
-CC = mpicc
-CXX= $(DASHROOT)/bin/dash-mpic++ -dash:verbose
+#CC = mpicc
+CC=cc
+#CXX= $(DASHROOT)/bin/dash-mpic++ -dash:verbose
+#CXX=mpicxx
+CXX=CC
 LD = $(CXX)
 DEBUGFLAGS = -g -p -O0 -DDEBUG
 OPTFLAGS = -O3 -DNDEBUG -mavx
 CFLAGS += -Wall -std=c99 #$(OPTFLAGS)
-CXXFLAGS += -Wall -std=c++11 -O3 #-DUSE_ATOMICS
-LDLIBS += -lrt -lm
+CXXFLAGS += -Wall -std=c++11 -O3 -I$(DASHROOT)/include #-DUSE_ATOMICS
+LDLIBS += -lrt -lm -L$(DASHROOT)/lib -ldash-mpi -ldart-mpi -ldart-base #-lpapi -lhwloc -lnuma
 LDFLAGS += 
 ### 
 # If you change these values, you must also change them in params.h

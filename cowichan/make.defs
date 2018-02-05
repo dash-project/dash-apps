@@ -9,4 +9,4 @@ LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base
 #CXXFLAGS= -O3 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
  CXXFLAGS= -O3 -Ofast
 
-CXX      = mpicxx -std=c++11 $(CXXFLAGS)
+CXX      = mpiicpc -std=c++11 $(CXXFLAGS)
