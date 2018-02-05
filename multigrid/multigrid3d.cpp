@@ -85,8 +85,9 @@ public:
     double sz, sy, sx;
 
     /***
-    lz, ly, lx are the dimensions in meters of the grid excluding the boundary regions,
-    nz, ny, nx are th number of grid points per dimension, also excluding the boundary regions
+    lz, ly, lx are the dimensions in meters of the grid including the boundary regions,
+    nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions,
+        therefore, lz,ly,lx are discretized into (nz+2)*(my+2)*(nx+2) grid points
     */
     Level( double lz, double ly, double lx,
            size_t nz, size_t ny, size_t nx,
@@ -111,9 +112,9 @@ public:
         dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
         */
 
-        double hz= lz/(nz-1);
-        double hy= ly/(ny-1);
-        double hx= lx/(nx-1);
+        double hz= lz/(nz+1);
+        double hy= ly/(ny+1);
+        double hx= lx/(nx+1);
 
         double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
 
@@ -125,16 +126,24 @@ public:
         sy= ly;
         sx= lx;
 
-        if ( 0 == dash::myid() ) {
-            cout << "Level " <<
-                "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
-                "in grid of " << nz << "*" << ny << "*" << nx <<
-                " with team of " << team.size() << " * "
-                " local grid size " << 
-                    _grid_1.local.extent(0) << "*" << 
-                    _grid_1.local.extent(1) << "*" << 
-                    _grid_1.local.extent(2) <<
-                " --> dt= " << dt << " r_= " << rz << "," << ry << "," << rx << endl;
+        for ( uint32_t a= 0; a < dash::Team::All().size(); a++ ) {
+            if ( a == dash::myid() ) {
+
+                if ( 0 == a ) {
+                    cout << "Level " <<
+                        "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
+                        "in grid of " << nz << "*" << ny << "*" << nx <<
+                        " with team of " << team.size() << 
+                        " --> dt= " << dt << " r_= " << rz << "," << ry << "," << rx << endl;
+                }
+
+                cout << "    Unit " << a << ": " <<
+                        _grid_1.local.extent(0) << "*" << 
+                        _grid_1.local.extent(1) << "*" << 
+                        _grid_1.local.extent(2) << endl;
+            }
+
+            dash::barrier();
         }
 
         assert( rz <= 0.5 );
@@ -186,19 +195,94 @@ size_t resolutionForCSVd= 0;
 size_t resolutionForCSVh= 0;
 size_t resolutionForCSVw= 0;
 
+/* global resolution for cvs output, should be fixed such that 
+paraview gets input of constant dimensions */
+std::array< long int, 3 > res_csv= {63,63,63};
+
+
 /* write out the current state of the given grid as CSV so that Paraview can
 read and visualize it as a structured grid. Use a fixed size for the grid as
-defined by the previous three global variables. So an animations of the
-multigrid procedure is possible. */
-void writeToCsv( const Level& level ) {
+defined by the previous global variable. So an animations of the
+multigrid procedure is possible. 
 
-// TODO Here is still a slight shift in the output when the actual grid is larger than the output grid 
+... then again this is more complicated for now with the (2^n -1) grid sizes ... TODO for later
+*/
+void writeToCsv_old( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
 
+    std::ofstream csvfile;
+    std::ostringstream num_string;
+    num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
+    csvfile.open( "image_unit" + std::to_string(dash::myid()) +
+        ".csv." + num_string.str() );
+
+
+    const MatrixT& grid= *level.src_grid;
+
+    std::array< size_t, 3 > dim= grid.extents();
+    std::array< size_t, 3 > localdim= grid.local.extents();
+
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
+    std::array< long int, 3 > sub;
+
+    std::array< long int, 3 > local_res_csv;
+    std::array< long int, 3 > mul;
+    std::array< long int, 3 > div;
+
+    for ( size_t i= 0; i < 3; ++i ) {
+
+        local_res_csv[i]= localdim[i]*res_csv[i]/dim[i];
+        div[i]= ( res_csv[i] > dim[i] ) ? res_csv[i]/dim[i] : 1;
+        mul[i]= ( res_csv[i] < dim[i] ) ? dim[i]/res_csv[i] : 1;
+
+    }
+
+    cout << "unit " << dash::myid() << ": " << 
+        "global grid " << dim[0] << "," << dim[1] << "," << dim[2] << 
+        ", local grid " << localdim[0] << "," << localdim[1] << "," << localdim[2] << " -- > " <<
+        "global csv " << res_csv[0] << "," << res_csv[1] << "," << res_csv[2] << " == " <<
+        "local csv " << local_res_csv[0] << "," << local_res_csv[1] << "," << local_res_csv[2] << " "
+        "mul " << mul[0] << "," << mul[1] << "," << mul[2] << " "
+        "div " << div[0] << "," << div[1] << "," << div[2] << endl;
+
+    for ( size_t z = 0; z < local_res_csv[0] -sub[0]; ++z ) {
+        for ( size_t y = 0; y < local_res_csv[1] -sub[1]; ++y ) {
+            for ( size_t x = 0; x < local_res_csv[2] -sub[2]; ++x ) {
+
+                if (mul[0]*z/div[0] >= localdim[0] ) { cout << "unit " << dash::myid() << " dim " << 0 << ":" << 
+                        mul[0]*z/div[0] << " >= " << localdim[0] << std::flush << endl; return; }
+                if (mul[1]*y/div[1] >= localdim[1] ) { cout << "unit " << dash::myid() << " dim " << 1 << ":" << 
+                        mul[1]*y/div[1] << " >= " << localdim[1] << std::flush << endl; return; }
+                if (mul[2]*x/div[2] >= localdim[2] ) { cout << "unit " << dash::myid() << " dim " << 2 << ":" << 
+                        mul[2]*x/div[2] << " >= " << localdim[2] << std::flush << endl; return; }
+
+                csvfile << 
+                    setfill('0') << setw(4) << corner[0]+z << "," <<
+                    setfill('0') << setw(4) << corner[1]+y << "," <<
+                    setfill('0') << setw(4) << corner[2]+x << "," <<
+                    (double) level.sz * (corner[0]+z) / (res_csv[0]-1) << "," <<
+                    (double) level.sy * (corner[1]+y) / (res_csv[1]-1) << "," <<
+                    (double) level.sx * (corner[2]+x) / (res_csv[2]-1) << "," <<
+                    (double) grid.local[ mul[0]*z/div[0] ][ mul[1]*y/div[1] ][ mul[2]*x/div[2] ] << "\n";
+
+            }
+        }
+    }
+
+    csvfile.close();
+
+#if 0
     const MatrixT& grid= *level.src_grid;
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
+    std::array< long int, 3 > sub;
+
+    for ( size_t i= 0; i < 3; ++i ) {
+
+        sub[i]= ( 0 == corner[i] ) ? 0 : 2;
+
+    }
 
     size_t d= grid.extent(0);
     size_t h= grid.extent(1);
@@ -246,10 +330,31 @@ void writeToCsv( const Level& level ) {
     corner[1]= corner[1] * resolutionForCSVh / h;
     corner[2]= corner[2] * resolutionForCSVw / w;
 
-    for ( size_t z = 0 ; z < localResolutionForCSVd; ++z ) {
-        for ( size_t y = 0; y < localResolutionForCSVh; ++y ) {
-            for ( size_t x = 0; x < localResolutionForCSVw; ++x ) {
+cout << "unit " << dash::myid() << 
+    " global "<< d << "x" << h << "x" << w <<
+    " local " << 
+        corner[0] << "+" << dl << ", " << 
+        corner[1] << "+" << hl << "," << 
+        corner[2] << "+" << wl << 
+    " loop " <<
+        0 << "-" << localResolutionForCSVd << ", " <<
+        0 << "-" << localResolutionForCSVh << ", " <<
+        0 << "-" << localResolutionForCSVw << "    " <<
+    " mul " << muld << "," << mulh << ", " << mulw << "    " <<
+    " div " << divd << "," << divh << ", " << divw << endl;
 
+    for ( size_t z = 1; z < localResolutionForCSVd - sub[0]; ++z ) {
+        for ( size_t y = 1; y < localResolutionForCSVh - sub[1]; ++y ) {
+            for ( size_t x = 1; x < localResolutionForCSVw - sub[2]; ++x ) {
+
+if ( muld*z/divd >= dl || mulh*y/divh >= hl || mulw*x/divw >= wl ) {
+
+    cout << "unit " << dash::myid() << ": " << z << ", " << y << ", " << x << " --> " <<
+    muld*z/divd << ", " << mulh*y/divh << ", " << mulw*x/divw << " <?= " <<
+    dl << ", " << hl << ", " << wl << "(" <<
+    sub[0] << "," << sub[1] << "," << sub[2] << ")" <<endl;
+    exit(1);
+}
                 csvfile << 
                     setfill('0') << setw(4) << corner[0]+z << "," <<
                     setfill('0') << setw(4) << corner[1]+y << "," <<
@@ -263,13 +368,15 @@ void writeToCsv( const Level& level ) {
     }
 
     csvfile.close();
+#endif /* 0 */
 
 #endif /* WITHCSVOUTPUT */
 }
 
 
 /* write out the grid in its actual size */
-void writeToCsvFullGrid( const Level& level ) {
+//void writeToCsvFullGrid( const Level& level ) {
+void writeToCsv( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
 
@@ -295,9 +402,12 @@ void writeToCsvFullGrid( const Level& level ) {
     csvfile.open( "image_unit" + std::to_string(dash::myid()) +
         ".csv." + num_string.str() );
 
+    grid.barrier();
     if ( 0 == dash::myid() ) {
-        csvfile << " z coord, y coord, x coord, heat" << "\n";
+        csvfile << " z-coord,y-coord,x-coord,heat" << "\n";
+        filenumber->set( 1 + (uint32_t) filenumber->get()  );
     }
+    grid.barrier();
 
     for ( size_t z = 0 ; z < dl; ++z ) {
         for ( size_t y = 0; y < hl; ++y ) {
@@ -642,9 +752,9 @@ void scaledown( Level& fine, Level& coarse ) {
     // scaledown
     minimon.start();
 
-    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
-    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
-    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
+    assert( (coarsegrid.extent(2)+1) * 2 == finegrid.extent(2)+1 );
+    assert( (coarsegrid.extent(1)+1) * 2 == finegrid.extent(1)+1 );
+    assert( (coarsegrid.extent(0)+1) * 2 == finegrid.extent(0)+1 );
 
     const auto& extentc= coarsegrid.pattern().local_extents();
     const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
@@ -659,35 +769,22 @@ void scaledown( Level& fine, Level& coarse ) {
     assert( 0 == cornerc[1] %2 );
     assert( 0 == cornerc[2] %2 );
 
-    assert( extentc[0] * 2 == extentf[0] );
-    assert( extentc[1] * 2 == extentf[1] );
-    assert( extentc[2] * 2 == extentf[2] );
+    assert( extentc[0] * 2 == extentf[0] || extentc[0] * 2 +1 == extentf[0] );
+    assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
+    assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
-    auto* lbegin_fine = finegrid.lbegin();
-    auto next_layer = extentf[1] * extentf[2];
-    double* __restrict p_coarse= coarsegrid.lbegin();
+    /* do 'straigth injection', that is a coarse-grid element just takes the 
+    value of the matching fine grid element without considering shares from the 
+    neighbor elements on the fine grid. Alternatives would be full-weighting or 
+    half-weighting but they would require halo access. */
+
+    /* this is the plain and simple and slow version. do optimization by pointer 
+    arithmethic later. */
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
-        auto next_two_layer = 2*z*next_layer;
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
-
-            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2]; // @DENIS: why is this correct? should it not be incremented after the x-loop? Add a nice long comment why this is correct!
-            double* __restrict p_010= p_000 + extentf[2];
-            double* __restrict p_100= p_000 + next_layer;
-            double* __restrict p_110= p_100 + extentf[2];
-
             for ( size_t x= 0; x < extentc[2]; x++ ) {
 
-                *p_coarse= 1.0 / 8.0 * (
-                    *(p_000+0) + *(p_000+1) +
-                    *(p_010+0) + *(p_010+1) +
-                    *(p_100+0) + *(p_100+1) +
-                    *(p_110+0) + *(p_110+1) );
-
-                ++p_coarse;
-                p_000 += 2;
-                p_010 += 2;
-                p_100 += 2;
-                p_110 += 2;
+                coarsegrid.local[z][y][x]= finegrid.local[2*z+1][2*y+1][2*x+1];
             }
         }
     }
@@ -697,8 +794,8 @@ void scaledown( Level& fine, Level& coarse ) {
 
 
 /* this version of the prolongation from the coarse grid to the fine grid is flawed! */
-// void scaleup_old( MatrixT& coarsegrid, MatrixT& finegrid ) {
-void scaleup( Level& coarse, Level& fine ) {
+// void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
+void scaleup_old( Level& coarse, Level& fine ) {
 
     MatrixT& coarsegrid= *coarse.src_grid;
     MatrixT& finegrid= *fine.src_grid;
@@ -768,7 +865,8 @@ void scaleup( Level& coarse, Level& fine ) {
 /* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
 elements. Note that it is 2^n elements per dimension instead of 2^n -1!
 This version loops over the coarse grid */
-void scaleup_loop_coarse( Level& coarse, Level& fine ) {
+//void scaleup_loop_coarse( Level& coarse, Level& fine ) {
+void scaleup( Level& coarse, Level& fine ) {
 
     MatrixT& coarsegrid= *coarse.src_grid;
     MatrixT& finegrid= *fine.src_grid;
@@ -779,9 +877,9 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     // scaleup
     minimon.start();
 
-    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
-    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
-    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
+    assert( (coarsegrid.extent(2)+1) * 2 == finegrid.extent(2)+1 );
+    assert( (coarsegrid.extent(1)+1) * 2 == finegrid.extent(1)+1 );
+    assert( (coarsegrid.extent(0)+1) * 2 == finegrid.extent(0)+1 );
 
     const auto& extentc= coarsegrid.pattern().local_extents();
     const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
@@ -796,9 +894,17 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     assert( 0 == cornerc[1] %2 );
     assert( 0 == cornerc[2] %2 );
 
-    assert( extentc[0] * 2 == extentf[0] );
-    assert( extentc[1] * 2 == extentf[1] );
-    assert( extentc[2] * 2 == extentf[2] );
+    assert( extentc[0] * 2 == extentf[0] || extentc[0] * 2 +1 == extentf[0] );
+    assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
+    assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
+
+    /* if last element in coarse grid per dimension has no 2*i+2 element in 
+     the local fine grid, then handle it as a separate loop using halo. 
+     sub[i] is always 0 or 1 */
+    std::array< size_t, 3 > sub;
+    for ( uint32_t i= 0; i < 3; ++i ) {
+         sub[i]= ( extentc[i] * 2 == extentf[i] ) ? 1 : 0;
+    }
 
     /* 1) start async halo exchange for coarse grid*/
     coarse.src_halo->update_async();
@@ -809,86 +915,229 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     constexpr double coeff_close= 3.0*3.0*3.0/4.0/4.0/4.0;
     dash::fill( finegrid.begin(), finegrid.end(), 0.0 );
 
-    /* 3) second loop over the inner of the coarse grid: add the (1/4)^n * (3/4)^m with n>=1 
-    contributions */
+    /* 3) second loop over the coarse grid and add the contributions to the 
+    fine grid elements */
 
     /* for correctness, write down the clear and simple version first and
     try to apply the optimization from scaleup_old() again -- see above.
     Make sure that this was correct though. And write down some good comment
     why it is correct! */
 
-    for ( size_t z= 1; z < extentc[0]-1 ; z++ ) {
-        for ( size_t y= 1; y < extentc[1]-1 ; y++ ) {
 
-            double* __restrict p_mm0= &finegrid.local[2*z-1][2*y-1][2];
-            double* __restrict p_m00= &finegrid.local[2*z-1][2*y  ][2];
-            double* __restrict p_m10= &finegrid.local[2*z-1][2*y+1][2];
-            double* __restrict p_m20= &finegrid.local[2*z-1][2*y+2][2];
+    for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-            double* __restrict p_0m0= &finegrid.local[2*z  ][2*y-1][2];
-            double* __restrict p_000= &finegrid.local[2*z  ][2*y  ][2];
-            double* __restrict p_010= &finegrid.local[2*z  ][2*y+1][2];
-            double* __restrict p_020= &finegrid.local[2*z  ][2*y+2][2];
+                double tmp= coarsegrid.local[z][y][x];
 
-            double* __restrict p_1m0= &finegrid.local[2*z+1][2*y-1][2];
-            double* __restrict p_100= &finegrid.local[2*z+1][2*y  ][2];
-            double* __restrict p_110= &finegrid.local[2*z+1][2*y+1][2];
-            double* __restrict p_120= &finegrid.local[2*z+1][2*y+2][2];
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
 
-            double* __restrict p_2m0= &finegrid.local[2*z+2][2*y-1][2];
-            double* __restrict p_200= &finegrid.local[2*z+2][2*y  ][2];
-            double* __restrict p_210= &finegrid.local[2*z+2][2*y+1][2];
-            double* __restrict p_220= &finegrid.local[2*z+2][2*y+2][2];
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
 
 
-            /* why has this wy of getting a local pointer stopped workin? Compiler upgrade or what? */
-            double* __restrict p_coarse= &coarsegrid.local[z][y][1];
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-            for ( size_t x= 1; x < extentc[2]-1; x++ ) {
+                double tmp= coarsegrid.local[z][y][x];
 
-                double tmp= *p_coarse;
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
 
-                *(p_mm0-1)+= 0.25*0.25*0.25*tmp; *(p_mm0+0)+= 0.25*0.25*0.75*tmp; *(p_mm0+1)+= 0.25*0.25*0.75*tmp; *(p_mm0+2)+= 0.25*0.25*0.25*tmp;
-                *(p_m00-1)+= 0.25*0.75*0.25*tmp; *(p_m00+0)+= 0.25*0.75*0.75*tmp; *(p_m00+1)+= 0.25*0.75*0.75*tmp; *(p_m00+2)+= 0.25*0.75*0.25*tmp;
-                *(p_m10-1)+= 0.25*0.75*0.25*tmp; *(p_m10+0)+= 0.25*0.75*0.75*tmp; *(p_m10+1)+= 0.25*0.75*0.75*tmp; *(p_m10+2)+= 0.25*0.75*0.25*tmp;
-                *(p_m20-1)+= 0.25*0.25*0.25*tmp; *(p_m20+0)+= 0.25*0.25*0.75*tmp; *(p_m20+1)+= 0.25*0.25*0.75*tmp; *(p_m20+2)+= 0.25*0.25*0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
-                *(p_0m0-1)+= 0.75*0.25*0.25*tmp; *(p_0m0+0)+= 0.75*0.25*0.75*tmp; *(p_0m0+1)+= 0.75*0.25*0.75*tmp; *(p_0m0+2)+= 0.75*0.25*0.25*tmp;
-                *(p_000-1)+= 0.75*0.75*0.25*tmp; *(p_000+0)+= 0.75*0.75*0.75*tmp; *(p_000+1)+= 0.75*0.75*0.75*tmp; *(p_000+2)+= 0.75*0.75*0.25*tmp;
-                *(p_010-1)+= 0.75*0.75*0.25*tmp; *(p_010+0)+= 0.75*0.75*0.75*tmp; *(p_010+1)+= 0.75*0.75*0.75*tmp; *(p_010+2)+= 0.75*0.75*0.25*tmp;
-                *(p_020-1)+= 0.75*0.25*0.25*tmp; *(p_020+0)+= 0.75*0.25*0.75*tmp; *(p_020+1)+= 0.75*0.25*0.75*tmp; *(p_020+2)+= 0.75*0.25*0.25*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
 
-                *(p_1m0-1)+= 0.75*0.25*0.25*tmp; *(p_1m0+0)+= 0.75*0.25*0.75*tmp; *(p_1m0+1)+= 0.75*0.25*0.75*tmp; *(p_1m0+2)+= 0.75*0.25*0.25*tmp;
-                *(p_100-1)+= 0.75*0.75*0.25*tmp; *(p_100+0)+= 0.75*0.75*0.75*tmp; *(p_100+1)+= 0.75*0.75*0.75*tmp; *(p_100+2)+= 0.75*0.75*0.25*tmp;
-                *(p_110-1)+= 0.75*0.75*0.25*tmp; *(p_110+0)+= 0.75*0.75*0.75*tmp; *(p_110+1)+= 0.75*0.75*0.75*tmp; *(p_110+2)+= 0.75*0.75*0.25*tmp;
-                *(p_120-1)+= 0.75*0.25*0.25*tmp; *(p_120+0)+= 0.75*0.25*0.75*tmp; *(p_120+1)+= 0.75*0.25*0.75*tmp; *(p_120+2)+= 0.75*0.25*0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+        /* for last element when 1 == sub[1] do the same thing as above 
+        but without the +2 steps in y-dimension */
+        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                *(p_2m0-1)+= 0.25*0.25*0.25*tmp; *(p_2m0+0)+= 0.25*0.25*0.75*tmp; *(p_2m0+1)+= 0.25*0.25*0.75*tmp; *(p_2m0+2)+= 0.25*0.25*0.25*tmp;
-                *(p_200-1)+= 0.25*0.75*0.25*tmp; *(p_200+0)+= 0.25*0.75*0.75*tmp; *(p_200+1)+= 0.25*0.75*0.75*tmp; *(p_200+2)+= 0.25*0.75*0.25*tmp;
-                *(p_210-1)+= 0.25*0.75*0.25*tmp; *(p_210+0)+= 0.25*0.75*0.75*tmp; *(p_210+1)+= 0.25*0.75*0.75*tmp; *(p_210+2)+= 0.25*0.75*0.25*tmp;
-                *(p_220-1)+= 0.25*0.25*0.25*tmp; *(p_220+0)+= 0.25*0.25*0.75*tmp; *(p_220+1)+= 0.25*0.25*0.75*tmp; *(p_220+2)+= 0.25*0.25*0.25*tmp;
+                double tmp= coarsegrid.local[z][y][x];
 
-                p_coarse++;
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
 
-                p_mm0 += 2;
-                p_m00 += 2;
-                p_m10 += 2;
-                p_m20 += 2;
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
-                p_0m0 += 2;
-                p_000 += 2;
-                p_010 += 2;
-                p_020 += 2;
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
 
-                p_1m0 += 2;
-                p_100 += 2;
-                p_110 += 2;
-                p_120 += 2;
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                p_2m0 += 2;
-                p_200 += 2;
-                p_210 += 2;
-                p_220 += 2;
+                double tmp= coarsegrid.local[z][y][x];
+
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+            }
+        }
+    }
+    /* for last element when 1 == sub[0] do the same thing as above 
+    but without the +2 steps in z-dimension */
+    for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+
+                double tmp= coarsegrid.local[z][y][x];
+
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+
+                double tmp= coarsegrid.local[z][y][x];
+
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+        /* for last element when 1 == sub[1] do the same thing as above 
+        but without the +2 steps in y-dimension */
+        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+
+                double tmp= coarsegrid.local[z][y][x];
+
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+
+                double tmp= coarsegrid.local[z][y][x];
+
+                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+
+                finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
     }
@@ -896,8 +1145,220 @@ void scaleup_loop_coarse( Level& coarse, Level& fine ) {
     /* 4) wait for async halo exchange */
     coarse.src_halo->wait();
 
-    /* 5) do the remaining updates with contributions from the coarse halo */
-    cout << "left to do: outer area in scaleup_loop_coarse()" << endl;
+    /* 5) do the remaining updates with contributions from the coarse halo,
+    this is quite a spaghetti code for 6 sides, 12 edges, and 8 corners -- can we do this any better? */
+
+    /* z= -1 */
+    { size_t z= -1;
+        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+        /* for last element when 1 == sub[1] do the same thing as above 
+        but without the +2 steps in y-dimension */
+        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+            }
+        }
+    }
+
+    /* y= -1 */
+    for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+        { size_t y= -1;
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
+
+
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+    }
+    /* for last element when 1 == sub[0] do the same thing as above 
+    but without the +2 steps in z-dimension */
+    for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+        { size_t y= -1;
+            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+            }
+            /* for last element when 1 == sub[2] do the same thing as above 
+            but without the +2 steps in x-dimension */
+            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+    }
+
+    /* x= -1 */
+    for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
+            }
+        }
+        /* for last element when 1 == sub[1] do the same thing as above 
+        but without the +2 steps in y-dimension */
+        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+            }
+        }
+    }
+    /* for last element when 1 == sub[0] do the same thing as above 
+    but without the +2 steps in z-dimension */
+    for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+            }
+        }
+        /* for last element when 1 == sub[1] do the same thing as above 
+        but without the +2 steps in y-dimension */
+        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+
+                finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
+
+                finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
+                finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
+
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+            }
+        }
+    }
 
     minimon.stop( "scaleup", par, param );
 }
@@ -1532,7 +1993,7 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
 }
 
 
-double do_multigrid_iteration( uint32_t howmanylevels ) {
+void do_multigrid_iteration( uint32_t howmanylevels ) {
     SCOREP_USER_FUNC()
 
     // setup
@@ -1545,46 +2006,37 @@ double do_multigrid_iteration( uint32_t howmanylevels ) {
     extent in every dimension and that the area is close to a square
     with aspect ratio \in [0,75,1,5] */
 
-    uint32_t factor_z= teamspec.num_units(0);
-    uint32_t factor_y= teamspec.num_units(1);
-    uint32_t factor_x= teamspec.num_units(2);
-
-    uint32_t factor_max= factor_z;
-    factor_max= std::max( factor_max, factor_y );
-    factor_max= std::max( factor_max, factor_x );
-    while ( factor_z < 0.75 * factor_max ) { factor_z *= 2; }
-    while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
-    while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
-
     vector<Level*> levels;
     levels.reserve( howmanylevels );
-
-    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
-    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
-    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
 
     if ( 0 == dash::myid() ) {
 
         cout << "run multigrid iteration with " << dash::Team::All().size() << " units "
             "for with grids from " <<
-            factor_z << "x" <<
-            factor_y << "x" <<
-            factor_x <<
+            2 << "x" <<
+            2 << "x" <<
+            2 <<
             " to " <<
-            (1<<(howmanylevels))*factor_z << "x" <<
-            (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x <<
+            ((1<<(howmanylevels))-1) << "x" <<
+            ((1<<(howmanylevels))-1) << "x" <<
+            ((1<<(howmanylevels))-1) <<
             endl;
     }
+
+    /* finest grid needs to be larger than 2*teamspec per dimension, 
+    that means local grid is >= 2 elements */
+    assert( (1<<(howmanylevels))-1 >= 2*teamspec.num_units(0) );
+    assert( (1<<(howmanylevels))-1 >= 2*teamspec.num_units(1) );
+    assert( (1<<(howmanylevels))-1 >= 2*teamspec.num_units(2) );
 
     /* create all grid levels, starting with the finest and ending with 2x2,
     The finest level is outside the loop because it is always done by dash::Team::All() */
 
     if ( 0 == dash::myid() ) {
         cout << "finest level is " <<
-            (1<<(howmanylevels))*factor_z << "x" <<
-            (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x <<
+            (1<<(howmanylevels))-1 << "x" <<
+            (1<<(howmanylevels))-1 << "x" <<
+            (1<<(howmanylevels))-1 <<
             " distributed over " <<
             teamspec.num_units(0) << "x" <<
             teamspec.num_units(1) << "x" <<
@@ -1592,9 +2044,9 @@ double do_multigrid_iteration( uint32_t howmanylevels ) {
     }
 
     levels.push_back( new Level( 1.0, 1.0, 1.0,
-        (1<<(howmanylevels))*factor_z ,
-        (1<<(howmanylevels))*factor_y ,
-        (1<<(howmanylevels))*factor_x ,
+        (1<<(howmanylevels))-1,
+        (1<<(howmanylevels))-1,
+        (1<<(howmanylevels))-1,
         dash::Team::All(), teamspec ) );
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
@@ -1603,14 +2055,17 @@ double do_multigrid_iteration( uint32_t howmanylevels ) {
 
     dash::barrier();
 
-    for ( uint32_t l= 1; l < howmanylevels; l++ ) {
+    --howmanylevels;
+    while ( (1<<(howmanylevels))-1 >= 2*teamspec.num_units(0) && 
+            (1<<(howmanylevels))-1 >= 2*teamspec.num_units(1) &&
+            (1<<(howmanylevels))-1 >= 2*teamspec.num_units(2) ) {
 
         /*
         if ( 0 == dash::myid() ) {
             cout << "compute level " << l << " is " <<
-                (1<<(howmanylevels-l))*factor_z << "x" <<
-                (1<<(howmanylevels-l))*factor_y << "x" <<
-                (1<<(howmanylevels-l))*factor_x <<
+                (1<<(howmanylevels))-1 << "x" <<
+                (1<<(howmanylevels))-1 << "x" <<
+                (1<<(howmanylevels))-1 <<
                 " distributed over " <<
                 teamspec.num_units(0) << "x" <<
                 teamspec.num_units(1) << "x" <<
@@ -1620,17 +2075,17 @@ double do_multigrid_iteration( uint32_t howmanylevels ) {
 
         /* do not try to allocate >= 8GB per core -- try to prevent myself
         from running too big a simulation on my laptop */
-        assert( (1<<(howmanylevels-l))*factor_z *
-            (1<<(howmanylevels-l))*factor_y *
-            (1<<(howmanylevels-l))*factor_x < dash::Team::All().size() * (1<<27) );
+        assert( ((1<<(howmanylevels))-1) *
+            ((1<<(howmanylevels))-1) *
+            ((1<<(howmanylevels))-1) < dash::Team::All().size() * (1<<27) );
 
         Level& previouslevel= *levels.back();
 
         levels.push_back(
             new Level( 1.0, 1.0, 1.0,
-                       (1<<(howmanylevels-l))*factor_z ,
-                       (1<<(howmanylevels-l))*factor_y ,
-                       (1<<(howmanylevels-l))*factor_x ,
+                       (1<<(howmanylevels))-1,
+                       (1<<(howmanylevels))-1,
+                       (1<<(howmanylevels))-1,
                        dash::Team::All(), teamspec ) );
 
         /* scaledown boundary instead of initializing it from the same
@@ -1643,6 +2098,7 @@ double do_multigrid_iteration( uint32_t howmanylevels ) {
         initboundary( *levels.back() );
 
         dash::barrier();
+        --howmanylevels;
     }
 
     /* here all units and all teams meet again, those that were active for the coarsest
@@ -1873,7 +2329,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 }
 
 
-double do_flat_iteration( uint32_t howmanylevels ) {
+void do_flat_iteration( uint32_t howmanylevels ) {
 
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -1883,36 +2339,31 @@ double do_flat_iteration( uint32_t howmanylevels ) {
     extent in every dimension and that the area is close to a square
     with aspect ratio \in [0,75,1,5] */
 
-    uint32_t factor_z= teamspec.num_units(0);
-    uint32_t factor_y= teamspec.num_units(1);
-    uint32_t factor_x= teamspec.num_units(2);
+    uint32_t factor_z= 1;
+    uint32_t factor_y= 1;
+    uint32_t factor_x= 1;
 
-    uint32_t factor_max= factor_z;
-    factor_max= std::max( factor_max, factor_y );
-    factor_max= std::max( factor_max, factor_x );
-    while ( factor_z < 0.75 * factor_max ) { factor_z *= 2; }
-    while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
-    while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
-
-    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
-    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
-    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
+    /* this is 2^n -1 for the entire grid including boundary conditions. And then -2 to
+    leave out the boundary area from the CSV output */
+    resolutionForCSVd= (1<<6)-1;
+    resolutionForCSVh= (1<<6)-1;
+    resolutionForCSVw= (1<<6)-1;
 
     if ( 0 == dash::myid() ) {
 
         cout << "run flat iteration with " << dash::Team::All().size() << " units "
             "for grids of " <<
-            (1<<(howmanylevels))*factor_z << "x" <<
-            (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x <<
+            ((1<<(howmanylevels))-1)*factor_z << "x" <<
+            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_x <<
             endl << endl;
     }
 
     Level* level= new Level( 1.0, 1.0, 1.0,
-                             (1<<(howmanylevels))*factor_z ,
-                             (1<<(howmanylevels))*factor_y ,
-                             (1<<(howmanylevels))*factor_x ,
-                             dash::Team::All(), teamspec );
+        ((1<<(howmanylevels))-1)*factor_z ,
+        ((1<<(howmanylevels))-1)*factor_y ,
+        ((1<<(howmanylevels))-1)*factor_x ,
+        dash::Team::All(), teamspec );
 
     dash::barrier();
 
@@ -1981,8 +2432,6 @@ double do_flat_iteration( uint32_t howmanylevels ) {
 
     delete level;
     level= NULL;
-
-    return res.get();
 }
 
 
@@ -1991,8 +2440,8 @@ bool do_test_old_scaledown() {
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
 
-    Level* a= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
-    Level* b= new Level( 1.0, 1.0, 1.0, 4, 4, 4, dash::Team::All(), teamspec );
+    Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 7, 7, 7, dash::Team::All(), teamspec );
 
     dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
     a->src_grid->barrier();
@@ -2065,11 +2514,12 @@ bool do_test_new_scaleup_loop_coarse() {
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
 
-    Level* a= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
-    Level* b= new Level( 1.0, 1.0, 1.0, 16, 16, 16, dash::Team::All(), teamspec );
+    Level* a= new Level( 1.0, 1.0, 1.0, 7, 7, 7, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
 
     dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
     a->src_grid->barrier();
+    a->src_halo->set_fixed_halos(  []( const auto& coords ) { return 1.0; } );
     dash::fill( b->src_grid->begin(), b->src_grid->end(), 0 );
     b->src_grid->barrier();
 
@@ -2080,7 +2530,8 @@ bool do_test_new_scaleup_loop_coarse() {
     }
 
     b->src_grid->barrier();
-    scaleup_loop_coarse( *a, *b );
+    //scaleup_loop_coarse( *a, *b );
+    scaleup( *a, *b );
     b->src_grid->barrier();
 
     if ( 0 == dash::myid() ) {
@@ -2102,8 +2553,8 @@ bool do_test_new_scaleup_loop_fine() {
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
 
-    Level* a= new Level( 1.0, 1.0, 1.0, 8, 8, 8, dash::Team::All(), teamspec );
-    Level* b= new Level( 1.0, 1.0, 1.0, 16, 16, 16, dash::Team::All(), teamspec );
+    Level* a= new Level( 1.0, 1.0, 1.0, 7, 7, 7, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
 
     dash::fill( a->src_grid->begin(), a->src_grid->end(), 1.0 );
     a->src_grid->barrier();
@@ -2147,17 +2598,17 @@ bool do_tests( ) {
     if (0 == dash::myid() ) { cout << "   old scaledown: " << success << endl; }
     allsuccess &= success;
 
-    success= do_test_old_scaleup();
-    if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
-    allsuccess &= success;
-
-    //success= do_test_new_scaleup_loop_coarse();
-    //if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
+    //success= do_test_old_scaleup();
+    //if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
     //allsuccess &= success;
 
-    success= do_test_new_scaleup_loop_fine();
+    success= do_test_new_scaleup_loop_coarse();
     if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
     allsuccess &= success;
+
+    //success= do_test_new_scaleup_loop_fine();
+    //if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
+    //allsuccess &= success;
 
     if (0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
 
