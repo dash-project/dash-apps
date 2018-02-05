@@ -12,7 +12,7 @@ set(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX})
 ## DART Implementation
 set(DASH_DART_IMPL "MPI")
 ## Project Sources
-set(SOURCES "src/main")
+set(SOURCES "src/main" "src/input_param" "src/pattern_creation")
 include_directories("include")
 
 set(CXX_FLAGS "-O3 -Ofast")
