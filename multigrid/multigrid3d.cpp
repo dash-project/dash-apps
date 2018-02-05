@@ -1787,7 +1787,6 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* loop x */
 
-    ////////////////////////////////////////////////////////////////////////////////
     /* z= -1, y= -1 */
     { size_t z= -1;
         { size_t y= -1;
@@ -1888,6 +1887,65 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
     }
+
+    /* 8 corners */
+
+    ////////////////////////////////////////////////////////////////////////////////
+    { size_t z= -1;
+        { size_t y= -1;
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
+            }
+            if ( 0 == sub[2]) { size_t x= extentc[2];
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+        if ( 0 == sub[1] ) { size_t y= extentc[1];
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
+            }
+            if ( 0 == sub[2]) { size_t x= extentc[2];
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
+            }
+        }
+    }
+    if ( 0 == sub[0] ) { size_t z= extentc[0];
+        { size_t y= -1;
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
+            }
+            if ( 0 == sub[2]) { size_t x= extentc[2];
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
+            }
+        }
+        if ( 0 == sub[1] ) { size_t y= extentc[1];
+            { size_t x= -1;
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
+            }
+            if ( 0 == sub[2]) { size_t x= extentc[2];
+
+                double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
+            }
+        }
+    }
+
+
+
 
     ////////////////////////////////////////////////////////////////////////////////
 
