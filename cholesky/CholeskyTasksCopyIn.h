@@ -84,7 +84,7 @@ compute(TiledMatrix& matrix, size_t block_size){
         //auto block_k_pre = &blocks_ki_pre[k*block_size*block_size];
         auto block_k_pre = block_k.is_local()
                               ? block_k.lbegin()
-                              : &blocks_ki_pre[k*block_size*block_size];
+                              : &blocks_ki_pre[0];
         auto block_a_dep = block_k.is_local()
                               ? dash::tasks::in(block_k)
                               : dash::tasks::copyin(block_k.begin(),
