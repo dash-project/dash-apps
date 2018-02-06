@@ -673,46 +673,46 @@ bool check_symmetry( MatrixT& grid, double eps ) {
         /* x-y-z diagonals */
         for ( size_t t= 0; t < m; ++t ) {
 
-            double first= grid[d/2+t-1][h/2+t-1][w/2+t-1];
+            double first= grid[d/2+t][h/2+t][w/2+t];
 
-            if ( std::fabs( first - grid[d/2+t-1][h/2+t-1][w/2-t  ] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2+t-1][h/2-t  ][w/2+t-1] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2+t-1][h/2-t  ][w/2-t  ] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2+t-1][w/2+t-1] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2+t-1][w/2-t  ] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2-t  ][w/2+t-1] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2-t  ][w/2-t  ] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2+t][h/2+t][w/2-t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2+t][h/2-t][w/2+t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2+t][h/2-t][w/2-t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2+t][w/2+t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2+t][w/2-t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2-t][w/2+t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2-t][w/2-t] ) > eps ) return false;
         }
 
         /* x-y diagonals */
         for ( size_t t= 0; t < m; ++t ) {
 
-            double first= grid[d/2][h/2+t-1][w/2+t-1];
+            double first= grid[d/2][h/2+t][w/2+t];
 
-            if ( std::fabs( first - grid[d/2][h/2+t-1][w/2-t  ] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2][h/2-t  ][w/2+t-1] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2][h/2-t  ][w/2-t  ] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2][h/2+t][w/2-t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2][h/2-t][w/2+t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2][h/2-t][w/2-t] ) > eps ) return false;
         }
 
         /* y-z diagonals */
         for ( size_t t= 0; t < m; ++t ) {
 
-            double first= grid[d/2+t-1][h/2+t-1][w/2];
+            double first= grid[d/2+t][h/2+t][w/2];
 
-            if ( std::fabs( first - grid[d/2+t-1][h/2+t-1][w/2] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2+t-1][h/2-t  ][w/2] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2+t-1][w/2] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2-t  ][w/2] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2+t][h/2+t][w/2] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2+t][h/2-t][w/2] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2+t][w/2] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2-t][w/2] ) > eps ) return false;
         }
 
         /* x-z diagonals */
         for ( size_t t= 0; t < m; ++t ) {
 
-            double first= grid[d/2+t-1][h/2][w/2+t-1];
+            double first= grid[d/2+t][h/2][w/2+t];
 
-            if ( std::fabs( first - grid[d/2+t-1][h/2][w/2-t  ] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2][w/2+t-1] ) > eps ) return false;
-            if ( std::fabs( first - grid[d/2-t  ][h/2][w/2-t  ] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2+t][h/2][w/2-t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2][w/2+t] ) > eps ) return false;
+            if ( std::fabs( first - grid[d/2-t][h/2][w/2-t] ) > eps ) return false;
         }
 
     }
