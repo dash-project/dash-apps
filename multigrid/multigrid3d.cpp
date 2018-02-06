@@ -160,6 +160,7 @@ public:
         std::swap( src_grid, dst_grid );
     }
 
+    /* to be called by the master unit alone */
     void printout() {
 
         auto n= src_grid->extents();
@@ -175,6 +176,37 @@ public:
             cout << endl;
         }
 
+    }
+
+    /* to be called by all units together */
+    void printout_halo() {
+
+        std::array< size_t, 3 > n= src_grid->local.extents();
+        std::array< long int, 3 > corner= src_grid->pattern().global( {0,0,0} );
+
+        if ( 0 == dash::myid() ) {
+            cout << " === z= -1 === " << endl; 
+        }
+
+        for ( uint32_t unit= 0; unit < dash::Team::All().size(); ++unit ) {
+
+            src_grid->barrier();
+            if ( dash::myid() == unit ) {
+
+                cout << "unit " << unit << ": " << n[1] << "," << n[2] << endl; 
+                int z= -1;
+                for ( int y= -1; y <= (int) n[1]; ++y ) {
+                    for ( int x= -1; x <= (int) n[2]; ++x ) {
+
+                        cout << std::setprecision(3) << 
+                            (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                    }
+                    cout << endl;
+                }
+                cout << endl;
+            }
+            src_grid->barrier();
+        }
     }
 
 private:
@@ -392,9 +424,11 @@ void writeToCsv( const Level& level ) {
     size_t hl= grid.local.extent(1);
     size_t wl= grid.local.extent(2);
 
+    /*
     cout << "writeToCsvFullGrid " <<
         dl << "," << hl << "," << wl << " of " <<
         d << "," << h << "," << w << endl;
+    */
 
     std::ofstream csvfile;
     std::ostringstream num_string;
@@ -530,9 +564,9 @@ void initboundary( Level& level ) {
 
     using index_t = dash::default_index_t;
 
-    double gw= level.src_grid->extent(2);
-    double gh= level.src_grid->extent(1);
     double gd= level.src_grid->extent(0);
+    double gh= level.src_grid->extent(1);
+    double gw= level.src_grid->extent(2);
 
     /* This way of setting boundaries uses subsampling on the top and bottom
     planes to determine the border values. This is another logical way that
@@ -559,7 +593,7 @@ void initboundary( Level& level ) {
             double r2= r*r;
 
             double lowvalue= 0.0;
-            double highvalue= 10.0;
+            double highvalue= 9.0;
 
             double midx= 0.5;
             double midy= 0.5;
@@ -3174,6 +3208,23 @@ bool do_test_new_scaleup_loop_fine() {
 }
 
 
+bool do_test_initboundary() {
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
+
+    initboundary( *a );
+
+    a->printout_halo();
+
+    delete a;
+
+    return true;
+}
+
+
 /* a number of tests ... restructure the code to headers and source files, then 
 do a separate main() with all the tests in a separate source file */
 bool do_tests( ) {
@@ -3198,6 +3249,10 @@ bool do_tests( ) {
     //success= do_test_new_scaleup_loop_fine();
     //if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
     //allsuccess &= success;
+
+    success= do_test_initboundary();
+    if (0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
+    allsuccess &= success;
 
     if (0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
 
