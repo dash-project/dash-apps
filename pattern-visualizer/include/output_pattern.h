@@ -103,9 +103,9 @@ void print_example(
 
   if (params.cout) {
     std::cout << "{\"success\": true, \"name\": \"" << pattern_file << "\", ";
-    std::cout <<  "\"svg\": \"attached\"}" << std::endl;
-    // TODO rewrite when pv returns JSON
-    pv.draw_pattern(std::cout, params.blocked_display);
+    std::cout <<  "\"pattern\": ";
+    pv.draw_pattern(std::cout);
+    std::cout << "}" << std::endl;
   } else {
     std::cerr << "Image file:"
               << '\n'
