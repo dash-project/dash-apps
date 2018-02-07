@@ -112,7 +112,7 @@ void print_example(
               << "    " << pattern_file
               << std::endl;
     std::ofstream out(pattern_file);
-    pv.draw_pattern(out, params.blocked_display);
+    pv.draw_pattern(out);
     out.close();
   }
 }
