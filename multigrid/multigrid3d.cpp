@@ -2317,7 +2317,7 @@ void smoothen( Level& level ) {
     double rs= rz+ry+rx;
 
     /// relaxation coeff.
-    const double c= 1.0;
+    const double c= 0.2;
 
     // async halo update
     level.src_halo->update_async();
@@ -2876,7 +2876,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
     initgrid( *levels.front()->src_grid );
-    markunits( *levels.front()->src_grid );
+    //markunits( *levels.front()->src_grid );
 
     writeToCsv( *levels.front() );
 
@@ -3187,7 +3187,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     Allreduce res( dash::Team::All() );
 
-    double epsilon= 0.1;
+    double epsilon= 0.01;
     while ( res.get() > epsilon && j < 1000 ) {
 
         smoothen( *level, res );
@@ -3196,7 +3196,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
             cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
 
-        if ( 0 == j % 1 ) {
+        if ( 0 == j % 10 ) {
             writeToCsv( *level );
         }
 
