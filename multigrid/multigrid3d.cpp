@@ -351,17 +351,23 @@ size_t resolutionForCSVw= 0;
 
 /* global resolution for cvs output, should be fixed such that 
 paraview gets input of constant dimensions */
-std::array< long int, 3 > res_csv= {63,63,63};
+std::array< long int, 3 > res_csv= {65,65,65};
 
 
 /* write out the current state of the given grid as CSV so that Paraview can
 read and visualize it as a structured grid. Use a fixed size for the grid as
 defined by the previous global variable. So an animations of the
-multigrid procedure is possible. 
+multigrid procedure is possible.
 
-... then again this is more complicated for now with the (2^n -1) grid sizes ... TODO for later
+Do not restrict the grid sizes in any way. Lay an output grid over the source grid, 
+then interpolate every output grid point from the 8 neighbor source grid points.
+
+Require halos, include boundary conditions in output.
+
+Accept checks whether any point is part of the grid or part of the halo to make this code simpler.
+
 */
-void writeToCsv_old( const Level& level ) {
+void writeToCsv_interpolate( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
 
@@ -375,20 +381,21 @@ void writeToCsv_old( const Level& level ) {
     const MatrixT& grid= *level.src_grid;
 
     std::array< size_t, 3 > dim= grid.extents();
-    std::array< size_t, 3 > localdim= grid.local.extents();
+    std::array< signed_size_t, 3 > localdim= grid.local.extents();
 
-    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
-    std::array< long int, 3 > sub;
+    std::array< long int, 3 > corner0= grid.pattern().global( {0,0,0} );
+    std::array< long int, 3 > corner1= grid.pattern().global( {localdim[0],localdim[1],localdim[2]} );
 
+/*
     std::array< long int, 3 > local_res_csv;
-    std::array< long int, 3 > mul;
-    std::array< long int, 3 > div;
+    std::array< long int, 3 > start;
+    std::array< long int, 3 > stop;
 
     for ( size_t i= 0; i < 3; ++i ) {
 
         local_res_csv[i]= localdim[i]*res_csv[i]/dim[i];
-        div[i]= ( res_csv[i] > dim[i] ) ? res_csv[i]/dim[i] : 1;
-        mul[i]= ( res_csv[i] < dim[i] ) ? dim[i]/res_csv[i] : 1;
+        start[i]= ( 0 == corner[i] ) ? -1 : 0;
+        stop[i]= localdim[i] + ( 0 == corner[i] ) ? 1 : 1;
 
     }
 
@@ -423,7 +430,7 @@ void writeToCsv_old( const Level& level ) {
             }
         }
     }
-
+*/
     csvfile.close();
 
 #if 0
@@ -625,63 +632,8 @@ void initgrid( MatrixT& grid ) {
 }
 
 
-/* simple boundary settings where 3 sides are hot and 3 are cold */
-void initboundary_3hot3cold( Level& level ) {
-    using index_t = dash::default_index_t;
-
-    double gw= level.src_grid->extent(2);
-    double gh= level.src_grid->extent(1);
-    double gd= level.src_grid->extent(0);
-
-    /* with this way of setting the boundary conditions on every level separatel (in
-    contrast to scaling it down step by step) one needs to make sure that the boundary
-    values are continuous (kind of). Otherwise the coarsened version of the boundary
-    values will have jumps in different places (instead of jumps being smoothed out
-    by coarsening the boundary).
-    Well, we should really think about another way to init the boundary values! */
-    auto lambda= [gd,gh,gw]( const auto& coords ) {
-
-        index_t z= coords[0];
-        index_t y= coords[1];
-        index_t x= coords[2];
-
-        /* for simplicity make every side uniform */
-
-        if ( -1 == z ) {
-
-            return 10.0;
-
-        } else if ( gd == z ) {
-
-            return 0.0;
-
-        } else if ( -1 == y ) {
-
-            return 9.0;
-
-        } else if ( gh == y ) {
-
-            return 1.0;
-
-        } else if ( -1 == x ) {
-
-            return 8.0;
-
-        } else if ( gw == x ) {
-
-            return 2.0;
-        }
-    };
-
-    level.src_halo->set_fixed_halos( lambda );
-    level.dst_halo->set_fixed_halos( lambda );
-
-}
-
-
-/* alternative boundary settings, the top and bottom planes have a hot circle
-in the middle */
-// void initboundary_2circles( Level& level ) {
+/* apply boundary value settings, where the top and bottom planes have a 
+hot circle in the middle and everything else is cold*/
 void initboundary( Level& level ) {
 
     using index_t = dash::default_index_t;
@@ -722,14 +674,14 @@ void initboundary( Level& level ) {
 
             /* At entry (x/gw,y/gh) we sample the
             rectangle [ x/gw,(x+1)/gw ) x [ y/gw, (y+1)/gh ) with m² points. */
-            int32_t m= 5;
+            int32_t m= 3;
             int32_t m2= m*m;
 
             double sum= 0.0;
             double weight= 0.0;
 
-            for ( int32_t iy= -m+1; iy < m; iy++ ) {
-                for ( int32_t ix= -m+1; ix < m; ix++ ) {
+            for ( double iy= -m+1; iy < m; iy++ ) {
+                for ( double ix= -m+1; ix < m; ix++ ) {
 
                     double sx= (x+ix/m)/(gw-1);
                     double sy= (y+iy/m)/(gh-1);
@@ -3385,6 +3337,23 @@ bool do_test_initboundary() {
     return true;
 }
 
+bool do_test_writetocsv() {
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
+
+    initboundary( *a );
+    initgrid( *a->src_grid );
+
+    writeToCsv_interpolate( *a );
+
+    delete a;
+
+    return true;
+}
+
 
 /* a number of tests ... restructure the code to headers and source files, then 
 do a separate main() with all the tests in a separate source file */
@@ -3393,37 +3362,41 @@ bool do_tests( ) {
     bool success;
     bool allsuccess= true;
 
-    if (0 == dash::myid() ) { cout << "run built-in tests:" << endl; }
+    if ( 0 == dash::myid() ) { cout << "run built-in tests:" << endl; }
 
     /*
     success= do_test_old_scaledown();
-    if (0 == dash::myid() ) { cout << "   old scaledown: " << success << endl; }
+    if ( 0 == dash::myid() ) { cout << "   old scaledown: " << success << endl; }
     allsuccess &= success;
     */
 
     /*
     success= do_test_old_scaleup();
-    if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
+    if ( 0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
     allsuccess &= success;
     */
 
     /*
     success= do_test_new_scaleup_loop_coarse();
-    if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
+    if ( 0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
     allsuccess &= success;
     */
 
     /*
     success= do_test_new_scaleup_loop_fine();
-    if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
+    if ( 0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
     allsuccess &= success;
     */
 
     success= do_test_initboundary();
-    if (0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
+    if ( 0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
     allsuccess &= success;
 
-    if (0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
+    success= do_test_writetocsv();
+    if ( 0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
+    allsuccess &= success;
+
+    if ( 0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
 
     return allsuccess;
 }
