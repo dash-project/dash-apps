@@ -136,11 +136,6 @@ public:
                         " with team of " << team.size() << 
                         " --> dt= " << dt << " r_= " << rz << "," << ry << "," << rx << endl;
                 }
-
-                cout << "    Unit " << a << ": " <<
-                        _grid_1.local.extent(0) << "*" << 
-                        _grid_1.local.extent(1) << "*" << 
-                        _grid_1.local.extent(2) << endl;
             }
 
             dash::barrier();
@@ -193,13 +188,14 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << "unit " << unit << ": " << n[1] << "," << n[2] << endl; 
+                cout << endl << "unit " << unit << ": " << n[1] << "," << n[2] << endl; 
                 int z= -1;
                 for ( int y= -1; y <= (int) n[1]; ++y ) {
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) << 
                             (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+
                     }
                     cout << endl;
                 }
@@ -207,6 +203,132 @@ public:
             }
             src_grid->barrier();
         }
+
+        if ( 0 == dash::myid() ) {
+            cout << " === z= max === " << endl; 
+        }
+
+        for ( uint32_t unit= 0; unit < dash::Team::All().size(); ++unit ) {
+
+            src_grid->barrier();
+            if ( dash::myid() == unit ) {
+
+                cout << endl << "unit " << unit << ": " << n[1] << "," << n[2] << endl; 
+                int z= n[0];
+                for ( int y= -1; y <= (int) n[1]; ++y ) {
+                    for ( int x= -1; x <= (int) n[2]; ++x ) {
+
+                        cout << std::setprecision(3) << 
+                            (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+
+                    }
+                    cout << endl;
+                }
+                cout << endl;
+            }
+            src_grid->barrier();
+        }
+
+        if ( 0 == dash::myid() ) {
+            cout << " === y= -1 === " << endl; 
+        }
+
+        for ( uint32_t unit= 0; unit < dash::Team::All().size(); ++unit ) {
+
+            src_grid->barrier();
+            if ( dash::myid() == unit ) {
+
+                cout << endl << "unit " << unit << ": " << n[0] << "," << n[2] << endl; 
+                int y= -1;
+                for ( int z= -1; z <= (int) n[0]; ++z ) {
+                    for ( int x= -1; x <= (int) n[2]; ++x ) {
+
+                        cout << std::setprecision(3) << 
+                            (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+
+                    }
+                    cout << endl;
+                }
+                cout << endl;
+            }
+            src_grid->barrier();
+        }
+
+        if ( 0 == dash::myid() ) {
+            cout << " === y= max === " << endl; 
+        }
+
+        for ( uint32_t unit= 0; unit < dash::Team::All().size(); ++unit ) {
+
+            src_grid->barrier();
+            if ( dash::myid() == unit ) {
+
+                cout << endl << "unit " << unit << ": " << n[0] << "," << n[2] << endl; 
+                int y= n[1];
+                for ( int z= -1; z <= (int) n[0]; ++z ) {
+                    for ( int x= -1; x <= (int) n[2]; ++x ) {
+
+                        cout << std::setprecision(3) << 
+                            (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+
+                    }
+                    cout << endl;
+                }
+                cout << endl;
+            }
+            src_grid->barrier();
+        }
+
+        if ( 0 == dash::myid() ) {
+            cout << " === x= -1 === " << endl; 
+        }
+
+        for ( uint32_t unit= 0; unit < dash::Team::All().size(); ++unit ) {
+
+            src_grid->barrier();
+            if ( dash::myid() == unit ) {
+
+                cout << endl << "unit " << unit << ": " << n[0] << "," << n[1] << endl; 
+                int x= -1;
+                for ( int z= -1; z <= (int) n[0]; ++z ) {
+                    for ( int y= -1; y <= (int) n[1]; ++y ) {
+
+                        cout << std::setprecision(3) << 
+                            (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+
+                    }
+                    cout << endl;
+                }
+                cout << endl;
+            }
+            src_grid->barrier();
+        }
+
+        if ( 0 == dash::myid() ) {
+            cout << " === x= max === " << endl; 
+        }
+
+        for ( uint32_t unit= 0; unit < dash::Team::All().size(); ++unit ) {
+
+            src_grid->barrier();
+            if ( dash::myid() == unit ) {
+
+                cout << endl << "unit " << unit << ": " << n[0] << "," << n[1] << endl; 
+                int x= n[2];
+                for ( int z= -1; z <= (int) n[0]; ++z ) {
+                    for ( int y= -1; y <= (int) n[1]; ++y ) {
+
+                        cout << std::setprecision(3) << 
+                            (double) *src_halo->halo_element_at( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+
+                    }
+                    cout << endl;
+                }
+                cout << endl;
+            }
+            src_grid->barrier();
+        }
+
     }
 
 private:
@@ -581,7 +703,7 @@ void initboundary( Level& level ) {
         index_t y= coords[1];
         index_t x= coords[2];
 
-        double ret= 0.0;
+        double ret= 1.0;
 
         /* for simplicity make every side uniform */
 
@@ -592,7 +714,7 @@ void initboundary( Level& level ) {
             double r= 0.4;
             double r2= r*r;
 
-            double lowvalue= 0.0;
+            double lowvalue= 2.0;
             double highvalue= 9.0;
 
             double midx= 0.5;
@@ -902,6 +1024,8 @@ This version loops over the coarse grid */
 //void scaleup_loop_coarse( Level& coarse, Level& fine ) {
 void scaleup( Level& coarse, Level& fine ) {
 
+    using signed_size_t = typename std::make_signed<size_t>::type;
+
     MatrixT& coarsegrid= *coarse.src_grid;
     MatrixT& finegrid= *fine.src_grid;
 
@@ -1185,9 +1309,9 @@ void scaleup( Level& coarse, Level& fine ) {
     /* 6 planes */
 
     /* z= -1 */
-    { size_t z= -1;
-        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+    { signed_size_t z= -1;
+        for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1205,7 +1329,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1221,8 +1345,8 @@ void scaleup( Level& coarse, Level& fine ) {
         }
         /* for last element when 1 == sub[1] do the same thing as above 
         but without the +2 steps in y-dimension */
-        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+        for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1237,7 +1361,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1253,9 +1377,9 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* z= N */
     if ( 0 == sub[0]) { 
-        size_t z= extentc[0];
-        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+        signed_size_t z= extentc[0];
+        for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1273,7 +1397,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1289,8 +1413,8 @@ void scaleup( Level& coarse, Level& fine ) {
         }
         /* for last element when 1 == sub[1] do the same thing as above 
         but without the +2 steps in y-dimension */
-        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+        for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1305,7 +1429,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1320,9 +1444,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* y= -1 */
-    for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
-        { size_t y= -1;
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+    for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+        { signed_size_t y= -1;
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1343,7 +1467,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1360,9 +1484,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
     /* for last element when 1 == sub[0] do the same thing as above 
     but without the +2 steps in z-dimension */
-    for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
-        { size_t y= -1;
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+    for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+        { signed_size_t y= -1;
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1377,7 +1501,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1393,9 +1517,9 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* y= N */
     if ( 0 == sub[1] ) {
-        size_t y= extentc[1];
-        for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+        signed_size_t y= extentc[1];
+        for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1416,7 +1540,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1433,8 +1557,8 @@ void scaleup( Level& coarse, Level& fine ) {
 
         /* for last element when 1 == sub[0] do the same thing as above 
         but without the +2 steps in z-dimension */
-        for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+        for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1449,7 +1573,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1464,9 +1588,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* x= -1 */
-    for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
-        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
-            { size_t x= -1;
+    for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+        for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1485,8 +1609,8 @@ void scaleup( Level& coarse, Level& fine ) {
         }
         /* for last element when 1 == sub[1] do the same thing as above 
         but without the +2 steps in y-dimension */
-        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
-            { size_t x= -1;
+        for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1503,9 +1627,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
     /* for last element when 1 == sub[0] do the same thing as above 
     but without the +2 steps in z-dimension */
-    for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
-        for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
-            { size_t x= -1;
+    for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+        for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1521,8 +1645,8 @@ void scaleup( Level& coarse, Level& fine ) {
         }
         /* for last element when 1 == sub[1] do the same thing as above 
         but without the +2 steps in y-dimension */
-        for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
-            { size_t x= -1;
+        for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1538,9 +1662,9 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* x= N */
     if ( 0 == sub[2] ) {
-        size_t x= extentc[2];
-        for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
-            for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+        signed_size_t x= extentc[2];
+        for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+            for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1558,7 +1682,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[1] do the same thing as above 
             but without the +2 steps in y-dimension */
-            for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1574,8 +1698,8 @@ void scaleup( Level& coarse, Level& fine ) {
         }
         /* for last element when 1 == sub[0] do the same thing as above 
         but without the +2 steps in z-dimension */
-        for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
-            for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+        for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+            for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1590,7 +1714,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[1] do the same thing as above 
             but without the +2 steps in y-dimension */
-            for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1609,9 +1733,9 @@ void scaleup( Level& coarse, Level& fine ) {
     /* loop z */
 
     /* y= -1, x= -1 */
-    { size_t y= -1;
-        { size_t x= -1;
-            for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+    { signed_size_t y= -1;
+        { signed_size_t x= -1;
+            for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1622,7 +1746,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[0] do the same thing as above 
             but without the +2 steps in z-dimension */
-            for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+            for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1635,9 +1759,9 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* y= N, x= -1 */
     if ( 0 == sub[1] ) { 
-        size_t y= extentc[1];
-        { size_t x= -1;
-            for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+        signed_size_t y= extentc[1];
+        { signed_size_t x= -1;
+            for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1648,7 +1772,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[0] do the same thing as above 
             but without the +2 steps in z-dimension */
-            for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+            for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1660,9 +1784,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* y= -1, x= N */
-    if ( 0 == sub[2] ) { size_t x= extentc[2];
-        { size_t y= -1;
-            for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+    if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
+        { signed_size_t y= -1;
+            for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1673,7 +1797,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[0] do the same thing as above 
             but without the +2 steps in z-dimension */
-            for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+            for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1686,10 +1810,10 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* y= N, x= N */
     if ( 0 == sub[1] ) { 
-        size_t y= extentc[1];
+        signed_size_t y= extentc[1];
         if ( 0 == sub[2] ) {
-            size_t x= extentc[2];
-            for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
+            signed_size_t x= extentc[2];
+            for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1700,7 +1824,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[0] do the same thing as above 
             but without the +2 steps in z-dimension */
-            for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
+            for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1714,9 +1838,9 @@ void scaleup( Level& coarse, Level& fine ) {
     /* loop y */
 
     /* z= -1, x= -1 */
-    { size_t z= -1;
-        { size_t x= -1;
-            for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+    { signed_size_t z= -1;
+        { signed_size_t x= -1;
+            for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1727,7 +1851,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[1] do the same thing as above 
             but without the +2 steps in y-dimension */
-            for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1741,9 +1865,9 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* z= N, x= -1 */
     if ( 0 == sub[0] ) { 
-        size_t z= extentc[0];
-        { size_t x= -1;
-            for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+        signed_size_t z= extentc[0];
+        { signed_size_t x= -1;
+            for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1754,7 +1878,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[1] do the same thing as above 
             but without the +2 steps in y-dimension */
-            for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1767,9 +1891,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= -1, x= N */
-    { size_t z= -1;
-        if ( 0 == sub[2] ) { size_t x= extentc[2];
-            for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+    { signed_size_t z= -1;
+        if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
+            for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1780,7 +1904,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[1] do the same thing as above 
             but without the +2 steps in y-dimension */
-            for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1793,9 +1917,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= N, x= N */
-    if ( 0 == sub[0] ) { size_t z= extentc[0];
-        if ( 0 == sub[2] ) { size_t x= extentc[2];
-            for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
+    if ( 0 == sub[0] ) { signed_size_t z= extentc[0];
+        if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
+            for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1806,7 +1930,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[1] do the same thing as above 
             but without the +2 steps in y-dimension */
-            for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
+            for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1822,9 +1946,9 @@ void scaleup( Level& coarse, Level& fine ) {
     /* loop x */
 
     /* z= -1, y= -1 */
-    { size_t z= -1;
-        { size_t y= -1;
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+    { signed_size_t z= -1;
+        { signed_size_t y= -1;
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1835,7 +1959,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1848,9 +1972,9 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* z= N, y= -1 */
     if ( 0 == sub[0] ) { 
-        size_t z= extentc[0];
-        { size_t y= -1;
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+        signed_size_t z= extentc[0];
+        { signed_size_t y= -1;
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1861,7 +1985,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1873,9 +1997,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= -1, y= N */
-    { size_t z= -1;
-        if ( 0 == sub[1] ) { size_t y= extentc[1];
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+    { signed_size_t z= -1;
+        if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1886,7 +2010,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1898,9 +2022,9 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= N, y= N */
-    if ( 0 == sub[0] ) { size_t z= extentc[0];
-        if ( 0 == sub[1] ) { size_t y= extentc[1];
-            for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
+    if ( 0 == sub[0] ) { signed_size_t z= extentc[0];
+        if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
+            for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1911,7 +2035,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
             /* for last element when 1 == sub[2] do the same thing as above 
             but without the +2 steps in x-dimension */
-            for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
+            for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
 
@@ -1925,52 +2049,52 @@ void scaleup( Level& coarse, Level& fine ) {
     /* 8 corners */
 
     ////////////////////////////////////////////////////////////////////////////////
-    { size_t z= -1;
-        { size_t y= -1;
-            { size_t x= -1;
+    { signed_size_t z= -1;
+        { signed_size_t y= -1;
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
-            if ( 0 == sub[2]) { size_t x= extentc[2];
+            if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
-        if ( 0 == sub[1] ) { size_t y= extentc[1];
-            { size_t x= -1;
+        if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
-            if ( 0 == sub[2]) { size_t x= extentc[2];
+            if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
     }
-    if ( 0 == sub[0] ) { size_t z= extentc[0];
-        { size_t y= -1;
-            { size_t x= -1;
+    if ( 0 == sub[0] ) { signed_size_t z= extentc[0];
+        { signed_size_t y= -1;
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
-            if ( 0 == sub[2]) { size_t x= extentc[2];
+            if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
-        if ( 0 == sub[1] ) { size_t y= extentc[1];
-            { size_t x= -1;
+        if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
+            { signed_size_t x= -1;
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
-            if ( 0 == sub[2]) { size_t x= extentc[2];
+            if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
                 double tmp= *coarse.src_halo->halo_element_at( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
@@ -2193,7 +2317,7 @@ void smoothen( Level& level ) {
     double rs= rz+ry+rx;
 
     /// relaxation coeff.
-    const double c= 0.2;
+    const double c= 1.0;
 
     // async halo update
     level.src_halo->update_async();
@@ -2465,7 +2589,7 @@ void v_cycle( Iterator it, Iterator itend,
             j++;
         }
         if ( 0 == dash::myid()  ) {
-            cout << j << ": smoothing coarsest " << j << " times with residual " << res.get() << endl;
+            cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
         }
         writeToCsv( **it );
 
@@ -2531,8 +2655,18 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* **** normal recursion **** **** **** **** **** **** **** **** **** */
 
-    for ( uint32_t j= 0; j < numiter; j++ ) {
-        smoothen( **it );
+    /* smoothen completely  */
+    uint32_t j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon && j < numiter ) {
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+    }
+    if ( 0 == dash::myid()  ) {
+        cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -2585,8 +2719,19 @@ void v_cycle( Iterator it, Iterator itend,
     }
     */
 
-    for ( uint32_t j= 0; j < numiter; j++ ) {
-        smoothen( **it );
+    /* smoothen completely  */
+    j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon ) {
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+    }
+
+    if ( 0 == dash::myid()  ) {
+        cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -2741,12 +2886,27 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     minimon.stop( "setup", dash::Team::All().size() );
 
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 0.1 << endl << endl;
+    }
+    v_cycle( levels.begin(), levels.end(), 20, 0.1, res );
+    dash::Team::All().barrier();
+
+
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 0.01 << endl << endl;
+    }
     v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
     dash::Team::All().barrier();
+
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 0.0011 << endl << endl;
+    }
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
-    smoothen_final( *levels.front(), 0.001, res );
-    writeToCsv( *levels.front() );
+
+    //smoothen_final( *levels.front(), 0.001, res );
+    //writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
@@ -3003,7 +3163,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     minimon.start();
 
     uint32_t j= 0;
-    while ( j < 50 ) {
+    while ( j < 0 ) {
 
         smoothen( *level );
 
@@ -3027,16 +3187,16 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     Allreduce res( dash::Team::All() );
 
-    double epsilon= 0.001;
-    while ( res.get() > epsilon && j < 100 ) {
+    double epsilon= 0.1;
+    while ( res.get() > epsilon && j < 1000 ) {
 
         smoothen( *level, res );
 
-        if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
+        if ( 0 == dash::myid() /* && ( 1 == j % 10 ) */ ) {
             cout << j << ": smoothen grid with residual " << res.get() << endl;
         }
 
-        if ( 0 == j % 10 ) {
+        if ( 0 == j % 1 ) {
             writeToCsv( *level );
         }
 
@@ -3213,7 +3373,8 @@ bool do_test_initboundary() {
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
 
-    Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
+    //Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
+    Level* a= new Level( 1.0, 1.0, 1.0, 7, 7, 7, dash::Team::All(), teamspec );
 
     initboundary( *a );
 
@@ -3234,21 +3395,29 @@ bool do_tests( ) {
 
     if (0 == dash::myid() ) { cout << "run built-in tests:" << endl; }
 
+    /*
     success= do_test_old_scaledown();
     if (0 == dash::myid() ) { cout << "   old scaledown: " << success << endl; }
     allsuccess &= success;
+    */
 
-    //success= do_test_old_scaleup();
-    //if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
-    //allsuccess &= success;
+    /*
+    success= do_test_old_scaleup();
+    if (0 == dash::myid() ) { cout << "   old scaleup: " << success << endl; }
+    allsuccess &= success;
+    */
 
+    /*
     success= do_test_new_scaleup_loop_coarse();
     if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
     allsuccess &= success;
+    */
 
-    //success= do_test_new_scaleup_loop_fine();
-    //if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
-    //allsuccess &= success;
+    /*
+    success= do_test_new_scaleup_loop_fine();
+    if (0 == dash::myid() ) { cout << "   new scaleup loop coarse: " << success << endl; }
+    allsuccess &= success;
+    */
 
     success= do_test_initboundary();
     if (0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
