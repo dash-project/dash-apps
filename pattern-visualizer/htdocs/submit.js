@@ -56,12 +56,30 @@ function createElementSVG(elem) {
   return document.createElementNS("http://www.w3.org/2000/svg",elem);
 }
 
+var scale_value = 1.0;
+
+function scale(e) {
+  e.preventDefault();
+  var prev_scale = scale_value;
+  scale_value += 0.002*e.deltaY;
+  if(prev_scale <= 1 && scale_value > 1) {
+    document.getElementById("blocked").checked = true;
+    draw_pattern(pattern);
+  } else if (prev_scale > 1 && scale_value <= 1) {
+    document.getElementById("blocked").checked = false;
+    draw_pattern(pattern);
+  }
+
+  document.getElementById("result").style.transform = "scale("+scale_value+")";
+}
+
 var tile_size = 10;
 var grid_base = tile_size + 2;
 var fontsz    = 10;
 
 function draw_pattern(pattern) {
   var svg = createElementSVG("svg");
+  svg.addEventListener("wheel",scale);
   var blocks = createElementSVG("g");
   var tiles = createElementSVG("g");
   if(document.getElementById("blocked").checked) {
