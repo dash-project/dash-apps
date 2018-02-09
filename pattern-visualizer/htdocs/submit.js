@@ -117,6 +117,9 @@ function draw_pattern(pattern) {
     posx += blocksize_x;
   }
 
+  svg.setAttribute("width",posx*grid_base);
+  svg.setAttribute("height",posy*grid_base);
+
   var cont = document.getElementById("result");
   // clear previous result
   while(cont.firstChild) {
