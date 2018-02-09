@@ -126,7 +126,7 @@ public:
         sy= ly;
         sx= lx;
 
-        for ( uint32_t a= 0; a < dash::Team::All().size(); a++ ) {
+        for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
 
                 if ( 0 == a ) {
@@ -138,7 +138,7 @@ public:
                 }
             }
 
-            dash::barrier();
+            team.barrier();
         }
 
         assert( rz <= 0.5 );
@@ -371,6 +371,8 @@ void writeToCsv_interpolate( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
 
+    using signed_size_t = typename std::make_signed<size_t>::type;
+
     std::ofstream csvfile;
     std::ostringstream num_string;
     num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
@@ -381,12 +383,15 @@ void writeToCsv_interpolate( const Level& level ) {
     const MatrixT& grid= *level.src_grid;
 
     std::array< size_t, 3 > dim= grid.extents();
-    std::array< signed_size_t, 3 > localdim= grid.local.extents();
+    std::array< size_t, 3 > localdim= grid.local.extents();
+
+cout << "unit " << dash::myid() << " localdim " << 
+    localdim[0] << "," << localdim[1] << "," << localdim[2] << endl;
 
     std::array< long int, 3 > corner0= grid.pattern().global( {0,0,0} );
-    std::array< long int, 3 > corner1= grid.pattern().global( {localdim[0],localdim[1],localdim[2]} );
+    std::array< long int, 3 > corner1= 
+        grid.pattern().global( {(signed_size_t)localdim[0]-1,(signed_size_t)localdim[1]-1,(signed_size_t)localdim[2]-1} );
 
-/*
     std::array< long int, 3 > local_res_csv;
     std::array< long int, 3 > start;
     std::array< long int, 3 > stop;
@@ -394,11 +399,24 @@ void writeToCsv_interpolate( const Level& level ) {
     for ( size_t i= 0; i < 3; ++i ) {
 
         local_res_csv[i]= localdim[i]*res_csv[i]/dim[i];
-        start[i]= ( 0 == corner[i] ) ? -1 : 0;
-        stop[i]= localdim[i] + ( 0 == corner[i] ) ? 1 : 1;
-
+        start[i]= ( 0 == corner0[i] ) ? -1 : 0;
+        stop[i]= localdim[i] + ( ( dim[i]-1 == corner1[i] ) ? 1 : 0 );
     }
 
+cout << "unit " << dash::myid() << " range " << 
+    start[0] << "," << start[1] << "," << start[2] << " - " <<
+    stop[0] << "," << stop[1] << "," << stop[2] << endl;
+
+    for ( int z= start[0]; z < stop[0]; ++z ) {
+        for ( int y= start[1]; y < stop[1]; ++y ) {
+            for ( int x= start[2]; x < stop[2]; ++x ) {
+
+                cout << "gridpoint " << endl;
+            }
+        }
+    }
+
+/*
     cout << "unit " << dash::myid() << ": " << 
         "global grid " << dim[0] << "," << dim[1] << "," << dim[2] << 
         ", local grid " << localdim[0] << "," << localdim[1] << "," << localdim[2] << " -- > " <<
@@ -2159,18 +2177,21 @@ cout << "unit " << dash::myid() << " transfertofewer" << endl;
     std::array< long int, 3 > corner= dest.src_grid->pattern().global( {0,0,0} );
     std::array< long unsigned int, 3 > sizes= dest.src_grid->pattern().local_extents();
 
-cout << "    start coord: " <<
-    corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
-cout << "    extents: " <<
-        sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
-cout << "    dest local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
-cout << "    dest global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
-cout << "    src  local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
-cout << "    src  global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
+    /*
+    cout << "    start coord: " <<
+        corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
+    cout << "    extents: " <<
+            sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
+    cout << "    dest local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
+    cout << "    dest global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
+    cout << "    src  local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
+    cout << "    src  global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
+    */
 
     /* Can I do this any cleverer than loops over the n-1 non-contiguous
     dimensions and then a dash::copy for the 1 contiguous dimension? */
-/*
+
+    /*
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
             for ( uint32_t x= 0; x < sizes[2]; x++ ) {
@@ -2179,7 +2200,8 @@ cout << "    src  global dist " << source.src_grid->end() - source.src_grid->beg
             }
         }
     }
-*/
+    */
+
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
 
@@ -2209,17 +2231,19 @@ cout << "unit " << dash::myid() << " transfertomore" << endl;
     std::array< long int, 3 > corner= source.src_grid->pattern().global( {0,0,0} );
     std::array< long unsigned int, 3 > sizes= source.src_grid->pattern().local_extents();
 
-cout << "    start coord: " <<
-    corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
-cout << "    extents: " <<
-        sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
-cout << "    dest local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
-cout << "    dest global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
-cout << "    src  local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
-cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
+    /*
+    cout << "    start coord: " <<
+        corner[0] << ", "  << corner[1] << ", " << corner[2] << endl;
+    cout << "    extents: " <<
+            sizes[0] << ", "  << sizes[1] << ", " << sizes[2] << endl;
+    cout << "    dest local  dist " << source.src_grid->lend() - source.src_grid->lbegin() << endl;
+    cout << "    dest global dist " << source.src_grid->end() - source.src_grid->begin() << endl;
+    cout << "    src  local  dist " << dest.src_grid->lend() - dest.src_grid->lbegin() << endl;
+    cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin() << endl;
+    */
 
     /* stupid but functional version for the case with only one unit in the smaller team, very slow individual accesses */
-/*
+    /*
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
             for ( uint32_t x= 0; x < sizes[2]; x++ ) {
@@ -2228,7 +2252,7 @@ cout << "    src  global dist " << dest.src_grid->end() - dest.src_grid->begin()
             }
         }
     }
-*/
+    */
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
 
@@ -2851,11 +2875,13 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
     dash::Team::All().barrier();
 
+
     if ( 0 == dash::myid()  ) {
         cout << endl << "start v-cycle with res " << 0.0011 << endl << endl;
     }
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
+
 
     //smoothen_final( *levels.front(), 0.001, res );
     //writeToCsv( *levels.front() );
@@ -2885,35 +2911,24 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     extent in every dimension and that the area is close to a square
     with aspect ratio \in [0,75,1,5] */
 
-    uint32_t factor_z= teamspec.num_units(0);
-    uint32_t factor_y= teamspec.num_units(1);
-    uint32_t factor_x= teamspec.num_units(2);
-
-    uint32_t factor_max= factor_z;
-    factor_max= std::max( factor_max, factor_y );
-    factor_max= std::max( factor_max, factor_x );
-    while ( factor_z < 0.75 * factor_max ) { factor_z *= 2; }
-    while ( factor_y < 0.75 * factor_max ) { factor_y *= 2; }
-    while ( factor_x < 0.75 * factor_max ) { factor_x *= 2; }
+    uint32_t factor_z= 1;
+    uint32_t factor_y= 1;
+    uint32_t factor_x= 1;
 
     vector<Level*> levels;
     levels.reserve( howmanylevels );
-
-    resolutionForCSVd= ( 1<<6 ) * factor_z/factor_max;
-    resolutionForCSVh= ( 1<<6 ) * factor_y/factor_max;
-    resolutionForCSVw= ( 1<<6 ) * factor_x/factor_max;
 
     if ( 0 == dash::myid() ) {
 
         cout << "run elastic multigrid iteration with " << dash::Team::All().size() << " units "
             "for with grids from " <<
-            factor_z << "x" <<
-            factor_y << "x" <<
-            factor_x <<
+            2*factor_z << "x" <<
+            2*factor_y << "x" <<
+            2* factor_x <<
             " to " <<
-            (1<<(howmanylevels))*factor_z << "x" <<
-            (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x <<
+            ((1<<(howmanylevels))-1)*factor_z << "x" <<
+            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_x <<
             endl << endl;
     }
 
@@ -2922,9 +2937,9 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     if ( 0 == dash::myid() ) {
         cout << "finest level is " <<
-            (1<<(howmanylevels))*factor_z << "x" <<
-            (1<<(howmanylevels))*factor_y << "x" <<
-            (1<<(howmanylevels))*factor_x <<
+            ((1<<(howmanylevels))-1)*factor_z << "x" <<
+            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_x <<
             " distributed over " <<
             teamspec.num_units(0) << "x" <<
             teamspec.num_units(1) << "x" <<
@@ -2932,9 +2947,9 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     }
 
     levels.push_back( new Level( 1.0, 1.0, 1.0, 
-        (1<<(howmanylevels))*factor_z ,
-        (1<<(howmanylevels))*factor_y ,
-        (1<<(howmanylevels))*factor_x ,
+        ((1<<(howmanylevels))-1)*factor_z ,
+        ((1<<(howmanylevels))-1)*factor_y ,
+        ((1<<(howmanylevels))-1)*factor_x ,
         dash::Team::All(), teamspec ) );
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
@@ -2943,12 +2958,18 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     dash::barrier();
 
-    for ( uint32_t l= 1; l < howmanylevels; l++ ) {
+    --howmanylevels;
+    while ( 0 < howmanylevels ) {
 
         dash::Team& previousteam= levels.back()->src_grid->team();
-        dash::Team& currentteam= ( 5 == l || 4 == l ) ? previousteam.split(2) : previousteam;
+        dash::Team& currentteam= ( 2 == howmanylevels ) ? previousteam.split(2) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
+
+        /* this is the real iteration condition for this loop! */
+        if ( (1<<(howmanylevels))-1 < 2*localteamspec.num_units(0) ||
+                (1<<(howmanylevels))-1 < 2*localteamspec.num_units(1) ||
+                (1<<(howmanylevels))-1 < 2*localteamspec.num_units(2) ) break;
 
         if ( 0 == currentteam.position() ) {
 
@@ -2960,53 +2981,53 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                 copying the data from the domain of the larger team to the
                 domain of the smaller team is easy. */
 
+                /*
                 if ( 0 == currentteam.myid() ) {
-                    cout << "transfer level " << l-1 << " is " <<
-                        (1<<(howmanylevels-l+1))*factor_z << "x" <<
-                        (1<<(howmanylevels-l+1))*factor_y << "x" <<
-                        (1<<(howmanylevels-l+1))*factor_x <<
+                    cout << "transfer level " << 
+                        ((1<<(howmanylevels+1))-1)*factor_z << "x" <<
+                        ((1<<(howmanylevels+1))-1)*factor_y << "x" <<
+                        ((1<<(howmanylevels+1))-1)*factor_x <<
                         " distributed over " <<
                         localteamspec.num_units(0) << "x" <<
                         localteamspec.num_units(1) << "x" <<
                         localteamspec.num_units(2) << " units" << endl;
                 }
-
+                */
                 levels.push_back(
                     new Level( 1.0, 1.0, 1.0,
-                               (1<<(howmanylevels-l+1))*factor_z,
-                               (1<<(howmanylevels-l+1))*factor_y,
-                               (1<<(howmanylevels-l+1))*factor_x,
+                               ((1<<(howmanylevels+1))-1)*factor_z,
+                               ((1<<(howmanylevels+1))-1)*factor_y,
+                               ((1<<(howmanylevels+1))-1)*factor_x,
                                currentteam, localteamspec ) );
                 initboundary( *levels.back() );
-
             }
 
-            /*
-            cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
-            */
+            //cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
 
+            /*
             if ( 0 == currentteam.myid() ) {
-                cout << "compute level " << l << " is " <<
-                    (1<<(howmanylevels-l))*factor_z << "x" <<
-                    (1<<(howmanylevels-l))*factor_y << "x" <<
-                    (1<<(howmanylevels-l))*factor_x <<
+                cout << "compute level " << 
+                    ((1<<(howmanylevels))-1)*factor_z << "x" <<
+                    ((1<<(howmanylevels))-1)*factor_y << "x" <<
+                    ((1<<(howmanylevels))-1)*factor_x <<
                     " distributed over " <<
                     localteamspec.num_units(0) << "x" <<
                     localteamspec.num_units(1) << "x" <<
                     localteamspec.num_units(2) << " units" << endl;
             }
+            */
 
             /* do not try to allocate >= 8GB per core -- try to prevent myself
             from running too big a simulation on my laptop */
-            assert( (1<<(howmanylevels-l))*factor_z *
-                (1<<(howmanylevels-l))*factor_y *
-                (1<<(howmanylevels-l))*factor_x < currentteam.size() * (1<<27) );
+            assert( ((1<<(howmanylevels))-1)*factor_z *
+                    ((1<<(howmanylevels))-1)*factor_y *
+                    ((1<<(howmanylevels))-1)*factor_x < currentteam.size() * (1<<27) );
 
             levels.push_back(
                 new Level( 1.0, 1.0, 1.0,
-                           (1<<(howmanylevels-l))*factor_z ,
-                           (1<<(howmanylevels-l))*factor_y ,
-                           (1<<(howmanylevels-l))*factor_x ,
+                           ((1<<(howmanylevels))-1)*factor_z ,
+                           ((1<<(howmanylevels))-1)*factor_y ,
+                           ((1<<(howmanylevels))-1)*factor_x ,
                            currentteam, localteamspec ) );
 
             /* should use scaledownboundary() but it is more complicated here
@@ -3015,9 +3036,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
         } else {
 
-            /*
-            cout << "waiting unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
-            */
+            //cout << "waiting unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
 
             /* this is a passive unit not takin part in the subteam that
             handles the coarser grids. insert a dummy entry in the vector
@@ -3026,6 +3045,8 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
             break;
         }
+
+        --howmanylevels;
     }
 
     /* here all units and all teams meet again, those that were active for the coarsest
@@ -3045,11 +3066,27 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     minimon.stop( "setup", dash::Team::All().size() );
 
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 0.1 << endl << endl;
+    }
+    v_cycle( levels.begin(), levels.end(), 20, 0.1, res );
+    dash::Team::All().barrier();
+
+
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 0.01 << endl << endl;
+    }
     v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
     dash::Team::All().barrier();
+
+
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 0.0011 << endl << endl;
+    }
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
-    smoothen_final( *levels.front(), 0.001, res );
+
+
     writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
@@ -3393,7 +3430,7 @@ bool do_tests( ) {
     allsuccess &= success;
 
     success= do_test_writetocsv();
-    if ( 0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
+    if ( 0 == dash::myid() ) { cout << "   writetocsv: " << success << endl; }
     allsuccess &= success;
 
     if ( 0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
