@@ -62,32 +62,53 @@ var fontsz    = 10;
 
 function draw_pattern(pattern) {
   var svg = createElementSVG("svg");
+  var blocks = createElementSVG("g");
+  var tiles = createElementSVG("g");
+  if(document.getElementById("blocked").checked) {
+    tiles.setAttribute("style","display: none");
+  } else {
+    blocks.setAttribute("style","display: none");
+  }
+  svg.appendChild(blocks);
+  svg.appendChild(tiles);
+
   var posx, posy;
   var blocksize_x, blocksize_y;
+
+  document.getElementById("dimx").innerHTML = "Dimension "+pattern.dims[0];
+  document.getElementById("dimy").innerHTML = "Dimension "+pattern.dims[1];
 
   posx = 0;
   for(var i = 0; i < pattern.blocks.length; i++) {
     posy = 0;
     blocksize_x = pattern.blocksize[0];
     for(var j = 0; j < pattern.blocks[i].length; j++) {
-      var block = pattern.blocks[i][j];
+      var cur_block = pattern.blocks[i][j];
       blocksize_x = pattern.blocksize[0];
       blocksize_y = pattern.blocksize[1];
-      if(block.s) {
-        blocksize_x = block.s[0];
-        blocksize_y = block.s[1];
+      if(cur_block.s) {
+        blocksize_x = cur_block.s[0];
+        blocksize_y = cur_block.s[1];
       }
+
+      var block = createElementSVG("rect");
+      block.setAttribute("x", posx*grid_base);
+      block.setAttribute("y", posy*grid_base);
+      block.setAttribute("width",  blocksize_x*grid_base - 2);
+      block.setAttribute("height", blocksize_y*grid_base - 2);
+      block.setAttribute("style", "fill: "+unit_color(cur_block.u)+"; stroke-width: 0");
+      blocks.appendChild(block);
 
       for(var k=0; k < blocksize_y; k++) {
         for(var l=0; l < blocksize_x; l++) {
           var tile = createElementSVG("rect");
           tile.setAttribute("x", posx*grid_base);
           tile.setAttribute("y", posy*grid_base);
-          tile.setAttribute("height", tile_size);
           tile.setAttribute("width",  tile_size);
-          tile.setAttribute("style", "fill: "+unit_color(block.u)+"; stroke-width: 0");
+          tile.setAttribute("height", tile_size);
+          tile.setAttribute("style", "fill: "+unit_color(cur_block.u)+"; stroke-width: 0");
           posx++;
-          svg.appendChild(tile);
+          tiles.appendChild(tile);
         }
         posx -= blocksize_x;
         posy++;

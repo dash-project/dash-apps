@@ -12,7 +12,17 @@
 </form>
 <div class="flexibleParams_end" style="clear: both"></div>
 </div>
-<div id="result"></div>
+<div id="options" style="width: 240px; float: left; margin-top: 16px; line-height: 1.5">
+<label for="blocked">Blocked display</label><input type="checkbox" id="blocked" /><br />
+x: <span id="dimx"></span><br />
+y: <span id="dimy"></span><br />
+<br />
+<br />
+<span onclick="draw_pattern(pattern)">Redraw</span><br />
+<br />
+Export-Button (WIP)
+</div>
+<div id="result" style="margin-left: 240px; margin-top: 16px"></div>
 <script type="text/javascript" src="flexibleParams/logrange.js"></script>
 <script type="text/javascript" src="flexibleParams/flexibleParams.js"></script>
 <script type="text/javascript" src="params.js"></script>
