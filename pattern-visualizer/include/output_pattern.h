@@ -94,7 +94,7 @@ void print_example(
   print_pattern_metrics(pattern);
 
   dash::tools::PatternVisualizer<PatternT> pv(pattern);
-  pv.set_title(pattern_desc);
+  // pv.set_title(pattern_desc);
 
   std::cerr << "Generating visualization of "
             << '\n'
