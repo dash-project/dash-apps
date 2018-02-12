@@ -346,6 +346,26 @@ paraview gets input of constant dimensions. Any size > 2 should be good
 but odd numbers are suggested. */
 std::array< long int, 3 > resolution= {33,33,33};
 
+/* helper function for the following write_to_cvs() function */
+double arbitrary_element( const MatrixT& grid, Level::HaloT& halo, 
+        std::array< long int, 3 >& corner, std::array< size_t, 3 >& localdim, 
+        int zz, int yy, int xx ) {
+
+    /* is halo value? That is when any coordinate is -1 or dim[.]. 
+    TODO replace by halo convenience layer that provides either 
+    halo value or grid value for coordinates [-1:dim[.]] inclusively. */
+    if ( -1 == zz-corner[0] || -1 == yy-corner[1] || -1 == xx-corner[2] || 
+            localdim[0] == zz-corner[0] || localdim[1] == yy-corner[1] || localdim[2] == xx-corner[2] ) {
+
+        /* get halo value */
+        return *halo.halo_element_at( {zz,yy,xx} );
+    } else {
+
+        /* get grid value */
+        return grid.local[zz-corner[0]][yy-corner[1]][xx-corner[2]];
+    }
+}
+
 
 /* write out the current state of the given grid as CSV so that Paraview can
 read and visualize it as a structured grid. Use a fixed size for the grid as
@@ -425,45 +445,41 @@ void writeToCsv( const Level& level ) {
 
                 /* pos and pos_double are in input grid coordinates */
                 std::array< long int, 3 > pos;
-                pos[0]= z * (dim[0]+1) / (resolution[0]-1);
-                pos[1]= y * (dim[1]+1) / (resolution[1]-1);
-                pos[2]= x * (dim[2]+1) / (resolution[2]-1);
-                std::array< double, 3 > pos_double;
-                pos_double[0]= ((double) z) * (dim[0]+1.0) / (resolution[0]-1);
-                pos_double[1]= ((double) y) * (dim[1]+1.0) / (resolution[1]-1);
-                pos_double[2]= ((double) x) * (dim[2]+1.0) / (resolution[2]-1);
+                pos[0]= z * (dim[0]+1) / (resolution[0]-1) -1;
+                pos[1]= y * (dim[1]+1) / (resolution[1]-1) -1;
+                pos[2]= x * (dim[2]+1) / (resolution[2]-1) -1;
+
+                /* factorf(ront) and factor_b(ack) with factor_f[.] + factor_b[.] == 1.0 i.e., 
+                the linear interpolation per dimension adds to 1.0 always */
+                std::array< double, 3 > factor_b;;
+                factor_b[0]= ((double) z) * (dim[0]+1.0) / (resolution[0]-1) - 1.0 - pos[0];
+                factor_b[1]= ((double) y) * (dim[1]+1.0) / (resolution[1]-1) - 1.0 - pos[1];
+                factor_b[2]= ((double) x) * (dim[2]+1.0) / (resolution[2]-1) - 1.0 - pos[2];
+
+                assert( 0.0 <= factor_b[0] && factor_b[0] < 1.0 );
+                assert( 0.0 <= factor_b[1] && factor_b[1] < 1.0 );
+                assert( 0.0 <= factor_b[2] && factor_b[2] < 1.0 );
+
+                std::array< double, 3 > factor_f;
+                factor_f[0]= 1.0 - factor_b[0];
+                factor_f[1]= 1.0 - factor_b[1];
+                factor_f[2]= 1.0 - factor_b[2];
 
                 std::array< long int, 3 > add;
-                add[0]= ( 0 == z || stop[0]-1 == z ) ? 1 : 2;
-                add[1]= ( 0 == y || stop[1]-1 == y ) ? 1 : 2;
-                add[2]= ( 0 == x || stop[2]-1 == x ) ? 1 : 2;
+                add[0]= ( 0 == z || stop[0]-1 == z ) ? 0 : 1;
+                add[1]= ( 0 == y || stop[1]-1 == y ) ? 0 : 1;
+                add[2]= ( 0 == x || stop[2]-1 == x ) ? 0 : 1;
 
                 double value= 0.0;
 
-                /* zz,yy,xx are in input grid coordinates */
-                for ( int zz= pos[0]-1; zz < pos[0]+add[0]-1; ++zz ) {
-                    for ( int yy= pos[1]-1; yy < pos[1]+add[1]-1; ++yy ) {
-                        for ( int xx= pos[2]-1; xx < pos[2]+add[2]-1; ++xx ) {
-
-/* TODO do linear interpolation per dimension instead of the /= add[0]*add[1]*add[2]; thing below */                            
-
-                            /* is halo value? That is when any coordinate is -1 or dim[.]. 
-                            TODO replace by halo convenience layer that provides either 
-                            halo value or grid value for coordinates [-1:dim[.]] inclusively. */
-                            if ( -1 == zz-corner[0] || -1 == yy-corner[1] || -1 == xx-corner[2] || 
-                                    localdim[0] == zz-corner[0] || localdim[1] == yy-corner[1] || localdim[2] == xx-corner[2] ) {
-
-                                /* get halo value */
-                                value += *halo.halo_element_at( {zz,yy,xx} );
-                            } else {
-
-                                /* get grid value */
-                                value += grid.local[zz-corner[0]][yy-corner[1]][xx-corner[2]];
-                            }
-                        }
-                    }
-                }
-                value /= add[0]*add[1]*add[2];
+                value += factor_f[0]*factor_f[1]*factor_f[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]       , pos[1]       , pos[2]        );
+                value += factor_f[0]*factor_f[1]*factor_b[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]       , pos[1]       , pos[2]+add[2] );
+                value += factor_f[0]*factor_b[1]*factor_f[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]       , pos[1]+add[1], pos[2]        );
+                value += factor_f[0]*factor_b[1]*factor_b[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]       , pos[1]+add[1], pos[2]+add[2] );
+                value += factor_b[0]*factor_f[1]*factor_f[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]+add[0], pos[1]       , pos[2]        );
+                value += factor_b[0]*factor_f[1]*factor_b[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]+add[0], pos[1]       , pos[2]+add[2] );
+                value += factor_b[0]*factor_b[1]*factor_f[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]+add[0], pos[1]+add[1], pos[2]        );
+                value += factor_b[0]*factor_b[1]*factor_b[2] * arbitrary_element( grid, halo, corner, localdim, pos[0]+add[0], pos[1]+add[1], pos[2]+add[2] );
 
                 csvfile << 
                     setfill('0') << setw(4) << z << "," <<
