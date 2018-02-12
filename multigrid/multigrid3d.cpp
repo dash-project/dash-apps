@@ -62,10 +62,11 @@ constexpr CycleSpecT cycle_spec(
     dash::Cycle::FIXED );
 
 struct Level {
-private:
+
+public:
   using SizeSpecT = dash::SizeSpec<3>;
   using DistSpecT = dash::DistributionSpec<3>;
-  using HaloMatrixWrapperT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
+  using HaloT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
 
 
     /* now with double-buffering. src_grid and src_halo should only be read,
@@ -75,8 +76,8 @@ private:
 public:
     MatrixT* src_grid;
     MatrixT* dst_grid;
-    HaloMatrixWrapperT* src_halo;
-    HaloMatrixWrapperT* dst_halo;
+    HaloT* src_halo;
+    HaloT* dst_halo;
 
     /* coefficients for the smoothing step in z, y, x directions */
     double rz, ry, rx;
@@ -334,24 +335,16 @@ public:
 private:
     MatrixT _grid_1;
     MatrixT _grid_2;
-    HaloMatrixWrapperT _halo_grid_1;
-    HaloMatrixWrapperT _halo_grid_2;
+    HaloT _halo_grid_1;
+    HaloT _halo_grid_2;
 
 };
 
 
-/* Write out the entire state as a CSV which can be loaded and vizualized
-with for example paraview. For convenience for vizualization, make the output
-constant size regardless of the grid level. Thus interpolate coarser grids or
-reduce finer ones. */
-
-size_t resolutionForCSVd= 0;
-size_t resolutionForCSVh= 0;
-size_t resolutionForCSVw= 0;
-
 /* global resolution for cvs output, should be fixed such that 
-paraview gets input of constant dimensions */
-std::array< long int, 3 > res_csv= {65,65,65};
+paraview gets input of constant dimensions. Any size > 2 should be good
+but odd numbers are suggested. */
+std::array< long int, 3 > resolution= {33,33,33};
 
 
 /* write out the current state of the given grid as CSV so that Paraview can
@@ -367,119 +360,49 @@ Require halos, include boundary conditions in output.
 Accept checks whether any point is part of the grid or part of the halo to make this code simpler.
 
 */
-void writeToCsv_interpolate( const Level& level ) {
+//void writeToCsv_interpolate( const Level& level ) {
+void writeToCsv( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
 
     using signed_size_t = typename std::make_signed<size_t>::type;
 
+    const MatrixT& grid= *level.src_grid;
+    Level::HaloT& halo= *level.src_halo;
+
     std::ofstream csvfile;
     std::ostringstream num_string;
     num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
-    csvfile.open( "image_unit" + std::to_string(dash::myid()) +
+    csvfile.open( "image_unit" + std::to_string(grid.team().myid()) +
         ".csv." + num_string.str() );
 
-
-    const MatrixT& grid= *level.src_grid;
-
+    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
     std::array< size_t, 3 > dim= grid.extents();
     std::array< size_t, 3 > localdim= grid.local.extents();
 
-cout << "unit " << dash::myid() << " localdim " << 
-    localdim[0] << "," << localdim[1] << "," << localdim[2] << endl;
+    /*
+    cout << "unit " << dash::myid() << " localdim " << 
+        localdim[0] << "," << localdim[1] << "," << localdim[2] << endl;
+    */
 
     std::array< long int, 3 > corner0= grid.pattern().global( {0,0,0} );
     std::array< long int, 3 > corner1= 
         grid.pattern().global( {(signed_size_t)localdim[0]-1,(signed_size_t)localdim[1]-1,(signed_size_t)localdim[2]-1} );
 
-    std::array< long int, 3 > local_res_csv;
+    /* start and stop are in output grid coordinates */
     std::array< long int, 3 > start;
     std::array< long int, 3 > stop;
-
     for ( size_t i= 0; i < 3; ++i ) {
 
-        local_res_csv[i]= localdim[i]*res_csv[i]/dim[i];
-        start[i]= ( 0 == corner0[i] ) ? -1 : 0;
-        stop[i]= localdim[i] + ( ( dim[i]-1 == corner1[i] ) ? 1 : 0 );
+        start[i]= corner[i] * resolution[i] / dim[i];
+        stop[i]= ( corner[i] + localdim[i] ) * resolution[i] / dim[i];
     }
 
-cout << "unit " << dash::myid() << " range " << 
-    start[0] << "," << start[1] << "," << start[2] << " - " <<
-    stop[0] << "," << stop[1] << "," << stop[2] << endl;
-
-    for ( int z= start[0]; z < stop[0]; ++z ) {
-        for ( int y= start[1]; y < stop[1]; ++y ) {
-            for ( int x= start[2]; x < stop[2]; ++x ) {
-
-                cout << "gridpoint " << endl;
-            }
-        }
-    }
-
-/*
-    cout << "unit " << dash::myid() << ": " << 
-        "global grid " << dim[0] << "," << dim[1] << "," << dim[2] << 
-        ", local grid " << localdim[0] << "," << localdim[1] << "," << localdim[2] << " -- > " <<
-        "global csv " << res_csv[0] << "," << res_csv[1] << "," << res_csv[2] << " == " <<
-        "local csv " << local_res_csv[0] << "," << local_res_csv[1] << "," << local_res_csv[2] << " "
-        "mul " << mul[0] << "," << mul[1] << "," << mul[2] << " "
-        "div " << div[0] << "," << div[1] << "," << div[2] << endl;
-
-    for ( size_t z = 0; z < local_res_csv[0] -sub[0]; ++z ) {
-        for ( size_t y = 0; y < local_res_csv[1] -sub[1]; ++y ) {
-            for ( size_t x = 0; x < local_res_csv[2] -sub[2]; ++x ) {
-
-                if (mul[0]*z/div[0] >= localdim[0] ) { cout << "unit " << dash::myid() << " dim " << 0 << ":" << 
-                        mul[0]*z/div[0] << " >= " << localdim[0] << std::flush << endl; return; }
-                if (mul[1]*y/div[1] >= localdim[1] ) { cout << "unit " << dash::myid() << " dim " << 1 << ":" << 
-                        mul[1]*y/div[1] << " >= " << localdim[1] << std::flush << endl; return; }
-                if (mul[2]*x/div[2] >= localdim[2] ) { cout << "unit " << dash::myid() << " dim " << 2 << ":" << 
-                        mul[2]*x/div[2] << " >= " << localdim[2] << std::flush << endl; return; }
-
-                csvfile << 
-                    setfill('0') << setw(4) << corner[0]+z << "," <<
-                    setfill('0') << setw(4) << corner[1]+y << "," <<
-                    setfill('0') << setw(4) << corner[2]+x << "," <<
-                    (double) level.sz * (corner[0]+z) / (res_csv[0]-1) << "," <<
-                    (double) level.sy * (corner[1]+y) / (res_csv[1]-1) << "," <<
-                    (double) level.sx * (corner[2]+x) / (res_csv[2]-1) << "," <<
-                    (double) grid.local[ mul[0]*z/div[0] ][ mul[1]*y/div[1] ][ mul[2]*x/div[2] ] << "\n";
-
-            }
-        }
-    }
-*/
-    csvfile.close();
-
-#if 0
-    const MatrixT& grid= *level.src_grid;
-
-    std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
-    std::array< long int, 3 > sub;
-
-    for ( size_t i= 0; i < 3; ++i ) {
-
-        sub[i]= ( 0 == corner[i] ) ? 0 : 2;
-
-    }
-
-    size_t d= grid.extent(0);
-    size_t h= grid.extent(1);
-    size_t w= grid.extent(2);
-
-    size_t dl= grid.local.extent(0);
-    size_t hl= grid.local.extent(1);
-    size_t wl= grid.local.extent(2);
-
-    /* sync filenmuber but DON'T use filenumber->barrier(), because
-    it my be called by a sub-team  */
-    grid.barrier();
-
-    std::ofstream csvfile;
-    std::ostringstream num_string;
-    num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
-    csvfile.open( "image_unit" + std::to_string(dash::myid()) +
-        ".csv." + num_string.str() );
+    /*
+    cout << "unit " << dash::myid() << " range " << 
+        start[0] << "," << start[1] << "," << start[2] << " - " <<
+        stop[0] << "," << stop[1] << "," << stop[2] << endl;
+    */
 
     grid.barrier();
     if ( 0 == dash::myid() ) {
@@ -488,66 +411,73 @@ cout << "unit " << dash::myid() << " range " <<
     }
     grid.barrier();
 
-    /* Write according to the fixed grid size. If the real grid is even finer
-    then pick any point that matches the coordinates. If the real grid is
-    coarser, then repeat one value from the coarser grid multiple times */
+    /* update halo values, cannot do it async here because there is not much else to do. */
+    halo.update();
 
-    size_t divd= ( resolutionForCSVd > d ) ? resolutionForCSVd/d : 1;
-    size_t divh= ( resolutionForCSVh > h ) ? resolutionForCSVh/h : 1;
-    size_t divw= ( resolutionForCSVw > w ) ? resolutionForCSVw/w : 1;
+    /* z,y,z are in output grid coordinates */
+    for ( int z= start[0]; z < stop[0]; ++z ) {
+        for ( int y= start[1]; y < stop[1]; ++y ) {
+            for ( int x= start[2]; x < stop[2]; ++x ) {
 
-    size_t muld= ( resolutionForCSVd < d ) ? d/resolutionForCSVd : 1;
-    size_t mulh= ( resolutionForCSVh < h ) ? h/resolutionForCSVh : 1;
-    size_t mulw= ( resolutionForCSVw < w ) ? w/resolutionForCSVw : 1;
+                /* for every point of the output grid, determine the 8 nearest
+                input grid points. They are represented as pos[]+add[] where 
+                add= {1,1,1} except for border cases. */
 
-    /* this should divide witout remainder */
-    size_t localResolutionForCSVd= resolutionForCSVd * dl / d;
-    size_t localResolutionForCSVh= resolutionForCSVh * hl / h;
-    size_t localResolutionForCSVw= resolutionForCSVw * wl / w;
+                /* pos and pos_double are in input grid coordinates */
+                std::array< long int, 3 > pos;
+                pos[0]= z * (dim[0]+1) / (resolution[0]-1);
+                pos[1]= y * (dim[1]+1) / (resolution[1]-1);
+                pos[2]= x * (dim[2]+1) / (resolution[2]-1);
+                std::array< double, 3 > pos_double;
+                pos_double[0]= ((double) z) * (dim[0]+1.0) / (resolution[0]-1);
+                pos_double[1]= ((double) y) * (dim[1]+1.0) / (resolution[1]-1);
+                pos_double[2]= ((double) x) * (dim[2]+1.0) / (resolution[2]-1);
 
-    corner[0]= corner[0] * resolutionForCSVd / d;
-    corner[1]= corner[1] * resolutionForCSVh / h;
-    corner[2]= corner[2] * resolutionForCSVw / w;
+                std::array< long int, 3 > add;
+                add[0]= ( 0 == z || stop[0]-1 == z ) ? 1 : 2;
+                add[1]= ( 0 == y || stop[1]-1 == y ) ? 1 : 2;
+                add[2]= ( 0 == x || stop[2]-1 == x ) ? 1 : 2;
 
-cout << "unit " << dash::myid() << 
-    " global "<< d << "x" << h << "x" << w <<
-    " local " << 
-        corner[0] << "+" << dl << ", " << 
-        corner[1] << "+" << hl << "," << 
-        corner[2] << "+" << wl << 
-    " loop " <<
-        0 << "-" << localResolutionForCSVd << ", " <<
-        0 << "-" << localResolutionForCSVh << ", " <<
-        0 << "-" << localResolutionForCSVw << "    " <<
-    " mul " << muld << "," << mulh << ", " << mulw << "    " <<
-    " div " << divd << "," << divh << ", " << divw << endl;
+                double value= 0.0;
 
-    for ( size_t z = 1; z < localResolutionForCSVd - sub[0]; ++z ) {
-        for ( size_t y = 1; y < localResolutionForCSVh - sub[1]; ++y ) {
-            for ( size_t x = 1; x < localResolutionForCSVw - sub[2]; ++x ) {
+                /* zz,yy,xx are in input grid coordinates */
+                for ( int zz= pos[0]-1; zz < pos[0]+add[0]-1; ++zz ) {
+                    for ( int yy= pos[1]-1; yy < pos[1]+add[1]-1; ++yy ) {
+                        for ( int xx= pos[2]-1; xx < pos[2]+add[2]-1; ++xx ) {
 
-if ( muld*z/divd >= dl || mulh*y/divh >= hl || mulw*x/divw >= wl ) {
+/* TODO do linear interpolation per dimension instead of the /= add[0]*add[1]*add[2]; thing below */                            
 
-    cout << "unit " << dash::myid() << ": " << z << ", " << y << ", " << x << " --> " <<
-    muld*z/divd << ", " << mulh*y/divh << ", " << mulw*x/divw << " <?= " <<
-    dl << ", " << hl << ", " << wl << "(" <<
-    sub[0] << "," << sub[1] << "," << sub[2] << ")" <<endl;
-    exit(1);
-}
+                            /* is halo value? That is when any coordinate is -1 or dim[.]. 
+                            TODO replace by halo convenience layer that provides either 
+                            halo value or grid value for coordinates [-1:dim[.]] inclusively. */
+                            if ( -1 == zz-corner[0] || -1 == yy-corner[1] || -1 == xx-corner[2] || 
+                                    localdim[0] == zz-corner[0] || localdim[1] == yy-corner[1] || localdim[2] == xx-corner[2] ) {
+
+                                /* get halo value */
+                                value += *halo.halo_element_at( {zz,yy,xx} );
+                            } else {
+
+                                /* get grid value */
+                                value += grid.local[zz-corner[0]][yy-corner[1]][xx-corner[2]];
+                            }
+                        }
+                    }
+                }
+                value /= add[0]*add[1]*add[2];
+
                 csvfile << 
-                    setfill('0') << setw(4) << corner[0]+z << "," <<
-                    setfill('0') << setw(4) << corner[1]+y << "," <<
-                    setfill('0') << setw(4) << corner[2]+x << "," <<
-                    (double) level.sz * (corner[0]+z) / (resolutionForCSVd-1) << "," <<
-                    (double) level.sy * (corner[1]+y) / (resolutionForCSVh-1) << "," <<
-                    (double) level.sx * (corner[2]+x) / (resolutionForCSVw-1) << "," <<
-                    (double) grid.local[ muld*z/divd ][ mulh*y/divh ][ mulw*x/divw ] << "\n";
+                    setfill('0') << setw(4) << z << "," <<
+                    setfill('0') << setw(4) << y << "," <<
+                    setfill('0') << setw(4) << x << "," <<
+                    (double) level.sz * z / (resolution[0]-1) << "," <<
+                    (double) level.sy * y / (resolution[1]-1) << "," <<
+                    (double) level.sx * x / (resolution[2]-1) << "," <<
+                    value << "\n";
             }
         }
     }
 
     csvfile.close();
-#endif /* 0 */
 
 #endif /* WITHCSVOUTPUT */
 }
@@ -555,7 +485,7 @@ if ( muld*z/divd >= dl || mulh*y/divh >= hl || mulw*x/divw >= wl ) {
 
 /* write out the grid in its actual size */
 //void writeToCsvFullGrid( const Level& level ) {
-void writeToCsv( const Level& level ) {
+void writeToCsv_full_grid( const Level& level ) {
 
 #ifdef WITHCSVOUTPUT
 
@@ -3115,12 +3045,6 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     uint32_t factor_y= 1;
     uint32_t factor_x= 1;
 
-    /* this is 2^n -1 for the entire grid including boundary conditions. And then -2 to
-    leave out the boundary area from the CSV output */
-    resolutionForCSVd= (1<<6)-1;
-    resolutionForCSVh= (1<<6)-1;
-    resolutionForCSVw= (1<<6)-1;
-
     if ( 0 == dash::myid() ) {
 
         cout << "run flat iteration with " << dash::Team::All().size() << " units "
@@ -3384,7 +3308,7 @@ bool do_test_writetocsv() {
     initboundary( *a );
     initgrid( *a->src_grid );
 
-    writeToCsv_interpolate( *a );
+    writeToCsv( *a );
 
     delete a;
 
