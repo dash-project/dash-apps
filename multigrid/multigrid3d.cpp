@@ -347,7 +347,7 @@ but odd numbers are suggested. */
 std::array< long int, 3 > resolution= {33,33,33};
 
 /* helper function for the following write_to_cvs() function */
-double arbitrary_element( const MatrixT& grid, Level::HaloT& halo, 
+inline double arbitrary_element( const MatrixT& grid, Level::HaloT& halo, 
         std::array< long int, 3 >& corner, std::array< size_t, 3 >& localdim, 
         int zz, int yy, int xx ) {
 
@@ -2823,7 +2823,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.0011 << endl << endl;
+        cout << endl << "start v-cycle with res " << 0.001 << endl << endl;
     }
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
@@ -2908,7 +2908,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     while ( 0 < howmanylevels ) {
 
         dash::Team& previousteam= levels.back()->src_grid->team();
-        dash::Team& currentteam= ( 2 == howmanylevels ) ? previousteam.split(2) : previousteam;
+        dash::Team& currentteam= ( 4 == howmanylevels ) ? previousteam.split(2) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
 
