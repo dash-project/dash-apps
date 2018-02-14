@@ -2226,7 +2226,7 @@ double smoothen( Level& level, Allreduce& res ) {
 
     uint32_t par= level.src_grid->team().size();
 
-    // smooth_res
+    // smoothen
     minimon.start();
 
     level.src_grid->barrier();
@@ -2248,7 +2248,7 @@ double smoothen( Level& level, Allreduce& res ) {
     // async halo update
     level.src_halo->update_async();
 
-    // smooth_res_inner
+    // smoothen_inner
     minimon.start();
 
     // update inner
@@ -2305,26 +2305,26 @@ double smoothen( Level& level, Allreduce& res ) {
         core_offset += 2 * lw;
     }
 
-    minimon.stop( "smooth_res_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
+    minimon.stop( "smoothen_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
-    // smooth_res_wait
+    // smoothen_wait
     minimon.start();
     // wait for async halo update
 
     level.src_halo->wait();
 
-    minimon.stop( "smooth_res_wait", par, /* elements */ ld*lh*lw );
+    minimon.stop( "smoothen_wait", par, /* elements */ ld*lh*lw );
 
-    // smooth_res_col_bc
+    // smoothen_collect
     minimon.start();
 
     /* unit 0 (of any active team) waits until all local residuals from all
     other active units are in */
     res.collect_and_spread( level.src_grid->team() );
 
-    minimon.stop( "smooth_res_col_bc", par );
+    minimon.stop( "smoothen_collect", par );
 
-    // smooth_res_outer
+    // smoothen_outer
     minimon.start();
 
     /// begin pointer of local block, needed because halo border iterator is read-only
@@ -2344,10 +2344,10 @@ double smoothen( Level& level, Allreduce& res ) {
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
-    minimon.stop( "smooth_res_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
+    minimon.stop( "smoothen_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
         /* flops */ 16*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
 
-    // smooth_res_wait_set
+    // smoothen_wait_res
     minimon.start();
 
     res.wait( level.src_grid->team() );
@@ -2357,11 +2357,11 @@ double smoothen( Level& level, Allreduce& res ) {
 
     res.set( &localres, level.src_grid->team() );
 
-    minimon.stop( "smooth_res_wait_set", par );
+    minimon.stop( "smoothen_wait_res", par );
 
     level.swap();
 
-    minimon.stop( "smooth_res", par, /* elements */ ld*lh*lw,
+    minimon.stop( "smoothen", par, /* elements */ ld*lh*lw,
         /* flops */ 16*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
 
     return oldres;

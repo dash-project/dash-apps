@@ -15,20 +15,6 @@
 using time_point_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
 using time_diff_t  = std::chrono::duration<double>;
 
-const size_t NAMELEN= 30;
-
-struct ResultEntry {
-   time_diff_t diff;
-   const char* name;
-   uint32_t    par; /* number of parallel units working on this, even though the following numbers are per process */
-   uint64_t    elements; /* number of grid elements */
-   uint64_t    flops; /* number of floating point operations */
-   uint64_t    loads; /* number of elements (double values) read */
-   uint64_t    stores; /* number of elements (double values) written */
-
-};
-
-
 struct MiniMonValue {
 
     time_diff_t runtime_sum;
@@ -59,15 +45,11 @@ public:
       _entries.push(std::chrono::high_resolution_clock::now());
    }
 
-   void stop( const char n[NAMELEN], uint32_t p, uint64_t e = 1,
+   void stop( const char* n, uint32_t p, uint64_t e = 1,
          uint64_t f = 0, uint64_t r = 0, uint64_t w = 0 ) {
 
       auto& top = _entries.top();
-      _results.push_back({std::chrono::high_resolution_clock::now() - top,
-          n, p, e, f, r, w });
-
-      _store[ {n,p,e} ].apply( std::chrono::high_resolution_clock::now() - top );
-
+      _store[ {n,p,e,f} ].apply( std::chrono::high_resolution_clock::now() - top );
       _entries.pop();
    }
 
@@ -77,34 +59,17 @@ public:
       {
       std::ofstream file;
       std::ostringstream file_name;
-      file_name << "trace_" << std::setw(5) << std::setfill('0') << id << ".csv";
-      file.open(file_name.str());
-
-      file << "# Unit;Function_name;Par;Duration;Elements;Flops;Loads;Stores"
-           << std::endl;
-
-      for(const auto& result : _results) {
-          file << id << ";" << result.name << ";" << result.par << ";"
-               << std::setprecision(12) << result.diff.count() << ";"
-               << result.elements << ";" << result.flops << ";" << result.loads
-               << ";" << result.stores << std::endl;
-      }
-
-      file.close();
-      }
-      {
-      std::ofstream file;
-      std::ostringstream file_name;
       file_name << "overview_" << std::setw(5) << std::setfill('0') << id << ".csv";
       file.open(file_name.str());
 
-      file << "# function_name;par;elements;num_calls;avg_runtime;min_runtime;max_runtime"
+      file << "# function_name;par;elements;flops;num_calls;avg_runtime;min_runtime;max_runtime"
            << std::endl;
 
       for( auto& e : _store) {
          file << std::get<0>(e.first) << ";" << 
             std::get<1>(e.first) << ";" << 
             std::get<2>(e.first) << ";" <<
+            std::get<3>(e.first) << ";" <<
             e.second.num << ";" <<
             e.second.runtime_sum.count() / e.second.num << ";" <<
             e.second.runtime_min.count() << ";" <<
@@ -117,8 +82,7 @@ public:
 
 
 private:
-   std::deque<ResultEntry>                             _results;
-   std::map<std::tuple<const char*,uint32_t,uint64_t>,MiniMonValue> _store;
+   std::map<std::tuple<const char*,uint32_t,uint64_t,uint64_t>,MiniMonValue> _store;
    std::stack<time_point_t, std::vector<time_point_t>> _entries;
 };
 
