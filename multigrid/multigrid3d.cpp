@@ -3027,7 +3027,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.0011 << endl << endl;
+        cout << endl << "start v-cycle with res " << 0.001 << endl << endl;
     }
     v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
     dash::Team::All().barrier();
