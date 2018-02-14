@@ -2215,128 +2215,6 @@ cout << "unit " << dash::myid() << " transfertomore" << endl;
 }
 
 
-/* Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
-
-This specialization does not compute the residual to have a much simple code. Should be kept in sync
-with the following version of smoothen() */
-void smoothen( Level& level ) {
-    SCOREP_USER_FUNC()
-
-    uint32_t par= level.src_grid->team().size();
-
-    // smooth
-    minimon.start();
-
-    level.src_grid->barrier();
-
-    size_t ld= level.src_grid->local.extent(0);
-    size_t lh= level.src_grid->local.extent(1);
-    size_t lw= level.src_grid->local.extent(2);
-
-    double rz= level.rz;
-    double ry= level.ry;
-    double rx= level.rx;
-    double rs= rz+ry+rx;
-
-    /// relaxation coeff.
-    const double c= 0.2;
-
-    // async halo update
-    level.src_halo->update_async();
-
-    // smooth_inner
-    minimon.start();
-
-    // update inner
-
-    /* the start value for both, the y loop and the x loop is 1 because either there is
-    a border area next to the halo -- then the first column or row is covered below in
-    the border update -- or there is an outside border -- then the first column or row
-    contains the boundary values. */
-
-    auto next_layer_off = lw * lh;
-    auto core_offset = lw * (lh + 1) + 1;
-    for ( size_t z= 1; z < ld-1; z++ ) {
-        for ( size_t y= 1; y < lh-1; y++ ) {
-
-            /* this should eventually be done with Alpaka or Kokkos to look
-            much nicer but still be fast */
-
-            const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
-            const auto* __restrict p_east = p_core + 1;
-            const auto* __restrict p_west = p_core - 1;
-            const auto* __restrict p_north= p_core + lw;
-            const auto* __restrict p_south= p_core - lw;
-            const auto* __restrict p_up=    p_core + next_layer_off;
-            const auto* __restrict p_down=  p_core - next_layer_off;
-            double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
-
-            for ( size_t x= 1; x < lw-1; x++ ) {
-
-                /*
-                stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-                dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
-                */
-
-                double dtheta=
-                    *p_east * rx + *p_west * rx +
-                    *p_north * ry + *p_south * ry +
-                    *p_up * rz + *p_down * rz -
-                    *p_core * 2 * rs;
-                *p_new= *p_core + c * dtheta;
-                p_core++;
-                p_east++;
-                p_west++;
-                p_north++;
-                p_south++;
-                p_up++;
-                p_down++;
-                p_new++;
-            }
-            core_offset += lw;
-        }
-        core_offset += 2 * lw;
-    }
-
-    minimon.stop( "smooth_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
-
-    // smooth_wait
-    minimon.start();
-
-    // wait for async halo update
-    level.src_halo->wait();
-
-    minimon.stop( "smooth_wait", par, /* elements */ ld*lh*lw );
-
-    // smooth_outer
-    minimon.start();
-
-    /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= level.dst_grid->lbegin();
-
-    auto bend = level.src_halo->bend();
-    // update border area
-    for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
-
-        double dtheta=
-            it.value_at(4) * rx + it.value_at(5) * rx +
-            it.value_at(2) * ry + it.value_at(3) * ry +
-            it.value_at(0) * rz + it.value_at(1) * rz -
-            *it * 2 * rs ;
-        gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
-    }
-
-    minimon.stop( "smooth_outer", par, /* elements */ 2*(ld*lh+lh*lw+lw*ld),
-        /* flops */ 16*(ld*lh+lh*lw+lw*ld), /*loads*/ 7*(ld*lh+lh*lw+lw*ld), /* stores */ (ld*lh+lh*lw+lw*ld) );
-
-    level.swap();
-
-    minimon.stop( "smooth", par, /* elements */ ld*lh*lw,
-        /* flops */ 16*ld*lh*lw, /*loads*/ 7*ld*lh*lw, /* stores */ ld*lh*lw );
-}
-
-
-
 /**
 Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at the end.
 
@@ -3088,34 +2966,13 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     dash::barrier();
 
-    // smoothflatfixed
-    minimon.start();
 
-    uint32_t j= 0;
-    while ( j < 0 ) {
-
-        smoothen( *level );
-
-        if ( 0 == dash::myid() && ( 1 == j % 10 ) ) {
-            cout << j << ": smoothen grid without residual " << endl;
-        }
-
-        if ( 0 == j % 10 ) {
-            writeToCsv( *level );
-        }
-
-        j++;
-    }
-
-    minimon.stop( "smoothflatfixed", dash::Team::All().size() );
-
-    writeToCsv( *level );
-
-    // smoothflatresidual
+    // flat_iteration
     minimon.start();
 
     Allreduce res( dash::Team::All() );
 
+    uint32_t j= 0;
     double epsilon= 0.01;
     while ( res.get() > epsilon && j < 1000 ) {
 
@@ -3132,7 +2989,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
         j++;
     }
 
-    minimon.stop( "smoothflatresidual", dash::Team::All().size() );
+    minimon.stop( "flat_iteration", dash::Team::All().size() );
 
     if ( 0 == dash::myid() ) {
 
