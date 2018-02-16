@@ -71,10 +71,8 @@ public:
       std::ostream & os,
       /// For higher dimensional patterns, defines which slice gets displayed
       std::array<index_t, PatternT::ndim()> coords = {},
-      /// Defines which dimension gets displayed in x-direction
-      int dimx = 1,
-      /// Defines which dimension gets displayed in y-direction
-      int dimy = 0) {
+      /// Defines which dimensions are written
+      std::vector<index_t> dims = {}) {
     std::string title = _title;
     replace_all(title, "\\", "\\\\");
     replace_all(title, "\"", "\\\"");
@@ -83,19 +81,37 @@ public:
 
     // Code moved to client
     // draw_axes(os, sz, dimx, dimy);
-    os << "\"dims\": [" << dimx << "," << dimy << "],\n";
+    if(dims.size() == 0) {
+      dims.resize(PatternT::ndim());
+      std::iota(dims.begin(),dims.end(),0);
+    }
+
+    os << "\"dims\": [";
+    for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+      if(it != dims.cbegin()) {
+        os << ",";
+      }
+      os << *it;
+    }
+    os << "],\n";
 
     // default blocksize
-    os << "\"blocksize\": [" << _pattern.blocksize(dimx) << ","
-                             << _pattern.blocksize(dimy) << "],\n";
+    os << "\"blocksize\": [";
+    for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+      if(it != dims.cbegin()) {
+        os << ",";
+      }
+      os << _pattern.blocksize(*it);
+    }
+    os << "],\n";
 
-    draw_blocks(os, coords, dimx, dimy);
+    draw_blocks(os, coords, dims);
     //os << ",\n";
 
-    // Probably unneeded
+    // Redo in seperate function for irregular patterns
     //draw_tiles(os, sz, coords, dimx, dimy);
 
-    // Yet todo
+    // Todo in seperate function for delayed retrieval
     //draw_local_memlayout(os, sz, dimx, dimy);
 
     // Unneeded when drawing occurs in browser
@@ -141,7 +157,7 @@ public:
    */
   void draw_blocks(std::ostream & os,
                    std::array<index_t, PatternT::ndim()> coords,
-                   int dimx, int dimy) {
+                   std::vector<index_t> dims) {
     auto blockspec = _pattern.blockspec();
 
     auto block_begin_coords = coords;
@@ -150,36 +166,64 @@ public:
 
     os << "\"blocks\": [";
 
-    for (int i = 0; i < blockspec.extent(dimx); i++) {
-      if(i != 0) {
-        os << ",\n";
+    bool first_iteration = true;
+    for(auto rit=std::prev(dims.crend()); rit != dims.crend(); ++rit) {
+      auto cur_dim = *rit;
+
+      if(first_iteration) {
+        block_coords[cur_dim] = 0;
+        first_iteration = false;
+      } else {
+        ++block_coords[cur_dim];
+        if(!(block_coords[cur_dim] < blockspec.extent(cur_dim))) {
+          os << "]";
+          continue;
+        }
+        os << "," << std::endl;
       }
-      os << "[";
-      for (int j = 0; j < blockspec.extent(dimy); j++) {
-        if(j != 0) {
+
+      while(rit != dims.crbegin()) {
+        --rit;
+        cur_dim = *rit;
+
+        block_coords[cur_dim] = 0;
+        os << "[";
+      }
+
+      while(block_coords[cur_dim] < blockspec.extent(cur_dim)) {
+        if(block_coords[cur_dim] != 0) {
           os << ",";
         }
-        block_coords[dimx] = i;
-        block_coords[dimy] = j;
         auto block_idx = _pattern.blockspec().at(block_coords);
         auto block     = _pattern.block(block_idx);
 
-        block_begin_coords[dimx] = block.offset(dimx);
-        block_begin_coords[dimy] = block.offset(dimy);
+        for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+          block_begin_coords[*it] = block.offset(*it);
+        }
         auto unit      = _pattern.unit_at(block_begin_coords);
 
         os << "{\"u\":" << unit;
         // include blocksize for underfilled blocks
-        if(_pattern.blocksize(dimx) != block.extent(dimx) ||
-           _pattern.blocksize(dimy) != block.extent(dimy)) {
-          os << ",\"s\":[" << block.extent(dimx) << ","
-                           << block.extent(dimy) << "]";
+        if(std::accumulate(dims.cbegin(),dims.cend(), false,
+              [&](const bool & ret, const index_t & dim){
+                return ret || (_pattern.blocksize(dim) != block.extent(dim));
+              })) {
+          os << ",\"s\":[";
+          for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+            if(it != dims.cbegin()) {
+              os << ",";
+            }
+            os << block.extent(*it);
+          }
+          os << "]";
         }
-        os << "}" << std::flush;
+        os << "}";
+
+        ++block_coords[cur_dim];
       }
+
       os << "]";
     }
-    os << "]";
   }
 
   /**
