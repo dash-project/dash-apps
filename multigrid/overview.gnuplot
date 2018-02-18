@@ -1,5 +1,9 @@
 #!/usr/bin/gnuplot
 
+# To give the input file name on the command line call it like this:
+# gnuplot -e "filename='<filename>'" overview.gnuplot
+
+
 set terminal png size 1200,900
 
 
