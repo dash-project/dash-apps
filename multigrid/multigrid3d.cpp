@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdio>
 #include <utility>
+#include <math.h>
 
 #include "allreduce.h"
 #include "minimonitoring.h"
@@ -19,6 +20,10 @@ dash::Shared<uint32_t>* filenumber;
 
 #endif /* WITHCSVOUTPUT */
 
+
+/* DEMOMODE allows to visualize the problem on the coarse grids but
+doesn't really do the multigrid algorithm */
+//#define DEMOMODE 1
 
 /* TODOs
 
@@ -76,11 +81,17 @@ public:
 public:
     MatrixT* src_grid;
     MatrixT* dst_grid;
+    MatrixT* rhs_grid; /* right hand side, doesn't need a halo */
     HaloT* src_halo;
     HaloT* dst_halo;
 
+#ifdef DEMOMODE
+
     /* coefficients for the smoothing step in z, y, x directions */
     double rz, ry, rx;
+#else /* DEMOMODE */
+    double hhz, hhy, hhx;
+#endif /* DEMOMODE */
 
     /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
     double sz, sy, sx;
@@ -88,44 +99,44 @@ public:
     /***
     lz, ly, lx are the dimensions in meters of the grid including the boundary regions,
     nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions,
-        therefore, lz,ly,lx are discretized into (nz+2)*(my+2)*(nx+2) grid points
+    therefore, lz,ly,lx are discretized into (nz+2)*(ny+2)*(nx+2) grid points
     */
     Level( double lz, double ly, double lx,
            size_t nz, size_t ny, size_t nx,
-           dash::Team& team, TeamSpecT teamspec )
-      : _grid_1( SizeSpecT( nz, ny, nx ),
-            DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
-            team, teamspec ),
-        _grid_2( SizeSpecT( nz, ny, nx ),
-            DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ),
-            team, teamspec ),
+           dash::Team& team, TeamSpecT teamspec ) :
+            _grid_1( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
+            _grid_2( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
+            _rhs_grid( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
         _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
         _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
-        src_grid(&_grid_1), dst_grid(&_grid_2),
+        src_grid(&_grid_1), dst_grid(&_grid_2), rhs_grid(&_rhs_grid),
         src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
 
         assert( 1 < nz );
         assert( 1 < ny );
         assert( 1 < nx );
 
-        /*
-        stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
-        */
+        sz= lz;
+        sy= ly;
+        sx= lx;
 
         double hz= lz/(nz+1);
         double hy= ly/(ny+1);
         double hx= lx/(nx+1);
 
-        double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
-
+#ifdef DEMOMODE
+        /*
+        stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
+        */
+double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
         rz= dt/(hz*hz);
         ry= dt/(hy*hy);
         rx= dt/(hx*hx);
 
-        sz= lz;
-        sy= ly;
-        sx= lx;
+        assert( rz <= 0.5 );
+        assert( ry <= 0.5 );
+        assert( rx <= 0.5 );
 
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
@@ -141,17 +152,94 @@ public:
 
             team.barrier();
         }
+#else /* DEMOMODE */
+        hhz= hz*hz;
+        hhy= hy*hy;
+        hhx= hx*hx;
+        for ( uint32_t a= 0; a < team.size(); a++ ) {
+            if ( a == dash::myid() ) {
+
+                if ( 0 == a ) {
+                    cout << "Level " <<
+                        "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
+                        "in grid of " << nz << "*" << ny << "*" << nx <<
+                        " with team of " << team.size() << 
+                        " --> h_= " << hz << "," << hy << "," << hx << endl;
+                }
+            }
+
+            team.barrier();
+        }
+
+#endif /* DEMOMODE */
+
+    }
+
+    /***
+    Alternative version of the constructor that takes the parent Level as the first argument.
+    From this, it can get the original physical dimensions lz, ly, lx and the original
+    grid distances hy, hy, hx.
+    nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions
+    */
+    Level( const Level& parent,
+           size_t nz, size_t ny, size_t nx,
+           dash::Team& team, TeamSpecT teamspec ) :
+            _grid_1( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
+            _grid_2( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
+            _rhs_grid( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
+        _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
+        _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
+        src_grid(&_grid_1), dst_grid(&_grid_2), rhs_grid(&_rhs_grid),
+        src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
+
+        assert( 1 < nz );
+        assert( 1 < ny );
+        assert( 1 < nx );
+
+        sz= parent.sz;
+        sy= parent.sy;
+        sx= parent.sx;
+
+#ifdef DEMOMODE
+        /*
+        stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2 */
+        double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
+        rz= dt/(hz*hz);
+        ry= dt/(hy*hy);
+        rx= dt/(hx*hx);
 
         assert( rz <= 0.5 );
         assert( ry <= 0.5 );
         assert( rx <= 0.5 );
+
+#else /* DEMOMODE */
+        hhz= parent.hhz;
+        hhy= parent.hhy;
+        hhx= parent.hhx;
+#endif /* DEMOMODE */
+
+        for ( uint32_t a= 0; a < team.size(); a++ ) {
+            if ( a == dash::myid() ) {
+
+                if ( 0 == a ) {
+                    cout << "Level with a parent level " <<
+                        "in grid of " << nz << "*" << ny << "*" << nx <<
+                        " with team of " << team.size() << 
+                        " --> h_= " << sqrt(hhz) << "," << sqrt(hhy) << "," << sqrt(hhx) << endl;
+                }
+            }
+
+            team.barrier();
+        }
+
     }
 
     Level() = delete;
 
     /** swap grid and halos for the double buffering scheme */
     void swap() {
-// smooth_inner
+
         std::swap( src_halo, dst_halo );
         std::swap( src_grid, dst_grid );
     }
@@ -166,6 +254,42 @@ public:
                 for ( size_t x= 0; x < n[2]; ++x ) {
 
                     cout << std::setprecision(3) << (double) (*src_grid)[z][y][x] << " ";
+                }
+                cout << endl;
+            }
+            cout << endl;
+        }
+
+    }
+
+    /* to be called by the master unit alone */
+    void printout_dst() {
+
+        auto n= rhs_grid->extents();
+
+        for ( size_t z= 0; z < n[0]; ++z ) {
+            for ( size_t y= 0; y < n[1]; ++y ) {
+                for ( size_t x= 0; x < n[2]; ++x ) {
+
+                    cout << std::setprecision(3) << (double) (*dst_grid)[z][y][x] << " ";
+                }
+                cout << endl;
+            }
+            cout << endl;
+        }
+
+    }
+
+    /* to be called by the master unit alone */
+    void printout_rhs() {
+
+        auto n= src_grid->extents();
+
+        for ( size_t z= 0; z < n[0]; ++z ) {
+            for ( size_t y= 0; y < n[1]; ++y ) {
+                for ( size_t x= 0; x < n[2]; ++x ) {
+
+                    cout << std::setprecision(3) << (double) (*rhs_grid)[z][y][x] << " ";
                 }
                 cout << endl;
             }
@@ -337,7 +461,7 @@ private:
     MatrixT _grid_2;
     HaloT _halo_grid_1;
     HaloT _halo_grid_2;
-
+    MatrixT _rhs_grid;
 };
 
 
@@ -587,17 +711,19 @@ void sanitycheck( const MatrixT& grid  ) {
 }
 
 
-void initgrid( MatrixT& grid ) {
+void initgrid( Level& level ) {
 
     /* not strictly necessary but it also avoids NAN values */
-    dash::fill( grid.begin(), grid.end(), 5.0 );
+    dash::fill( level.src_grid->begin(), level.src_grid->end(), 0.0 );
+    dash::fill( level.dst_grid->begin(), level.dst_grid->end(), 0.0 );
+    dash::fill( level.rhs_grid->begin(), level.rhs_grid->end(), 0.0 );
 
-    grid.barrier();
+    level.src_grid->barrier();
 }
 
 
 /* apply boundary value settings, where the top and bottom planes have a 
-hot circle in the middle and everything else is cold*/
+hot circle in the middle and everything else is cold */
 void initboundary( Level& level ) {
 
     using index_t = dash::default_index_t;
@@ -660,6 +786,18 @@ void initboundary( Level& level ) {
 
         return ret;
     };
+
+    level.src_halo->set_fixed_halos( lambda );
+    level.dst_halo->set_fixed_halos( lambda );
+}
+
+
+/* sets all boundary values to 0, that is what is neede on the coarser grids */
+void initboundary_zero( Level& level ) {
+
+    using index_t = dash::default_index_t;
+
+    auto lambda= []( const auto& coords ) { return 0.0; };
 
     level.src_halo->set_fixed_halos( lambda );
     level.dst_halo->set_fixed_halos( lambda );
@@ -815,8 +953,21 @@ void scaledownboundary( Level& fine, Level& coarse ) {
 
 void scaledown( Level& fine, Level& coarse ) {
 
+#ifdef DEMOMODE
     MatrixT& finegrid= *fine.src_grid;
     MatrixT& coarsegrid= *coarse.src_grid;
+#else /* DEMOMODE */
+
+    MatrixT& finegrid= *fine.src_grid;
+    MatrixT& fine_rhs_grid= *fine.rhs_grid;
+    MatrixT& coarsegrid= *coarse.src_grid;
+    MatrixT& coarse_rhs_grid= *coarse.rhs_grid;
+
+    double hhz= fine.hhz;
+    double hhy= fine.hhy;
+    double hhx= fine.hhx;
+
+#endif /* DEMOMODE */
 
     uint64_t par= finegrid.team().size();
     uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
@@ -845,21 +996,43 @@ void scaledown( Level& fine, Level& coarse ) {
     assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
+#ifdef DEMOMODE
     /* do 'straigth injection', that is a coarse-grid element just takes the 
     value of the matching fine grid element without considering shares from the 
     neighbor elements on the fine grid. Alternatives would be full-weighting or 
     half-weighting but they would require halo access. */
+#else /* DEMOMODE */
+    /* Here we  $ r= f - Au $ on the fine grid and 'straigth injection' to the 
+    rhs of the coarser grid in one. Therefore, we don't need a halo of the fine 
+    grid, because the stencil neighbor points on the fine grid are always there 
+    for a coarse grid point. Nice, isn't it? */
+#endif /* DEMOMODE */
 
     /* this is the plain and simple and slow version. do optimization by pointer 
     arithmethic later. */
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
             for ( size_t x= 0; x < extentc[2]; x++ ) {
-
+#ifdef DEMOMODE
                 coarsegrid.local[z][y][x]= finegrid.local[2*z+1][2*y+1][2*x+1];
+#else /* DEMOMODE */
+                coarse_rhs_grid.local[z][y][x]= /* hhz * */ /* hhz as placeholder assuming hhz==hhy==hhx */ (
+                    fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] +
+                    finegrid[2*z+1][2*y+1][2*x+0] + finegrid[2*z+1][2*y+1][2*x+2] +
+                    finegrid[2*z+1][2*y+0][2*x+1] + finegrid[2*z+1][2*y+2][2*x+1] +
+                    finegrid[2*z+0][2*y+1][2*x+1] + finegrid[2*z+2][2*y+1][2*x+1] -
+                    6.0 * finegrid[2*z+1][2*y+1][2*x+1] );
+#endif /* DEMOMODE */
             }
         }
     }
+
+#ifdef DEMOMODE
+#else /* DEMOMODE */
+    /* set coarse grid to 0.0 */
+    dash::fill( coarsegrid.begin(), coarsegrid.end(), 0.0 );
+#endif /* DEMOMODE */
+
 
     minimon.stop( "scaledown", par, param );
 }
@@ -986,8 +1159,9 @@ void scaleup( Level& coarse, Level& fine ) {
     /* 2) first set fine grid to 0.0, becasue afterwards there are 
     multiple += operations per fine grid element */
 
-    constexpr double coeff_close= 3.0*3.0*3.0/4.0/4.0/4.0;
+#ifdef DEMOMODE
     dash::fill( finegrid.begin(), finegrid.end(), 0.0 );
+#endif /* DEMOMODE */
 
     /* 3) second loop over the coarse grid and add the contributions to the 
     fine grid elements */
@@ -1004,7 +1178,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
@@ -1043,7 +1217,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
@@ -1073,7 +1247,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
@@ -1101,7 +1275,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
@@ -1127,7 +1301,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
@@ -1155,7 +1329,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
@@ -1179,7 +1353,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
@@ -1201,7 +1375,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
                 double tmp= coarsegrid.local[z][y][x];
 
-                finegrid.local[2*z+1][2*y+1][2*x+1]= tmp;
+                finegrid.local[2*z+1][2*y+1][2*x+1] += tmp;
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
@@ -1964,7 +2138,6 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* 8 corners */
 
-    ////////////////////////////////////////////////////////////////////////////////
     { signed_size_t z= -1;
         { signed_size_t y= -1;
             { signed_size_t x= -1;
@@ -2017,11 +2190,6 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
     }
-
-
-
-
-    ////////////////////////////////////////////////////////////////////////////////
 
     minimon.stop( "scaleup", par, param );
 }
@@ -2237,13 +2405,18 @@ double smoothen( Level& level, Allreduce& res ) {
 
     double localres= 0.0;
 
+
+#ifdef DEMOMODE
     double rz= level.rz;
     double ry= level.ry;
     double rx= level.rx;
     double rs= rz+ry+rx;
-
     /// relaxation coeff.
-    const double c= 0.2;
+    const double c= 1.0;
+#else /* DEMOMODE */
+    /* temporary assuming h is the same in all dimensions */
+    const double c= 1.0;
+#endif /* DEMOMODE */
 
     // async halo update
     level.src_halo->update_async();
@@ -2265,14 +2438,14 @@ double smoothen( Level& level, Allreduce& res ) {
             /* this should eventually be done with Alpaka or Kokkos to look
             much nicer but still be fast */
 
-            const auto* __restrict p_core = level.src_grid->lbegin() + core_offset;
-            const auto* __restrict p_east = p_core + 1;
-            const auto* __restrict p_west = p_core - 1;
-            const auto* __restrict p_north= p_core + lw;
-            const auto* __restrict p_south= p_core - lw;
-            const auto* __restrict p_up=    p_core + next_layer_off;
-            const auto* __restrict p_down=  p_core - next_layer_off;
-
+            const double* __restrict p_core=  level.src_grid->lbegin() + core_offset;
+            const double* __restrict p_east=  p_core + 1;
+            const double* __restrict p_west=  p_core - 1;
+            const double* __restrict p_north= p_core + lw;
+            const double* __restrict p_south= p_core - lw;
+            const double* __restrict p_up=    p_core + next_layer_off;
+            const double* __restrict p_down=  p_core - next_layer_off;
+            const double* __restrict p_rhs=   level.rhs_grid->lbegin() + core_offset;
             double* __restrict p_new= level.dst_grid->lbegin() + core_offset;
 
             for ( size_t x= 1; x < lw-1; x++ ) {
@@ -2281,13 +2454,22 @@ double smoothen( Level& level, Allreduce& res ) {
                 stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
                 dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
                 */
-
+#ifdef DEMOMODE
                 double dtheta=
                     *p_east * rx + *p_west * rx +
                     *p_north * ry + *p_south * ry +
                     *p_up * rz + *p_down * rz -
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
+#else /* DEMOMODE */
+                double dtheta= 1.0/6.0 * ( 
+                    *p_rhs +
+                    *p_east + *p_west +
+                    *p_north + *p_south +
+                    *p_up + *p_down -
+                    6.0 * *p_core );
+                *p_new= *p_core + c * dtheta;
+#endif /* DEMOMODE */
 
                 localres= std::max( localres, std::fabs( dtheta ) );
 
@@ -2298,6 +2480,7 @@ double smoothen( Level& level, Allreduce& res ) {
                 p_south++;
                 p_up++;
                 p_down++;
+                p_rhs++;
                 p_new++;
             }
             core_offset += lw;
@@ -2328,19 +2511,31 @@ double smoothen( Level& level, Allreduce& res ) {
     minimon.start();
 
     /// begin pointer of local block, needed because halo border iterator is read-only
-    auto gridlocalbegin= level.dst_grid->lbegin();
+    auto grid_local_begin= level.dst_grid->lbegin();
+    auto rhs_grid_local_begin= level.rhs_grid->lbegin();
 
     auto bend = level.src_halo->bend();
     // update border area
     for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
+#ifdef DEMOMODE
         double dtheta=
             it.value_at(4) * rx + it.value_at(5) * rx +
             it.value_at(2) * ry + it.value_at(3) * ry +
             it.value_at(0) * rz + it.value_at(1) * rz -
             *it * 2 * rs ;
+        grid_local_begin[ it.lpos() ]= *it + c * dtheta;
+#else /* DEMOMODE */
 
-        gridlocalbegin[ it.lpos() ]= *it + c * dtheta;
+        double dtheta= 1.0/6.0 * ( 
+            rhs_grid_local_begin[ it.lpos() ] +
+            it.value_at(0) + it.value_at(1) +
+            it.value_at(2) + it.value_at(3) +
+            it.value_at(4) + it.value_at(5) -
+            6.0 * *it );
+        grid_local_begin[ it.lpos() ]= *it + c * dtheta;
+#endif /* DEMOMODE */
+
         localres= std::max( localres, std::fabs( dtheta ) );
     }
 
@@ -2367,8 +2562,8 @@ double smoothen( Level& level, Allreduce& res ) {
     return oldres;
 }
 
+//#define DETAILOUTPUT 1
 
-/* recursive version */
 template<typename Iterator>
 void v_cycle( Iterator it, Iterator itend,
         uint32_t numiter, double epsilon, Allreduce& res ) {
@@ -2379,6 +2574,17 @@ void v_cycle( Iterator it, Iterator itend,
     /* reached end of recursion? */
     if ( itend == itnext ) {
 
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== start on coarsest grid ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
         /* smoothen completely  */
         uint32_t j= 0;
         res.reset( (*it)->src_grid->team() );
@@ -2387,6 +2593,17 @@ void v_cycle( Iterator it, Iterator itend,
             smoothen( **it, res );
 
             j++;
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== after smoothen coarsest " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
         }
         if ( 0 == dash::myid()  ) {
             cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
@@ -2455,7 +2672,18 @@ void v_cycle( Iterator it, Iterator itend,
 
     /* **** normal recursion **** **** **** **** **** **** **** **** **** */
 
-    /* smoothen completely  */
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== before ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+    /* smoothen fixed number of times */
     uint32_t j= 0;
     res.reset( (*it)->src_grid->team() );
     while ( res.get() > epsilon && j < numiter ) {
@@ -2464,6 +2692,17 @@ void v_cycle( Iterator it, Iterator itend,
         smoothen( **it, res );
 
         j++;
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== after smoothen " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
     }
     if ( 0 == dash::myid()  ) {
         cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
@@ -2503,6 +2742,16 @@ void v_cycle( Iterator it, Iterator itend,
     scaleup( **itnext, **it );
     writeToCsv( **it );
 
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== back on fine grid ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
     /* on the way up it ought to solve the grid rather completley,
     thus repeat until rey < eps here too???
 
@@ -2519,18 +2768,320 @@ void v_cycle( Iterator it, Iterator itend,
     }
     */
 
-    /* smoothen completely  */
     j= 0;
     res.reset( (*it)->src_grid->team() );
+#ifdef DEMOMODE
+    /* in DEMOMODE smoothen completely */
     while ( res.get() > epsilon ) {
+#else /* DEMOMODE */
+    while ( res.get() > epsilon && j < numiter ) {
+#endif /* DEMOMODE */
 
         /* need global residual for iteration count */
         smoothen( **it, res );
 
         j++;
+
+        if ( 0 == dash::myid() && 0 == j % 1000 ) {
+
+            cout << "        j " << j << " res " << res.get() << endl;
+        }
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== final smoothen " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+    }
+    if ( 0 == dash::myid() ) {
+        cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
     }
 
+    writeToCsv( **it );
+}
+
+
+template<typename Iterator>
+void w_cycle( Iterator it, Iterator itend,
+        uint32_t numiter, double epsilon, Allreduce& res ) {
+    SCOREP_USER_FUNC()
+
+    Iterator itnext( it );
+    ++itnext;
+    /* reached end of recursion? */
+    if ( itend == itnext ) {
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== start on coarsest grid ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+        /* smoothen completely  */
+        uint32_t j= 0;
+        res.reset( (*it)->src_grid->team() );
+        while ( res.get() > epsilon ) {
+            /* need global residual for iteration count */
+            smoothen( **it, res );
+
+            j++;
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== after smoothen coarsest " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+        }
+        if ( 0 == dash::myid()  ) {
+            cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
+        }
+        writeToCsv( **it );
+
+        return;
+    }
+
+    /* stepped on the dummy level? ... which is there to signal that it is not
+    the end of the parallel recursion on the coarsest level but a subteam is
+    going on to solve the coarser levels and this unit is not in that subteam.
+    ... sounds complicated, is complicated, change only if you know what you
+    are doing. */
+    if ( NULL == *itnext ) {
+
+        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
+        (*it)->src_grid->team().barrier();
+
+        cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
+
+        return;
+    }
+
+    /* stepped on a transfer level? */
+    if ( (*it)->src_grid->team().size() != (*itnext)->src_grid->team().size() ) {
+
+        /* only the members of the reduced team need to work, all others do siesta. */
+        //if ( 0 == (*itnext)->grid.team().position() )
+        assert( 0 == (*itnext)->src_grid->team().position() );
+        {
+
+            cout << "transfer to " <<
+                (*it)->src_grid->extent(2) << "x" <<
+                (*it)->src_grid->extent(1) << "x" <<
+                (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units "
+                " --> " <<
+                (*itnext)->src_grid->extent(2) << "x" <<
+                (*itnext)->src_grid->extent(1) << "x" <<
+                (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units " << endl;
+
+            transfertofewer( **it, **itnext );
+
+            w_cycle( itnext, itend, numiter, epsilon, res );
+
+            cout << "transfer back " <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units "
+            " --> " <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units " <<  endl;
+
+            transfertomore( **itnext, **it );
+        }
+
+        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
+        (*it)->src_grid->team().barrier();
+
+
+        cout << "all meet again here: I'm active unit " << dash::myid() << endl;
+        return;
+    }
+
+
+    /* **** normal recursion **** **** **** **** **** **** **** **** **** */
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== before ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+    /* smoothen fixed number of times */
+    uint32_t j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon && j < numiter ) {
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== after smoothen " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+    }
     if ( 0 == dash::myid()  ) {
+        cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
+    }
+
+    writeToCsv( **it );
+
+    /* scale down */
+    if ( 0 == dash::myid() ) {
+        cout << "scale down " <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) <<
+            " --> " <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) << endl;
+    }
+
+    scaledown( **it, **itnext );
+    writeToCsv( **itnext );
+
+    /* recurse first */
+    w_cycle( itnext, itend, numiter, epsilon, res );
+
+    j= 0;
+    res.reset( (*it)->src_grid->team() );
+#ifdef DEMOMODE
+    /* in DEMOMODE smoothen completely */
+    while ( res.get() > epsilon ) {
+#else /* DEMOMODE */
+    while ( res.get() > epsilon && j < numiter ) {
+#endif /* DEMOMODE */
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+
+        if ( 0 == dash::myid() && 0 == j % 1000 ) {
+
+            cout << "        j " << j << " res " << res.get() << endl;
+        }
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== final smoothen " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+    }
+    if ( 0 == dash::myid() ) {
+        cout << "    smoothing in the middle " << j << " times with residual " << res.get() << endl;
+    }
+
+
+    /* recurse second */
+    w_cycle( itnext, itend, numiter, epsilon, res );
+
+    /* scale up */
+    if ( 0 == dash::myid() ) {
+        cout << "scale up " <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) <<
+            " --> " <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) << endl;
+    }
+    scaleup( **itnext, **it );
+    writeToCsv( **it );
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== back on fine grid ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+    /* on the way up it ought to solve the grid rather completley,
+    thus repeat until rey < eps here too???
+
+    uint32_t j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon ) {
+
+        smoothen( **it, res );
+
+        j++;
+    }
+    if ( 0 == dash::myid() ) {
+        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
+    }
+    */
+
+    j= 0;
+    res.reset( (*it)->src_grid->team() );
+#ifdef DEMOMODE
+    /* in DEMOMODE smoothen completely */
+    while ( res.get() > epsilon ) {
+#else /* DEMOMODE */
+    while ( res.get() > epsilon && j < numiter ) {
+#endif /* DEMOMODE */
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+
+        if ( 0 == dash::myid() && 0 == j % 1000 ) {
+
+            cout << "        j " << j << " res " << res.get() << endl;
+        }
+
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== final smoothen " << j << " times ==" << endl;
+    cout << "  src_grid" << endl;
+    (*it)->printout();
+    cout << "  rhs_grid" << endl;
+    (*it)->printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
+    }
+    if ( 0 == dash::myid() ) {
         cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
     }
 
@@ -2617,7 +3168,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
         (1<<(howmanylevels))-1,
         dash::Team::All(), teamspec ) );
 
-    /* only do initgrid on the finest level, use caledownboundary for all others */
+    /* only do initgrid on the finest level, use scaledownboundary for all others */
     initboundary( *levels.back() );
     sanitycheck( *levels.back()->src_grid );
 
@@ -2650,7 +3201,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
         Level& previouslevel= *levels.back();
 
         levels.push_back(
-            new Level( 1.0, 1.0, 1.0,
+            new Level( previouslevel,
                        (1<<(howmanylevels))-1,
                        (1<<(howmanylevels))-1,
                        (1<<(howmanylevels))-1,
@@ -2661,9 +3212,13 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
         makes the entire multigrid algorithm misbehave. */
         //scaledownboundary( previouslevel, *levels.back() );
 
+#ifdef DEMOMODE
         /* as a test do initboundary instead of scaledownboundary to make it
         identical to the elastic case */
         initboundary( *levels.back() );
+#else /* DEMOMODE */
+        initboundary_zero( *levels.back() );
+#endif /* DEMOMODE */
 
         dash::barrier();
         --howmanylevels;
@@ -2675,7 +3230,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
-    initgrid( *levels.front()->src_grid );
+    initgrid( *levels.front() );
     //markunits( *levels.front()->src_grid );
 
     writeToCsv( *levels.front() );
@@ -2685,30 +3240,41 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     Allreduce res( dash::Team::All() );
 
     minimon.stop( "setup", dash::Team::All().size() );
-
+/*
     if ( 0 == dash::myid()  ) {
         cout << endl << "start v-cycle with res " << 0.1 << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 0.1, res );
+    v_cycle( levels.begin(), levels.end(), 2, 0.1, res );
     dash::Team::All().barrier();
 
 
     if ( 0 == dash::myid()  ) {
         cout << endl << "start v-cycle with res " << 0.01 << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
+    v_cycle( levels.begin(), levels.end(), 2, 0.01, res );
     dash::Team::All().barrier();
-
+*/
+/*
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << 1.0e-7 << endl << endl;
+    }
+    v_cycle( levels.begin(), levels.end(), 20, 1.0e-7, res );
+    dash::Team::All().barrier();
+*/
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start w-cycle with res " << 1.0e-7 << endl << endl;
+    }
+    w_cycle( levels.begin(), levels.end(), 20, 1.0e-7, res );
+    dash::Team::All().barrier();
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.001 << endl << endl;
+        cout << endl << "start w-cycle with res " << 1.0e-7 << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
+    w_cycle( levels.begin(), levels.end(), 20, 1.0e-7, res );
     dash::Team::All().barrier();
 
-
-    //smoothen_final( *levels.front(), 0.001, res );
-    //writeToCsv( *levels.front() );
+    smoothen_final( *levels.front(), 1.0e-3, res );
+    writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
@@ -2716,7 +3282,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
         if ( ! check_symmetry( *levels.front()->src_grid, 0.001 ) ) {
 
-            cerr << "test for asymmetry of soution failed!" << endl;
+            cout << "test for asymmetry of soution failed!" << endl;
         }
     }
 }
@@ -2823,7 +3389,11 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                                ((1<<(howmanylevels+1))-1)*factor_y,
                                ((1<<(howmanylevels+1))-1)*factor_x,
                                currentteam, localteamspec ) );
+#ifdef DEMOMODE
                 initboundary( *levels.back() );
+#else /* DEMOMODE */
+                initboundary_zero( *levels.back() );
+#endif /* DEMOMODE */
             }
 
             //cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
@@ -2854,9 +3424,13 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
                            ((1<<(howmanylevels))-1)*factor_x ,
                            currentteam, localteamspec ) );
 
+#if DEMOMODE
             /* should use scaledownboundary() but it is more complicated here
             ... let's find out which is better in the end */
             initboundary( *levels.back() );
+#else /* DEMOMODE */
+            initboundary_zero( *levels.back() );
+#endif /* DEMOMODE */
 
         } else {
 
@@ -2879,7 +3453,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
-    initgrid( *levels.front()->src_grid );
+    initgrid( *levels.front() );
     markunits( *levels.front()->src_grid );
 
     writeToCsv( *levels.front() );
@@ -2889,25 +3463,25 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
     Allreduce res( dash::Team::All() );
 
     minimon.stop( "setup", dash::Team::All().size() );
-
+/*
     if ( 0 == dash::myid()  ) {
         cout << endl << "start v-cycle with res " << 0.1 << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 0.1, res );
+    v_cycle( levels.begin(), levels.end(), 2, 0.1, res );
     dash::Team::All().barrier();
 
 
     if ( 0 == dash::myid()  ) {
         cout << endl << "start v-cycle with res " << 0.01 << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 0.01, res );
+    v_cycle( levels.begin(), levels.end(), 2, 0.01, res );
     dash::Team::All().barrier();
-
+*/
 
     if ( 0 == dash::myid()  ) {
         cout << endl << "start v-cycle with res " << 0.001 << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 4, 0.001, res );
     dash::Team::All().barrier();
 
 
@@ -2919,7 +3493,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 
         if ( ! check_symmetry( *levels.front()->src_grid, 0.001 ) ) {
 
-            cerr << "test for asymmetry of soution failed!" << endl;
+            cout << "test for asymmetry of soution failed!" << endl;
         }
     }
 }
@@ -2959,7 +3533,7 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     initboundary( *level );
 
-    initgrid( *level->src_grid );
+    initgrid( *level );
     //markunits( *level->src_grid );
 
     writeToCsv( *level );
@@ -2993,9 +3567,9 @@ void do_flat_iteration( uint32_t howmanylevels ) {
 
     if ( 0 == dash::myid() ) {
 
-        if ( ! check_symmetry( *level->src_grid, 0.001 ) ) {
+        if ( ! check_symmetry( *level->src_grid, 0.01 ) ) {
 
-            cerr << "test for asymmetry of soution failed!" << endl;
+            cout << "test for asymmetry of soution failed!" << endl;
         }
     }
 
@@ -3179,11 +3753,76 @@ bool do_test_writetocsv() {
     Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
 
     initboundary( *a );
-    initgrid( *a->src_grid );
+    initgrid( *a );
 
     writeToCsv( *a );
 
     delete a;
+
+    return true;
+}
+
+
+bool do_test_scaleupdown() {
+
+    if ( 0 == dash::myid() ) {
+        cout << "== test scaleupdown ==" << endl;
+    }
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    Level* a= new Level( 1.0, 1.0, 1.0, 15, 15, 15, dash::Team::All(), teamspec );
+    Level* b= new Level( 1.0, 1.0, 1.0, 7, 7, 7, dash::Team::All(), teamspec );
+
+    /* fill scr_grid and _dst_grid such that it looks like the 
+    residual is 0.1 in every element from a previous smoothen step */
+    dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
+    dash::fill( a->dst_grid->begin(), a->dst_grid->end(), 0.9 );
+
+    if ( 0 == dash::myid() ) {
+        cout << "fill a->src_grid with 1.0 and a->dst_grid with 0.9" << endl;
+    }
+
+    a->src_grid->barrier();
+
+    /* scale down, b should be 0.1 everywhere */
+    scaledown( *a, *b );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "Scale down a to b, should produce 0.1 in b->rhs" << endl;
+        b->printout_rhs();
+    }
+
+    b->src_grid->barrier();
+
+    Allreduce res( dash::Team::All() );
+    res.reset( dash::Team::All() );
+    smoothen( *b, res );
+    b->src_grid->barrier();
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "smoothen once on coarse grid" << endl;
+        b->printout();
+    }
+
+    scaleup( *b, *a );
+    a->src_grid->barrier();
+
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "Scale up adding to a, should produce 1.1 in the inner area of a" << endl;
+        a->printout();
+    }
+
+    a->src_grid->barrier();
+
+    delete a;
+    delete b;
 
     return true;
 }
@@ -3226,9 +3865,15 @@ bool do_tests( ) {
     if ( 0 == dash::myid() ) { cout << "   initboundary: " << success << endl; }
     allsuccess &= success;
 
-    success= do_test_writetocsv();
-    if ( 0 == dash::myid() ) { cout << "   writetocsv: " << success << endl; }
+    //success= do_test_writetocsv();
+    //if ( 0 == dash::myid() ) { cout << "   writetocsv: " << success << endl; }
+    //allsuccess &= success;
+
+    /*
+     * success= do_test_scaleupdown();
+    if ( 0 == dash::myid() ) { cout << "   new scaleupdown: " << success << endl; }
     allsuccess &= success;
+    */
 
     if ( 0 == dash::myid() ) { cout << "all tests: " << allsuccess << endl; }
 
