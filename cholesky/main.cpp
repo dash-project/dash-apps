@@ -228,13 +228,11 @@ void fill_random(TiledMatrix &matrix)
     *it = (rand())%(rand_max);
   }
 #endif
-  // below causes invalid write!
-  /*
-  dash::generate(
-    matrix.begin(),
-    matrix.end(),
-    [&](){ return (rand())%(rand_max); });
-  */
+  // add to diagonal
+  size_t ext = matrix.extent(0);
+  for (size_t i = 0; i < ext; ++i) {
+    if (matrix(i, i).is_local()) matrix(i, i) = ext;
+  }
 }
 
 static
