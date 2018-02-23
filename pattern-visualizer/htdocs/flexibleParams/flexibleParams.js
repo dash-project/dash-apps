@@ -264,7 +264,7 @@ flexibleParams.truncateSelectionValueParams = function (value) {
  *  tab
  *  br - meta
  */
-flexibleParams.createParam = function (param,quantityPosition,root,linebreak) {
+flexibleParams.createParam = function (param,quantityPosition,root,ancestor,linebreak) {
   var quantity = param.quantity;
   var result = undefined;
   if(linebreak == undefined) {
@@ -272,7 +272,7 @@ flexibleParams.createParam = function (param,quantityPosition,root,linebreak) {
   }
   switch(param.type) {
     case "group":       // fieldset
-      result = flexibleParams.createGroup(param,quantityPosition,root,linebreak);
+      result = flexibleParams.createGroup(param,quantityPosition,root,ancestor,linebreak);
       break;
     case "text":
     case "password":
@@ -283,7 +283,7 @@ flexibleParams.createParam = function (param,quantityPosition,root,linebreak) {
       if(quantity == undefined ||
          (isNaN(quantity) && root.querySelector("#"+quantity) == null)
         ) {
-        result = flexibleParams.createInputParam(param,quantityPosition,linebreak);
+        result = flexibleParams.createInputParam(param,quantityPosition,ancestor,linebreak);
         break;
       }/* else {
         // see else branch in next case
@@ -296,14 +296,14 @@ flexibleParams.createParam = function (param,quantityPosition,root,linebreak) {
       if(quantity == undefined ||
          (isNaN(quantity) && root.querySelector("#"+quantity) == null)
         ) {
-        result = flexibleParams.createSelection(param,quantityPosition,linebreak);
+        result = flexibleParams.createSelection(param,quantityPosition,root,ancestor,linebreak);
       } else {
         var tmpGroup = {"name":        param.name+"_quantityGroup",
                         "content":    [param],
                         "quantity":    param.quantity,
                         "maxQuantity": param.maxQuantity};
         param.quantity = undefined;
-        result = flexibleParams.createGroup(tmpGroup,quantityPosition,root,linebreak);
+        result = flexibleParams.createGroup(tmpGroup,quantityPosition,root,ancestor,linebreak);
         param.quantity = quantity;
       }
       break;
@@ -320,7 +320,7 @@ flexibleParams.createParam = function (param,quantityPosition,root,linebreak) {
 /**
  * creates a group (fieldset) with the specified contents and quantity
  */
-flexibleParams.createGroup = function (param,quantityPosition,root,linebreak) {
+flexibleParams.createGroup = function (param,quantityPosition,root,ancestor,linebreak) {
   var quantity = param.quantity;
   if(quantityPosition == undefined) {
     quantityPosition = [];
@@ -341,6 +341,9 @@ flexibleParams.createGroup = function (param,quantityPosition,root,linebreak) {
 
   if(root == undefined) {
     root = group;
+  }
+  if(ancestor != undefined) {
+    ancestor.appendChild(group);
   }
 
   var quantityCount;
@@ -393,10 +396,10 @@ flexibleParams.createGroup = function (param,quantityPosition,root,linebreak) {
 
     // Main for loop that creates the content parameter
     for(var i = 0; i < param.content.length; i++) {
-      var paramElem = flexibleParams.createParam(param.content[i],subgroupQuantityPosition,root,linebreak);
-      if(paramElem != undefined) {
+      var paramElem = flexibleParams.createParam(param.content[i],subgroupQuantityPosition,root,group,linebreak);
+      /*if(paramElem != undefined) {
         group.appendChild(paramElem);
-      }
+      }*/
     }
 
     if(quantityDynamic) {
@@ -419,7 +422,7 @@ flexibleParams.createGroup = function (param,quantityPosition,root,linebreak) {
 /**
  * creates a input field in a container with specified type and values
  */
-flexibleParams.createInputParam = function (param, quantityPosition, linebreak) {
+flexibleParams.createInputParam = function (param,quantityPosition,ancestor,linebreak) {
   var name = param.name;
   var type = param.type;
   var value = param.value;
@@ -448,6 +451,10 @@ flexibleParams.createInputParam = function (param, quantityPosition, linebreak) 
   if(linebreak.val) {
     cont.setAttribute("class","flexibleParams_container"+" flexibleParams_linebreak");
     linebreak.val = false;
+  }
+
+  if(ancestor != undefined) {
+    ancestor.appendChild(cont);
   }
 
   if(type == "logrange") {
@@ -510,7 +517,7 @@ flexibleParams.createInput = function (name,type,value,min,max,step) {
 /**
  * creates a selection field with specified values
  */
-flexibleParams.createSelection = function (param, quantityPosition, linebreak) {
+flexibleParams.createSelection = function (param,quantityPosition,root,ancestor,linebreak) {
   var name = param.name;
   var type = param.type;
   var values = param.values;
@@ -547,6 +554,10 @@ flexibleParams.createSelection = function (param, quantityPosition, linebreak) {
     linebreak.val = false;
   }
   cont.setAttribute("class","flexibleParams_container");
+
+  if(ancestor != undefined) {
+    ancestor.appendChild(set);
+  }
 
   if(param.label) {
     var label = document.createElement("label");
@@ -660,7 +671,10 @@ flexibleParams.createSelection = function (param, quantityPosition, linebreak) {
                ) {
         tmpGroup.content = value[tmpI].params;
       }
-      set.appendChild(flexibleParams.createGroup(tmpGroup, quantityPosition));
+      if(type == "tab") {
+        linebreak.val = true;
+      }
+      flexibleParams.createGroup(tmpGroup,quantityPosition,root,set,linebreak);
     }
 
     if(value != undefined &&
