@@ -21,11 +21,6 @@ dash::Shared<uint32_t>* filenumber;
 
 #endif /* WITHCSVOUTPUT */
 
-
-/* DEMOMODE allows to visualize the problem on the coarse grids but
-doesn't really do the multigrid algorithm */
-//#define DEMOMODE 1
-
 /* TODOs
 
 - add clean version of the code:
@@ -86,11 +81,6 @@ public:
     HaloT* src_halo;
     HaloT* dst_halo;
 
-#ifdef DEMOMODE
-
-    /* coefficients for the smoothing step in z, y, x directions */
-    double rz, ry, rx;
-#else /* DEMOMODE */
     /* this are the values of the 7 non-zero matrix values -- only 4 different values, though,
     because the matrix is symmetric */
     double acenter, ax, ay, az;
@@ -99,7 +89,6 @@ public:
     /* Diagonal element of matrix M, which is the inverse of the diagonal of matrix A. 
     This factor multiplies the defect in $ f - Au $. */
     double m;
-#endif /* DEMOMODE */
 
     /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
     double sz, sy, sx;
@@ -132,36 +121,6 @@ public:
         double hy= ly/(ny+1);
         double hx= lx/(nx+1);
 
-#ifdef DEMOMODE
-        /*
-        stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
-        */
-        double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
-        rz= dt/(hz*hz);
-        ry= dt/(hy*hy);
-        rx= dt/(hx*hx);
-
-        assert( rz <= 0.5 );
-        assert( ry <= 0.5 );
-        assert( rx <= 0.5 );
-
-        for ( uint32_t a= 0; a < team.size(); a++ ) {
-            if ( a == dash::myid() ) {
-
-                if ( 0 == a ) {
-                    cout << "Level " <<
-                        "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
-                        "in grid of " << nz << "*" << ny << "*" << nx <<
-                        " with team of " << team.size() << 
-                        " --> dt= " << dt << " r_= " << rz << "," << ry << "," << rx << endl;
-                }
-            }
-
-            team.barrier();
-        }
-#else /* DEMOMODE */
-
         /* This is the original setting for the linear system. */
 
         ax= -1.0/hx/hx;
@@ -188,8 +147,6 @@ public:
 
             team.barrier();
         }
-#endif /* DEMOMODE */
-
     }
 
     /***
@@ -217,34 +174,6 @@ public:
         sy= parent.sy;
         sx= parent.sx;
 
-#ifdef DEMOMODE
-        /*
-        stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
-        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2 */
-        double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
-        rz= dt/(hz*hz);
-        ry= dt/(hy*hy);
-        rx= dt/(hx*hx);
-
-        assert( rz <= 0.5 );
-        assert( ry <= 0.5 );
-        assert( rx <= 0.5 );
-
-        for ( uint32_t a= 0; a < team.size(); a++ ) {
-            if ( a == dash::myid() ) {
-
-                if ( 0 == a ) {
-                    cout << "Level with a parent level " <<
-                        "in grid of " << nz << "*" << ny << "*" << nx <<
-                        " with team of " << team.size() << 
-                        " --> h_= " << sqrt(hhz) << "," << sqrt(hhy) << "," << sqrt(hhx) << endl;
-                }
-            }
-
-            team.barrier();
-        }
-
-#else /* DEMOMODE */
         ax= parent.ax;
         ay= parent.ay;
         az= parent.az;
@@ -266,9 +195,6 @@ public:
 
             team.barrier();
         }
-#endif /* DEMOMODE */
-
-
     }
 
     Level() = delete;
@@ -998,11 +924,6 @@ void scaledownboundary( Level& fine, Level& coarse ) {
 
 void scaledown( Level& fine, Level& coarse ) {
 
-#ifdef DEMOMODE
-    MatrixT& finegrid= *fine.src_grid;
-    MatrixT& coarsegrid= *coarse.src_grid;
-#else /* DEMOMODE */
-
     MatrixT& finegrid= *fine.src_grid;
     MatrixT& fine_rhs_grid= *fine.rhs_grid;
     MatrixT& coarsegrid= *coarse.src_grid;
@@ -1013,8 +934,6 @@ void scaledown( Level& fine, Level& coarse ) {
     double az= fine.az;
     double ac= fine.acenter;
     double ff= fine.ff;
-
-#endif /* DEMOMODE */
 
     uint64_t par= finegrid.team().size();
     uint64_t param= finegrid.local.extent(0)*finegrid.local.extent(1)*finegrid.local.extent(2);
@@ -1043,12 +962,6 @@ void scaledown( Level& fine, Level& coarse ) {
     assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
-#ifdef DEMOMODE
-    /* do 'straigth injection', that is a coarse-grid element just takes the 
-    value of the matching fine grid element without considering shares from the 
-    neighbor elements on the fine grid. Alternatives would be full-weighting or 
-    half-weighting but they would require halo access. */
-#else /* DEMOMODE */
     /* Here we  $ r= f - Au $ on the fine grid and 'straigth injection' to the 
     rhs of the coarser grid in one. Therefore, we don't need a halo of the fine 
     grid, because the stencil neighbor points on the fine grid are always there 
@@ -1058,37 +971,24 @@ void scaledown( Level& fine, Level& coarse ) {
     1998/99, Version 1.1 by Christian Wagner http://www.mgnet.org/mgnet/papers/Wagner/amgV11.pdf) 
     there should by an extra factor 1/2^3 for the coarse value. But this doesn't seem to work, 
     factor 4.0 works much better. */
-#endif /* DEMOMODE */
-
-coarsegrid.barrier();
 
     /* this is the plain and simple and slow version. do optimization by pointer 
     arithmethic later. */
     for ( size_t z= 0; z < extentc[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] ; y++ ) {
             for ( size_t x= 0; x < extentc[2]; x++ ) {
-#ifdef DEMOMODE
-                coarsegrid.local[z][y][x]= finegrid.local[2*z+1][2*y+1][2*x+1];
-#else /* DEMOMODE */
                 coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid[2*z+1][2*y+1][2*x+0] + finegrid[2*z+1][2*y+1][2*x+2] ) -
                     ay * ( finegrid[2*z+1][2*y+0][2*x+1] + finegrid[2*z+1][2*y+2][2*x+1] ) -
                     az * ( finegrid[2*z+0][2*y+1][2*x+1] + finegrid[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid[2*z+1][2*y+1][2*x+1]);
-#endif /* DEMOMODE */
             }
         }
     }
 
-coarsegrid.barrier();
-
-#ifdef DEMOMODE
-#else /* DEMOMODE */
     /* set coarse grid to 0.0 */
     dash::fill( coarsegrid.begin(), coarsegrid.end(), 0.0 );
-#endif /* DEMOMODE */
-
 
     minimon.stop( "scaledown", par, param );
 }
@@ -1145,10 +1045,6 @@ void scaleup( Level& coarse, Level& fine ) {
 
     /* 2) first set fine grid to 0.0, becasue afterwards there are 
     multiple += operations per fine grid element */
-
-#ifdef DEMOMODE
-    dash::fill( finegrid.begin(), finegrid.end(), 0.0 );
-#endif /* DEMOMODE */
 
     /* 3) second loop over the coarse grid and add the contributions to the 
     fine grid elements */
@@ -2391,15 +2287,6 @@ double smoothen( Level& level, Allreduce& res ) {
 
     double localres= 0.0;
 
-
-#ifdef DEMOMODE
-    double rz= level.rz;
-    double ry= level.ry;
-    double rx= level.rx;
-    double rs= rz+ry+rx;
-    /// relaxation coeff.
-    const double c= 1.0;
-#else /* DEMOMODE */
     double ax= level.ax;
     double ay= level.ay;
     double az= level.az;
@@ -2408,7 +2295,6 @@ double smoothen( Level& level, Allreduce& res ) {
     double m= level.m;
 
     const double c= 1.0;
-#endif /* DEMOMODE */
 
     // async halo update
     level.src_halo->update_async();
@@ -2446,14 +2332,6 @@ double smoothen( Level& level, Allreduce& res ) {
                 stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
                 dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
                 */
-#ifdef DEMOMODE
-                double dtheta=
-                    *p_east * rx + *p_west * rx +
-                    *p_north * ry + *p_south * ry +
-                    *p_up * rz + *p_down * rz -
-                    *p_core * 2 * rs;
-                *p_new= *p_core + c * dtheta;
-#else /* DEMOMODE */
                 double dtheta= m * (
                     ff * *p_rhs -
                     ax * ( *p_east + *p_west ) -
@@ -2461,7 +2339,6 @@ double smoothen( Level& level, Allreduce& res ) {
                     az * ( *p_up + *p_down ) -
                     ac * *p_core );
                 *p_new= *p_core + c * dtheta;
-#endif /* DEMOMODE */
 
                 localres= std::max( localres, std::fabs( dtheta ) );
 
@@ -2510,14 +2387,6 @@ double smoothen( Level& level, Allreduce& res ) {
     // update border area
     for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
 
-#ifdef DEMOMODE
-        double dtheta=
-            it.value_at(4) * rx + it.value_at(5) * rx +
-            it.value_at(2) * ry + it.value_at(3) * ry +
-            it.value_at(0) * rz + it.value_at(1) * rz -
-            *it * 2 * rs ;
-        grid_local_begin[ it.lpos() ]= *it + c * dtheta;
-#else /* DEMOMODE */
         double dtheta= m * ( 
             ff * rhs_grid_local_begin[ it.lpos() ] -
             ax * ( it.value_at(4) + it.value_at(5) ) -
@@ -2525,7 +2394,6 @@ double smoothen( Level& level, Allreduce& res ) {
             az * ( it.value_at(0) + it.value_at(1) ) -
             ac * *it );
         grid_local_begin[ it.lpos() ]= *it + c * dtheta;
-#endif /* DEMOMODE */
 
         localres= std::max( localres, std::fabs( dtheta ) );
     }
@@ -2553,7 +2421,7 @@ double smoothen( Level& level, Allreduce& res ) {
     return oldres;
 }
 
-#define DETAILOUTPUT 1
+//#define DETAILOUTPUT 1
 
 template<typename Iterator>
 void v_cycle( Iterator it, Iterator itend,
@@ -2761,12 +2629,7 @@ if ( 0 == dash::myid()  ) {
 
     j= 0;
     res.reset( (*it)->src_grid->team() );
-#ifdef DEMOMODE
-    /* in DEMOMODE smoothen completely */
-    while ( res.get() > epsilon ) {
-#else /* DEMOMODE */
     while ( res.get() > epsilon && j < numiter ) {
-#endif /* DEMOMODE */
 
         /* need global residual for iteration count */
         smoothen( **it, res );
@@ -2964,12 +2827,7 @@ if ( 0 == dash::myid()  ) {
 
     j= 0;
     res.reset( (*it)->src_grid->team() );
-#ifdef DEMOMODE
-    /* in DEMOMODE smoothen completely */
-    while ( res.get() > epsilon ) {
-#else /* DEMOMODE */
     while ( res.get() > epsilon && j < numiter ) {
-#endif /* DEMOMODE */
 
         /* need global residual for iteration count */
         smoothen( **it, res );
@@ -3043,12 +2901,7 @@ if ( 0 == dash::myid()  ) {
 
     j= 0;
     res.reset( (*it)->src_grid->team() );
-#ifdef DEMOMODE
-    /* in DEMOMODE smoothen completely */
-    while ( res.get() > epsilon ) {
-#else /* DEMOMODE */
     while ( res.get() > epsilon && j < numiter ) {
-#endif /* DEMOMODE */
 
         /* need global residual for iteration count */
         smoothen( **it, res );
@@ -3218,13 +3071,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
         makes the entire multigrid algorithm misbehave. */
         //scaledownboundary( previouslevel, *levels.back() );
 
-#ifdef DEMOMODE
-        /* as a test do initboundary instead of scaledownboundary to make it
-        identical to the elastic case */
-        initboundary( *levels.back() );
-#else /* DEMOMODE */
         initboundary_zero( *levels.back() );
-#endif /* DEMOMODE */
 
         dash::barrier();
         --howmanylevels;
@@ -3389,11 +3236,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
                                ((1<<(howmanylevels+1))-1)*factor_y,
                                ((1<<(howmanylevels+1))-1)*factor_x,
                                currentteam, localteamspec ) );
-#ifdef DEMOMODE
-                initboundary( *levels.back() );
-#else /* DEMOMODE */
                 initboundary_zero( *levels.back() );
-#endif /* DEMOMODE */
             }
 
             //cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
@@ -3424,13 +3267,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
                            ((1<<(howmanylevels))-1)*factor_x ,
                            currentteam, localteamspec ) );
 
-#if DEMOMODE
-            /* should use scaledownboundary() but it is more complicated here
-            ... let's find out which is better in the end */
-            initboundary( *levels.back() );
-#else /* DEMOMODE */
             initboundary_zero( *levels.back() );
-#endif /* DEMOMODE */
 
         } else {
 
