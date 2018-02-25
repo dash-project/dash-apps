@@ -18,6 +18,7 @@ even in elastic mode when some units take part in some iterations
 and some do not. Having everyone ++ it individually won't work anymore. */
 dash::Shared<uint32_t>* filenumber;
 
+
 #endif /* WITHCSVOUTPUT */
 
 
@@ -90,7 +91,14 @@ public:
     /* coefficients for the smoothing step in z, y, x directions */
     double rz, ry, rx;
 #else /* DEMOMODE */
-    double hhz, hhy, hhx;
+    /* this are the values of the 7 non-zero matrix values -- only 4 different values, though,
+    because the matrix is symmetric */
+    double acenter, ax, ay, az;
+    /* this is the factor for the right hand side, which is 0 at the finest grid. */
+    double ff;
+    /* Diagonal element of matrix M, which is the inverse of the diagonal of matrix A. 
+    This factor multiplies the defect in $ f - Au $. */
+    double m;
 #endif /* DEMOMODE */
 
     /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
@@ -129,7 +137,7 @@ public:
         stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
         dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2
         */
-double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
+        double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
         rz= dt/(hz*hz);
         ry= dt/(hy*hy);
         rx= dt/(hx*hx);
@@ -153,9 +161,17 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
             team.barrier();
         }
 #else /* DEMOMODE */
-        hhz= hz*hz;
-        hhy= hy*hy;
-        hhx= hx*hx;
+
+        /* This is the original setting for the linear system. */
+
+        ax= -1.0/hx/hx;
+        ay= -1.0/hy/hy;
+        az= -1.0/hz/hz;
+        acenter= -2.0*(ax+ay+az);
+        m= 1.0 / acenter;
+
+        ff= 1.0; /* factor for right-hand-side */
+
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
 
@@ -163,14 +179,15 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
                     cout << "Level " <<
                         "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
                         "in grid of " << nz << "*" << ny << "*" << nx <<
+                        " h_= " << hz << "," << hy << "," << hx <<
                         " with team of " << team.size() << 
-                        " --> h_= " << hz << "," << hy << "," << hx << endl;
+                        " --> a_= " << acenter << "," << ax << "," << ay << "," << az << 
+                        " , m= " << m << " , ff= " << ff <<endl;
                 }
             }
 
             team.barrier();
         }
-
 #endif /* DEMOMODE */
 
     }
@@ -213,12 +230,6 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
         assert( ry <= 0.5 );
         assert( rx <= 0.5 );
 
-#else /* DEMOMODE */
-        hhz= parent.hhz;
-        hhy= parent.hhy;
-        hhx= parent.hhx;
-#endif /* DEMOMODE */
-
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
 
@@ -232,6 +243,31 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
 
             team.barrier();
         }
+
+#else /* DEMOMODE */
+        ax= parent.ax;
+        ay= parent.ay;
+        az= parent.az;
+        acenter= parent.acenter;
+        ff= parent.ff;
+        m= parent.m;
+
+        for ( uint32_t a= 0; a < team.size(); a++ ) {
+            if ( a == dash::myid() ) {
+
+                if ( 0 == a ) {
+                    cout << "Level with a parent level " <<
+                        "in grid of " << nz << "*" << ny << "*" << nx <<
+                        " with team of " << team.size() << 
+                        " --> a_= " << acenter << "," << ax << "," << ay << "," << az <<
+                        " , m= " << m << " , ff= " << ff << endl;
+                }
+            }
+
+            team.barrier();
+        }
+#endif /* DEMOMODE */
+
 
     }
 
@@ -247,13 +283,16 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
     /* to be called by the master unit alone */
     void printout() {
 
+        src_grid->barrier();
+
         auto n= src_grid->extents();
 
         for ( size_t z= 0; z < n[0]; ++z ) {
+            cout << z << ")" << endl;
             for ( size_t y= 0; y < n[1]; ++y ) {
                 for ( size_t x= 0; x < n[2]; ++x ) {
 
-                    cout << std::setprecision(3) << (double) (*src_grid)[z][y][x] << " ";
+                    cout << std::setprecision(5) << (double) (*src_grid)[z][y][x] << " ";
                 }
                 cout << endl;
             }
@@ -265,13 +304,16 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
     /* to be called by the master unit alone */
     void printout_dst() {
 
-        auto n= rhs_grid->extents();
+        dst_grid->barrier();
+
+        auto n= dst_grid->extents();
 
         for ( size_t z= 0; z < n[0]; ++z ) {
+            cout << z << ")" << endl;
             for ( size_t y= 0; y < n[1]; ++y ) {
                 for ( size_t x= 0; x < n[2]; ++x ) {
 
-                    cout << std::setprecision(3) << (double) (*dst_grid)[z][y][x] << " ";
+                    cout << std::setprecision(5) << (double) (*dst_grid)[z][y][x] << " ";
                 }
                 cout << endl;
             }
@@ -283,13 +325,16 @@ double dt= 0.5 * std::min( hz*hz, std::min( hy*hy, hx*hx ) );
     /* to be called by the master unit alone */
     void printout_rhs() {
 
-        auto n= src_grid->extents();
+        rhs_grid->barrier();
+
+        auto n= rhs_grid->extents();
 
         for ( size_t z= 0; z < n[0]; ++z ) {
+            cout << z << ")" << endl;
             for ( size_t y= 0; y < n[1]; ++y ) {
                 for ( size_t x= 0; x < n[2]; ++x ) {
 
-                    cout << std::setprecision(3) << (double) (*rhs_grid)[z][y][x] << " ";
+                    cout << std::setprecision(5) << (double) (*rhs_grid)[z][y][x] << " ";
                 }
                 cout << endl;
             }
@@ -714,7 +759,7 @@ void sanitycheck( const MatrixT& grid  ) {
 void initgrid( Level& level ) {
 
     /* not strictly necessary but it also avoids NAN values */
-    dash::fill( level.src_grid->begin(), level.src_grid->end(), 0.0 );
+    dash::fill( level.src_grid->begin(), level.src_grid->end(), 5.0 );
     dash::fill( level.dst_grid->begin(), level.dst_grid->end(), 0.0 );
     dash::fill( level.rhs_grid->begin(), level.rhs_grid->end(), 0.0 );
 
@@ -963,9 +1008,11 @@ void scaledown( Level& fine, Level& coarse ) {
     MatrixT& coarsegrid= *coarse.src_grid;
     MatrixT& coarse_rhs_grid= *coarse.rhs_grid;
 
-    double hhz= fine.hhz;
-    double hhy= fine.hhy;
-    double hhx= fine.hhx;
+    double ax= fine.ax;
+    double ay= fine.ay;
+    double az= fine.az;
+    double ac= fine.acenter;
+    double ff= fine.ff;
 
 #endif /* DEMOMODE */
 
@@ -1005,8 +1052,15 @@ void scaledown( Level& fine, Level& coarse ) {
     /* Here we  $ r= f - Au $ on the fine grid and 'straigth injection' to the 
     rhs of the coarser grid in one. Therefore, we don't need a halo of the fine 
     grid, because the stencil neighbor points on the fine grid are always there 
-    for a coarse grid point. Nice, isn't it? */
+    for a coarse grid point. 
+    According to the text book (Introduction to Algebraic Multigrid -- Course notes 
+    of an algebraic multigrid course at univertisty of Heidelberg in Wintersemester 
+    1998/99, Version 1.1 by Christian Wagner http://www.mgnet.org/mgnet/papers/Wagner/amgV11.pdf) 
+    there should by an extra factor 1/2^3 for the coarse value. But this doesn't seem to work, 
+    factor 4.0 works much better. */
 #endif /* DEMOMODE */
+
+coarsegrid.barrier();
 
     /* this is the plain and simple and slow version. do optimization by pointer 
     arithmethic later. */
@@ -1016,16 +1070,18 @@ void scaledown( Level& fine, Level& coarse ) {
 #ifdef DEMOMODE
                 coarsegrid.local[z][y][x]= finegrid.local[2*z+1][2*y+1][2*x+1];
 #else /* DEMOMODE */
-                coarse_rhs_grid.local[z][y][x]= /* hhz * */ /* hhz as placeholder assuming hhz==hhy==hhx */ (
-                    fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] +
-                    finegrid[2*z+1][2*y+1][2*x+0] + finegrid[2*z+1][2*y+1][2*x+2] +
-                    finegrid[2*z+1][2*y+0][2*x+1] + finegrid[2*z+1][2*y+2][2*x+1] +
-                    finegrid[2*z+0][2*y+1][2*x+1] + finegrid[2*z+2][2*y+1][2*x+1] -
-                    6.0 * finegrid[2*z+1][2*y+1][2*x+1] );
+                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                    ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
+                    ax * ( finegrid[2*z+1][2*y+1][2*x+0] + finegrid[2*z+1][2*y+1][2*x+2] ) -
+                    ay * ( finegrid[2*z+1][2*y+0][2*x+1] + finegrid[2*z+1][2*y+2][2*x+1] ) -
+                    az * ( finegrid[2*z+0][2*y+1][2*x+1] + finegrid[2*z+2][2*y+1][2*x+1] ) -
+                    ac * finegrid[2*z+1][2*y+1][2*x+1]);
 #endif /* DEMOMODE */
             }
         }
     }
+
+coarsegrid.barrier();
 
 #ifdef DEMOMODE
 #else /* DEMOMODE */
@@ -1035,75 +1091,6 @@ void scaledown( Level& fine, Level& coarse ) {
 
 
     minimon.stop( "scaledown", par, param );
-}
-
-
-/* this version of the prolongation from the coarse grid to the fine grid is flawed! */
-// void scaleup( MatrixT& coarsegrid, MatrixT& finegrid ) {
-void scaleup_old( Level& coarse, Level& fine ) {
-
-    MatrixT& coarsegrid= *coarse.src_grid;
-    MatrixT& finegrid= *fine.src_grid;
-
-    uint64_t par= coarsegrid.team().size();
-    uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
-
-    // scaleup
-    minimon.start();
-
-    assert( coarsegrid.extent(2) * 2 == finegrid.extent(2) );
-    assert( coarsegrid.extent(1) * 2 == finegrid.extent(1) );
-    assert( coarsegrid.extent(0) * 2 == finegrid.extent(0) );
-
-    const auto& extentc= coarsegrid.pattern().local_extents();
-    const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
-    const auto& extentf= finegrid.pattern().local_extents();
-    const auto& cornerf= finegrid.pattern().global( {0,0,0} );
-
-    assert( cornerc[0] * 2 == cornerf[0] );
-    assert( cornerc[1] * 2 == cornerf[1] );
-    assert( cornerc[2] * 2 == cornerf[2] );
-
-    assert( 0 == cornerc[0] %2 );
-    assert( 0 == cornerc[1] %2 );
-    assert( 0 == cornerc[2] %2 );
-
-    assert( extentc[0] * 2 == extentf[0] );
-    assert( extentc[1] * 2 == extentf[1] );
-    assert( extentc[2] * 2 == extentf[2] );
-
-    auto* lbegin_fine = finegrid.lbegin();
-    auto next_layer = extentf[1] * extentf[2];
-    const double* __restrict p_coarse= coarsegrid.lbegin();
-    for ( size_t z= 0; z < extentc[0] ; z++ ) {
-        auto next_two_layer = 2*z*next_layer;
-        for ( size_t y= 0; y < extentc[1] ; y++ ) {
-            double* __restrict p_000= lbegin_fine + next_two_layer + 2*y*extentf[2]; // @DENIS: is this correct -- should it not be increased at the end of the x-loop? 
-            double* __restrict p_010= p_000 + extentf[2];
-            double* __restrict p_100= p_000 + next_layer;
-            double* __restrict p_110= p_100 + extentf[2];
-
-            for ( size_t x= 0; x < extentc[2]; x++ ) {
-
-                *(p_000+0)= *p_coarse;
-                *(p_000+1)= *p_coarse;
-                *(p_010+0)= *p_coarse;
-                *(p_010+1)= *p_coarse;
-                *(p_100+0)= *p_coarse;
-                *(p_100+1)= *p_coarse;
-                *(p_110+0)= *p_coarse;
-                *(p_110+1)= *p_coarse;
-
-                ++p_coarse;
-                p_000 += 2;
-                p_010 += 2;
-                p_100 += 2;
-                p_110 += 2;
-            }
-        }
-    }
-
-    minimon.stop( "scaleup", par, param );
 }
 
 
@@ -1170,7 +1157,6 @@ void scaleup( Level& coarse, Level& fine ) {
     try to apply the optimization from scaleup_old() again -- see above.
     Make sure that this was correct though. And write down some good comment
     why it is correct! */
-
 
     for ( size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
         for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
@@ -2414,7 +2400,13 @@ double smoothen( Level& level, Allreduce& res ) {
     /// relaxation coeff.
     const double c= 1.0;
 #else /* DEMOMODE */
-    /* temporary assuming h is the same in all dimensions */
+    double ax= level.ax;
+    double ay= level.ay;
+    double az= level.az;
+    double ac= level.acenter;
+    double ff= level.ff;
+    double m= level.m;
+
     const double c= 1.0;
 #endif /* DEMOMODE */
 
@@ -2462,12 +2454,12 @@ double smoothen( Level& level, Allreduce& res ) {
                     *p_core * 2 * rs;
                 *p_new= *p_core + c * dtheta;
 #else /* DEMOMODE */
-                double dtheta= 1.0/6.0 * ( 
-                    *p_rhs +
-                    *p_east + *p_west +
-                    *p_north + *p_south +
-                    *p_up + *p_down -
-                    6.0 * *p_core );
+                double dtheta= m * (
+                    ff * *p_rhs -
+                    ax * ( *p_east + *p_west ) -
+                    ay * ( *p_north + *p_south ) -
+                    az * ( *p_up + *p_down ) -
+                    ac * *p_core );
                 *p_new= *p_core + c * dtheta;
 #endif /* DEMOMODE */
 
@@ -2526,13 +2518,12 @@ double smoothen( Level& level, Allreduce& res ) {
             *it * 2 * rs ;
         grid_local_begin[ it.lpos() ]= *it + c * dtheta;
 #else /* DEMOMODE */
-
-        double dtheta= 1.0/6.0 * ( 
-            rhs_grid_local_begin[ it.lpos() ] +
-            it.value_at(0) + it.value_at(1) +
-            it.value_at(2) + it.value_at(3) +
-            it.value_at(4) + it.value_at(5) -
-            6.0 * *it );
+        double dtheta= m * ( 
+            ff * rhs_grid_local_begin[ it.lpos() ] -
+            ax * ( it.value_at(4) + it.value_at(5) ) -
+            ay * ( it.value_at(2) + it.value_at(3) ) -
+            az * ( it.value_at(0) + it.value_at(1) ) -
+            ac * *it );
         grid_local_begin[ it.lpos() ]= *it + c * dtheta;
 #endif /* DEMOMODE */
 
@@ -2562,7 +2553,7 @@ double smoothen( Level& level, Allreduce& res ) {
     return oldres;
 }
 
-//#define DETAILOUTPUT 1
+#define DETAILOUTPUT 1
 
 template<typename Iterator>
 void v_cycle( Iterator it, Iterator itend,
@@ -3103,16 +3094,31 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
 
         smoothen( level, res );
         j++;
+        if ( ( 0 == dash::myid() ) && ( 0 == j % 100 ) ) {
+            cout << j << " smoothen finest, residual " << res.get() << "    "<< fflush << "\r";
+        }
+
     }
     if ( 0 == dash::myid() ) {
         cout << "smoothing: " << j << " steps finest with residual " << res.get() << endl;
     }
 
+/////////////////////////////////////////
+#ifdef DETAILOUTPUT
+if ( 0 == dash::myid()  ) {
+    cout << "== after final smoothing ==" << endl;
+    cout << "  src_grid" << endl;
+    level.printout();
+    cout << "  rhs_grid" << endl;
+    level.printout_rhs();
+}
+#endif /* DETAILOUTPUT */
+
     minimon.stop( "smooth_final", par );
 }
 
 
-void do_multigrid_iteration( uint32_t howmanylevels ) {
+void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
     SCOREP_USER_FUNC()
 
     // setup
@@ -3247,33 +3253,27 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
     v_cycle( levels.begin(), levels.end(), 2, 0.1, res );
     dash::Team::All().barrier();
 
-
-    if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.01 << endl << endl;
-    }
-    v_cycle( levels.begin(), levels.end(), 2, 0.01, res );
-    dash::Team::All().barrier();
 */
+    int n= 20;
+for ( int v=0; v < 2; ++v ) {
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "start v-cycle with res " << eps << endl << endl;
+    }
+    v_cycle( levels.begin(), levels.end(), n, eps, res );
+    dash::Team::All().barrier();
+}
 /*
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 1.0e-7 << endl << endl;
+        cout << endl << "start w-cycle with res " << eps << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 20, 1.0e-7, res );
+    w_cycle( levels.begin(), levels.end(), n, eps, res );
     dash::Team::All().barrier();
 */
-    if ( 0 == dash::myid()  ) {
-        cout << endl << "start w-cycle with res " << 1.0e-7 << endl << endl;
-    }
-    w_cycle( levels.begin(), levels.end(), 20, 1.0e-7, res );
-    dash::Team::All().barrier();
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start w-cycle with res " << 1.0e-7 << endl << endl;
+        cout << endl << "final smoothing with res " << eps << endl << endl;
     }
-    w_cycle( levels.begin(), levels.end(), 20, 1.0e-7, res );
-    dash::Team::All().barrier();
-
-    smoothen_final( *levels.front(), 1.0e-3, res );
+    smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
@@ -3289,7 +3289,7 @@ void do_multigrid_iteration( uint32_t howmanylevels ) {
 
 
 /* elastic mode runs but still seems to have errors in it */
-void do_multigrid_elastic( uint32_t howmanylevels ) {
+void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
 
     // setup
     minimon.start();
@@ -3479,9 +3479,9 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 */
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.001 << endl << endl;
+        cout << endl << "start v-cycle with res " << eps << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 4, 0.001, res );
+    v_cycle( levels.begin(), levels.end(), 4, eps, res );
     dash::Team::All().barrier();
 
 
@@ -3499,7 +3499,7 @@ void do_multigrid_elastic( uint32_t howmanylevels ) {
 }
 
 
-void do_flat_iteration( uint32_t howmanylevels ) {
+void do_flat_iteration( uint32_t howmanylevels, double eps ) {
 
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -3547,21 +3547,21 @@ void do_flat_iteration( uint32_t howmanylevels ) {
     Allreduce res( dash::Team::All() );
 
     uint32_t j= 0;
-    double epsilon= 0.01;
-    while ( res.get() > epsilon && j < 1000 ) {
+    while ( res.get() > eps && j < 100000 ) {
 
         smoothen( *level, res );
 
-        if ( 0 == dash::myid() /* && ( 1 == j % 10 ) */ ) {
-            cout << j << ": smoothen grid with residual " << res.get() << endl;
-        }
-
-        if ( 0 == j % 10 ) {
+        if ( 0 == j % 100 ) {
             writeToCsv( *level );
         }
 
         j++;
+
+        if ( 0 == dash::myid() && ( 0 == j % 100 ) ) {
+            cout << j << ": smoothen grid with residual " << res.get() << endl;
+        }
     }
+    writeToCsv( *level );
 
     minimon.stop( "flat_iteration", dash::Team::All().size() );
 
@@ -3904,6 +3904,7 @@ int main( int argc, char* argv[] ) {
     bool do_flatsolver= false;
     bool do_elastic= false;
     uint32_t howmanylevels= 5;
+    double epsilon= 1.0e-3;
 
     for ( int a= 1; a < argc; a++ ) {
 
@@ -3943,6 +3944,15 @@ int main( int argc, char* argv[] ) {
                 cout << "do multigrid iteration with changing number of units per grid" << endl;
             }
 
+        } else if ( 0 == strncmp( "--eps", argv[a], 5  ) && ( a+1 < argc ) ) {
+
+            epsilon= atof( argv[a+1] );
+            ++a;
+            if ( 0 == dash::myid() ) {
+
+                cout << "using epsilon " << epsilon << endl;
+            }
+
         } else {
 
             /* otherwise interpret as number of grid levels to employ */
@@ -3963,15 +3973,15 @@ int main( int argc, char* argv[] ) {
 
     } else if ( do_flatsolver ) {
 
-        do_flat_iteration( howmanylevels );
+        do_flat_iteration( howmanylevels, epsilon );
 
     } else if ( do_elastic ) {
 
-        do_multigrid_elastic( howmanylevels );
+        do_multigrid_elastic( howmanylevels, epsilon );
 
     } else {
 
-        do_multigrid_iteration( howmanylevels );
+        do_multigrid_iteration( howmanylevels, epsilon );
     }
 
 #ifdef WITHCSVOUTPUT
