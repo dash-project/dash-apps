@@ -917,7 +917,6 @@ void scaledownboundary( Level& fine, Level& coarse ) {
 
 
 void scaledown( Level& fine, Level& coarse ) {
-
     using signed_size_t = typename std::make_signed<size_t>::type;
 
     MatrixT& finegrid= *fine.src_grid;
@@ -968,6 +967,7 @@ void scaledown( Level& fine, Level& coarse ) {
     1998/99, Version 1.1 by Christian Wagner http://www.mgnet.org/mgnet/papers/Wagner/amgV11.pdf) 
     there should by an extra factor 1/2^3 for the coarse value. But this doesn't seem to work, 
     factor 4.0 works much better. */
+    double extra_factor= 4.0;
 
     /* 1) start async halo exchange for fine grid*/
     finehalo.update_async();
@@ -984,7 +984,7 @@ void scaledown( Level& fine, Level& coarse ) {
     for ( size_t z= 0; z < extentc[0] - sub[0] ; z++ ) {
         for ( size_t y= 0; y < extentc[1] - sub[1] ; y++ ) {
             for ( size_t x= 0; x < extentc[2] - sub[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
@@ -1011,79 +1011,80 @@ void scaledown( Level& fine, Level& coarse ) {
 
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {2*z+1,2*y+1,2*x+2} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
+
         /* access back halo in y direction for [2*y+2] */
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1] ; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2] ; x++ ) {
 
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {2*z+1,2*y+2,2*x+1} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {2*z+1,2*y+1,2*x+2} ) ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {2*z+1,2*y+2,2*x+1} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
+
     }
     /* access back halo in z direction for [2*z+2] */
     for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0] ; z++ ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1] ; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {2*z+2,2*y+1,2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {2*z+1,2*y+1,2*x+2} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {2*z+2,2*y+1,2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
         /* access back halo in y direction for [2*y+2] */
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1] ; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {2*z+1,2*y+2,2*x+1} ) ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {2*z+2,2*y+1,2*x+1} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
-                coarse_rhs_grid.local[z][y][x]= 4.0 * /* extra factor? */ ( 
+                coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ ( 
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {2*z+1,2*y+1,2*x+2} ) ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {2*z+1,2*y+2,2*x+1} ) ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {2*z+2,2*y+1,2*x+1} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
     }
-
 
     minimon.stop( "scaledown", par, param );
 }
@@ -2258,7 +2259,7 @@ void transfertofewer( Level& source /* with larger team*/, Level& dest /* with s
     /* should only be called by the smaller team */
     assert( 0 == dest.src_grid->team().position() );
 
-cout << "unit " << dash::myid() << " transfertofewer" << endl;
+    cout << "unit " << dash::myid() << " transfertofewer" << endl;
 
     /* we need to find the coordinates that the local unit needs to receive
     from several other units that are not in this team */
@@ -2296,8 +2297,11 @@ cout << "unit " << dash::myid() << " transfertofewer" << endl;
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
 
-            auto start= source.src_grid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
-            std::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
+            size_t offset= ((corner[0]+z)*sizes[1]+y)*sizes[2];
+            std::copy( source.src_grid->begin() + offset, source.src_grid->begin() + offset + sizes[2], 
+                &dest.src_grid->local[z][y][0] );
+            std::copy( source.rhs_grid->begin() + offset, source.rhs_grid->begin() + offset + sizes[2], 
+                &dest.rhs_grid->local[z][y][0] );
 
             //dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
@@ -2347,9 +2351,11 @@ cout << "unit " << dash::myid() << " transfertomore" << endl;
     for ( uint32_t z= 0; z < sizes[0]; z++ ) {
         for ( uint32_t y= 0; y < sizes[1]; y++ ) {
 
-            double* start= &source.src_grid->local[z][y][0];
-            auto to= dest.src_grid->begin() + ((corner[0]+z)*sizes[1]+y)*sizes[2];
-            std::copy( start, start + sizes[2], to );
+            size_t offset= ((corner[0]+z)*sizes[1]+y)*sizes[2];
+            std::copy( &source.src_grid->local[z][y][0], &source.src_grid->local[z][y][0] + sizes[2], 
+                dest.src_grid->begin() + offset );
+            std::copy( &source.rhs_grid->local[z][y][0], &source.rhs_grid->local[z][y][0] + sizes[2], 
+                dest.rhs_grid->begin() + offset );
 
             //dash::copy( start, start + sizes[2], &dest.src_grid->local[z][y][0] );
             //dash::copy( source.grid.begin()+40, source.grid.begin()+48, buf );
@@ -3201,13 +3207,13 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
 
 */
     int n= 20;
-for ( int v=0; v < 2; ++v ) {
-    if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << eps << endl << endl;
+    for ( int v=0; v < 2; ++v ) {
+        if ( 0 == dash::myid()  ) {
+            cout << endl << "start v-cycle with res " << eps << endl << endl;
+        }
+        v_cycle( levels.begin(), levels.end(), n, eps, res );
+        dash::Team::All().barrier();
     }
-    v_cycle( levels.begin(), levels.end(), n, eps, res );
-    dash::Team::All().barrier();
-}
 /*
     if ( 0 == dash::myid()  ) {
         cout << endl << "start w-cycle with res " << eps << endl << endl;
