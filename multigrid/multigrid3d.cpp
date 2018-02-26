@@ -642,39 +642,6 @@ void writeToCsv_full_grid( const Level& level ) {
 #endif /* WITHCSVOUTPUT */
 }
 
-#if 0
-void sanitycheck( const MatrixT& grid  ) {
-
-    /* check if the sum of the local extents of the matrix blocks sum up to
-    the global extents, abort otherwise */
-    dash::Array<size_t> sums( dash::Team::All().size(), dash::BLOCKED );
-    sums.local[0]= grid.local.extent(0) * grid.local.extent(1) * grid.local.extent(2);
-    sums.barrier();
-
-    if ( 0 != dash::myid() ) {
-
-        dash::transform<size_t>(
-            sums.lbegin(), sums.lend(), // first source
-            sums.begin(), // second source
-            sums.begin(), // destination
-            dash::plus<size_t>() );
-    }
-    sums.barrier();
-
-    if ( ( (size_t) sums[0] ) != grid.extent(0) * grid.extent(1) * grid.extent(2) ) {
-
-        if ( 0 == dash::myid() ) {
-            cout << "ERROR: size mismatch: global size is " <<
-                grid.extent(0) * grid.extent(1) * grid.extent(2) << " == " <<
-                grid.extent(0) << "x" << grid.extent(1) << "x" << grid.extent(2) <<
-                " but sum of local sizes is " << (size_t) sums[0] << std::flush << endl;
-        }
-
-        dash::finalize();
-        exit(0);
-    }
-}
-#endif /* 0 */
 
 void initgrid( Level& level ) {
 
@@ -3134,7 +3101,6 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
 
     /* only do initgrid on the finest level, use scaledownboundary for all others */
     initboundary( *levels.back() );
-    //sanitycheck( *levels.back()->src_grid );
 
     dash::barrier();
 
@@ -3296,7 +3262,6 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
 
     /* only do initgrid on the finest level, use caledownboundary for all others */
     initboundary( *levels.back() );
-//     sanitycheck( *levels.back()->src_grid );
 
     dash::barrier();
 
