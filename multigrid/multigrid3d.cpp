@@ -2492,6 +2492,161 @@ double smoothen( Level& level, Allreduce& res ) {
 //#define DETAILOUTPUT 1
 
 template<typename Iterator>
+void recursive_cycle( Iterator it, Iterator itend,
+        uint32_t beta, uint32_t gamma, double epsilon, Allreduce& res ) {
+    SCOREP_USER_FUNC()
+
+    Iterator itnext( it );
+    ++itnext;
+    /* reached end of recursion? */
+    if ( itend == itnext ) {
+
+        /* smoothen completely  */
+        uint32_t j= 0;
+        res.reset( (*it)->src_grid->team() );
+        while ( res.get() > epsilon ) {
+            /* need global residual for iteration count */
+            smoothen( **it, res );
+
+            j++;
+        }
+        if ( 0 == dash::myid()  ) {
+            cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
+        }
+        writeToCsv( **it );
+
+        return;
+    }
+
+    /* stepped on the dummy level? ... which is there to signal that it is not
+    the end of the parallel recursion on the coarsest level but a subteam is
+    going on to solve the coarser levels and this unit is not in that subteam.
+    ... sounds complicated, is complicated, change only if you know what you
+    are doing. */
+    if ( NULL == *itnext ) {
+
+        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
+        (*it)->src_grid->team().barrier();
+
+        cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
+
+        return;
+    }
+
+    /* stepped on a transfer level? */
+    if ( (*it)->src_grid->team().size() != (*itnext)->src_grid->team().size() ) {
+
+        /* only the members of the reduced team need to work, all others do siesta. */
+        //if ( 0 == (*itnext)->grid.team().position() )
+        assert( 0 == (*itnext)->src_grid->team().position() );
+        {
+
+            cout << "transfer to " <<
+                (*it)->src_grid->extent(2) << "x" <<
+                (*it)->src_grid->extent(1) << "x" <<
+                (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units "
+                " --> " <<
+                (*itnext)->src_grid->extent(2) << "x" <<
+                (*itnext)->src_grid->extent(1) << "x" <<
+                (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units " << endl;
+
+            transfertofewer( **it, **itnext );
+
+            /* don't apply a gamma != 1 here! */
+            recursive_cycle( itnext, itend, beta, gamma, epsilon, res );
+
+            cout << "transfer back " <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units "
+            " --> " <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units " <<  endl;
+
+            transfertomore( **itnext, **it );
+        }
+
+        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
+        (*it)->src_grid->team().barrier();
+
+
+        cout << "all meet again here: I'm active unit " << dash::myid() << endl;
+        return;
+    }
+
+
+    /* **** normal recursion **** **** **** **** **** **** **** **** **** */
+
+    /* smoothen fixed number of times */
+    uint32_t j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon && j < beta ) {
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+    }
+    if ( 0 == dash::myid()  ) {
+        cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
+    }
+
+    writeToCsv( **it );
+
+    /* scale down */
+    if ( 0 == dash::myid() ) {
+        cout << "scale down " <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) <<
+            " --> " <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) << endl;
+    }
+
+    scaledown( **it, **itnext );
+    writeToCsv( **itnext );
+
+    /* recurse  */
+    for ( uint32_t g= 0; g < gamma; ++g ) {
+        recursive_cycle( itnext, itend, beta, gamma, epsilon, res );
+    }
+
+    /* scale up */
+    if ( 0 == dash::myid() ) {
+        cout << "scale up " <<
+            (*itnext)->src_grid->extent(2) << "x" <<
+            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(0) <<
+            " --> " <<
+            (*it)->src_grid->extent(2) << "x" <<
+            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(0) << endl;
+    }
+    scaleup( **itnext, **it );
+    writeToCsv( **it );
+
+    j= 0;
+    res.reset( (*it)->src_grid->team() );
+    while ( res.get() > epsilon && j < beta ) {
+
+        /* need global residual for iteration count */
+        smoothen( **it, res );
+
+        j++;
+    }
+    if ( 0 == dash::myid() ) {
+        cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
+    }
+
+    writeToCsv( **it );
+}
+
+
+
+template<typename Iterator>
 void v_cycle( Iterator it, Iterator itend,
         uint32_t numiter, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
@@ -2897,6 +3052,7 @@ if ( 0 == dash::myid()  ) {
     /* recurse first */
     w_cycle( itnext, itend, numiter, epsilon, res );
 
+#if 0
     j= 0;
     res.reset( (*it)->src_grid->team() );
     while ( res.get() > epsilon && j < numiter ) {
@@ -2923,6 +3079,7 @@ if ( 0 == dash::myid()  ) {
 #endif /* DETAILOUTPUT */
 
     }
+#endif /* 0 */
     if ( 0 == dash::myid() ) {
         cout << "    smoothing in the middle " << j << " times with residual " << res.get() << endl;
     }
@@ -3177,7 +3334,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
         if ( 0 == dash::myid()  ) {
             cout << endl << "start v-cycle with res " << eps << endl << endl;
         }
-        v_cycle( levels.begin(), levels.end(), n, eps, res );
+        w_cycle( levels.begin(), levels.end(), n, eps, res );
         dash::Team::All().barrier();
     }
 /*
@@ -3810,8 +3967,20 @@ int main( int argc, char* argv[] ) {
     bool do_alltests= false;
     bool do_flatsolver= false;
     bool do_elastic= false;
+    bool do_old= false;
     uint32_t howmanylevels= 5;
+    uint32_t howmanylevels_minimum= 2;
     double epsilon= 1.0e-3;
+
+    /* alpha defines the number of v-cycles or w-cycles or whatever, 
+    0 == alpha means flat mode with only final smoothing
+    */
+    uint32_t alpha= 2;
+    /* beta is the number of smoothing steps between grids */
+    uint32_t beta= 20;
+    /* gamma is the number of recursive cycle calls, so 1 == gamma 
+    gives a v-cycle, 2 == gamma gives a w-cycle, you should not use more. */
+    uint32_t gamma= 1;
 
     for ( int a= 1; a < argc; a++ ) {
 
@@ -3886,9 +4055,142 @@ int main( int argc, char* argv[] ) {
 
         do_multigrid_elastic( howmanylevels, epsilon );
 
-    } else {
+    } else if ( do_old ) {
+
+        cout << "do_old" << endl;
 
         do_multigrid_iteration( howmanylevels, epsilon );
+
+    } else {
+
+        TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+        teamspec.balance_extents();
+
+        vector<Level*> levels;
+
+        /* construct hierarchy of levels according to command line parameters */
+
+        // setup grids
+        minimon.start();
+
+        /* finest level */
+
+        /* finest grid needs to be larger than 2*teamspec per dimension, 
+        that means local grid is >= 2 elements */
+        assert( (1<<howmanylevels)-1 >= 2*teamspec.num_units(0) );
+        assert( (1<<howmanylevels)-1 >= 2*teamspec.num_units(1) );
+        assert( (1<<howmanylevels)-1 >= 2*teamspec.num_units(2) );
+
+        levels.push_back( new Level( 1.0, 1.0, 1.0, 
+            (1<<howmanylevels)-1,
+            (1<<howmanylevels)-1,
+            (1<<howmanylevels)-1,
+            dash::Team::All(), teamspec ) );
+
+        initgrid( *levels.front() );
+        //markunits( *levels.front()->src_grid );
+        initboundary( *levels.front() );
+
+        writeToCsv( *levels.front() );
+
+        dash::barrier();
+        --howmanylevels;
+        while ( howmanylevels > howmanylevels_minimum ) {
+
+            Level& previouslevel= *levels.back();
+            dash::Team& previousteam= previouslevel.src_grid->team();
+            dash::Team& currentteam= ( 444 == howmanylevels ) ? previousteam.split(2) : previousteam;
+            TeamSpecT localteamspec( currentteam.size(), 1, 1 );
+            localteamspec.balance_extents();
+
+            if ( (1<<howmanylevels)-1 < 2*localteamspec.num_units(0) ||
+                (1<<howmanylevels)-1 < 2*localteamspec.num_units(1) ||
+                (1<<howmanylevels)-1 < 2*localteamspec.num_units(2) ) break;
+
+            if ( 0 == currentteam.position() ) {
+
+                if ( previousteam.size() != currentteam.size() ) {
+
+                    /* the team working on the following grid layers has just
+                    been reduced. Therefore, we add an additional transfer with the
+                    same size as the previous one but for the reduced team. Then,
+                    copying the data from the domain of the larger team to the
+                    domain of the smaller team is easy. */
+
+                    levels.push_back(
+                        new Level( previouslevel,
+                                (1<<(howmanylevels+1))-1,
+                                (1<<(howmanylevels+1))-1,
+                                (1<<(howmanylevels+1))-1,
+                                currentteam, localteamspec ) );
+
+                    // not needed, is it?
+                    initgrid( *levels.back() );
+                    initboundary_zero( *levels.back() );
+                }
+
+                //cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
+
+                levels.push_back(
+                    new Level( previouslevel,
+                            (1<<howmanylevels)-1,
+                            (1<<howmanylevels)-1,
+                            (1<<howmanylevels)-1,
+                            currentteam, localteamspec ) );
+
+                initgrid( *levels.back() );
+                initboundary_zero( *levels.back() );
+
+            } else {
+
+                /* this is a passive unit not takin part in the subteam that
+                handles the coarser grids. insert a dummy entry in the vector
+                of levels to signal that this is not the coarsest level globally. */
+                levels.push_back( NULL );
+
+                break;
+            }
+
+            --howmanylevels;
+        }
+        minimon.stop( "setup grids", dash::Team::All().size() );
+
+        dash::barrier();
+
+        // solve
+        minimon.start();
+
+        Allreduce res( dash::Team::All() );
+
+        /* execute multigrid with v- or w-cycle ... use \gamma value from command line parameters */
+        for ( uint32_t a= 0; a < alpha; ++a ) {
+
+            if ( 0 == dash::myid()  ) {
+                cout << endl << "start recursive with eps " << epsilon << endl << endl;
+            }
+
+            recursive_cycle( levels.begin(), levels.end(), beta, gamma, epsilon, res );
+            //v_cycle( levels.begin(), levels.end(), beta, /*gamma,*/ epsilon, res );
+        }
+
+        if ( 0 == dash::myid()  ) {
+            cout << endl << "final smoothing with res " << epsilon << endl << endl;
+        }
+
+        smoothen_final( *levels.front(), epsilon, res );
+        writeToCsv( *levels.front() );
+
+        dash::Team::All().barrier();
+
+        if ( 0 == dash::myid() ) {
+
+            if ( ! check_symmetry( *levels.front()->src_grid, 10.0*epsilon ) ) {
+
+                cout << "test for asymmetry of soution failed!" << endl;
+            }
+        }
+
+        minimon.stop( "solve", dash::Team::All().size() );
     }
 
 #ifdef WITHCSVOUTPUT
