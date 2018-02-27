@@ -83,19 +83,14 @@ compute(TiledMatrix& matrix, size_t block_size){
       if (block_b.is_local()) {
         //auto block_k_pre = &blocks_ki_pre[k*block_size*block_size];
         auto block_k_pre = block_k.is_local()
-                              ? block_k.lbegin()
-                              : &blocks_ki_pre[0];
-        auto block_a_dep = block_k.is_local()
-                              ? dash::tasks::in(block_k)
-                              : dash::tasks::copyin(block_k.begin(),
-                                                    block_k.end(), block_k_pre);
+                              ? block_k.lbegin() : &blocks_ki_pre[0];
         dash::tasks::async(
           [=]() mutable {
             trsm(block_k_pre,
                 block_b.lbegin(), block_size, block_size);
           },
           DART_PRIO_HIGH,
-          block_a_dep,
+          dash::tasks::copyin_r(block_k.begin(), block_k.end(), block_k_pre),
           dash::tasks::out(block_b)
         );
         ++num_tasks;
@@ -109,10 +104,6 @@ compute(TiledMatrix& matrix, size_t block_size){
       auto block_a_pre = block_a.is_local()
                             ? block_a.lbegin()
                             : &blocks_ki_pre[i*block_size*block_size];
-      auto block_a_dep = block_a.is_local()
-                            ? dash::tasks::in(block_a)
-                            : dash::tasks::copyin(block_a.begin(),
-                                                  block_a.end(), block_a_pre);
       // run down to the diagonal
       for (size_t j = k+1; j < i; ++j) {
         Block block_c(matrix, j, i);
@@ -121,18 +112,14 @@ compute(TiledMatrix& matrix, size_t block_size){
           auto block_b_pre = block_b.is_local()
                               ? block_b.lbegin()
                               : &blocks_ki_pre[j*block_size*block_size];
-          auto block_b_dep = block_b.is_local()
-                              ? dash::tasks::in(block_b)
-                              : dash::tasks::copyin(block_b.begin(), block_b.end(), block_b_pre);
           // A[k,i] = A[k,i] - A[k,j] * (A[j,i])^t
           dash::tasks::async(
             [=]() mutable {
-              gemm(block_a_pre,
-                   block_b_pre,
+              gemm(block_a_pre, block_b_pre,
                    block_c.lbegin(), block_size, block_size);
             },
-            block_a_dep,
-            block_b_dep,
+            dash::tasks::copyin_r(block_a.begin(), block_a.end(), block_a_pre),
+            dash::tasks::copyin_r(block_b.begin(), block_b.end(), block_b_pre),
             dash::tasks::out(block_c)
           );
           ++num_tasks;
@@ -149,7 +136,7 @@ compute(TiledMatrix& matrix, size_t block_size){
                  block_i.lbegin(), block_size, block_size);
           },
           DART_PRIO_HIGH,
-          block_a_dep,
+          dash::tasks::copyin_r(block_a.begin(), block_a.end(), block_a_pre),
           dash::tasks::out(block_i)
         );
         ++num_tasks;

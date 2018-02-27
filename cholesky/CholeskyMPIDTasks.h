@@ -249,7 +249,15 @@ compute(TiledMatrix& matrix, size_t block_size){
             }
         }
     }
+  if (dash::myid() == 0)
+    std::cout << "Done creating tasks in "
+              << t_c.Elapsed() / 1E3 << "ms"
+              << ", starting execution" << std::endl;
   dash::tasks::complete();
+  if (dash::myid() == 0)
+    std::cout << "Done executing tasks in "
+              << t_c.Elapsed() / 1E3 << "ms"
+              << std::endl;
   delete[] block_k_pre;
   delete[] blocks_ki_pre;
 
