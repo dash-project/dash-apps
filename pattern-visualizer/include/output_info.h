@@ -6,6 +6,7 @@
 #include <dash/util/PatternMetrics.h>
 #include <dash/pattern/internal/PatternLogging.h>
 
+/*
 template<typename PatternT>
 static
 void print_pattern_metrics(const PatternT & pattern)
@@ -90,6 +91,6 @@ void log_pattern_mapping(const PatternT & pattern)
     [](const pattern_t & _pattern, int _x, int _y) -> index_t {
       return _pattern.local_index(std::array<index_t, 2> {{_x, _y}}).index;
     });
-}
+}*/
 
 #endif // PATTERN_VISUALIZER__output_info_h

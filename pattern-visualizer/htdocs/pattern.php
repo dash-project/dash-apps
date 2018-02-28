@@ -1,28 +1,20 @@
 <?php
+header("Content-Type: application/json");
 
-function getByName($name, $group) {
-  foreach($group->content as $value) {
-    if($name == $value->name) {
-      return $value;
-    }
-  }
-  return NULL;
-}
+$descriptorspec = array(
+  0 => array("pipe", "r"),
+  1 => array("pipe", "w")
+);
 
-$params_json = file_get_contents("php://input");
-if(strlen($params_json) > 0) {
-  $params = json_decode($params_json);
-  $dimGroup = getByName("dim_group",$params);
+$process = proc_open("./pattern-visualizer",$descriptorspec,$pipes);
 
-  $pattern = " -s ".getByName("pattern",$params)->value->name;
-  $size    = " -n ".getByName("size",$dimGroup)->value[0]." ".getByName("size",$dimGroup)->value[1];
-  $units   = " -u ".getByName("units",$dimGroup)->value[0]." ".getByName("units",$dimGroup)->value[1];
-  $tile    = " -t ".getByName("tile",$dimGroup)->value[0]." ".getByName("tile",$dimGroup)->value[1];
-  $blocked = (getByName("blocked_display",$params)->value)?" -b":"";
-  $balance = (getByName("balance_extents",$params)->value)?" -e":"";
+if(is_resource($process)) {
+  fwrite($pipes[0], file_get_contents("php://input"));
+  fclose($pipes[0]);
 
-  header("Content-Type: text/plain");
-  //echo "./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile;
-  passthru("./pattern-visualizer -p".$blocked.$pattern.$balance.$units.$size.$tile);
+  echo stream_get_contents($pipes[1]);
+  fclose($pipes[1]);
+
+  proc_close($process);
 }
 ?>

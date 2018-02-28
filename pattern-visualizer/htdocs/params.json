@@ -2,16 +2,41 @@
 "name": "patviz_params",
 "type": "group",
 "content": [
-{"name":"pattern","label":"Pattern","type":"selection","values":[{"name":"summa","label":"SummaPattern"},{"name":"block","label":"BlockPattern"},{"name":"shift","label":"ShiftTilePattern"},{"name":"seq","label":"SeqTilePattern"}]},
-{"name":"numDim","label":"Number of Dimensions","type":"range","value":2,"min":2,"max":2},
- {"type":"br"},
-{"name":"blocked_display","label":"Blocked display","type":"checkbox"},
-{"name":"balance_extents","label":"Balance extents","type":"checkbox"},
- {"type":"br"},
-{"name":"dim_group","type":"group","quantity":"numDim","content":[
- {"name":"size","label":"Extent Dimension","type":"logrange"},
- {"name":"units","label":"Units Dimension","type":"number"},
- {"name":"tile","label":"Tile Dimension","type":"number"}
+  {"name":"format","label":"Creation format","type":"tab","values":[
+    {"name":"con","label":"Constructor","params":[
+      {"name":"pattern","label":"Pattern","type":"selection","values":[
+        {"name":"block","label":"BlockPattern"},
+        {"name":"tile","label":"TilePattern"},
+        {"name":"shiftTile","label":"ShiftTilePattern"},
+        {"name":"seqTile","label":"SeqTilePattern"},
+        {"name":"dynamic","label":"DynamicPattern"},
+        {"name":"csr","label":"CSRPattern"}
+      ]},
+      {"name":"numDim","label":"Number of Dimensions","type":"range","value":2,"min":1,"max":5},
+      {"name":"arrangement","label":"Arrangement","type":"selection","values":[
+        {"name":"row","label":"ROW_MAJOR"},
+        {"name":"col","label":"COL_MAJOR"}
+      ]},
+      {"type":"br"},
+      {"name":"balance_team","label":"Balance TeamSpec","type":"radio","value":0,"values":[
+        {"name":"yes","params":[{"name":"numUnits","label":"Unit Count","type":"number"}]},
+        {"name":"no","params":[
+          {"name":"team","label":"TeamSpec Dimension","type":"number","quantity":"numDim"}
+        ]}
+      ]},
+      {"type":"br"},
+      {"name":"ext_group","type":"group","quantity":"numDim","content":[
+        {"name":"size","label":"SizeSpec Dimension","type":"logrange"},
+        {"name":"dist","label":"DistributionSpec Dimension","type":"selection","values":[
+          {"name":"BLOCKED"},
+          {"name":"CYCLIC"},
+          {"name":"NONE"},
+          {"name":"TILE","params":[{"name":"T_blocksize","label":"Block Size","type":"number"}]},
+          {"name":"BLOCKCYCLIC","params":[{"name":"BC_blocksize","label":"Block Size","type":"number"}]}
+        ]}
+      ]}
+    ]},
+    {"name":"alg","label":"Algorithm","params":[]},
+    {"name":"local","label":"Local","params":[{"name":"file","label":"File","type":"text"}]}
+  ]}
 ]}
-]
-}

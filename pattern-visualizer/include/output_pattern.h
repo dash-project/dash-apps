@@ -85,13 +85,14 @@ template<typename PatternT>
 static
 void print_example(
   const PatternT   & pattern,
-  const cli_params & params)
+  const cli_params & output_params,
+  const json params)
 {
   typedef typename PatternT::index_type index_t;
 
   auto pattern_file = pattern_to_filename(pattern);
   auto pattern_desc = pattern_to_string(pattern);
-  print_pattern_metrics(pattern);
+  //print_pattern_metrics(pattern);
 
   dash::tools::PatternVisualizer<PatternT> pv(pattern);
   // pv.set_title(pattern_desc);
@@ -101,20 +102,10 @@ void print_example(
             << "    " << pattern_desc
             << std::endl;
 
-  if (params.cout) {
-    std::cout << "{\"success\": true, \"name\": \"" << pattern_file << "\", ";
-    std::cout <<  "\"pattern\": ";
-    pv.draw_pattern(std::cout);
-    std::cout << "}" << std::endl;
-  } else {
-    std::cerr << "Image file:"
-              << '\n'
-              << "    " << pattern_file
-              << std::endl;
-    std::ofstream out(pattern_file);
-    pv.draw_pattern(out);
-    out.close();
-  }
+  std::cout << "{\"success\": true, \"name\": \"" << pattern_file << "\", ";
+  std::cout <<  "\"pattern\": ";
+  pv.draw_pattern(std::cout);
+  std::cout << "}" << std::endl;
 }
 
 #endif // PATTERN_VISUALIZER__output_pattern_h
