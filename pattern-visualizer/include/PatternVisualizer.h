@@ -106,13 +106,13 @@ public:
     os << "],\n";
 
     draw_blocks(os, coords, dims);
-    //os << ",\n";
+    os << ",\n";
 
     // Redo in seperate function for irregular patterns
     //draw_tiles(os, sz, coords, dimx, dimy);
 
     // Todo in seperate function for delayed retrieval
-    //draw_local_memlayout(os, sz, dimx, dimy);
+    draw_memlayout(os, coords, dims);
 
     // Unneeded when drawing occurs in browser
     // draw_key(os, sz, sz.grid_width * sz.gridx + 2*sz.grid_base, 0);
@@ -229,36 +229,64 @@ public:
   /**
    * Draws the memory layout for the current unit (usually unit 0)
    */
-  /*void draw_local_memlayout(std::ostream & os,
-                            const sizes & sz,
-                            int dimx, int dimy) {
-    int startx, starty;
-    int endx, endy;
+  void draw_memlayout(std::ostream & os,
+                      std::array<index_t, PatternT::ndim()> coords_slice,
+                      std::vector<index_t> dims) {
+    /*int startx, starty;
+    int endx, endy;*/
 
-    startx = starty = 0;
-    for ( auto offset = 0; offset < _pattern.local_size(); offset++ ) {
-      auto coords = _pattern.coords(_pattern.global(offset));
+    os << "\"memlayout\": [";
 
-      endx = (coords[dimx] * sz.gridx) + sz.tileszx / 2;
-      endy = (coords[dimy] * sz.gridy) + sz.tileszy / 2;
-
-      if ( startx > 0 && starty > 0 ) {
-        os << "<line x1=\"" << startx << "\" y1=\"" << starty << "\"";
-        os << " x2=\"" << endx << "\" y2=\"" << endy << "\"";
-        os << " style=\"stroke:#E0E0E0;stroke-width:1\"/>";
-        os << " <!-- (" << offset << ") -->";
-        os << std::endl;
+    auto num_units = _pattern.teamspec().size();
+    for(dash::team_unit_t unit(0); unit < num_units; unit++) {
+      if(unit != 0) {
+        os << ",\n";
       }
+      auto local_extents = _pattern.local_extents();//unit);
+      auto local_size = std::accumulate(local_extents.begin(),
+                                        local_extents.end(),
+                                        1,std::multiplies<size_t>());
+      bool contiguous = true;
+      bool first_pass = true;
+      os << "[";
+      for(auto offset = 0; offset < local_size; offset++ ) {
+        auto coords = _pattern.coords(_pattern.global(offset));//,unit));
 
-      os << "<circle cx=\"" << endx << "\" cy=\"" << endy << "\" r=\"1.5\" ";
-      os << " style=\"stroke:#E0E0E0;stroke-width:1;fill:#E0E0E0\" />";
-      os << std::endl;
-
-      startx = endx;
-      starty = endy;
+        bool cur_slice = true;
+        for(auto i=0; i < coords.size(); i++) {
+          cur_slice = cur_slice &&
+                      (coords_slice[i] == coords[i] ||
+                       dims.end() != std::find(dims.begin(),dims.end(),i));
+        }
+        if(cur_slice) {
+          if(!first_pass) {
+            os << ",";
+          }
+          os << "{";
+          if(!contiguous) {
+            os << "\"o\":" << offset << ",";
+            contiguous = true;
+          }
+          os << "\"p\":[";
+          bool first = true;
+          std::for_each(dims.begin(),dims.end(),
+                        [&os,&coords,&first](const index_t & d){
+                          if(!first) {
+                            os << ",";
+                          }
+                          os << coords[d];
+                          first = false;
+                        });
+          os << "]}";
+          first_pass = false;
+        } else {
+          contiguous = false;
+        }
+      }
+      os << "]";
     }
-
-  }*/
+    os << "]";
+  }
 
 private:
 
