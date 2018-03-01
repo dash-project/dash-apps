@@ -73,9 +73,9 @@ std::string pattern_to_filename(
      << storage_order << "-"
      << typeid(index_t).name()
      << "--"
-     << "size-"   << sspc.extent(0) << "x" << sspc.extent(1) << "--"
-     << "team-"   << tspc.extent(0) << "x" << tspc.extent(1) << "--"
-     << "blocks-" << bspc.extent(0) << "x" << bspc.extent(1)
+     << "size-"   << sspc.extents() << "--"
+     << "team-"   << tspc.extents() << "--"
+     << "blocks-" << bspc.extents()
      << ".svg";
 
   return ss.str();

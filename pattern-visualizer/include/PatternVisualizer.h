@@ -158,7 +158,7 @@ public:
   void draw_blocks(std::ostream & os,
                    std::array<index_t, PatternT::ndim()> coords,
                    std::vector<index_t> dims) {
-    auto blockspec = _pattern.blockspec();
+    auto blockspec = get_blockspec(_pattern.blockspec());
 
     auto block_begin_coords = coords;
     auto block_begin_idx = _pattern.block_at(block_begin_coords);
@@ -194,7 +194,7 @@ public:
         if(block_coords[cur_dim] != 0) {
           os << ",";
         }
-        auto block_idx = _pattern.blockspec().at(block_coords);
+        auto block_idx = blockspec.at(block_coords);
         auto block     = _pattern.block(block_idx);
 
         for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
@@ -261,6 +261,24 @@ public:
   }*/
 
 private:
+
+  template<typename BlockSpec_t>
+  typename std::enable_if<
+    BlockSpec_t::ndim::value >= 2,
+    BlockSpec_t
+  >::type
+  get_blockspec(const BlockSpec_t & blockspec) {
+    return blockspec;
+  }
+
+  template<typename BlockSpec_t>
+  typename std::enable_if<
+    BlockSpec_t::ndim::value == 1,
+    CartesianIndexSpace<1, ROW_MAJOR, index_t>
+  >::type
+  get_blockspec(const BlockSpec_t & blockspec) {
+    return CartesianIndexSpace<1, ROW_MAJOR, index_t>(blockspec.extents());
+  }
 
   bool replace_all(std::string & str,
                    const std::string & from,

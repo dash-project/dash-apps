@@ -34,7 +34,6 @@ int main(int argc, char* argv[])
 
         if(arr_r == dash::ROW_MAJOR) {
           constexpr dash::MemArrange arr = dash::ROW_MAJOR;
-#if 0
           if(ndim_r == 1) {
             constexpr dash::dim_t ndim = 1;
             if(type_r == "block") {
@@ -57,7 +56,6 @@ int main(int argc, char* argv[])
               print_example(pattern,output_params,con_params);
             }
           } else
-#endif
           if(ndim_r == 2) {
             constexpr dash::dim_t ndim = 2;
             if(type_r == "block") {
@@ -145,7 +143,6 @@ int main(int argc, char* argv[])
           }
         } else if(arr_r == dash::COL_MAJOR) {
           constexpr dash::MemArrange arr = dash::COL_MAJOR;
-#if 0
           if(ndim_r == 1) {
             constexpr dash::dim_t ndim = 1;
             if(type_r == "block") {
@@ -168,7 +165,6 @@ int main(int argc, char* argv[])
               print_example(pattern,output_params,con_params);
             }
           } else
-#endif
           if(ndim_r == 2) {
             constexpr dash::dim_t ndim = 2;
             if(type_r == "block") {
