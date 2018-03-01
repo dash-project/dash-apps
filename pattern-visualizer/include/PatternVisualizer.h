@@ -109,13 +109,10 @@ public:
     os << ",\n";
 
     // Redo in seperate function for irregular patterns
+    // perhaps read information from memlayout
     //draw_tiles(os, sz, coords, dimx, dimy);
 
-    // Todo in seperate function for delayed retrieval
     draw_memlayout(os, coords, dims);
-
-    // Unneeded when drawing occurs in browser
-    // draw_key(os, sz, sz.grid_width * sz.gridx + 2*sz.grid_base, 0);
 
     os << "}" << std::endl;
   }
