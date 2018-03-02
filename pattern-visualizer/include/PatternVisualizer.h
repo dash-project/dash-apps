@@ -13,10 +13,9 @@ namespace tools {
 
 /**
  *
- * Take a generic pattern instance and visualize it as an SVG image.
- * The visualization is limited to two dimensions at the moment, but
- * for higher-dimensional patterns any two dimensions can be specified
- * for visualization.
+ * Take a generic pattern instance and dump it as an JSON string.
+ * To reduce size for higher-dimensional patterns it can be limited which
+ * dimensions are included in the output.
  */
 template<typename PatternT>
 class PatternVisualizer
@@ -28,9 +27,6 @@ private:
 private:
   const PatternT & _pattern;
 
-  std::string _title;
-  std::string _descr;
-
 public:
   /**
    * Constructs the Pattern Visualizer with a pattern instance.
@@ -38,30 +34,12 @@ public:
    * The pattern instance is constant. For a different pattern a new
    * PatternVisualizer has to be constructed.
    */
-  PatternVisualizer(const PatternT & pat,
-                    /// An optional title
-                    const std::string & title = "",
-                    /// An optional description, currently not used
-                    const std::string & descr = "")
-  : _pattern(pat), _title(title), _descr(descr)
+  PatternVisualizer(const PatternT & pat)
+  : _pattern(pat)
   { }
 
   PatternVisualizer() = delete;
   PatternVisualizer(const self_t & other) = delete;
-
-  /**
-   * Sets a description for the pattern.
-   * Currently not used.
-   */
-  void set_description(const std::string & str) {
-    _descr = str;
-  }
-  /**
-   * Sets the title displayed above the pattern
-   */
-  void set_title(const std::string & str) {
-    _title = str;
-  }
 
   /**
    * Outputs the pattern as a svg over the given output stream.
@@ -69,21 +47,27 @@ public:
    */
   void draw_pattern(
       std::ostream & os,
+      /// Output the blocks of the pattern
+      bool output_blocks = true,
+      /// Output the memory layout of the pattern
+      bool output_memlayout = true,
+      /// Reduce size by excluding extra dimensions.
+      bool reduced = false,
       /// For higher dimensional patterns, defines which slice gets displayed
       std::array<index_t, PatternT::ndim()> coords = {},
       /// Defines which dimensions are written
       std::vector<index_t> dims = {}) {
-    std::string title = _title;
-    replace_all(title, "\\", "\\\\");
-    replace_all(title, "\"", "\\\"");
+    os << "{";
 
-    os << "{\"title\": \"" << title << "\",\n";
-
-    // Code moved to client
-    // draw_axes(os, sz, dimx, dimy);
+    // default dims to all dimensions
     if(dims.size() == 0) {
       dims.resize(PatternT::ndim());
       std::iota(dims.begin(),dims.end(),0);
+    }
+
+    // reduce to the first two dimensions specified
+    if(reduced && dims.size() > 2) {
+      dims.resize(2);
     }
 
     os << "\"dims\": [";
@@ -93,26 +77,32 @@ public:
       }
       os << *it;
     }
-    os << "],\n";
+    os << "]";
 
-    // default blocksize
-    os << "\"blocksize\": [";
-    for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
-      if(it != dims.cbegin()) {
-        os << ",";
+    if(output_blocks) {
+      // default blocksize
+      os << ",\n";
+      os << "\"blocksize\": [";
+      for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+        if(it != dims.cbegin()) {
+          os << ",";
+        }
+        os << _pattern.blocksize(*it);
       }
-      os << _pattern.blocksize(*it);
-    }
-    os << "],\n";
+      os << "]";
 
-    draw_blocks(os, coords, dims);
-    os << ",\n";
+      os << ",\n";
+      draw_blocks(os, coords, dims);
+    }
 
     // Redo in seperate function for irregular patterns
     // perhaps read information from memlayout
     //draw_tiles(os, sz, coords, dimx, dimy);
 
-    draw_memlayout(os, coords, dims);
+    if(output_memlayout) {
+      os << ",\n";
+      draw_memlayout(os, reduced, coords, dims);
+    }
 
     os << "}" << std::endl;
   }
@@ -227,6 +217,8 @@ public:
    * Draws the memory layout for the current unit (usually unit 0)
    */
   void draw_memlayout(std::ostream & os,
+                      // Only output for the first unit
+                      bool reduced,
                       std::array<index_t, PatternT::ndim()> coords_slice,
                       std::vector<index_t> dims) {
     /*int startx, starty;
@@ -249,6 +241,7 @@ public:
       for(auto offset = 0; offset < local_size; offset++ ) {
         auto coords = _pattern.coords(_pattern.global(offset));//,unit));
 
+        // compare if found coord is in current slice
         bool cur_slice = true;
         for(auto i=0; i < coords.size(); i++) {
           cur_slice = cur_slice &&
@@ -260,20 +253,18 @@ public:
             os << ",";
           }
           os << "{";
+          // include offset if elements are skipped
           if(!contiguous) {
             os << "\"o\":" << offset << ",";
             contiguous = true;
           }
           os << "\"p\":[";
-          bool first = true;
-          std::for_each(dims.begin(),dims.end(),
-                        [&os,&coords,&first](const index_t & d){
-                          if(!first) {
-                            os << ",";
-                          }
-                          os << coords[d];
-                          first = false;
-                        });
+          for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+            if(it != dims.cbegin()) {
+              os << ",";
+            }
+            os << coords[*it];
+          }
           os << "]}";
           first_pass = false;
         } else {
@@ -281,6 +272,11 @@ public:
         }
       }
       os << "]";
+
+      // only include unit 0 for reduced output
+      if(reduced) {
+        break;
+      }
     }
     os << "]";
   }
@@ -305,17 +301,6 @@ private:
     return CartesianIndexSpace<1, ROW_MAJOR, index_t>(blockspec.extents());
   }
 
-  bool replace_all(std::string & str,
-                   const std::string & from,
-                   const std::string & to)
-  {
-    size_t pos = str.find(from);
-    while(pos != std::string::npos) {
-      str.replace(pos, from.length(),to);
-      pos = str.find(from,pos+to.length());
-    }
-    return true;
-  }
 };
 
 } // namespace tools

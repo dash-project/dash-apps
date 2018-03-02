@@ -95,7 +95,6 @@ void print_example(
   //print_pattern_metrics(pattern);
 
   dash::tools::PatternVisualizer<PatternT> pv(pattern);
-  // pv.set_title(pattern_desc);
 
   std::cerr << "Generating visualization of "
             << '\n'
@@ -104,7 +103,9 @@ void print_example(
 
   std::cout << "{\"success\": true, \"name\": \"" << pattern_file << "\", ";
   std::cout <<  "\"pattern\": ";
-  pv.draw_pattern(std::cout);
+  pv.draw_pattern(std::cout,output_params.output_blocks,
+                            output_params.output_memlayout,
+                            output_params.reduced);
   std::cout << "}" << std::endl;
 }
 
