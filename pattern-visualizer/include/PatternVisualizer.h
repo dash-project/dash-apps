@@ -51,6 +51,8 @@ public:
       bool output_blocks = true,
       /// Output the memory layout of the pattern
       bool output_memlayout = true,
+      // Only output the memlayout of the first unit
+      bool memlayout_local = true,
       /// Reduce size by excluding extra dimensions.
       bool reduced = false,
       /// For higher dimensional patterns, defines which slice gets displayed
@@ -101,7 +103,7 @@ public:
 
     if(output_memlayout) {
       os << ",\n";
-      draw_memlayout(os, reduced, coords, dims);
+      draw_memlayout(os, memlayout_local, coords, dims);
     }
 
     os << "}" << std::endl;
@@ -218,7 +220,7 @@ public:
    */
   void draw_memlayout(std::ostream & os,
                       // Only output for the first unit
-                      bool reduced,
+                      bool local,
                       std::array<index_t, PatternT::ndim()> coords_slice,
                       std::vector<index_t> dims) {
     /*int startx, starty;
@@ -273,8 +275,8 @@ public:
       }
       os << "]";
 
-      // only include unit 0 for reduced output
-      if(reduced) {
+      // stop after unit 0
+      if(local) {
         break;
       }
     }

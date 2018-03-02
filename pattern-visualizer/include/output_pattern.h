@@ -105,6 +105,7 @@ void print_example(
   std::cout <<  "\"pattern\": ";
   pv.draw_pattern(std::cout,output_params.output_blocks,
                             output_params.output_memlayout,
+                            true,  // Currently hardcoded true as support of dash is missing
                             output_params.reduced);
   std::cout << "}" << std::endl;
 }
