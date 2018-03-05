@@ -4,15 +4,18 @@
 <title>Pattern Visualizer</title>
 <meta charset="UTF-8" />
 <link rel="stylesheet" href="flexibleParams/flexibleParams.css" type="text/css">
+<link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body>
-<div>
+<div class="params">
 <form id="params" action="pattern.php" method="GET">
+<!-- params are loaded here -->
+<div id="flexibleParams_end" class="flexibleParams_end"></div>
 <input type="submit" value="Submit" /><br />
 </form>
-<div class="flexibleParams_end" style="clear: both"></div>
 </div>
-<div id="options" style="width: 240px; float: left; margin-top: 16px; line-height: 1.5">
+<div class="pane leftPane">
+<form id="options">
 <label for="blocked">Blocked display</label><input type="checkbox" id="blocked" /><br />
 x: <span id="dimx"></span><br />
 y: <span id="dimy"></span><br />
@@ -21,12 +24,19 @@ y: <span id="dimy"></span><br />
 <span onclick="draw_pattern(pattern)">Redraw</span><br />
 <br />
 Export-Button (WIP)
+</form>
 </div>
-<div id="result" style="margin-left: 240px; margin-top: 16px; overflow: scroll; transform-origin: left top"></div>
+<div id="key" class="pane rightPane">
+<!-- key is rendered here -->
+</div>
+<div class="main">
+<div id="result" class="result"></div>
+</div>
 <script type="text/javascript" src="flexibleParams/logrange.js"></script>
 <script type="text/javascript" src="flexibleParams/flexibleParams.js"></script>
 <script type="text/javascript" src="params.js"></script>
 <script type="text/javascript" src="submit.js"></script>
+<script type="text/javascript" src="draw.js"></script>
 <script type="text/javascript">
 loadParams();
 document.getElementById("params").addEventListener("submit",submitParams);

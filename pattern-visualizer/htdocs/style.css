@@ -1,0 +1,34 @@
+html {
+  line-height: 1.6;
+}
+
+.params {
+  margin-bottom: 16px;
+}
+
+.flexibleParams_end {
+  clear: both;
+}
+
+.pane {
+  width: 240px;
+  padding: 0px 8px 0px 8px;
+}
+
+.leftPane {
+  float: left;
+}
+
+.rightPane {
+  float: right;
+}
+
+.main {
+  margin-left: 240px;
+  margin-right: 240px;
+  overflow: auto;
+}
+
+.result {
+  transform-origin: left top;
+}

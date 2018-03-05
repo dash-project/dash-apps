@@ -25,7 +25,8 @@ function loadParams() {
 
 function appendParams(params) {
   root = flexibleParams.createParam(params);
-  document.getElementById("params").appendChild(root);
+  var end = document.getElementById("flexibleParams_end")
+  document.getElementById("params").insertBefore(root,end);
 
   window.addEventListener("beforeunload",function(e) {
     if(params != undefined) {
