@@ -32,3 +32,36 @@ html {
 .result {
   transform-origin: left top;
 }
+
+.dim_inp {
+  width: 24px;
+}
+
+.dim_inp_label::after {
+  content: ": ";
+}
+
+.dim_select {
+  display: none;
+}
+
+.dim_select + label {
+  margin-left: 8px;
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dim_select:checked + label {
+  color: black;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.dim_select ~ input[type="range"] {
+  width: 80px;
+}
+
+.dim_select:checked ~ input[type="range"] {
+  display: none;
+}

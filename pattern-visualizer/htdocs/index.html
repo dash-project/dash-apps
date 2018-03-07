@@ -17,11 +17,10 @@
 <div class="pane leftPane">
 <form id="options">
 <label for="blocked">Blocked display</label><input type="checkbox" id="blocked" /><br />
-x: <span id="dimx"></span><br />
-y: <span id="dimy"></span><br />
-<br />
-<br />
-<span onclick="draw_pattern(pattern_received)">Redraw</span><br />
+<span><label class="dim_inp_label" for="dimx">x</label><input type="text" class="dim_inp" id="dimx" /></span>
+<span><label class="dim_inp_label" for="dimy">y</label><input type="text" class="dim_inp" id="dimy" /></span>
+<div id="dims_list"></div>
+<input type="button" value="Redraw" onclick="draw_pattern_blocks_regular(pattern_received)" /><br />
 <br />
 Export-Button (WIP)
 </form>
