@@ -1,10 +1,11 @@
+var params_sent;
+var pattern_received;
+
 function submitParams(e) {
   e.preventDefault();
   sendPOST();
   storeParams();
 }
-
-var pattern;
 
 function sendPOST() {
   var req = new XMLHttpRequest();
@@ -14,8 +15,8 @@ function sendPOST() {
     console.log(responseText)
     var response = JSON.parse(responseText);
     if(response.success) {
+      pattern_received = response.pattern;
       // update Options (dimensions / export link / save load share)
-      pattern = response.pattern;
       draw_pattern(response.pattern);
       /*var svgText = responseText.slice(responseText.indexOf("}")+1,-1);
       var parser = new DOMParser();
@@ -29,16 +30,20 @@ function sendPOST() {
       imageDiv.appendChild(result.documentElement);
       displayResult([exportLink,imageDiv]);*/
     } else {
-      displayResult([document.createTextNode(response.error)]);
+      var errorMsg = "An error occurred:\n\n"+response.error;
+      console.warn(e);
+      console.error(response.error);
+      window.alert(errorMsg);
     }
   });
   req.addEventListener("error", function(e) {
-    var errorMsg = "Error loading visualized pattern, try again";
+    var errorMsg = "Error while loading the pattern from server, try again";
     console.warn(e);
     console.error(errorMsg);
-    displayResult([document.createTextNode(errorMsg)]);
+    window.alert(errorMsg);
   });
-  req.send(JSON.stringify(getParams()));
+  params_sent = JSON.stringify(getParams());
+  req.send(params_sent);
 }
 
 function displayResult(result) {
@@ -65,10 +70,10 @@ function scale(e) {
   scale_value += 0.002*e.deltaY;
   if(prev_scale <= 1 && scale_value > 1) {
     document.getElementById("blocked").checked = true;
-    draw_pattern(pattern);
+    draw_pattern(pattern_received);
   } else if (prev_scale > 1 && scale_value <= 1) {
     document.getElementById("blocked").checked = false;
-    draw_pattern(pattern);
+    draw_pattern(pattern_received);
   }
 
   document.getElementById("result").style.transform = "scale("+scale_value+")";
