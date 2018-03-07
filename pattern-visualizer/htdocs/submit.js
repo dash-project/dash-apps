@@ -1,6 +1,7 @@
 function submitParams(e) {
   e.preventDefault();
   sendPOST();
+  storeParams();
 }
 
 var pattern;
