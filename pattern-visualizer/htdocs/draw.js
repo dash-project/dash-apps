@@ -32,7 +32,7 @@ function update_dims_list(dims,extents) {
     }
     dimx.addEventListener("change",function(e) {
       var idx_dimx = e.target.value;
-      var idx_dimy = document.getElementById("options").elements["dimy_select"].value;
+      var idx_dimy = document.getElementById("options").elements.namedItem("dimy_select").value;
       if(idx_dimx == idx_dimy) {
         var old_dimx = document.getElementById("dimx").value;
         var new_dimy = document.getElementById("dimy_"+old_dimx);
@@ -57,7 +57,7 @@ function update_dims_list(dims,extents) {
       document.getElementById("dimy").value = dims[i];
     }
     dimy.addEventListener("change",function(e) {
-      var idx_dimx = document.getElementById("options").elements["dimx_select"].value;
+      var idx_dimx = document.getElementById("options").elements.namedItem("dimx_select").value;
       var idx_dimy = e.target.value;
       if(idx_dimx == idx_dimy) {
         var old_dimy = document.getElementById("dimy").value;
@@ -94,7 +94,7 @@ document.getElementById("dimx").addEventListener("change",function(e) {
     var dimx = e.target.value;
     var dimy = document.getElementById("dimy").value;
     if(dimx != "" && dimx == dimy) {
-      var old_idx_dimx = document.getElementById("options").elements["dimx_select"].value;
+      var old_idx_dimx = document.getElementById("options").elements.namedItem("dimx_select").value;
       var new_dimy = pattern_received.dims[old_idx_dimx];
       document.getElementById("dimy").value = new_dimy;
       document.getElementById("dimy_"+new_dimy).checked = true;
@@ -103,7 +103,7 @@ document.getElementById("dimx").addEventListener("change",function(e) {
   } else {
     e.target.value = "";
     if(pattern_received != undefined) {
-      var idx_dimx = document.getElementById("options").elements["dimx_select"].value*1;
+      var idx_dimx = document.getElementById("options").elements.namedItem("dimx_select").value*1;
       e.target.value = pattern_received.dims[idx_dimx];
     }
   }
@@ -113,7 +113,7 @@ document.getElementById("dimy").addEventListener("change",function(e) {
     var dimx = document.getElementById("dimx").value;
     var dimy = e.target.value;
     if(dimx != "" && dimx == dimy) {
-      var old_idx_dimy = document.getElementById("options").elements["dimy_select"].value;
+      var old_idx_dimy = document.getElementById("options").elements.namedItem("dimy_select").value;
       var new_dimx = pattern_received.dims[old_idx_dimy];
       document.getElementById("dimx").value = new_dimx;
       document.getElementById("dimx_"+new_dimx).checked = true;
@@ -122,7 +122,7 @@ document.getElementById("dimy").addEventListener("change",function(e) {
   } else {
     e.target.value = "";
     if(pattern_received != undefined) {
-      var idx_dimy = document.getElementById("options").elements["dimy_select"].value*1;
+      var idx_dimy = document.getElementById("options").elements.namedItem("dimy_select").value*1;
       e.target.value = pattern_received.dims[idx_dimy];
     }
   }
@@ -176,8 +176,8 @@ function draw_pattern_blocks_regular(pattern) {
   // blocksize of current block
   var blocksize_1, blocksize_2;
 
-  var idx_dimx = document.getElementById("options").elements["dimx_select"].value*1;
-  var idx_dimy = document.getElementById("options").elements["dimy_select"].value*1;
+  var idx_dimx = document.getElementById("options").elements.namedItem("dimx_select").value*1;
+  var idx_dimy = document.getElementById("options").elements.namedItem("dimy_select").value*1;
 
   if(idx_dimx < idx_dimy) {
     idx_1 = idx_dimx;
@@ -199,12 +199,12 @@ function draw_pattern_blocks_regular(pattern) {
   }
 
   pos_1 = 0;
-  var slice_step_1 = get_slice(0,idx_1,pattern.blocks,pattern);
+  var slice_step_1 = get_slice_blocks_regular(0,idx_1,pattern.blocks,pattern);
   for(var i = 0; i < slice_step_1.length; i++) {
     pos_2 = 0;
-    var slice_step_2 = get_slice(idx_1+1,idx_2,slice_step_1[i],pattern);
+    var slice_step_2 = get_slice_blocks_regular(idx_1+1,idx_2,slice_step_1[i],pattern);
     for(var j = 0; j < slice_step_2.length; j++) {
-      var cur_block = get_slice(idx_2+1,pattern.dims.length,slice_step_2[j],pattern);
+      var cur_block = get_slice_blocks_regular(idx_2+1,pattern.dims.length,slice_step_2[j],pattern);
       blocksize_1 = pattern.blocksize[idx_1];
       blocksize_2 = pattern.blocksize[idx_2];
       if(cur_block.s) {
