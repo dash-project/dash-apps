@@ -1,13 +1,25 @@
+var pattern_combined;
 
 function prepare_pattern(pattern) {
-  update_dims_list(pattern.dims);
+  // todo server
+  pattern.extents = [];
+  for(var i=0; i < pattern.dims.length; i++) {
+    pattern.extents[i] = 100;
+  }
+  pattern.maxUnits = 12;
+  pattern.regular = true;
+
+
+  pattern_combined = pattern;
+
+  update_dims_list(pattern.dims,pattern.extents);
 
   // clear previous pattern
 
   // perhaps draw key
 
   // perhaps draw default view of pattern
-  draw_pattern_blocks_regular(pattern);
+  draw_pattern(pattern);
 }
 
 function update_dims_list(dims,extents) {
@@ -76,7 +88,7 @@ function update_dims_list(dims,extents) {
     coord.setAttribute("type","range");
     coord.setAttribute("id","coord_idx_"+i);
     coord.setAttribute("min",0);
-    //coord.setAttribute("max",extents[i]);
+    coord.setAttribute("max",extents[i]);
     coord.setAttribute("value",0);
     //coord.addEventListener("input",function(e){e.target.dataset.val = e.target.value});
     cont.appendChild(label);
@@ -128,6 +140,13 @@ document.getElementById("dimy").addEventListener("change",function(e) {
   }
 });
 
+document.getElementById("blocked").addEventListener("change",function(e) {
+  var nonBlockedStyle = document.getElementById("nonBlocked");
+  if(nonBlockedStyle != undefined) {
+    nonBlockedStyle.sheet.disabled = e.target.checked;
+  }
+});
+
 /*var scale_value = 1.0;
 
 function scale(e) {
@@ -136,10 +155,10 @@ function scale(e) {
   scale_value += 0.002*e.deltaY;
   if(prev_scale <= 1 && scale_value > 1) {
     document.getElementById("blocked").checked = true;
-    draw_pattern(pattern_received);
+    draw_pattern(pattern_combined);
   } else if (prev_scale > 1 && scale_value <= 1) {
     document.getElementById("blocked").checked = false;
-    draw_pattern(pattern_received);
+    draw_pattern(pattern_combined);
   }
 
   document.getElementById("result").style.transform = "scale("+scale_value+")";
@@ -153,18 +172,43 @@ var tile_size = 10;
 var grid_base = tile_size + 2;
 var fontsz    = 10;
 
-function draw_pattern_blocks_regular(pattern) {
-  var svg = createElementSVG("svg");
-  //svg.addEventListener("wheel",scale);
-  var blocks = createElementSVG("g");
-  var tiles = createElementSVG("g");
-  if(document.getElementById("blocked").checked) {
-    tiles.setAttribute("style","display: none");
-  } else {
-    blocks.setAttribute("style","display: none");
+function draw_pattern(pattern) {
+  var coords = [];
+  for(var i=0; i < pattern.dims.length; i++) {
+    coords[i] = document.getElementById("coord_idx_"+i).value*1;
   }
-  svg.appendChild(blocks);
-  svg.appendChild(tiles);
+  var idx_dimx = document.getElementById("options").elements.namedItem("dimx_select").value*1;
+  var idx_dimy = document.getElementById("options").elements.namedItem("dimy_select").value*1;
+  var blocked = document.getElementById("blocked").checked;
+
+  var svg = createElementSVG("svg");
+
+  // style, scripts
+  create_defs(svg, pattern.maxUnits,blocked);
+
+  //draw_axis(pattern, idx_dimx, idx_dimy, svg);
+
+  draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg);
+
+  var cont = document.getElementById("result");
+  // clear previous result
+  while(cont.firstChild) {
+    cont.removeChild(cont.firstChild);
+  }
+
+  cont.appendChild(svg);
+
+  if(blocked) {
+    var nonBlockedStyle = document.getElementById("nonBlocked");
+    if(nonBlockedStyle != undefined) {
+      nonBlockedStyle.sheet.disabled = true;
+    }
+  }
+}
+
+function draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg) {
+  var content = createElementSVG("g");
+  svg.appendChild(content);
 
   // strings for drawing in the right direction
   var dim_1, dim_2;
@@ -175,9 +219,6 @@ function draw_pattern_blocks_regular(pattern) {
   var pos_1, pos_2;
   // blocksize of current block
   var blocksize_1, blocksize_2;
-
-  var idx_dimx = document.getElementById("options").elements.namedItem("dimx_select").value*1;
-  var idx_dimy = document.getElementById("options").elements.namedItem("dimy_select").value*1;
 
   if(idx_dimx < idx_dimy) {
     idx_1 = idx_dimx;
@@ -199,12 +240,12 @@ function draw_pattern_blocks_regular(pattern) {
   }
 
   pos_1 = 0;
-  var slice_step_1 = get_slice_blocks_regular(0,idx_1,pattern.blocks,pattern);
+  var slice_step_1 = get_slice_blocks_regular(0,idx_1,pattern.blocks,coords,pattern);
   for(var i = 0; i < slice_step_1.length; i++) {
     pos_2 = 0;
-    var slice_step_2 = get_slice_blocks_regular(idx_1+1,idx_2,slice_step_1[i],pattern);
+    var slice_step_2 = get_slice_blocks_regular(idx_1+1,idx_2,slice_step_1[i],coords,pattern);
     for(var j = 0; j < slice_step_2.length; j++) {
-      var cur_block = get_slice_blocks_regular(idx_2+1,pattern.dims.length,slice_step_2[j],pattern);
+      var cur_block = get_slice_blocks_regular(idx_2+1,pattern.dims.length,slice_step_2[j],coords,pattern);
       blocksize_1 = pattern.blocksize[idx_1];
       blocksize_2 = pattern.blocksize[idx_2];
       if(cur_block.s) {
@@ -212,14 +253,18 @@ function draw_pattern_blocks_regular(pattern) {
         blocksize_2 = cur_block.s[idx_2];
       }
 
+      var group = createElementSVG("g");
+      group.setAttribute("class","block_gr u"+cur_block.u);
       var block = createElementSVG("rect");
       block.setAttribute(dim_1, pos_1*grid_base);
       block.setAttribute(dim_2, pos_2*grid_base);
       block.setAttribute(ext_1, blocksize_1*grid_base - 2);
       block.setAttribute(ext_2, blocksize_2*grid_base - 2);
-      block.setAttribute("style", "fill: "+unit_color(cur_block.u)+"; stroke-width: 0");
-      blocks.appendChild(block);
+      block.setAttribute("class", "block");
+      group.appendChild(block);
 
+      var tiles = createElementSVG("g");
+      tiles.setAttribute("class", "tile");
       for(var k=0; k < blocksize_2; k++) {
         for(var l=0; l < blocksize_1; l++) {
           var tile = createElementSVG("rect");
@@ -227,27 +272,20 @@ function draw_pattern_blocks_regular(pattern) {
           tile.setAttribute(dim_2, pos_2*grid_base);
           tile.setAttribute("width",  tile_size);
           tile.setAttribute("height", tile_size);
-          tile.setAttribute("style", "fill: "+unit_color(cur_block.u)+"; stroke-width: 0");
           pos_1++;
           tiles.appendChild(tile);
         }
         pos_1 -= blocksize_1;
         pos_2++;
       }
+      group.appendChild(tiles);
+      content.appendChild(group);
     }
     pos_1 += blocksize_1;
   }
 
   svg.setAttribute(ext_1,pos_1*grid_base);
   svg.setAttribute(ext_2,pos_2*grid_base);
-
-  var cont = document.getElementById("result");
-  // clear previous result
-  while(cont.firstChild) {
-    cont.removeChild(cont.firstChild);
-  }
-
-  cont.appendChild(svg);
 }
 
 function get_first_block(blocks) {
@@ -257,11 +295,11 @@ function get_first_block(blocks) {
   return blocks;
 }
 
-function get_slice_blocks_regular(idx_start, idx_dim, blocks, pattern) {
+function get_slice_blocks_regular(idx_start, idx_dim, blocks, coords, pattern) {
   for(var i=idx_start; i < idx_dim; i++) {
     if(Array.isArray(blocks)) {
       var s=0;
-      var target_coord = document.getElementById("coord_idx_"+i).value*1;
+      var target_coord = coords[i];
       var j=0;
       while(j < blocks.length) {
         var blocksize = pattern.blocksize[i];
@@ -283,6 +321,55 @@ function get_slice_blocks_regular(idx_start, idx_dim, blocks, pattern) {
   }
 
   return blocks;
+}
+
+// function createStyleSVG() {
+  // var style = createElementSVG("style");
+  // style.appendChild(document.createTextNode("/* "));
+  // style.appendChild(document.createCDATASection(""));
+  // style.appendChild(document.createTextNode(" */"));
+  // return style;
+// }*/
+
+function create_defs(svg,maxUnits,blocked) {
+  var defs = createElementSVG("defs");
+  var unitStyle = createElementSVG("style");
+  var unitStyle_content = "/* <![CDATA[ */\n";
+  for(var i=0; i < maxUnits; i++) {
+    unitStyle_content += ".u"+i+" { fill: "+unit_color(i)+" }\n";
+    unitStyle_content += ".u"+i+":hover ~ .mem_u"+i+" { display: block }\n";
+  }
+  unitStyle_content += "/* ]]> */";
+  unitStyle.appendChild(document.createTextNode(unitStyle_content));
+
+  var defaultStyle = createElementSVG("style");
+  var defaultStyle_content = "/* <![CDATA[ */\n";
+  defaultStyle_content += ".block { stroke-width: 0 }\n";
+  defaultStyle_content += ".tile { stroke-width: 0 }\n";
+  defaultStyle_content += ".mem { display: none }\n";
+  defaultStyle_content += "/* ]]> */";
+  defaultStyle.appendChild(document.createTextNode(defaultStyle_content));
+  var blockedStyle = createElementSVG("style");
+  var blockedStyle_content = "/* <![CDATA[ */\n";
+  blockedStyle_content += ".block { display: block }\n";
+  blockedStyle_content += ".tile { display: none }\n";
+  blockedStyle_content += ".block_gr:hover > .block { opacity: 0 }\n";
+  blockedStyle_content += ".block_gr:hover > .tile { display: block }\n";
+  blockedStyle_content += "/* ]]> */";
+  blockedStyle.appendChild(document.createTextNode(blockedStyle_content));
+  var nonBlockedStyle = createElementSVG("style");
+  nonBlockedStyle.setAttribute("id","nonBlocked");
+  var nonBlockedStyle_content = "/* <![CDATA[ */\n";
+  nonBlockedStyle_content += ".block { display: none }\n";
+  nonBlockedStyle_content += ".tile { display: block }\n";
+  nonBlockedStyle_content += "/* ]]> */";
+  nonBlockedStyle.appendChild(document.createTextNode(nonBlockedStyle_content));
+
+  defs.appendChild(unitStyle);
+  defs.appendChild(defaultStyle);
+  defs.appendChild(blockedStyle);
+  defs.appendChild(nonBlockedStyle);
+  svg.appendChild(defs);
 }
 
 function unit_color(unit) {
