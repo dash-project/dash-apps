@@ -41,14 +41,16 @@ using std::vector;
 
 using TeamSpecT = dash::TeamSpec<3>;
 using MatrixT = dash::NArray<double,3>;
+using PatternT = typename MatrixT::pattern_type;
 using StencilT = dash::StencilPoint<3>;
-using StencilSpecT = dash::StencilSpec<3,26>;
+using StencilSpecT = dash::StencilSpec<StencilT,26>;
 using CycleSpecT = dash::GlobalBoundarySpec<3>;
-using HaloT = dash::HaloMatrixWrapper<MatrixT,StencilSpecT>;
+using HaloT = dash::HaloMatrixWrapper<MatrixT>;
+using StencilOpT = dash::HaloStencilOperator<double,PatternT,StencilSpecT>;
 
 /* for the smoothing operation, only the 6-point stencil is needed.
 However, the prolongation operation also needs the */
-constexpr StencilSpecT stencil_spec({
+constexpr StencilSpecT stencil_spec(
     StencilT(0.5, -1, 0, 0), StencilT(0.5, 1, 0, 0),
     StencilT(0.5,  0,-1, 0), StencilT(0.5, 0, 1, 0),
     StencilT(0.5,  0, 0,-1), StencilT(0.5, 0, 0, 1),
@@ -63,7 +65,7 @@ constexpr StencilSpecT stencil_spec({
     StencilT(0.125, -1,-1,-1), StencilT( 0.125, 1,-1,-1),
     StencilT(0.125, -1,-1, 1), StencilT( 0.125, 1,-1, 1),
     StencilT(0.125, -1, 1,-1), StencilT( 0.125, 1, 1,-1),
-    StencilT(0.125, -1, 1, 1), StencilT( 0.125, 1, 1, 1)});
+    StencilT(0.125, -1, 1, 1), StencilT( 0.125, 1, 1, 1));
 
 constexpr CycleSpecT cycle_spec(
     dash::BoundaryProp::CUSTOM,
@@ -87,6 +89,9 @@ public:
     MatrixT* rhs_grid; /* right hand side, doesn't need a halo */
     HaloT* src_halo;
     HaloT* dst_halo;
+    StencilOpT* src_op;
+    StencilOpT* dst_op;
+
 
     /* this are the values of the 7 non-zero matrix values -- only 4 different values, though,
     because the matrix is symmetric */
@@ -111,10 +116,13 @@ public:
             _grid_1( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
             _grid_2( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
             _rhs_grid( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
-        _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
-        _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
+        _halo_grid_1( _grid_1, cycle_spec, stencil_spec ),
+        _halo_grid_2( _grid_2, cycle_spec, stencil_spec ),
+        _stencil_op_1(_halo_grid_1.stencil_operator(stencil_spec)),
+        _stencil_op_2(_halo_grid_2.stencil_operator(stencil_spec)),
         src_grid(&_grid_1), dst_grid(&_grid_2), rhs_grid(&_rhs_grid),
-        src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
+        src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2),
+        src_op(&_stencil_op_1),dst_op(&_stencil_op_2) {
 
         assert( 1 < nz );
         assert( 1 < ny );
@@ -168,10 +176,13 @@ public:
             _grid_1( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
             _grid_2( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
             _rhs_grid( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
-        _halo_grid_1( _grid_1, stencil_spec, cycle_spec ),
-        _halo_grid_2( _grid_2, stencil_spec, cycle_spec ),
+        _halo_grid_1( _grid_1, cycle_spec, stencil_spec ),
+        _halo_grid_2( _grid_2, cycle_spec, stencil_spec ),
+        _stencil_op_1(_halo_grid_1.stencil_operator(stencil_spec)),
+        _stencil_op_2(_halo_grid_2.stencil_operator(stencil_spec)),
         src_grid(&_grid_1), dst_grid(&_grid_2), rhs_grid(&_rhs_grid),
-        src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2) {
+        src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2),
+        src_op(&_stencil_op_1),dst_op(&_stencil_op_2) {
 
         assert( 1 < nz );
         assert( 1 < ny );
@@ -211,6 +222,7 @@ public:
 
         std::swap( src_halo, dst_halo );
         std::swap( src_grid, dst_grid );
+        std::swap( src_op, dst_op );
     }
 
     /* to be called by the master unit alone */
@@ -434,6 +446,9 @@ private:
     HaloT _halo_grid_1;
     HaloT _halo_grid_2;
     MatrixT _rhs_grid;
+    StencilOpT _stencil_op_1;
+    StencilOpT _stencil_op_2;
+
 };
 
 
@@ -1123,19 +1138,19 @@ void scaleup( Level& coarse, Level& fine ) {
     Make sure that this was correct though. And write down some good comment
     why it is correct! */
 
-    auto& wrapper_fine = *fine.src_halo;
+    auto& stencil_op_fine = *fine.src_op;
     for ( size_t z= 1; z < extentc[0] - 1; z++ ) {
         for ( size_t y= 1; y < extentc[1] - 1; y++ ) {
             for ( size_t x= 1; x < extentc[2] - 1; x++ ) {
-                wrapper_fine.set_value_at_inner_local({2*z+1, 2*y+1,2*x+1},
+                stencil_op_fine.set_value_at_inner_local({2*z+1, 2*y+1,2*x+1},
                     coarsegrid.local[z][y][x], 1.0,std::plus<double>());
             }
         }
     }
-    auto bend = coarse.src_halo->bend();
-    for (auto it = coarse.src_halo->bbegin(); it != bend; ++it ) {
+    auto bend = coarse.src_op->bend();
+    for (auto it = coarse.src_op->bbegin(); it != bend; ++it ) {
       const auto& coords = it.coords();
-        wrapper_fine.set_value_at_boundary_local(
+        stencil_op_fine.set_value_at_boundary_local(
             {2*coords[0]+1, 2*coords[1]+1, 2*coords[2]+1},
                     *it, 1.0,std::plus<double>());
     }
@@ -1173,7 +1188,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
           coords[d] = coords[d] * 2 + 1;
         }
-        wrapper_fine.set_value_at_boundary_local(coords, tmp, 0.0, std::plus<double>());
+        stencil_op_fine.set_value_at_boundary_local(coords, tmp, 0.0, std::plus<double>());
 
       }
     }
@@ -1492,9 +1507,9 @@ double smoothen( Level& level, Allreduce& res ) {
     auto grid_local_begin= level.dst_grid->lbegin();
     auto rhs_grid_local_begin= level.rhs_grid->lbegin();
 
-    auto bend = level.src_halo->bend();
+    auto bend = level.src_op->bend();
     // update border area
-    for( auto it = level.src_halo->bbegin(); it != bend; ++it ) {
+    for( auto it = level.src_op->bbegin(); it != bend; ++it ) {
 
         double dtheta= m * (
             ff * rhs_grid_local_begin[ it.lpos() ] -
