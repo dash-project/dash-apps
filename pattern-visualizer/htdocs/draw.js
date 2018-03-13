@@ -188,7 +188,14 @@ function draw_pattern(pattern) {
 
   //draw_axis(pattern, idx_dimx, idx_dimy, svg);
 
-  draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg);
+  var content = createElementSVG("g");
+  svg.appendChild(content);
+
+  var svg_size = draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, content);
+
+  if(pattern.memlayout != undefined) {
+    draw_memlayout(pattern, idx_dimx, idx_dimy, coords, content);
+  }
 
   var cont = document.getElementById("result");
   // clear previous result
@@ -196,6 +203,8 @@ function draw_pattern(pattern) {
     cont.removeChild(cont.firstChild);
   }
 
+  svg.setAttribute("width",svg_size["width"]);
+  svg.setAttribute("height",svg_size["height"]);
   cont.appendChild(svg);
 
   if(blocked) {
@@ -206,10 +215,7 @@ function draw_pattern(pattern) {
   }
 }
 
-function draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg) {
-  var content = createElementSVG("g");
-  svg.appendChild(content);
-
+function draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg_elem) {
   // strings for drawing in the right direction
   var dim_1, dim_2;
   var ext_1, ext_2;
@@ -279,13 +285,15 @@ function draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg) {
         pos_2++;
       }
       group.appendChild(tiles);
-      content.appendChild(group);
+      svg_elem.appendChild(group);
     }
     pos_1 += blocksize_1;
   }
 
-  svg.setAttribute(ext_1,pos_1*grid_base);
-  svg.setAttribute(ext_2,pos_2*grid_base);
+  var svg_size = new Array();
+  svg_size[ext_1] = pos_1*grid_base;
+  svg_size[ext_2] = pos_2*grid_base;
+  return svg_size;
 }
 
 function get_first_block(blocks) {
@@ -323,6 +331,69 @@ function get_slice_blocks_regular(idx_start, idx_dim, blocks, coords, pattern) {
   return blocks;
 }
 
+function draw_memlayout(pattern, idx_dimx, idx_dimy, coords, svg_elem) {
+  for(var unit=0; unit < pattern.memlayout.length; unit++) {
+    var local_memlayout = pattern.memlayout[unit];
+    var mem_group = createElementSVG("g");
+    mem_group.setAttribute("class","mem mem_u"+unit);
+
+    var offset = 0;
+    var contiguous = true;
+    var startx = 0;
+    var starty = 0;
+    for(var i=0; i < local_memlayout.length; i++) {
+      if(local_memlayout[i].o != undefined && offset != local_memlayout[i].o) {
+        offset = local_memlayout[i].o;
+        contiguous = false;
+      }
+
+      var pos = local_memlayout[i].p;
+      if(match_slice(pos, coords, idx_dimx, idx_dimy)) {
+        var endx = (pos[idx_dimx] * grid_base) + tile_size/2;
+        var endy = (pos[idx_dimy] * grid_base) + tile_size/2;
+        if(i != 0) {
+          // draw line
+          var line = createElementSVG("line");
+          line.setAttribute("x1",startx);
+          line.setAttribute("y1",starty);
+          line.setAttribute("x2",endx);
+          line.setAttribute("y2",endy);
+          if(!contiguous) {
+            line.setAttribute("class","discon");
+          }
+          mem_group.appendChild(line);
+        }
+        // draw point
+        var circle = createElementSVG("circle");
+        circle.setAttribute("cx",endx);
+        circle.setAttribute("cy",endy);
+        circle.setAttribute("r",1.5);
+        mem_group.appendChild(circle);
+
+        startx = endx;
+        starty = endy;
+
+        contiguous = true;
+      }
+
+      offset++;
+    }
+    svg_elem.appendChild(mem_group);
+  }
+}
+
+function match_slice(coords1, coords2, idx_1, idx_2) {
+  if(Array.isArray(coords1) && Array.isArray(coords2)) {
+    for(var i=0; i < coords1.length && i < coords2.length; i++) {
+      if(coords1[i] != coords2[i] && i != idx_1 && i != idx_2) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 // function createStyleSVG() {
   // var style = createElementSVG("style");
   // style.appendChild(document.createTextNode("/* "));
@@ -346,7 +417,9 @@ function create_defs(svg,maxUnits,blocked) {
   var defaultStyle_content = "/* <![CDATA[ */\n";
   defaultStyle_content += ".block { stroke-width: 0 }\n";
   defaultStyle_content += ".tile { stroke-width: 0 }\n";
-  defaultStyle_content += ".mem { display: none }\n";
+  defaultStyle_content += ".mem { stroke: #E0E0E0; stroke-width: 1; fill: #E0E0E0; display: none }\n";
+  defaultStyle_content += ".mem:hover { display: block }\n";
+  defaultStyle_content += ".discon { stroke-dasharray: 4 }\n";
   defaultStyle_content += "/* ]]> */";
   defaultStyle.appendChild(document.createTextNode(defaultStyle_content));
   var blockedStyle = createElementSVG("style");
