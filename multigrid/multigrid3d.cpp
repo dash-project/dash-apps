@@ -1139,9 +1139,9 @@ void scaleup( Level& coarse, Level& fine ) {
     why it is correct! */
 
     auto& stencil_op_fine = *fine.src_op;
-    for ( size_t z= 1; z < extentc[0] - 1; z++ ) {
-        for ( size_t y= 1; y < extentc[1] - 1; y++ ) {
-            for ( size_t x= 1; x < extentc[2] - 1; x++ ) {
+    for ( signed_size_t z= 1; z < extentc[0] - 1; z++ ) {
+        for ( signed_size_t y= 1; y < extentc[1] - 1; y++ ) {
+            for ( signed_size_t x= 1; x < extentc[2] - 1; x++ ) {
                 stencil_op_fine.set_value_at_inner_local({2*z+1, 2*y+1,2*x+1},
                     coarsegrid.local[z][y][x], 1.0,std::plus<double>());
             }
