@@ -1,15 +1,6 @@
 var pattern_combined;
 
 function prepare_pattern(pattern) {
-  // todo server
-  pattern.extents = [];
-  for(var i=0; i < pattern.dims.length; i++) {
-    pattern.extents[i] = 100;
-  }
-  pattern.maxUnits = 12;
-  pattern.regular = true;
-
-
   pattern_combined = pattern;
 
   update_dims_list(pattern.dims,pattern.extents);
@@ -433,7 +424,7 @@ function create_defs(svg,maxUnits,blocked) {
   var nonBlockedStyle = createElementSVG("style");
   nonBlockedStyle.setAttribute("id","nonBlocked");
   var nonBlockedStyle_content = "/* <![CDATA[ */\n";
-  nonBlockedStyle_content += ".block { display: none }\n";
+  nonBlockedStyle_content += ".block { opacity: 0 }\n";
   nonBlockedStyle_content += ".tile { display: block }\n";
   nonBlockedStyle_content += "/* ]]> */";
   nonBlockedStyle.appendChild(document.createTextNode(nonBlockedStyle_content));

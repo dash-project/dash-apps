@@ -81,6 +81,23 @@ public:
     }
     os << "]";
 
+    os << ",\n";
+    os << "\"extents\": [";
+    for(auto it=dims.cbegin(); it != dims.cend(); ++it) {
+      if(it != dims.cbegin()) {
+        os << ",";
+      }
+      os << _pattern.extent(*it);
+    }
+    os << "]";
+
+    os << ",\n";
+    os << "\"maxUnits\": " << _pattern.teamspec().size();
+
+    os << ",\n";
+    // TODO for irregular patterns
+    os << "\"regular\": true";
+
     if(output_blocks) {
       // default blocksize
       os << ",\n";
@@ -241,7 +258,7 @@ public:
       bool first_pass = true;
       os << "[";
       for(auto offset = 0; offset < local_size; offset++ ) {
-        auto coords = _pattern.coords(_pattern.global(offset));//,unit));
+        auto coords = _pattern.coords(_pattern.global(offset));//unit,offset));
 
         // compare if found coord is in current slice
         bool cur_slice = true;
