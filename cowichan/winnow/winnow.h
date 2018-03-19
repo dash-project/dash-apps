@@ -148,7 +148,7 @@ inline void Winnow(
 
   // is here a barrier needed? -> to wait for completion on unit0?!
   if( 0 != myid ) {
-    dash::transform<uint>(
+    dash::transform    (
       histo.lbegin     ( ) ,
       histo.lend       ( ) ,
       histo.begin      ( ) ,

@@ -43,11 +43,12 @@ inline void Thresh(
 
   // add the values of the local histogram to the histogram of unit0
   if( 0 != myid ) {
-    transform<uint>  ( histo.lbegin( ),
-    histo.lend       ( )              ,
-    histo.begin      ( )              , // points to global begin -> lbegin of unit0
-    histo.begin      ( )              ,
-    dash::plus<uint> ( )              );
+    dash::transform(
+    histo.lbegin     ( ) ,
+    histo.lend       ( ) ,
+    histo.begin      ( ) , // points to global begin -> lbegin of unit0
+    histo.begin      ( ) ,
+    dash::plus<uint> ( ) );
   }
 
   // create new shared variable

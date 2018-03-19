@@ -196,6 +196,7 @@ int main( int argc, char* argv[] )
     fclose ( fp );
   }
 
+  printf("Test");
   if( !is_bench ){ PrintOutput( result, in.winnow_nelts ); }
   dash::finalize( );
 }
