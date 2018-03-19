@@ -40,11 +40,18 @@ inline void ReadPars( )
   
   if(0 == myid)
   {
-    cin >> in.nRowsCols    ;    
-    cin >> in.seed         ;
-    cin >> in.thresh       ;
-    cin >> in.winnow_nelts ;
-                           
+    // cin >> in.nRowsCols    ;    
+    // cin >> in.seed         ;
+    // cin >> in.thresh       ;
+    // cin >> in.winnow_nelts ;
+
+    
+   in.nRowsCols    = 100;    
+   in.seed         = 2;
+   in.thresh       = 100;
+   in.winnow_nelts = 100;
+
+    
     input_transfer.set(in) ;
   }                        
   input_transfer.barrier() ;
@@ -58,14 +65,16 @@ inline void CopyFromDashToStd(
   Array  <double> const & dashVector,
   vector <double>       & loclVector)
 {
-  if(0 == myid)
-  {
-    double * vec = loclVector.data( );
-    for( double const i : dashVector )
-    {
-      *(vec++) = i;
-    }
-  }
+  // if(0 == myid)
+  // {
+    // double * vec = loclVector.data( );
+    // for( double const i : dashVector )
+    // {
+      // *(vec++) = i;
+    // }
+  // }
+  dash::copy(dashVector.begin(), dashVector.end(), loclVector.data());
+  
   BroadcastOuterVecToUnits( loclVector ); //defined in product.h
 }
 
@@ -75,25 +84,29 @@ inline void CopyFromDashToStd(
 template<typename T, typename X, typename Y>
 inline void CopyFromDashToStd(
   Array<T, X, Y>  const & dashVector,
-       vector<T>        & loclVector)
+               T        * loclVector)
 {
-  if(0 == myid)
-  {
-    T * vec = loclVector.data( );
-    for( T const i : dashVector )
-    {
-      *(vec++) = i;
-    }
-  }
+  // if(0 == myid)
+  // {
+    // T * vec = loclVector.data( );
+    // for( T const i : dashVector )
+    // {
+      // *(vec++) = i;
+    // }
+  // }
   
   // using dash::Team        ;
   // using dash::team_unit_t ;
   
   // Team & team = dash::Team::All( );
+  
+  if(0==myid) cout << "before dash::copy" << endl;
+  dash::copy(dashVector.begin(), dashVector.end(), loclVector);
+  if(0==myid) cout << "after dash::copy" << endl;
                     
   dart_ret_t ret = dart_bcast(
-                    static_cast<void*>( loclVector.data() ),  // buf 
-                    loclVector.size() * sizeof(T)          ,  // nelem
+                    static_cast<void*>( loclVector        ),  // buf 
+                    in.winnow_nelts * sizeof(T)            ,  // nelem
                     DART_TYPE_BYTE                         ,  // dtype
                     dash::team_unit_t(0)                   ,  // root/source
                     dash::Team::All( ).dart_id( )          ); // team
@@ -123,7 +136,6 @@ int main( int argc, char* argv[] )
   // initialize variables
   NArray<MATRIX_T, 2> rand_mat      ( in.nRowsCols   , in.nRowsCols    );
   NArray<bool    , 2> thresh_mask   ( in.nRowsCols   , in.nRowsCols    );
-  vector<value      > winnow_vecRes ( in.winnow_nelts                  ); //value defined in winnow.h
   NArray<double  , 2> outer_mat     ( in.winnow_nelts, in.winnow_nelts );
   Array <double     > outer_vec     ( in.winnow_nelts                  );
   vector<double     > prod_vec      ( in.winnow_nelts                  );
@@ -146,12 +158,24 @@ int main( int argc, char* argv[] )
   // if(0 == myid){ winnow( in.nRowsCols, in.nRowsCols, rand_mat, thresh_mask, in.winnow_nelts, winnow_points );}
   // BroadcastPointsToUnits( winnow_points );
   Winnow( in.nRowsCols, in.nRowsCols, rand_mat, thresh_mask, in.winnow_nelts, winnow_dashRes );
+  
+  //vector<value      > winnow_vecRes ( in.winnow_nelts                  ); //value defined in winnow.h
+  
+  value * winnow_vecRes = new value[ in.winnow_nelts ]; //value defined in winnow.h
+  
+  if(0==myid) cout << "before winnow copy" << endl;
+  
   CopyFromDashToStd( winnow_dashRes, winnow_vecRes );
   
-  Outer( winnow_vecRes, outer_mat, outer_vec, in.winnow_nelts );
-  CopyFromDashToStd( outer_vec, prod_vec );
+  if(0==myid) cout << "after winnow copy" << endl;
   
-  Product( prod_vec, outer_mat, result, in.winnow_nelts );
+  
+  
+  
+  // Outer( winnow_vecRes, outer_mat, outer_vec, in.winnow_nelts );
+  // CopyFromDashToStd( outer_vec, prod_vec );
+  
+  // Product( prod_vec, outer_mat, result, in.winnow_nelts );
   
   if( clock_gettime( CLOCK_MONOTONIC_RAW, &stop) == -1 ) {
     perror( "clock gettime error 2" );

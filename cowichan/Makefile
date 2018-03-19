@@ -67,7 +67,9 @@ dash-gnu:
 
 dash-intel:
 	@echo -e making ... $(BLUE)DASH Intel$(NC);\
-	if [[ $$CC == *gcc ]] ; then module swap gnu intel; fi;\
+	if [[ $$CC == *gcc ]] ; then module swap gnu intel/17.0.2.174; fi;\
+	module swap impi impi/2017.2.174;\
+	module list;\
 	$(MAKE) --no-print-directory dash
 
 dash: MAKECMDGOALS = all
