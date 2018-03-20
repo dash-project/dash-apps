@@ -9,4 +9,9 @@ LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base $(PAP
 #CXXFLAGS= -O3 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
  CXXFLAGS= -Ofast -xHost -qopenmp -funroll-loops
 
- CXX     = mpiCC -cxx=icpc -std=c++11 $(CXXFLAGS)
+# used on SuperMUC:
+#CXX     = mpiCC -cxx=icpc -std=c++11 $(CXXFLAGS)
+
+
+# used on project03:
+CXX      = mpicxx -std=c++11 $(CXXFLAGS)
