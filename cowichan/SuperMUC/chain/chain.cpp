@@ -40,11 +40,18 @@ inline void ReadPars( )
 
   if(0 == myid)
   {
-    cin >> in.nRowsCols    ;
-    cin >> in.seed         ;
-    cin >> in.thresh       ;
-    cin >> in.winnow_nelts ;
+    // cin >> in.nRowsCols    ;
+    // cin >> in.seed         ;
+    // cin >> in.thresh       ;
+    // cin >> in.winnow_nelts ;
 
+    
+   in.nRowsCols    = 100;    
+   in.seed         = 2;
+   in.thresh       = 100;
+   in.winnow_nelts = 100;
+
+    
     input_transfer.set(in) ;
   }
   input_transfer.barrier() ;
@@ -96,7 +103,9 @@ inline void CopyFromDashToStd(
   if(0==myid) cout << "before bcast" << endl;
   dart_ret_t ret = dart_bcast(
                     static_cast<void*>( loclVector.data() ),  // buf
+                  //static_cast<void*>( loclVector        ),  // buf   
                     loclVector.size() * sizeof(T)          ,  // nelem
+                  //in.winnow_nelts * sizeof(T)            ,  // nelem
                     DART_TYPE_BYTE                         ,  // dtype
                     dash::team_unit_t(0)                   ,  // root/source
                     dash::Team::All( ).dart_id( )          ); // team
@@ -127,7 +136,6 @@ int main( int argc, char* argv[] )
   // initialize variables
   NArray<MATRIX_T, 2> rand_mat      ( in.nRowsCols   , in.nRowsCols    );
   NArray<bool    , 2> thresh_mask   ( in.nRowsCols   , in.nRowsCols    );
-  vector<value      > winnow_vecRes ( in.winnow_nelts                  ); //value defined in winnow.h
   NArray<double  , 2> outer_mat     ( in.winnow_nelts, in.winnow_nelts );
   Array <double     > outer_vec     ( in.winnow_nelts                  );
   vector<double     > prod_vec      ( in.winnow_nelts                  );
@@ -136,32 +144,40 @@ int main( int argc, char* argv[] )
 
   // after the run of outer "outer_vec" will be recycled/reused for the final output
   auto & result = outer_vec;
+  
+  vector<value> winnow_vecRes (in.winnow_nelts); //value defined in winnow.h
+  //value * winnow_vecRes = new value[ in.winnow_nelts ]; //value defined in winnow.h
 
+  
   if( clock_gettime( CLOCK_MONOTONIC, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
 
+  
   // execute functions
   Randmat( rand_mat, in.seed );
-  if(0==myid) cout << "randmat finish" << endl;
   Thresh( rand_mat, thresh_mask, in.nRowsCols, in.nRowsCols, in.thresh );
-  if(0==myid) cout << "thrsh finish" << endl;
 
-  // if(0 == myid){ winnow( in.nRowsCols, in.nRowsCols, rand_mat, thresh_mask, in.winnow_nelts, winnow_points );}
-  // BroadcastPointsToUnits( winnow_points );
+
   Winnow( in.nRowsCols, in.nRowsCols, rand_mat, thresh_mask, in.winnow_nelts, winnow_dashRes );
   if(0==myid) cout << "winnow finish" << endl;
+  
   CopyFromDashToStd( winnow_dashRes, winnow_vecRes );
   if(0==myid) cout << "copy winnow finish" << endl;
 
+  
   Outer( winnow_vecRes, outer_mat, outer_vec, in.winnow_nelts );
   if(0==myid) cout << "outer finish" << endl;
+  
   CopyFromDashToStd( outer_vec, prod_vec );
   if(0==myid) cout << "copy outer finish" << endl;
+  
 
   Product( prod_vec, outer_mat, result, in.winnow_nelts );
   if(0==myid) cout << "copy product finish" << endl;
+  
+  
 
   if( clock_gettime( CLOCK_MONOTONIC, &stop) == -1 ) {
     perror( "clock gettime error 2" );
