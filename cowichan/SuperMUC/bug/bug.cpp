@@ -21,12 +21,18 @@ int main( int argc, char* argv[] )
   myid = dash::myid( );
 
   
-  std::vector<extent_t> local_sizes_source{20,30,20,30};
+  std::vector<extent_t> local_sizes_source;
+  
+  int i;  
+  
+  for( i=0; i < dash::Team::All().size(); ++i ){
+    local_sizes_source.push_back(20+i*myid);
+  }
 
   pattern_t pattern_source( local_sizes_source );
   dash::Array<value, long, pattern_t> source ( pattern_source );
 
-  int i = 0;
+  i=0;  
   
   for( value * src = source.lbegin(); src < source.lend(); ++src, ++i )
   {
