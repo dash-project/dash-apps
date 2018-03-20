@@ -741,8 +741,8 @@ void initboundary( Level& level ) {
         return ret;
     };
 
-    level.src_halo->set_fixed_halos( lambda );
-    level.dst_halo->set_fixed_halos( lambda );
+    level.src_halo->set_custom_halos( lambda );
+    level.dst_halo->set_custom_halos( lambda );
 }
 
 
@@ -753,8 +753,8 @@ void initboundary_zero( Level& level ) {
 
     auto lambda= []( const auto& coords ) { return 0.0; };
 
-    level.src_halo->set_fixed_halos( lambda );
-    level.dst_halo->set_fixed_halos( lambda );
+    level.src_halo->set_custom_halos( lambda );
+    level.dst_halo->set_custom_halos( lambda );
 }
 
 
@@ -900,8 +900,8 @@ void scaledownboundary( Level& fine, Level& coarse ) {
         }
     };
 
-    coarse.src_halo->set_fixed_halos( lambda );
-    coarse.dst_halo->set_fixed_halos( lambda );
+    coarse.src_halo->set_custom_halos( lambda );
+    coarse.dst_halo->set_custom_halos( lambda );
 }
 
 
@@ -1081,13 +1081,12 @@ void scaledown( Level& fine, Level& coarse ) {
 //#define USE_NEW_SCALEUP
 
 #ifdef USE_NEW_SCALEUP
- 
+
 /* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
 elements. Note that it is 2^n elements per dimension instead of 2^n -1!
 This version loops over the coarse grid */
 //void scaleup_loop_coarse( Level& coarse, Level& fine ) {
 void scaleup( Level& coarse, Level& fine ) {
-
     using signed_size_t = typename std::make_signed<size_t>::type;
 
     MatrixT& coarsegrid= *coarse.src_grid;
@@ -1172,7 +1171,7 @@ void scaleup( Level& coarse, Level& fine ) {
     const auto& view = halo_block.view();
 
     for(const auto& region : halo_block.halo_regions()) {
-      if(region.is_fixed_region())
+      if(region.is_custom_region())
         continue;
 
       if((region.spec()[0] == 2 && sub[0]) ||
@@ -1237,8 +1236,8 @@ void scaleup( Level& coarse, Level& fine ) {
     assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
-    /* if last element in coarse grid per dimension has no 2*i+2 element in 
-    the local fine grid, then handle it as a separate loop using halo. 
+    /* if last element in coarse grid per dimension has no 2*i+2 element in
+    the local fine grid, then handle it as a separate loop using halo.
     sub[i] is always 0 or 1 */
     std::array< size_t, 3 > sub;
     for ( uint32_t i= 0; i < 3; ++i ) {
@@ -1248,10 +1247,10 @@ void scaleup( Level& coarse, Level& fine ) {
     /* 1) start async halo exchange for coarse grid*/
     coarse.src_halo->update_async();
 
-    /* 2) first set fine grid to 0.0, becasue afterwards there are 
+    /* 2) first set fine grid to 0.0, becasue afterwards there are
     multiple += operations per fine grid element */
 
-    /* 3) second loop over the coarse grid and add the contributions to the 
+    /* 3) second loop over the coarse grid and add the contributions to the
     fine grid elements */
 
     /* for correctness, write down the clear and simple version first and
@@ -1298,7 +1297,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
 
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1327,7 +1326,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[1] do the same thing as above 
+        /* for last element when 1 == sub[1] do the same thing as above
         but without the +2 steps in y-dimension */
         for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -1356,7 +1355,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1380,7 +1379,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
     }
-    /* for last element when 1 == sub[0] do the same thing as above 
+    /* for last element when 1 == sub[0] do the same thing as above
     but without the +2 steps in z-dimension */
     for ( size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
         for ( size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
@@ -1410,7 +1409,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1433,7 +1432,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[1] do the same thing as above 
+        /* for last element when 1 == sub[1] do the same thing as above
         but without the +2 steps in y-dimension */
         for ( size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -1456,7 +1455,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1504,7 +1503,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1520,7 +1519,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[1] do the same thing as above 
+        /* for last element when 1 == sub[1] do the same thing as above
         but without the +2 steps in y-dimension */
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -1536,7 +1535,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1553,7 +1552,7 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= N */
-    if ( 0 == sub[0]) { 
+    if ( 0 == sub[0]) {
         signed_size_t z= extentc[0];
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -1572,7 +1571,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1588,7 +1587,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[1] do the same thing as above 
+        /* for last element when 1 == sub[1] do the same thing as above
         but without the +2 steps in y-dimension */
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -1604,7 +1603,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1642,7 +1641,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
 
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1659,7 +1658,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
     }
-    /* for last element when 1 == sub[0] do the same thing as above 
+    /* for last element when 1 == sub[0] do the same thing as above
     but without the +2 steps in z-dimension */
     for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
         { signed_size_t y= -1;
@@ -1676,7 +1675,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1715,7 +1714,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
 
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1732,7 +1731,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
 
-        /* for last element when 1 == sub[0] do the same thing as above 
+        /* for last element when 1 == sub[0] do the same thing as above
         but without the +2 steps in z-dimension */
         for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -1748,7 +1747,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -1784,7 +1783,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[1] do the same thing as above 
+        /* for last element when 1 == sub[1] do the same thing as above
         but without the +2 steps in y-dimension */
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             { signed_size_t x= -1;
@@ -1802,7 +1801,7 @@ void scaleup( Level& coarse, Level& fine ) {
             }
         }
     }
-    /* for last element when 1 == sub[0] do the same thing as above 
+    /* for last element when 1 == sub[0] do the same thing as above
     but without the +2 steps in z-dimension */
     for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
@@ -1820,7 +1819,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[1] do the same thing as above 
+        /* for last element when 1 == sub[1] do the same thing as above
         but without the +2 steps in y-dimension */
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             { signed_size_t x= -1;
@@ -1857,7 +1856,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[1] do the same thing as above 
+            /* for last element when 1 == sub[1] do the same thing as above
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
@@ -1873,7 +1872,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
-        /* for last element when 1 == sub[0] do the same thing as above 
+        /* for last element when 1 == sub[0] do the same thing as above
         but without the +2 steps in z-dimension */
         for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
@@ -1889,7 +1888,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[1] do the same thing as above 
+            /* for last element when 1 == sub[1] do the same thing as above
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
@@ -1921,7 +1920,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[0] do the same thing as above 
+            /* for last element when 1 == sub[0] do the same thing as above
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
@@ -1935,7 +1934,7 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* y= N, x= -1 */
-    if ( 0 == sub[1] ) { 
+    if ( 0 == sub[1] ) {
         signed_size_t y= extentc[1];
         { signed_size_t x= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
@@ -1947,7 +1946,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[0] do the same thing as above 
+            /* for last element when 1 == sub[0] do the same thing as above
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
@@ -1972,7 +1971,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[0] do the same thing as above 
+            /* for last element when 1 == sub[0] do the same thing as above
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
@@ -1986,7 +1985,7 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* y= N, x= N */
-    if ( 0 == sub[1] ) { 
+    if ( 0 == sub[1] ) {
         signed_size_t y= extentc[1];
         if ( 0 == sub[2] ) {
             signed_size_t x= extentc[2];
@@ -1999,7 +1998,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[0] do the same thing as above 
+            /* for last element when 1 == sub[0] do the same thing as above
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
@@ -2026,7 +2025,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[1] do the same thing as above 
+            /* for last element when 1 == sub[1] do the same thing as above
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
@@ -2041,7 +2040,7 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= N, x= -1 */
-    if ( 0 == sub[0] ) { 
+    if ( 0 == sub[0] ) {
         signed_size_t z= extentc[0];
         { signed_size_t x= -1;
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
@@ -2053,7 +2052,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[1] do the same thing as above 
+            /* for last element when 1 == sub[1] do the same thing as above
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
@@ -2079,7 +2078,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[1] do the same thing as above 
+            /* for last element when 1 == sub[1] do the same thing as above
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
@@ -2105,7 +2104,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[1] do the same thing as above 
+            /* for last element when 1 == sub[1] do the same thing as above
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
@@ -2134,7 +2133,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -2148,7 +2147,7 @@ void scaleup( Level& coarse, Level& fine ) {
     }
 
     /* z= N, y= -1 */
-    if ( 0 == sub[0] ) { 
+    if ( 0 == sub[0] ) {
         signed_size_t z= extentc[0];
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
@@ -2160,7 +2159,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -2185,7 +2184,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -2210,7 +2209,7 @@ void scaleup( Level& coarse, Level& fine ) {
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
-            /* for last element when 1 == sub[2] do the same thing as above 
+            /* for last element when 1 == sub[2] do the same thing as above
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
@@ -3712,7 +3711,7 @@ bool do_test_new_scaleup_loop_coarse() {
 
     dash::fill( a->src_grid->begin(), a->src_grid->end(), 1 );
     a->src_grid->barrier();
-    a->src_halo->set_fixed_halos(  []( const auto& coords ) { return 1.0; } );
+    a->src_halo->set_custom_halos(  []( const auto& coords ) { return 1.0; } );
     dash::fill( b->src_grid->begin(), b->src_grid->end(), 0 );
     b->src_grid->barrier();
 
