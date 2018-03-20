@@ -26,7 +26,7 @@ int main( int argc, char* argv[] )
   int i;  
   
   for( i=0; i < dash::Team::All().size(); ++i ){
-    local_sizes_source.push_back(20+i*myid);
+    local_sizes_source.push_back(20+i);
   }
 
   pattern_t pattern_source( local_sizes_source );
@@ -40,8 +40,8 @@ int main( int argc, char* argv[] )
     src->row = i + myid;
   }
   
-  
-  value * target = new value[ 100 ];
+  if(0==myid) cout << "size of source:" << source.size() << endl;
+  value * target = new value[ source.size() ];
 
   if(0==myid) cout << "before dash::copy" << endl;
   
