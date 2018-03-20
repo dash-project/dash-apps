@@ -85,7 +85,8 @@ inline void CopyFromDashToStd(
 template<typename T, typename X, typename Y>
 inline void CopyFromDashToStd(
   Array<T, X, Y>  const & dashVector,
-       vector<T>        & loclVector)
+       //vector<T>        & loclVector)
+                 T      * loclVector)
 {
   // if(0 == myid)
   // {
@@ -98,14 +99,15 @@ inline void CopyFromDashToStd(
   // }
   
   if(0==myid) cout << "before dash::copy" << endl;
-  dash::copy(dashVector.begin(), dashVector.end(), loclVector.data());
+  //dash::copy(dashVector.begin(), dashVector.end(), loclVector.data());
+  dash::copy(dashVector.begin(), dashVector.end(), loclVector);
   
   if(0==myid) cout << "before bcast" << endl;
   dart_ret_t ret = dart_bcast(
-                    static_cast<void*>( loclVector.data() ),  // buf
-                  //static_cast<void*>( loclVector        ),  // buf   
-                    loclVector.size() * sizeof(T)          ,  // nelem
-                  //in.winnow_nelts * sizeof(T)            ,  // nelem
+                  //static_cast<void*>( loclVector.data() ),  // buf
+                    static_cast<void*>( loclVector        ),  // buf   
+                  //loclVector.size() * sizeof(T)          ,  // nelem
+                    in.winnow_nelts * sizeof(T)            ,  // nelem
                     DART_TYPE_BYTE                         ,  // dtype
                     dash::team_unit_t(0)                   ,  // root/source
                     dash::Team::All( ).dart_id( )          ); // team
@@ -145,8 +147,8 @@ int main( int argc, char* argv[] )
   // after the run of outer "outer_vec" will be recycled/reused for the final output
   auto & result = outer_vec;
   
-  vector<value> winnow_vecRes (in.winnow_nelts); //value defined in winnow.h
-  //value * winnow_vecRes = new value[ in.winnow_nelts ]; //value defined in winnow.h
+  //vector<value> winnow_vecRes (in.winnow_nelts); //value defined in winnow.h
+  value * winnow_vecRes = new value[ in.winnow_nelts ]; //value defined in winnow.h
 
   
   if( clock_gettime( CLOCK_MONOTONIC, &start) == -1 ) {
@@ -167,14 +169,14 @@ int main( int argc, char* argv[] )
   if(0==myid) cout << "copy winnow finish" << endl;
 
   
-  Outer( winnow_vecRes, outer_mat, outer_vec, in.winnow_nelts );
+  // Outer( winnow_vecRes, outer_mat, outer_vec, in.winnow_nelts );
   if(0==myid) cout << "outer finish" << endl;
   
-  CopyFromDashToStd( outer_vec, prod_vec );
+  // CopyFromDashToStd( outer_vec, prod_vec );
   if(0==myid) cout << "copy outer finish" << endl;
   
 
-  Product( prod_vec, outer_mat, result, in.winnow_nelts );
+  // Product( prod_vec, outer_mat, result, in.winnow_nelts );
   if(0==myid) cout << "copy product finish" << endl;
   
   
