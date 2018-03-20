@@ -20,5 +20,5 @@ printenv:
 
 .PHONY: clean
 clean:
-	-rm chain
-	-rm chain.o
+	-rm bug
+	-rm bug.o
