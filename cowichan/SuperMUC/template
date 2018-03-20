@@ -1,0 +1,68 @@
+#!/bin/bash
+#@ energy_policy_tag=NONE
+#@ minimize_time_to_solution=yes
+
+#-- Intel MPI: ------------
+#@ job_type=MPICH
+#--------------------------
+
+# change to class=micro perhaps
+# don't forget to adjust wall_clock_time as well
+#@ class=test
+
+#@ node=<<NUM_NODES>>
+#@ tasks_per_node=<<NUM_PROCS>>
+
+# perhaps deprecated
+#@ node_usage=not_shared
+
+# It is always necessary to set island_count=1 
+# for Intel MPI jobs on Phase 2 (Haswell nodes).
+#@ island_count=1
+
+#@ wall_clock_limit=0:30:00
+#@ job_name=<<JOBNAME>>
+#@ network.MPI=sn_all,not_shared,us
+#@ initialdir=$(home)
+#@ output=$(home)/out/$(job_name).out
+#@ error=$(home)/logs/$(job_name).err
+#@ notification=never
+#@ notify_user=lehmannb@cip.ifi.lmu.de
+#@ queue
+
+
+#-- MPI environment settings: ---------------------------------
+# Process pinning: Pin unit $u to CPU $u: (Intel MPI):
+# export I_MPI_PIN=1
+# export I_MPI_PIN_PROCESSOR_LIST=0-27
+# export MP_PE_AFFINITY=yes
+# export MP_TASK_AFFINITY=cpu
+# export MP_CPU_BIND_LIST=0-27
+# export MP_PROC=<<NUM_PROCS>>
+# export MP_WAIT_MODE=poll
+
+#--------------------------------------------------------------
+
+#-- MKL environment settings: --
+# For hybrid MPI+OpenMP jobs:
+# export MP_SINGLE_THREAD=no
+# export OMP_NUM_THREADS=<<NUM_THREADS>>
+# KMP_AFFINITY and/or KMP_PLACE_THREADS
+# export KMP_AFFINITY=logical
+#-------------------------------
+
+# Setup environment:
+source /etc/profile
+source /etc/profile.d/modules.sh
+
+
+#-- Intel MPI: ------------
+module unload mpi.ibm
+module unload intel/16.0 
+module load mpi.intel/2017.2
+module load intel/17.0.2
+module load papi
+module load hwloc
+
+<<COMMAND>>
+

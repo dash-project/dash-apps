@@ -13,14 +13,14 @@
 
 using dash::barrier;
 using dash::NArray;
- 
+
 template< typename T = MATRIX_T >
 inline void Randmat(
   NArray< T, 2 >       & rand_mat,
             uint const   seed    )
 {
-  const int LCG_A = 1664525, LCG_C = 1013904223;
-  
+  const uint LCG_A = 1664525, LCG_C = 1013904223;
+
   uint nrows = rand_mat.local.extent(0); // num of local rows
   uint ncols = rand_mat.local.extent(1); // num of local cols
 
@@ -31,9 +31,9 @@ inline void Randmat(
     for( uint i = 0; i < nrows; ++i ) {
       uint s = seed + gbeg + i;
 
-      for( int j = 0; j < ncols; ++j ) {
+      for( uint j = 0; j < ncols; ++j ) {
         s = LCG_A * s + LCG_C;
-        rand_mat.lbegin( )[i*ncols + j] = ( (unsigned)s ) % 100;
+        rand_mat.lbegin( )[i*ncols + j] = ( (unsigned)s ) % 1000;
       }
     }
   }

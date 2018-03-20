@@ -6,7 +6,7 @@ using dash::size;
 using dash::barrier;
 using dash::Shared;
 
-template<typename T = MATRIX_T>
+template<typename T = MATRIX_T,typename hisT = size_t>
 inline void Thresh(
   NArray< T   , 2 > const & rand_mat   ,
   NArray< bool, 2 >       & thresh_mask,
@@ -22,11 +22,12 @@ inline void Thresh(
   // get number of units running
   size_t num_units = size( );
 
+
   // create global histo array and initialze with 0
-  Array<uint> histo( (max + 1) * num_units, BLOCKED );
+  Array<hisT> histo( (max + 1) * num_units, BLOCKED );
 
   // initialize the histogram
-  for( uint * i = histo.lbegin(); i < histo.lend(); ++i) {
+  for( hisT * i = histo.lbegin(); i < histo.lend(); ++i) {
     *i = 0;
   }
 
@@ -40,21 +41,23 @@ inline void Thresh(
    */
   barrier( );
 
+
   // add the values of the local histogram to the histogram of unit0
   if( 0 != myid ) {
-    dash::transform( 
+    dash::transform(
       histo.lbegin     ( ) ,
       histo.lend       ( ) ,
       histo.begin      ( ) , // points to global begin -> lbegin of unit0
       histo.begin      ( ) ,
-      dash::plus<uint> ( ) );
+      dash::plus<hisT> ( ) );
   }
 
   // create new shared variable
-  Shared<int> threshold;
+  Shared<T> threshold;
 
   // wait for all units to finish adding (especially unit0 should wait)
   barrier( );
+
 
 /*
  * In the following scope unit0 calculates the threshold for the
@@ -65,17 +68,9 @@ inline void Thresh(
  */
   if( 0 == myid ) {
 
-    // if compiled; unit0 prints the global histogram (which resides at this point only on unit0)
-    #if 0
-      for( uint j = 0; j < histo.lsize( ); ++j ) {
-        if( histo.local[j] ) cout << std::setw(3) << j
-        << " counted: " << histo.local[j] << endl;
-      }
-    #endif
-
     // count defines how many values are to be hold on given percentage
-    uint count = ( static_cast<size_t>(nrows) * ncols * percent ) / 100;
-    uint prefixsum = 0;
+    hisT count = ( static_cast<size_t>(nrows) * ncols * percent ) / 100;
+    hisT prefixsum = 0;
     int  i;
 
     // find threshold
@@ -84,15 +79,11 @@ inline void Thresh(
     }
 
     threshold.set( ++i );
-    #if 0
-      cout << "original threshold: " << i << " - perc: " << percent << endl;
-    #endif
   }
-
   // wait for unit0 to finish and flush
   threshold.barrier( );
 
-  int threshLclCpy = threshold.get( );
+  T threshLclCpy = threshold.get( );
 
   T const * src  = rand_mat.lbegin( );
   bool * i = thresh_mask.lbegin   ( );
@@ -106,15 +97,11 @@ inline void Thresh(
      co = 0;
     }
   }*/
-  
+
   *i =  ( *(src) >= threshLclCpy);
   while ( i < thresh_mask.lend( ) - 1 ) {
     *(++i) = (*(++src) >= threshLclCpy);
   }
-
-  #if 0
-    cout << myid << " got threshold: " << threshLclCpy << endl;
-  #endif
 
   // wait for all units finish calculating local boolean mask
   barrier( );

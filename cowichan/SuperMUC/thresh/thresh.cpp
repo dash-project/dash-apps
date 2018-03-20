@@ -7,7 +7,7 @@ using std::endl;
 using std::cin;
 using uint     = unsigned int ;
 using uchar    = unsigned char;
-using MATRIX_T = uchar        ;
+using MATRIX_T = uint         ;
 
 struct     InputPar { uint nrows, ncols; } in;
 uint       percent;
@@ -46,7 +46,7 @@ inline void ReadRandMat( NArray< T, 2 > & rand_mat )
   if(0 == myid){
     int tmp;
     for ( auto i : rand_mat ){
-      randmat_output >> tmp;
+      //randmat_output >> tmp; //not used in benchmark
       i = static_cast<T>(tmp);
     }
   }
@@ -63,10 +63,11 @@ inline void ReadRowsNCols( char * argv[] )
 
   if(0 == myid)
   {
-    randmat_output.open(argv[1]);
-    
-    randmat_output >> in.nrows;
-    randmat_output >> in.ncols;
+    //changed to cin again for SuperMUC benchmark
+    //cin.open(argv[1]);
+
+    cin >> in.nrows;
+    cin >> in.ncols;
 
     input_transfer.set(in);
   }
@@ -80,11 +81,11 @@ inline void ReadPercentage( )
 
   if(0 == myid)
   {
-    randmat_output >> percent;
+    cin >> percent;
 
     percent_transfer.set(percent);
-    
-    randmat_output.close();
+
+    //randmat_output.close();
   }
   percent_transfer.barrier();
   percent = percent_transfer.get();
@@ -98,13 +99,13 @@ int main( int argc, char* argv[] )
   struct timespec start, stop;
   double accum;
   int is_bench = 0;
-  
+
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
       is_bench = 1;
     }
   }
-  
+
   myid = dash::myid( );
   ReadRowsNCols( argv );
 
@@ -113,34 +114,27 @@ int main( int argc, char* argv[] )
 
   if (!is_bench) { ReadRandMat(rand_mat); }
   ReadPercentage();
-  
+
   if( clock_gettime( CLOCK_MONOTONIC, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
-  
+
   Thresh( rand_mat, thresh_mask, in.nrows, in.ncols, percent );
-  
+
   if( clock_gettime( CLOCK_MONOTONIC, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }
-  
+
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
-  
+
 
   if( 0 == myid ){
-    FILE* fp = fopen("./measurements.txt", "a");
-    
-    if( !fp ) {
-        perror("File opening for benchmark results failed");
-        return EXIT_FAILURE;
-    }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH  ,Thresh ,%5u,%5u,%3u,     ,%2u,%.9lf,isBench:%d\n", in.nrows, in.ncols, percent, dash::Team::All().size(), accum, is_bench );
-    fclose ( fp );
+    printf( "DASH  ,Thresh ,%5u,%5u,%3u,     ,%2u,%.9lf,isBench:%d\n", in.nrows, in.ncols, percent, dash::Team::All().size(), accum, is_bench );
   }
-  
+
   if (!is_bench) { Print2D( thresh_mask ); }
   dash::finalize( );
 }

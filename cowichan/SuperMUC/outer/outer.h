@@ -27,7 +27,7 @@ inline void Outer(
 {
    /* "gRow" represents the global row number of the local matrix data
     * the first local row has the initial global row number of "gRow"
-    * "end" holds the global row number exakt one past the last row 
+    * "end" holds the global row number exakt one past the last row
     * number which is local at this unit.
     * "matP" will be used to linear iterate over the local data
     * "matBegin" will be used to access local data via []operator
@@ -37,7 +37,7 @@ inline void Outer(
 
    double nmax;
    value zero = {0,0};
-   
+
    auto matBegin = matOut.lbegin();
    auto matP = matOut.lbegin();
 

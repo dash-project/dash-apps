@@ -11,7 +11,7 @@ using dash::Array;
 
 using uint     = unsigned int  ;
 using uchar    = unsigned char ;
-using MATRIX_T = uchar         ;
+using MATRIX_T = uint          ;
 
 static int myid;
 
@@ -37,16 +37,16 @@ struct InputPar { uint nRowsCols, seed, thresh, winnow_nelts; } in;
 inline void ReadPars( )
 {
   Shared<InputPar> input_transfer;
-  
+
   if(0 == myid)
   {
-    cin >> in.nRowsCols    ;    
+    cin >> in.nRowsCols    ;
     cin >> in.seed         ;
     cin >> in.thresh       ;
     cin >> in.winnow_nelts ;
-                           
+
     input_transfer.set(in) ;
-  }                        
+  }
   input_transfer.barrier() ;
   in = input_transfer.get();
 }
@@ -58,14 +58,17 @@ inline void CopyFromDashToStd(
   Array  <double> const & dashVector,
   vector <double>       & loclVector)
 {
-  if(0 == myid)
-  {
-    double * vec = loclVector.data( );
-    for( double const i : dashVector )
-    {
-      *(vec++) = i;
-    }
-  }
+  // if(0 == myid)
+  // {
+    // double * vec = loclVector.data( );
+    // for( double const i : dashVector )
+    // {
+      // *(vec++) = i;
+    // }
+  // }
+  
+  dash::copy(dashVector.begin(), dashVector.end(), loclVector.data());
+  
   BroadcastOuterVecToUnits( loclVector ); //defined in product.h
 }
 
@@ -77,27 +80,28 @@ inline void CopyFromDashToStd(
   Array<T, X, Y>  const & dashVector,
        vector<T>        & loclVector)
 {
-  if(0 == myid)
-  {
-    T * vec = loclVector.data( );
-    for( T const i : dashVector )
-    {
-      *(vec++) = i;
-    }
-  }
+  // if(0 == myid)
+  // {
+    // cout << "before vector copying" << endl;
+    // T * vec = loclVector.data( );
+    // for( T const i : dashVector )
+    // {
+      // *(vec++) = i;
+    // }
+  // }
   
-  // using dash::Team        ;
-  // using dash::team_unit_t ;
+  if(0==myid) cout << "before dash::copy" << endl;
+  dash::copy(dashVector.begin(), dashVector.end(), loclVector.data());
   
-  // Team & team = dash::Team::All( );
-                    
+  if(0==myid) cout << "before bcast" << endl;
   dart_ret_t ret = dart_bcast(
-                    static_cast<void*>( loclVector.data() ),  // buf 
+                    static_cast<void*>( loclVector.data() ),  // buf
                     loclVector.size() * sizeof(T)          ,  // nelem
                     DART_TYPE_BYTE                         ,  // dtype
                     dash::team_unit_t(0)                   ,  // root/source
                     dash::Team::All( ).dart_id( )          ); // team
-                      
+
+  if(0==myid) cout << "after bcast" << endl;
   if( DART_OK != ret ) cout << "An error while BCAST has occured!" << endl;
 }
 
@@ -106,17 +110,17 @@ inline void CopyFromDashToStd(
 int main( int argc, char* argv[] )
 {
   dash::init( &argc,&argv );
-  
+
   struct timespec start, stop;
   double accum;
   int is_bench = 0;
-  
+
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--is_bench")) {
       is_bench = 1;
     }
   }
-  
+
   myid = dash::myid( );
   ReadPars( );
 
@@ -129,47 +133,46 @@ int main( int argc, char* argv[] )
   vector<double     > prod_vec      ( in.winnow_nelts                  );
   // Array  < double             > result        ( in.winnow_nelts                  );
   res_array_t winnow_dashRes; // defined in winnow.h
-  
+
   // after the run of outer "outer_vec" will be recycled/reused for the final output
   auto & result = outer_vec;
-  
+
   if( clock_gettime( CLOCK_MONOTONIC, &start) == -1 ) {
     perror( "clock gettime error 1" );
     exit( EXIT_FAILURE );
   }
-  
+
   // execute functions
   Randmat( rand_mat, in.seed );
-  
+  if(0==myid) cout << "randmat finish" << endl;
   Thresh( rand_mat, thresh_mask, in.nRowsCols, in.nRowsCols, in.thresh );
-  
+  if(0==myid) cout << "thrsh finish" << endl;
+
   // if(0 == myid){ winnow( in.nRowsCols, in.nRowsCols, rand_mat, thresh_mask, in.winnow_nelts, winnow_points );}
   // BroadcastPointsToUnits( winnow_points );
   Winnow( in.nRowsCols, in.nRowsCols, rand_mat, thresh_mask, in.winnow_nelts, winnow_dashRes );
+  if(0==myid) cout << "winnow finish" << endl;
   CopyFromDashToStd( winnow_dashRes, winnow_vecRes );
-  
+  if(0==myid) cout << "copy winnow finish" << endl;
+
   Outer( winnow_vecRes, outer_mat, outer_vec, in.winnow_nelts );
+  if(0==myid) cout << "outer finish" << endl;
   CopyFromDashToStd( outer_vec, prod_vec );
-  
+  if(0==myid) cout << "copy outer finish" << endl;
+
   Product( prod_vec, outer_mat, result, in.winnow_nelts );
-  
+  if(0==myid) cout << "copy product finish" << endl;
+
   if( clock_gettime( CLOCK_MONOTONIC, &stop) == -1 ) {
     perror( "clock gettime error 2" );
     exit( EXIT_FAILURE );
   }
-  
+
   accum = ( stop.tv_sec - start.tv_sec ) + ( stop.tv_nsec - start.tv_nsec ) / 1e9;
-  
+
   if( 0 == myid ){
-    FILE* fp = fopen("./measurements.txt", "a");
-    
-    if( !fp ) {
-        perror("File opening for benchmark results failed");
-        return EXIT_FAILURE;
-    }
     // Lang, Problem, rows, cols, thresh, winnow_nelts, jobs, time
-    fprintf( fp, "DASH  ,Chain  ,%5u,%5u,%3u,%5u,%2u,%.9lf,isBench:%d\n", in.nRowsCols, in.nRowsCols, in.thresh, in.winnow_nelts, dash::Team::All().size(), accum, is_bench );
-    fclose ( fp );
+    printf( "DASH  ,Chain  ,%5u,%5u,%3u,%5u,%2u,%.9lf,isBench:%d\n", in.nRowsCols, in.nRowsCols, in.thresh, in.winnow_nelts, dash::Team::All().size(), accum, is_bench );
   }
 
   if( !is_bench ){ PrintOutput( result, in.winnow_nelts ); }
