@@ -303,7 +303,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -328,7 +328,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x } ) << " ";
 
                     }
                     cout << endl;
@@ -353,7 +353,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -378,7 +378,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x } ) << " ";
 
                     }
                     cout << endl;
@@ -403,7 +403,7 @@ public:
                     for ( int y= -1; y <= (int) n[1]; ++y ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -428,7 +428,7 @@ public:
                     for ( int y= -1; y <= (int) n[1]; ++y ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -1002,7 +1002,7 @@ void scaledown( Level& fine, Level& coarse ) {
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
@@ -1016,7 +1016,7 @@ void scaledown( Level& fine, Level& coarse ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
@@ -1024,8 +1024,8 @@ void scaledown( Level& fine, Level& coarse ) {
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
@@ -1040,16 +1040,16 @@ void scaledown( Level& fine, Level& coarse ) {
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
@@ -1059,17 +1059,17 @@ void scaledown( Level& fine, Level& coarse ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
@@ -1143,6 +1143,7 @@ void scaleup( Level& coarse, Level& fine ) {
     why it is correct! */
 
     auto& stencil_op_fine = *fine.src_op;
+
     for ( signed_size_t z= 1; z < extentc[0] - 1; z++ ) {
         for ( signed_size_t y= 1; y < extentc[1] - 1; y++ ) {
             for ( signed_size_t x= 1; x < extentc[2] - 1; x++ ) {
@@ -1159,7 +1160,6 @@ void scaleup( Level& coarse, Level& fine ) {
                     *it, 1.0,std::plus<double>());
     }
 
-
     /* 4) wait for async halo exchange */
     coarse.src_halo->wait();
 
@@ -1170,6 +1170,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
     const auto& halo_block = coarse.src_halo->halo_block();
     const auto& view = halo_block.view();
+
     for(const auto& region : halo_block.halo_regions()) {
       if(region.is_fixed_region())
         continue;
@@ -1196,10 +1197,11 @@ void scaleup( Level& coarse, Level& fine ) {
 
       }
     }
+
     minimon.stop( "scaleup", par, param );
 }
 
-#else /* SCALEUP */
+#else /* USE_NEW_SCALEUP */
 
 void scaleup( Level& coarse, Level& fine ) {
 
@@ -1488,7 +1490,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1506,7 +1508,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1523,7 +1525,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1538,7 +1540,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1556,7 +1558,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1574,7 +1576,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1591,7 +1593,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1606,7 +1608,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1623,7 +1625,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
@@ -1644,7 +1646,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
 
@@ -1663,7 +1665,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
 
@@ -1678,7 +1680,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
 
@@ -1696,7 +1698,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
@@ -1717,7 +1719,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
 
@@ -1735,7 +1737,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
 
@@ -1750,7 +1752,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
 
@@ -1767,7 +1769,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1787,7 +1789,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1806,7 +1808,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1823,7 +1825,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1841,7 +1843,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1859,7 +1861,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1876,7 +1878,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1891,7 +1893,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1912,7 +1914,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
 
@@ -1923,7 +1925,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
 
@@ -1938,7 +1940,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
 
@@ -1949,7 +1951,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
 
@@ -1963,7 +1965,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
 
@@ -1974,7 +1976,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
 
@@ -1990,7 +1992,7 @@ void scaleup( Level& coarse, Level& fine ) {
             signed_size_t x= extentc[2];
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
 
@@ -2001,7 +2003,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
 
@@ -2017,7 +2019,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
 
@@ -2028,7 +2030,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
@@ -2044,7 +2046,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
 
@@ -2055,7 +2057,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
@@ -2070,7 +2072,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
 
@@ -2081,7 +2083,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
@@ -2096,7 +2098,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
 
@@ -2107,7 +2109,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
@@ -2125,7 +2127,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2136,7 +2138,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2151,7 +2153,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2162,7 +2164,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2176,7 +2178,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2187,7 +2189,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2201,7 +2203,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2212,7 +2214,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2227,24 +2229,24 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
@@ -2253,24 +2255,24 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
@@ -2279,7 +2281,7 @@ void scaleup( Level& coarse, Level& fine ) {
     minimon.stop( "scaleup", par, param );
 }
 
-#endif /* SCALEUP */
+#endif /* USE_NEW_SCALEUP */
 
 /* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
 elements. Note that it is 2^n elements per dimension instead of 2^n -1!
