@@ -1078,7 +1078,7 @@ void scaledown( Level& fine, Level& coarse ) {
     minimon.stop( "scaledown", par, param );
 }
 
-//#define USE_NEW_SCALEUP
+#define USE_NEW_SCALEUP
 
 #ifdef USE_NEW_SCALEUP
 
@@ -3960,13 +3960,43 @@ int main( int argc, char* argv[] ) {
         if ( 0 == strncmp( "-h", argv[a], 2  ) ||
                 0 == strncmp( "--help", argv[a], 6 ) ) {
 
+const char* HELPTEXT= "\n"
+" <l>           number of levels to use at most, the simulation grid which is\n"
+"               the finest grid in the multigrid hierarchy of grids will have\n"
+"               2^l -1 inner elements plus 2 boundary elements per dimension\n"
+"\n"
+" Modes of operation\n"
+"\n"
+" -t|--test     run some internal tests\n"
+" -f|--flat     run flat mode i.e., use iterative solver on a single grid\n"
+" -e|--elastic  use elastic multigrid mode i.e., use fewer units (processes)\n"
+"               on coarser grids\n"
+" \n"
+" Furtner options\n"
+"\n"
+" --eps <eps>   define epsilon for the iterative solver in flat or multigrid modes,\n"
+"               the iterative solver on any grid stops when residual <= eps\n"
+" -g <n>        determine size of CSV output -- only when compiled with WITHCSVOUTPUT\n"
+"               the combined CVS output from all units (processes) will be\n"
+"               2^n +1 points in every dimension, default is n= 5 or 33^3 elements\n"
+"\n\n";
+
             if ( 0 == dash::myid() ) {
 
-                cout << "call me as [mpirun] '" << argv[0] << "' [-h|--help] [number-of-levels=5]" << endl;
+                cout << "\n"
+                    " Call me as 'mpirun " << argv[0] << "' [-h|--help] [levels(default "<<howmanylevels<<")] "
+                    "[...more options...]" << 
+                    HELPTEXT;
             }
-            exit(0);
 
-        } else if ( 0 == strncmp( "-t", argv[a], 2  ) ||
+            dash::finalize();
+            return 0;
+        }
+    }
+
+    for ( int a= 1; a < argc; a++ ) {
+
+        if ( 0 == strncmp( "-t", argv[a], 2  ) ||
                 0 == strncmp( "--tests", argv[a], 7 )) {
 
             do_alltests= true;
@@ -4001,6 +4031,26 @@ int main( int argc, char* argv[] ) {
 
                 cout << "using epsilon " << epsilon << endl;
             }
+
+        } else if ( 0 == strncmp( "--eps", argv[a], 5  ) && ( a+1 < argc ) ) {
+
+            epsilon= atof( argv[a+1] );
+            ++a;
+            if ( 0 == dash::myid() ) {
+
+                cout << "using epsilon " << epsilon << endl;
+            }
+
+        } else if ( 0 == strncmp( "-g", argv[a], 2  ) && ( a+1 < argc ) ) {
+
+            int g= atoi( argv[a+1] );
+            ++a;
+            if ( 0 == dash::myid() ) {
+
+                cout << "using CSV output grid size 2^"<<g<<"+1 == " << ((1<<g)+1) << 
+                    " in every dimension" << endl;
+            }
+            for ( uint32_t i= 0; i < 3; ++i ) resolution[i]= (1<<g)+1;
 
         } else {
 
