@@ -126,7 +126,12 @@ inline void Winnow(
       ++histo.local[*matrEl];
     }
   }
+  
   found = pointsLocal.size();
+  cout << "pointsLocal.size():"<< pointsLocal.size() << endl;
+  // __sleep();
+  // cout << "hab bei mir gefunden:" << found << endl;
+  // dash::barrier();
 
   // is here a barrier needed? -> to wait for completion on unit0?!
   if( 0 != myid ) {
@@ -137,6 +142,8 @@ inline void Winnow(
       histo.begin      ( ) ,
       dash::plus<hisT> ( ) );
   }
+  dash::barrier();
+  cout << "randmat.size:" << randMat.size() << " thres.size:" << threshMask.size() << endl;
 
   // free randMat and threshMask
   randMat.deallocate();
@@ -147,10 +154,16 @@ inline void Winnow(
   unitRange * const distr_end = distr + nUnits;
 
 
+  //verdächtig anfang
   // unit 0 have to wait for rest to finish adding their values
-  dash::barrier();
 
   if( 0 == myid ) { // calculate bucket distribution
+  
+  
+    cout <<  "distr:"             << distr
+         << "  distr_end:"        << distr_end
+         << "  sizeof unitRange:" << sizeof(unitRange)
+         << endl;
 
     /* calculate how much elements each unit should hold ideally
      * increment by one for safety garuantees in distribution
@@ -158,7 +171,7 @@ inline void Winnow(
      */
      hisT ideal = std::max( static_cast<size_t>( MIN_NUM_ELEM_PER_UNIT ), (found / nUnits) + 1 );
 
-
+     cout << "found:" << found << " ideal: " << ideal << endl;
     // begin - 1 for loop logic (starting with prefix ++)
     unitRange * uRPtr = distr;
     uRPtr->begin      = 0;
@@ -172,7 +185,7 @@ inline void Winnow(
       uRPtr->end   = MAX_KEY;
       uRPtr->count = found;
 
-      ++uRPtr;
+      // ++uRPtr;
     }else{
 
       uRPtr->count  = 0;  //needed if to few elements for acc >= ideal
@@ -184,10 +197,11 @@ inline void Winnow(
         acc += *hisIt++;
 
         if( acc >= ideal ){
-
+          cout << "acc:" << acc <<" ideal:" << ideal << endl;
           uRPtr->end       = i    ;
           uRPtr->count     = acc  ;
           acc              = 0    ;
+          cout << "uRPtr:" << uRPtr << endl;
           (++uRPtr)->begin = i + 1;
         }
       }
@@ -198,9 +212,10 @@ inline void Winnow(
         else{ (--uRPtr)->count += acc; }
       }
 
-      uRPtr->end   = MAX_KEY ;
+      uRPtr->end = MAX_KEY ;
 
     }
+    cout << "schauma moi" << endl;
     // set the rest to zero
     // while( ++uRPtr < distr_end ) { uRPtr->begin = 0; uRPtr->end = 0; uRPtr->count = 0; }
     if( ++uRPtr < distr_end){
@@ -209,243 +224,270 @@ inline void Winnow(
 
   } // end of unit 0 only part
 
-
- /* Distribute calculated distribution data to every unit.
-  * Distribution data consists of unitRange structs.
-  * With this every unit knows which unit is in charge for
-  * sorting a specific value range.
-  * Every unit is then creating buckets to send the values to
-  * the responsible unit.
-  */
-  dart_ret_t ret = dart_bcast(
-                      static_cast<void*>( distr )        ,  // buf
-                      nUnits * sizeof(unitRange)         ,  // nelem
-                      DART_TYPE_BYTE                     ,  // dtype
-                      team_unit_t(0)                     ,  // root/source
-                      team.dart_id( )                    ); // team
-
-  if( DART_OK != ret ) cout << "An Error while BCAST has occured!" << endl;
-
-
- /* create dash::Array which will hold the data to be sorted.
-  * therefore the CSRPattern of DASH will be used.
-  * this allows different local sizes!
-  */
-  vector<extent_t> local_sizes;
-  for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
+  // //verdächtig ende
+  
+  std::vector<uint> bla;
+  for( uint i = 0; i < 60007; ++i)
   {
-      local_sizes.push_back( uRPtr->count );
+    bla.push_back(i);
   }
-
-
- /* Each unit creates buckets that are send to the responsible unit later.
-  * Note: every unit will get data from other units (e.g. if distribution specifies range 0-0)
-  * This is a array of vectors like "vector<Point> buckets[ involvedUnits ];"
-  * But on the Heap!
-  */
-  const uint involvedUnits = local_sizes.size( );
-
-  vector<Point> ** buckets = static_cast<vector<Point> **>(  std::malloc( involvedUnits * sizeof(vector<Point>*) )  );
-  vector<Point> ** const buckets_end = buckets + involvedUnits;
-
-  // create a vector for each bucket pointer
-  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket ){ *bucket = new vector<Point>; }
-
-
-  // iterate over pointsLocal and fill the buckets
-  for( Point const * lclPt = pointsLocal.data(); lclPt < pointsLocal.data() + pointsLocal.size(); ++lclPt )
+  
+  
+  std::vector<uint> blub;
+  for( uint i = 0; i < 10007; ++i)
   {
-    unitRange * uRPtr = distr;
-    for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++uRPtr, ++bucket )
-    {
-      if( lclPt->value <= uRPtr->end )  // if value is in Range for this unit
-      {
-        (*bucket)->push_back(*lclPt);
-        break;
-      }
-    }
+    blub.push_back(i);
   }
-
-  // pointsLocal no longer needed
-  pointsLocal.clear();
-  pointsLocal.shrink_to_fit();
-
-
-  pattern_t pattern( local_sizes );
-  Array<Point, size_t, pattern_t> toSort( pattern );
-
-
-  //std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point)); // not necessary anymore
-
-
- /* In comTable will be the information which unit has how many elements of type Point
-  * for other units and itself.
-  * The table can be thought of like "comTable[nUnits][local_sizes.size()]"
-  * First every unit saves the information in row[0]
-  */
-  // these uint datatypes should be changed to long, but memory consumption with hundreds of untis
-  // rises a lot and therefore this datatype has to suffice. otherwise memory consumption would be
-  // that great that not enough elemts could be hold to need a long here
-  uint * comTable = static_cast<uint*>(  std::malloc( sizeof(uint) * nUnits * involvedUnits )  );
-  uint * const comTable_end = comTable + ( nUnits * involvedUnits );
-
-  uint * thisUnitsRow_begin     = new uint[involvedUnits];
-  uint * const thisUnitsRow_end = thisUnitsRow_begin + involvedUnits;
-
-  uint * poiCount = thisUnitsRow_begin;
-  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket, ++poiCount )
+  
+  std::vector<uint> fuck;
+  for( uint i = 0; i < 1134125; ++i)
   {
-    *poiCount = (*bucket)->size();
+    fuck.push_back(i);
   }
-
-  ret = dart_allgather(
-           thisUnitsRow_begin,  // sendbuf
-           comTable          ,  // recvbuf
-           involvedUnits     ,  // nelem
-           DART_TYPE_UINT    ,  // dtype
-           team.dart_id( )   ); // team
-
-
-  if( DART_OK != ret ) cout << "An Error while allgather has occured!" << endl;
-
-
- /* only involvedUnits can have data for memcpy!
-  * and the units must have data for themselves as well
-  * logical lookup -> comTable[myid][myid] > 0
-  */
-  uint forMySelf = comTable[myid * involvedUnits + myid];
-
-  if( myid < involvedUnits && forMySelf > 0)
+  
+  
+  std::vector<uint> fick;
+  for( uint i = 0; i < 22222; ++i)
   {
-    uint * forThisUnit = comTable + myid;
-    hisT   lclOffset   = 0;
-
-
-    for( uint ID = 0; ID < myid; ++ID)
-    {
-      // lclOffset += comTable[ID * involvedUnits + myid];  //replaced by pointer logic
-      lclOffset   += *(forThisUnit);
-      forThisUnit += involvedUnits ;
-    }
-
-    Point * lclDest = toSort.lbegin() + lclOffset;
-
-    std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
+    fuck.push_back(i);
   }
+  
+ // /* Distribute calculated distribution data to every unit.
+  // * Distribution data consists of unitRange structs.
+  // * With this every unit knows which unit is in charge for
+  // * sorting a specific value range.
+  // * Every unit is then creating buckets to send the values to
+  // * the responsible unit.
+  // */
+  // dart_ret_t ret = dart_bcast(
+                      // static_cast<void*>( distr )        ,  // buf
+                      // nUnits * sizeof(unitRange)         ,  // nelem
+                      // DART_TYPE_BYTE                     ,  // dtype
+                      // team_unit_t(0)                     ,  // root/source
+                      // team.dart_id( )                    ); // team
+
+  // if( DART_OK != ret ) cout << "An Error while BCAST has occured!" << endl;
 
 
- /* copy data for other units in a circle.
-  * every units sends its data to it's "right" neighbour
-  */
-  uint myRowOffset = myid * involvedUnits;
-
-  auto baseIterator = toSort.begin( );
-  // auto globDest = baseIterator +10;
-  uint nextID = (myid + 1) % involvedUnits;
-
-
-  for( uint counter = 0; counter < involvedUnits; ++counter, nextID = (nextID + 1) % involvedUnits )
-  {
-    // if this unit has data for the next unit and is a remote unit (local unit was handled before)
-    if( comTable[ myRowOffset + nextID ] && nextID != myid  )
-    {
-          // uint   offsetToUnit  = 0;
-          hisT   offsetOnUnit  = 0;
-          uint * forNextUnit   = comTable + nextID;
-      // extent_t * unitsLclSize  = local_sizes.data();
-
-      // calculate offsetToUnit // not needed anymore since using .pattern.global(nextID, offsetOnUnit);
-      // for( int ID = 0; ID < nextID; ++ID, ++unitsLclSize ){ offsetToUnit += *unitsLclSize; }
-      // offsetOnUnit += comTable[ID * involvedUnits + nextID];  //replaced by pointer logic
-      for( uint ID = 0; ID < myid; ++ID, forNextUnit += involvedUnits ){ offsetOnUnit += *(forNextUnit); }
-
-
-      // global iterator/pointer to destination:
-      // auto globDest = baseIterator + offsetToUnit + offsetOnUnit;
-      auto globDest = baseIterator + toSort.pattern().global( team_unit_t(nextID), offsetOnUnit );
-
-      //dash::copy / MPI_Put to target unit
-      dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
-    }
-  }
-
-  for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket ){  delete *bucket; /* = new vector<Point>; */}
-
-  // wait before sorting to finish all puts from dash::copy
-  dash::barrier();
-
-
-  std::stable_sort( toSort.lbegin( ), toSort.lend( ) );
-
+ // /* create dash::Array which will hold the data to be sorted.
+  // * therefore the CSRPattern of DASH will be used.
+  // * this allows different local sizes!
+  // */
+  // vector<extent_t> local_sizes;
+  // for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
+  // {
+      // local_sizes.push_back( uRPtr->count );
   // }
- /* calculate local sizes for result array
-  * local_sizes will be recycled therefore
-  */
-
-  local_sizes.clear();
-  size_t chunk = toSort.size( ) / nelts;
-
-  if( 0 == chunk ){
-
-    local_sizes.push_back( nelts );
-    for( uint id = 1; id < nUnits; ++id ) { local_sizes.push_back( 0 ); }
-
-  }else
-  {
-    uint div        = 0     ;
-    uint countSoFar = 0     ;
-    uint lastIX     = 0     ;
-    uint resulCount = 0     ;
-    uint elemOnUnit = 0     ;
-    uint remain     = nelts ;
 
 
-    for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
-    {
-        countSoFar += uRPtr->count;
-        lastIX      = countSoFar - 1 ;
-        div         = lastIX / chunk ;
+ // /* Each unit creates buckets that are send to the responsible unit later.
+  // * Note: every unit will get data from other units (e.g. if distribution specifies range 0-0)
+  // * This is a array of vectors like "vector<Point> buckets[ involvedUnits ];"
+  // * But on the Heap!
+  // */
+  // const uint involvedUnits = local_sizes.size( );
 
-        elemOnUnit = div + 1 - resulCount ;
-        resulCount = div + 1              ;
+  // vector<Point> ** buckets = static_cast<vector<Point> **>(  std::malloc( involvedUnits * sizeof(vector<Point>*) )  );
+  // vector<Point> ** const buckets_end = buckets + involvedUnits;
 
-        if( remain < elemOnUnit )
-        {
-          elemOnUnit = remain;
-              remain = 0     ;
-        }else
-        {
-          remain -= elemOnUnit;
-        }
+  // // create a vector for each bucket pointer
+  // for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket ){ *bucket = new vector<Point>; }
 
-      local_sizes.push_back( elemOnUnit );
 
-    }
-  }
+  // // iterate over pointsLocal and fill the buckets
+  // for( Point const * lclPt = pointsLocal.data(); lclPt < pointsLocal.data() + pointsLocal.size(); ++lclPt )
+  // {
+    // unitRange * uRPtr = distr;
+    // for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++uRPtr, ++bucket )
+    // {
+      // if( lclPt->value <= uRPtr->end )  // if value is in Range for this unit
+      // {
+        // (*bucket)->push_back(*lclPt);
+        // break;
+      // }
+    // }
+  // }
 
-  // allocate result dash::Array with CSR Pattern
-  pattern_t pattern_result  ( local_sizes    );
-            result.allocate ( pattern_result );
-  hisT pos = 0;
+  // // pointsLocal no longer needed
+  // pointsLocal.clear();
+  // pointsLocal.shrink_to_fit();
 
- /* generate local result.
-  * start by calculating local start index.
-  * using global indices therefore.
-  */
-  if( 0 < result.lsize( ) )
-  {
-   /* result.pattern().global(0) -> correspond to: "how much result elements have the units before this unit"
-    * toSort.pattern().global(0) -> correspond to: "how much sorted elements have the units before this unit"
-    */
-         pos    = result.pattern().global(0) * chunk - toSort.pattern().global(0);
-    Point * src = toSort.lbegin() + pos;
 
-    for( value * dst = result.lbegin(); dst < result.lend(); ++dst, src += chunk )
-    {
-      dst->col = src->col;
-      dst->row = src->row;
-    }
-  }
+  // pattern_t pattern( local_sizes );
+  // Array<Point, size_t, pattern_t> toSort( pattern );
+
+
+  // //std::memset(toSort.lbegin(), 0, toSort.lsize() * sizeof(Point)); // not necessary anymore
+
+
+ // /* In comTable will be the information which unit has how many elements of type Point
+  // * for other units and itself.
+  // * The table can be thought of like "comTable[nUnits][local_sizes.size()]"
+  // * First every unit saves the information in row[0]
+  // */
+  // // these uint datatypes should be changed to long, but memory consumption with hundreds of untis
+  // // rises a lot and therefore this datatype has to suffice. otherwise memory consumption would be
+  // // that great that not enough elemts could be hold to need a long here
+  // uint * comTable = static_cast<uint*>(  std::malloc( sizeof(uint) * nUnits * involvedUnits )  );
+  // uint * const comTable_end = comTable + ( nUnits * involvedUnits );
+
+  // uint * thisUnitsRow_begin     = new uint[involvedUnits];
+  // uint * const thisUnitsRow_end = thisUnitsRow_begin + involvedUnits;
+
+  // uint * poiCount = thisUnitsRow_begin;
+  // for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket, ++poiCount )
+  // {
+    // *poiCount = (*bucket)->size();
+  // }
+
+  // ret = dart_allgather(
+           // thisUnitsRow_begin,  // sendbuf
+           // comTable          ,  // recvbuf
+           // involvedUnits     ,  // nelem
+           // DART_TYPE_UINT    ,  // dtype
+           // team.dart_id( )   ); // team
+
+
+  // if( DART_OK != ret ) cout << "An Error while allgather has occured!" << endl;
+
+
+ // /* only involvedUnits can have data for memcpy!
+  // * and the units must have data for themselves as well
+  // * logical lookup -> comTable[myid][myid] > 0
+  // */
+  // uint forMySelf = comTable[myid * involvedUnits + myid];
+
+  // if( myid < involvedUnits && forMySelf > 0)
+  // {
+    // uint * forThisUnit = comTable + myid;
+    // hisT   lclOffset   = 0;
+
+
+    // for( uint ID = 0; ID < myid; ++ID)
+    // {
+      // // lclOffset += comTable[ID * involvedUnits + myid];  //replaced by pointer logic
+      // lclOffset   += *(forThisUnit);
+      // forThisUnit += involvedUnits ;
+    // }
+
+    // Point * lclDest = toSort.lbegin() + lclOffset;
+
+    // std::memcpy( lclDest, buckets[myid]->data(), sizeof(Point) * forMySelf );
+  // }
+
+
+ // /* copy data for other units in a circle.
+  // * every units sends its data to it's "right" neighbour
+  // */
+  // uint myRowOffset = myid * involvedUnits;
+
+  // auto baseIterator = toSort.begin( );
+  // // auto globDest = baseIterator +10;
+  // uint nextID = (myid + 1) % involvedUnits;
+
+
+  // for( uint counter = 0; counter < involvedUnits; ++counter, nextID = (nextID + 1) % involvedUnits )
+  // {
+    // // if this unit has data for the next unit and is a remote unit (local unit was handled before)
+    // if( comTable[ myRowOffset + nextID ] && nextID != myid  )
+    // {
+          // // uint   offsetToUnit  = 0;
+          // hisT   offsetOnUnit  = 0;
+          // uint * forNextUnit   = comTable + nextID;
+      // // extent_t * unitsLclSize  = local_sizes.data();
+
+      // // calculate offsetToUnit // not needed anymore since using .pattern.global(nextID, offsetOnUnit);
+      // // for( int ID = 0; ID < nextID; ++ID, ++unitsLclSize ){ offsetToUnit += *unitsLclSize; }
+      // // offsetOnUnit += comTable[ID * involvedUnits + nextID];  //replaced by pointer logic
+      // for( uint ID = 0; ID < myid; ++ID, forNextUnit += involvedUnits ){ offsetOnUnit += *(forNextUnit); }
+
+
+      // // global iterator/pointer to destination:
+      // // auto globDest = baseIterator + offsetToUnit + offsetOnUnit;
+      // auto globDest = baseIterator + toSort.pattern().global( team_unit_t(nextID), offsetOnUnit );
+
+      // //dash::copy / MPI_Put to target unit
+      // dash::copy( buckets[nextID]->data(), buckets[nextID]->data() + buckets[nextID]->size(), globDest );
+    // }
+  // }
+
+  // for( vector<Point> ** bucket = buckets; bucket < buckets_end; ++bucket ){  delete *bucket; /* = new vector<Point>; */}
+
+  // // wait before sorting to finish all puts from dash::copy
+  // dash::barrier();
+
+
+  // std::stable_sort( toSort.lbegin( ), toSort.lend( ) );
+
+  // // }
+ // /* calculate local sizes for result array
+  // * local_sizes will be recycled therefore
+  // */
+
+  // local_sizes.clear();
+  // size_t chunk = toSort.size( ) / nelts;
+
+  // if( 0 == chunk ){
+
+    // local_sizes.push_back( nelts );
+    // for( uint id = 1; id < nUnits; ++id ) { local_sizes.push_back( 0 ); }
+
+  // }else
+  // {
+    // uint div        = 0     ;
+    // uint countSoFar = 0     ;
+    // uint lastIX     = 0     ;
+    // uint resulCount = 0     ;
+    // uint elemOnUnit = 0     ;
+    // uint remain     = nelts ;
+
+
+    // for( unitRange * uRPtr = distr; uRPtr < distr_end; ++uRPtr )
+    // {
+        // countSoFar += uRPtr->count;
+        // lastIX      = countSoFar - 1 ;
+        // div         = lastIX / chunk ;
+
+        // elemOnUnit = div + 1 - resulCount ;
+        // resulCount = div + 1              ;
+
+        // if( remain < elemOnUnit )
+        // {
+          // elemOnUnit = remain;
+              // remain = 0     ;
+        // }else
+        // {
+          // remain -= elemOnUnit;
+        // }
+
+      // local_sizes.push_back( elemOnUnit );
+
+    // }
+  // }
+
+  // // allocate result dash::Array with CSR Pattern
+  // pattern_t pattern_result  ( local_sizes    );
+            // result.allocate ( pattern_result );
+  // hisT pos = 0;
+
+ // /* generate local result.
+  // * start by calculating local start index.
+  // * using global indices therefore.
+  // */
+  // if( 0 < result.lsize( ) )
+  // {
+   // /* result.pattern().global(0) -> correspond to: "how much result elements have the units before this unit"
+    // * toSort.pattern().global(0) -> correspond to: "how much sorted elements have the units before this unit"
+    // */
+         // pos    = result.pattern().global(0) * chunk - toSort.pattern().global(0);
+    // Point * src = toSort.lbegin() + pos;
+
+    // for( value * dst = result.lbegin(); dst < result.lend(); ++dst, src += chunk )
+    // {
+      // dst->col = src->col;
+      // dst->row = src->row;
+    // }
+  // }
 
   dash::barrier();
 
