@@ -3547,6 +3547,86 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
     }
 }
 
+void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) {
+
+#if 0
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    /* determine factors for width and height such that every unit has a power of two
+    extent in every dimension and that the area is close to a square
+    with aspect ratio \in [0,75,1,5] */
+
+    uint32_t factor_z= 1;
+    uint32_t factor_y= 1;
+    uint32_t factor_x= 1;
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "run flat iteration with " << dash::Team::All().size() << " units "
+            "for grids of " <<
+            ((1<<(howmanylevels))-1)*factor_z << "x" <<
+            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_x <<
+            endl << endl;
+    }
+
+    Level* level= new Level( 1.0, 1.0, 1.0,
+        ((1<<(howmanylevels))-1)*factor_z ,
+        ((1<<(howmanylevels))-1)*factor_y ,
+        ((1<<(howmanylevels))-1)*factor_x ,
+        dash::Team::All(), teamspec );
+
+    dash::barrier();
+
+    initboundary( *level );
+
+    initgrid( *level );
+    //markunits( *level->src_grid );
+
+    writeToCsv( *level );
+
+    dash::barrier();
+
+
+    // flat_iteration
+    minimon.start();
+
+    Allreduce res( dash::Team::All() );
+
+    uint32_t j= 0;
+    while ( res.get() > eps && j < 100000 ) {
+
+        smoothen( *level, res );
+
+        if ( 0 == j % 100 ) {
+            writeToCsv( *level );
+        }
+
+        j++;
+
+        if ( 0 == dash::myid() && ( 0 == j % 100 ) ) {
+            cout << j << ": smoothen grid with residual " << res.get() << endl;
+        }
+    }
+    writeToCsv( *level );
+
+    minimon.stop( "flat_iteration", dash::Team::All().size() );
+
+    if ( 0 == dash::myid() ) {
+
+        if ( ! check_symmetry( *level->src_grid, 0.01 ) ) {
+
+            cout << "test for asymmetry of soution failed!" << endl;
+        }
+    }
+
+    delete level;
+    level= NULL;
+#endif /* 0 */
+}
+
 
 void do_flat_iteration( uint32_t howmanylevels, double eps ) {
 
@@ -3949,12 +4029,16 @@ int main( int argc, char* argv[] ) {
     filenumber->barrier();
 #endif /* WITHCSVOUTPUT */
 
-    bool do_alltests= false;
-    bool do_flatsolver= false;
-    bool do_elastic= false;
+    enum { TEST, FLAT, SIM, MULTIGRID, ELASTICMULTIGRID };
+
+    int whattodo= MULTIGRID;
+
     uint32_t howmanylevels= 5;
     double epsilon= 1.0e-3;
+    double timerange= 10.0; /* 10 seconds */
+    double timestep= 1.0/25.0; /* 25 FPS */
 
+    /* round 1 over all command line arguments: check only for -h and --help */
     for ( int a= 1; a < argc; a++ ) {
 
         if ( 0 == strncmp( "-h", argv[a], 2  ) ||
@@ -3968,9 +4052,15 @@ const char* HELPTEXT= "\n"
 " Modes of operation\n"
 "\n"
 " -t|--test     run some internal tests\n"
-" -f|--flat     run flat mode i.e., use iterative solver on a single grid\n"
 " -e|--elastic  use elastic multigrid mode i.e., use fewer units (processes)\n"
 "               on coarser grids\n"
+" -f|--flat     run flat mode i.e., use iterative solver on a single grid\n"
+" --sim <t> <s> run a simulation over time, that is also a \"flat\" solver\n"
+"               working only on a single grid. It runs t seconds simulation\n"
+"               time. The time step dt is determined by the grid and the\n"
+"               stability condition. This mode matches all time steps n*s <= t\n"
+"               exactly for the sake of a nice visualization.\n"
+"               (Visualization only active when compiled with WITHCSVOUTPUT.)\n"
 " \n"
 " Furtner options\n"
 "\n"
@@ -3979,6 +4069,12 @@ const char* HELPTEXT= "\n"
 " -g <n>        determine size of CSV output -- only when compiled with WITHCSVOUTPUT\n"
 "               the combined CVS output from all units (processes) will be\n"
 "               2^n +1 points in every dimension, default is n= 5 or 33^3 elements\n"
+"\n"
+#ifdef WITHCSVOUTPUT
+" (This executable was compiled with WITHCSVOUTPUT)\n"
+#else /* WITHCSVOUTPUT */
+" (This executable was compiled without WITHCSVOUTPUT)\n"
+#endif /* WITHCSVOUTPUT */
 "\n\n";
 
             if ( 0 == dash::myid() ) {
@@ -3994,21 +4090,34 @@ const char* HELPTEXT= "\n"
         }
     }
 
+    /* round 2 over all command line arguments */
     for ( int a= 1; a < argc; a++ ) {
 
         if ( 0 == strncmp( "-t", argv[a], 2  ) ||
                 0 == strncmp( "--tests", argv[a], 7 )) {
 
-            do_alltests= true;
+            whattodo= TEST;
             if ( 0 == dash::myid() ) {
 
                 cout << "run tests" << endl;
             }
 
+        } else if ( 0 == strncmp( "--sim", argv[a], 5 ) && ( a+2 < argc ) ) {
+
+            whattodo= SIM;
+            timerange= atof( argv[a+1] );
+            timestep= atof( argv[a+2] );
+            a += 2;
+            if ( 0 == dash::myid() ) {
+
+                cout << "do simulation over " << timerange << " seconds with output "
+                    "interval " << timestep << endl;
+            }
+
         } else if ( 0 == strncmp( "-f", argv[a], 2  ) ||
                 0 == strncmp( "--flat", argv[a], 6 )) {
 
-            do_flatsolver= true;
+            whattodo= FLAT;
             if ( 0 == dash::myid() ) {
 
                 cout << "do flat iteration instead of multigrid" << endl;
@@ -4017,7 +4126,7 @@ const char* HELPTEXT= "\n"
         } else if ( 0 == strncmp( "-e", argv[a], 2  ) ||
                 0 == strncmp( "--elastic", argv[a], 9 )) {
 
-            do_elastic= true;
+            whattodo= ELASTICMULTIGRID;
             if ( 0 == dash::myid() ) {
 
                 cout << "do multigrid iteration with changing number of units per grid" << endl;
@@ -4026,16 +4135,7 @@ const char* HELPTEXT= "\n"
         } else if ( 0 == strncmp( "--eps", argv[a], 5  ) && ( a+1 < argc ) ) {
 
             epsilon= atof( argv[a+1] );
-            ++a;
-            if ( 0 == dash::myid() ) {
-
-                cout << "using epsilon " << epsilon << endl;
-            }
-
-        } else if ( 0 == strncmp( "--eps", argv[a], 5  ) && ( a+1 < argc ) ) {
-
-            epsilon= atof( argv[a+1] );
-            ++a;
+            a += 1;
             if ( 0 == dash::myid() ) {
 
                 cout << "using epsilon " << epsilon << endl;
@@ -4066,21 +4166,22 @@ const char* HELPTEXT= "\n"
     assert( howmanylevels > 2 );
     assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
 
-    if ( do_alltests ) {
+    switch ( whattodo ) {
 
-        do_tests();
-
-    } else if ( do_flatsolver ) {
-
-        do_flat_iteration( howmanylevels, epsilon );
-
-    } else if ( do_elastic ) {
-
-        do_multigrid_elastic( howmanylevels, epsilon );
-
-    } else {
-
-        do_multigrid_iteration( howmanylevels, epsilon );
+        case TEST: 
+            do_tests();
+            break;
+        case SIM:  
+            do_simulation( howmanylevels, timerange, timestep );
+            break;
+        case FLAT:
+            do_flat_iteration( howmanylevels, epsilon );
+            break;
+        case ELASTICMULTIGRID: 
+            do_multigrid_elastic( howmanylevels, epsilon );
+            break;
+        default:
+            do_multigrid_iteration( howmanylevels, epsilon );
     }
 
 #ifdef WITHCSVOUTPUT
