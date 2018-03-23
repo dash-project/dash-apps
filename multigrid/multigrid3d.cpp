@@ -105,6 +105,10 @@ public:
     /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
     double sz, sy, sx;
 
+    /* the maximum time step according to the stability condition for the 
+    time simulation mode */
+    double dt;
+
     /***
     lz, ly, lx are the dimensions in meters of the grid including the boundary regions,
     nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions,
@@ -137,6 +141,11 @@ public:
         double hx= lx/(nx+1);
 
         /* This is the original setting for the linear system. */
+
+        /* stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2 */
+        double hmin= std::min( hz, std::min( hy, hx ) );
+        dt= 0.5*hmin*hmin;
 
         ax= -1.0/hx/hx;
         ay= -1.0/hy/hy;
@@ -198,6 +207,7 @@ public:
         acenter= parent.acenter;
         ff= parent.ff;
         m= parent.m;
+        dt= parent.dt;
 
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
@@ -439,6 +449,15 @@ public:
         }
 
     }
+
+    double max_dt() const {
+
+        /* stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2 */
+        cout << "    dt= " << dt << endl;
+        return dt;
+    }
+
 
 private:
     MatrixT _grid_1;
@@ -2481,7 +2500,7 @@ Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
-double smoothen( Level& level, Allreduce& res ) {
+double smoothen( Level& level, Allreduce& res, double coeff= 1.0 ) {
     SCOREP_USER_FUNC()
 
     uint32_t par= level.src_grid->team().size();
@@ -2504,7 +2523,7 @@ double smoothen( Level& level, Allreduce& res ) {
     double ff= level.ff;
     double m= level.m;
 
-    const double c= 1.0;
+    const double c= coeff;
 
     // async halo update
     level.src_halo->update_async();
@@ -3547,9 +3566,11 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
     }
 }
 
+
 void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) {
 
-#if 0
+    // do_simulation
+    minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -3564,15 +3585,15 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
 
     if ( 0 == dash::myid() ) {
 
-        cout << "run flat iteration with " << dash::Team::All().size() << " units "
-            "for grids of " <<
+        cout << "run simulation with " << dash::Team::All().size() << " units "
+            "for grid of " <<
             ((1<<(howmanylevels))-1)*factor_z << "x" <<
             ((1<<(howmanylevels))-1)*factor_y << "x" <<
-            ((1<<(howmanylevels))-1)*factor_x <<
-            endl << endl;
+            ((1<<(howmanylevels))-1)*factor_x << 
+            " for " << timerange << " seconds with output steps every " << timestep << " seconds " <<endl << endl;
     }
 
-    Level* level= new Level( 1.0, 1.0, 1.0,
+    Level* level= new Level( 10.0, 10.0, 10.0,
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
         ((1<<(howmanylevels))-1)*factor_x ,
@@ -3583,19 +3604,51 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
     initboundary( *level );
 
     initgrid( *level );
-    //markunits( *level->src_grid );
+    markunits( *level->src_grid );
 
     writeToCsv( *level );
 
     dash::barrier();
 
+    double dt= level->max_dt();
 
-    // flat_iteration
+    // do_simulation_loop
     minimon.start();
 
     Allreduce res( dash::Team::All() );
 
+
+    double time= 0.0;
+    double timenext= time + timestep;
     uint32_t j= 0;
+
+    if ( 0 == dash::myid() ) { cout << "   t= " << time << " j= " << j << endl; }
+    writeToCsv( *level );
+
+    while ( time < timerange ) {
+
+        while ( time + dt < timenext ) {
+
+            smoothen( *level, res, dt );
+            ++j;
+            time += dt;
+            // if ( 0 == dash::myid() ) { cout << "   t= " << time << " dt= " << dt << endl; }
+        }
+
+        double shorten= ( timenext - time ) / dt;
+         smoothen( *level, res, dt*shorten );
+        ++j;
+
+        time += timenext - time;
+        timenext += timestep;
+
+        if ( 0 == dash::myid() ) { cout << "   t= " << time << " j= " << j << endl; }
+        writeToCsv( *level );
+    }
+
+
+# if 0
+
     while ( res.get() > eps && j < 100000 ) {
 
         smoothen( *level, res );
@@ -3612,19 +3665,14 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
     }
     writeToCsv( *level );
 
-    minimon.stop( "flat_iteration", dash::Team::All().size() );
 
-    if ( 0 == dash::myid() ) {
+#endif /* 0 */
+    minimon.stop( "do_simulation_loop", dash::Team::All().size() );
 
-        if ( ! check_symmetry( *level->src_grid, 0.01 ) ) {
-
-            cout << "test for asymmetry of soution failed!" << endl;
-        }
-    }
+    minimon.stop( "do_simulation", dash::Team::All().size() );
 
     delete level;
     level= NULL;
-#endif /* 0 */
 }
 
 
@@ -3645,7 +3693,7 @@ void do_flat_iteration( uint32_t howmanylevels, double eps ) {
     if ( 0 == dash::myid() ) {
 
         cout << "run flat iteration with " << dash::Team::All().size() << " units "
-            "for grids of " <<
+            "for grid of " <<
             ((1<<(howmanylevels))-1)*factor_z << "x" <<
             ((1<<(howmanylevels))-1)*factor_y << "x" <<
             ((1<<(howmanylevels))-1)*factor_x <<
