@@ -54,6 +54,7 @@ plot \
 filename_out=filename.".flops.png"
 set output filename_out
 #set title "Foo"
+set ylabel "Speed [Flop/s]"
 
 set xrange[0.5:*]
 plot \
