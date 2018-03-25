@@ -520,10 +520,14 @@ void writeToCsv( const Level& level ) {
     const MatrixT& grid= *level.src_grid;
     HaloT& halo= *level.src_halo;
 
-    std::ofstream csvfile;
+    static std::ostringstream csvfile; /* replace ofstream by ostringstream to have
+    only one large file operation -- check if a preallocated C string with snprintf
+    is even faster */
+    csvfile.str(""); /* clear the _static_ ostringstream in case it was used before */
+    std::ofstream csvfileforreal;
     std::ostringstream num_string;
     num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
-    csvfile.open( "image_unit" + std::to_string(grid.team().myid()) +
+    csvfileforreal.open( "image_unit" + std::to_string(grid.team().myid()) +
         ".csv." + num_string.str() );
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
@@ -623,7 +627,8 @@ void writeToCsv( const Level& level ) {
         }
     }
 
-    csvfile.close();
+    csvfileforreal << csvfile.str();
+    csvfileforreal.close();
 
 #endif /* WITHCSVOUTPUT */
 }
@@ -687,7 +692,7 @@ void writeToCsv_full_grid( const Level& level ) {
 void initgrid( Level& level ) {
 
     /* not strictly necessary but it also avoids NAN values */
-    dash::fill( level.src_grid->begin(), level.src_grid->end(), 5.0 );
+    dash::fill( level.src_grid->begin(), level.src_grid->end(), 0.0 );
     dash::fill( level.dst_grid->begin(), level.dst_grid->end(), 0.0 );
     dash::fill( level.rhs_grid->begin(), level.rhs_grid->end(), 0.0 );
 
@@ -3593,6 +3598,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
             " for " << timerange << " seconds with output steps every " << timestep << " seconds " <<endl << endl;
     }
 
+    /* physical dimensions 10m³ because it allows larger dt */
     Level* level= new Level( 10.0, 10.0, 10.0,
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
@@ -3604,7 +3610,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
     initboundary( *level );
 
     initgrid( *level );
-    markunits( *level->src_grid );
+    // markunits( *level->src_grid );
 
     writeToCsv( *level );
 
