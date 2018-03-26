@@ -3209,7 +3209,7 @@ if ( 0 == dash::myid()  ) {
 }
 
 
-void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
+void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
     SCOREP_USER_FUNC()
 
     // setup
@@ -3259,7 +3259,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
             teamspec.num_units(2) << " units" << endl;
     }
 
-    levels.push_back( new Level( 1.0, 1.0, 1.0,
+    levels.push_back( new Level( dim[0], dim[1], dim[2],
         (1<<(howmanylevels))-1,
         (1<<(howmanylevels))-1,
         (1<<(howmanylevels))-1,
@@ -3373,7 +3373,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
 
 
 /* elastic mode runs but still seems to have errors in it */
-void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
+void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
 
     // setup
     minimon.start();
@@ -3420,7 +3420,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
             teamspec.num_units(2) << " units" << endl;
     }
 
-    levels.push_back( new Level( 1.0, 1.0, 1.0,
+    levels.push_back( new Level( dim[0], dim[1], dim[2],
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
         ((1<<(howmanylevels))-1)*factor_x ,
@@ -3467,7 +3467,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
                 }
                 */
                 levels.push_back(
-                    new Level( 1.0, 1.0, 1.0,
+                    new Level( dim[0], dim[1], dim[2],
                                ((1<<(howmanylevels+1))-1)*factor_z,
                                ((1<<(howmanylevels+1))-1)*factor_y,
                                ((1<<(howmanylevels+1))-1)*factor_x,
@@ -3497,7 +3497,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
                     ((1<<(howmanylevels))-1)*factor_x < currentteam.size() * (1<<27) );
 
             levels.push_back(
-                new Level( 1.0, 1.0, 1.0,
+                new Level( dim[0], dim[1], dim[2],
                            ((1<<(howmanylevels))-1)*factor_z ,
                            ((1<<(howmanylevels))-1)*factor_y ,
                            ((1<<(howmanylevels))-1)*factor_x ,
@@ -3572,7 +3572,8 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
 }
 
 
-void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) {
+void do_simulation( uint32_t howmanylevels, double timerange, double timestep, 
+                    std::array< double, 3 >& dim ) {
 
     // do_simulation
     minimon.start();
@@ -3599,7 +3600,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
     }
 
     /* physical dimensions 10m³ because it allows larger dt */
-    Level* level= new Level( 10.0, 10.0, 10.0,
+    Level* level= new Level( dim[0], dim[1], dim[2],
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
         ((1<<(howmanylevels))-1)*factor_x ,
@@ -3682,7 +3683,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep ) 
 }
 
 
-void do_flat_iteration( uint32_t howmanylevels, double eps ) {
+void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
 
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -3706,7 +3707,7 @@ void do_flat_iteration( uint32_t howmanylevels, double eps ) {
             endl << endl;
     }
 
-    Level* level= new Level( 1.0, 1.0, 1.0,
+    Level* level= new Level( dim[0], dim[1], dim[2],
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
         ((1<<(howmanylevels))-1)*factor_x ,
@@ -4092,6 +4093,9 @@ int main( int argc, char* argv[] ) {
     double timerange= 10.0; /* 10 seconds */
     double timestep= 1.0/25.0; /* 25 FPS */
 
+    /* physical dimensions of the simulation grid */
+    std::array< double, 3 > dimensions= {10.0,10.0,10.0};
+
     /* round 1 over all command line arguments: check only for -h and --help */
     for ( int a= 1; a < argc; a++ ) {
 
@@ -4116,13 +4120,15 @@ const char* HELPTEXT= "\n"
 "               exactly for the sake of a nice visualization.\n"
 "               (Visualization only active when compiled with WITHCSVOUTPUT.)\n"
 " \n"
-" Furtner options\n"
+" Further options\n"
 "\n"
 " --eps <eps>   define epsilon for the iterative solver in flat or multigrid modes,\n"
 "               the iterative solver on any grid stops when residual <= eps\n"
 " -g <n>        determine size of CSV output -- only when compiled with WITHCSVOUTPUT\n"
 "               the combined CVS output from all units (processes) will be\n"
 "               2^n +1 points in every dimension, default is n= 5 or 33^3 elements\n"
+" -d <d h w>    Set physical dimensions of the simulation grid in meters\n"
+"               (default 10.0, 10.0, 10.0)\n"
 "\n"
 #ifdef WITHCSVOUTPUT
 " (This executable was compiled with WITHCSVOUTPUT)\n"
@@ -4206,6 +4212,20 @@ const char* HELPTEXT= "\n"
             }
             for ( uint32_t i= 0; i < 3; ++i ) resolution[i]= (1<<g)+1;
 
+        } else if ( 0 == strncmp( "-d", argv[a], 2  ) && ( a+3 < argc ) ) {
+
+            dimensions[0]= atof( argv[a+1] );
+            dimensions[1]= atof( argv[a+2] );
+            dimensions[2]= atof( argv[a+3] );
+            a += 3;
+            if ( 0 == dash::myid() ) {
+
+                cout << "using grid of dimensions " << 
+                    dimensions[0] << "m x " << 
+                    dimensions[1] << "m x " << 
+                    dimensions[2] << "m" << endl;
+            }
+
         } else {
 
             /* otherwise interpret as number of grid levels to employ */
@@ -4226,16 +4246,16 @@ const char* HELPTEXT= "\n"
             do_tests();
             break;
         case SIM:  
-            do_simulation( howmanylevels, timerange, timestep );
+            do_simulation( howmanylevels, timerange, timestep, dimensions );
             break;
         case FLAT:
-            do_flat_iteration( howmanylevels, epsilon );
+            do_flat_iteration( howmanylevels, epsilon, dimensions );
             break;
         case ELASTICMULTIGRID: 
-            do_multigrid_elastic( howmanylevels, epsilon );
+            do_multigrid_elastic( howmanylevels, epsilon, dimensions );
             break;
         default:
-            do_multigrid_iteration( howmanylevels, epsilon );
+            do_multigrid_iteration( howmanylevels, epsilon, dimensions );
     }
 
 #ifdef WITHCSVOUTPUT
