@@ -105,6 +105,10 @@ public:
     /* sz, sy, sx are the dimensions in meters of the grid excluding the boundary regions */
     double sz, sy, sx;
 
+    /* the maximum time step according to the stability condition for the
+    time simulation mode */
+    double dt;
+
     /***
     lz, ly, lx are the dimensions in meters of the grid including the boundary regions,
     nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions,
@@ -137,6 +141,11 @@ public:
         double hx= lx/(nx+1);
 
         /* This is the original setting for the linear system. */
+
+        /* stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2 */
+        double hmin= std::min( hz, std::min( hy, hx ) );
+        dt= 0.5*hmin*hmin;
 
         ax= -1.0/hx/hx;
         ay= -1.0/hy/hy;
@@ -198,6 +207,7 @@ public:
         acenter= parent.acenter;
         ff= parent.ff;
         m= parent.m;
+        dt= parent.dt;
 
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
@@ -303,7 +313,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -328,7 +338,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x } ) << " ";
 
                     }
                     cout << endl;
@@ -353,7 +363,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -378,7 +388,7 @@ public:
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x } ) << " ";
 
                     }
                     cout << endl;
@@ -403,7 +413,7 @@ public:
                     for ( int y= -1; y <= (int) n[1]; ++y ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -428,7 +438,7 @@ public:
                     for ( int y= -1; y <= (int) n[1]; ++y ) {
 
                         cout << std::setprecision(3) <<
-                            (double) *src_halo->halo_element_at_global( { corner[0]+z, corner[1]+y, corner[2]+x } ) << " ";
+                            (double) *src_halo->halo_element_at_local( {z,y,x} ) << " ";
 
                     }
                     cout << endl;
@@ -439,6 +449,15 @@ public:
         }
 
     }
+
+    double max_dt() const {
+
+        /* stability condition: r <= 1/2 with r= dt/h^2 ==> dt <= 1/2*h^2
+        dtheta= ru*u_plus + ru*u_minus - 2*ru*u_center with ru=dt/hu^2 <= 1/2 */
+        cout << "    dt= " << dt << endl;
+        return dt;
+    }
+
 
 private:
     MatrixT _grid_1;
@@ -501,10 +520,14 @@ void writeToCsv( const Level& level ) {
     const MatrixT& grid= *level.src_grid;
     HaloT& halo= *level.src_halo;
 
-    std::ofstream csvfile;
+    static std::ostringstream csvfile; /* replace ofstream by ostringstream to have
+    only one large file operation -- check if a preallocated C string with snprintf
+    is even faster */
+    csvfile.str(""); /* clear the _static_ ostringstream in case it was used before */
+    std::ofstream csvfileforreal;
     std::ostringstream num_string;
     num_string << std::setw(5) << std::setfill('0') << (uint32_t) filenumber->get();
-    csvfile.open( "image_unit" + std::to_string(grid.team().myid()) +
+    csvfileforreal.open( "image_unit" + std::to_string(grid.team().myid()) +
         ".csv." + num_string.str() );
 
     std::array< long int, 3 > corner= grid.pattern().global( {0,0,0} );
@@ -604,7 +627,8 @@ void writeToCsv( const Level& level ) {
         }
     }
 
-    csvfile.close();
+    csvfileforreal << csvfile.str();
+    csvfileforreal.close();
 
 #endif /* WITHCSVOUTPUT */
 }
@@ -668,7 +692,7 @@ void writeToCsv_full_grid( const Level& level ) {
 void initgrid( Level& level ) {
 
     /* not strictly necessary but it also avoids NAN values */
-    dash::fill( level.src_grid->begin(), level.src_grid->end(), 5.0 );
+    dash::fill( level.src_grid->begin(), level.src_grid->end(), 0.0 );
     dash::fill( level.dst_grid->begin(), level.dst_grid->end(), 0.0 );
     dash::fill( level.rhs_grid->begin(), level.rhs_grid->end(), 0.0 );
 
@@ -1002,7 +1026,7 @@ void scaledown( Level& fine, Level& coarse ) {
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
@@ -1016,7 +1040,7 @@ void scaledown( Level& fine, Level& coarse ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
@@ -1024,8 +1048,8 @@ void scaledown( Level& fine, Level& coarse ) {
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
                     az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + finegrid.local[2*z+2][2*y+1][2*x+1] ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
@@ -1040,16 +1064,16 @@ void scaledown( Level& fine, Level& coarse ) {
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
                     ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + finegrid.local[2*z+1][2*y+2][2*x+1] ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
@@ -1059,17 +1083,17 @@ void scaledown( Level& fine, Level& coarse ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
                     ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + finegrid.local[2*z+1][2*y+1][2*x+2] ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
             /* access back halo in x direction for [2*x+2] */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2] ; x++ ) {
                 coarse_rhs_grid.local[z][y][x]= extra_factor * /* extra factor? */ (
                     ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] -
-                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+1,cornerf[2]+2*x+2} ) ) -
-                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+1,cornerf[1]+2*y+2,cornerf[2]+2*x+1} ) ) -
-                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_global( {cornerf[0]+2*z+2,cornerf[1]+2*y+1,cornerf[2]+2*x+1} ) ) -
+                    ax * ( finegrid.local[2*z+1][2*y+1][2*x+0] + *finehalo.halo_element_at_local( {2*z+1,2*y+1,2*x+2} ) ) -
+                    ay * ( finegrid.local[2*z+1][2*y+0][2*x+1] + *finehalo.halo_element_at_local( {2*z+1,2*y+2,2*x+1} ) ) -
+                    az * ( finegrid.local[2*z+0][2*y+1][2*x+1] + *finehalo.halo_element_at_local( {2*z+2,2*y+1,2*x+1} ) ) -
                     ac * finegrid.local[2*z+1][2*y+1][2*x+1]);
             }
         }
@@ -1078,7 +1102,7 @@ void scaledown( Level& fine, Level& coarse ) {
     minimon.stop( "scaledown", par, param );
 }
 
-//#define USE_NEW_SCALEUP
+#define USE_NEW_SCALEUP
 
 #ifdef USE_NEW_SCALEUP
 
@@ -1142,6 +1166,7 @@ void scaleup( Level& coarse, Level& fine ) {
     why it is correct! */
 
     auto& stencil_op_fine = *fine.src_op;
+
     for ( signed_size_t z= 1; z < extentc[0] - 1; z++ ) {
         for ( signed_size_t y= 1; y < extentc[1] - 1; y++ ) {
             for ( signed_size_t x= 1; x < extentc[2] - 1; x++ ) {
@@ -1158,7 +1183,6 @@ void scaleup( Level& coarse, Level& fine ) {
                     *it, 1.0,std::plus<double>());
     }
 
-
     /* 4) wait for async halo exchange */
     coarse.src_halo->wait();
 
@@ -1169,6 +1193,7 @@ void scaleup( Level& coarse, Level& fine ) {
 
     const auto& halo_block = coarse.src_halo->halo_block();
     const auto& view = halo_block.view();
+
     for(const auto& region : halo_block.halo_regions()) {
       if(region.is_custom_region())
         continue;
@@ -1195,10 +1220,11 @@ void scaleup( Level& coarse, Level& fine ) {
 
       }
     }
+
     minimon.stop( "scaleup", par, param );
 }
 
-#else /* SCALEUP */
+#else /* USE_NEW_SCALEUP */
 
 void scaleup( Level& coarse, Level& fine ) {
 
@@ -1487,7 +1513,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1505,7 +1531,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1522,7 +1548,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1537,7 +1563,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1555,7 +1581,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1573,7 +1599,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1590,7 +1616,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1605,7 +1631,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+1] += 0.5*tmp;
 
@@ -1622,7 +1648,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
@@ -1643,7 +1669,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
 
@@ -1662,7 +1688,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
 
@@ -1677,7 +1703,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+1] += 0.5*tmp;
 
@@ -1695,7 +1721,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
@@ -1716,7 +1742,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
 
@@ -1734,7 +1760,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
 
@@ -1749,7 +1775,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+1] += 0.5*tmp;
 
@@ -1766,7 +1792,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1786,7 +1812,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1805,7 +1831,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1822,7 +1848,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+2] += 0.5*tmp;
 
@@ -1840,7 +1866,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1858,7 +1884,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1875,7 +1901,7 @@ void scaleup( Level& coarse, Level& fine ) {
         for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1890,7 +1916,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+1][2*x+0] += 0.5*tmp;
 
@@ -1911,7 +1937,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
 
@@ -1922,7 +1948,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+2] += 0.25*tmp;
 
@@ -1937,7 +1963,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
 
@@ -1948,7 +1974,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+2] += 0.25*tmp;
 
@@ -1962,7 +1988,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
 
@@ -1973,7 +1999,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+2][2*x+0] += 0.25*tmp;
 
@@ -1989,7 +2015,7 @@ void scaleup( Level& coarse, Level& fine ) {
             signed_size_t x= extentc[2];
             for ( signed_size_t z= 0; z < extentc[0] - sub[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
 
@@ -2000,7 +2026,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in z-dimension */
             for ( signed_size_t z= extentc[0] - sub[0]; z < extentc[0]; z++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+1][2*y+0][2*x+0] += 0.25*tmp;
 
@@ -2016,7 +2042,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
 
@@ -2027,7 +2053,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+2][2*y+1][2*x+2] += 0.25*tmp;
@@ -2043,7 +2069,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t x= -1;
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
 
@@ -2054,7 +2080,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+0][2*y+1][2*x+2] += 0.25*tmp;
@@ -2069,7 +2095,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
 
@@ -2080,7 +2106,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+2][2*y+1][2*x+0] += 0.25*tmp;
@@ -2095,7 +2121,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[2] ) { signed_size_t x= extentc[2];
             for ( signed_size_t y= 0; y < extentc[1] - sub[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
 
@@ -2106,7 +2132,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in y-dimension */
             for ( signed_size_t y= extentc[1] - sub[1]; y < extentc[1]; y++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
 
                 finegrid.local[2*z+0][2*y+1][2*x+0] += 0.25*tmp;
@@ -2124,7 +2150,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2135,7 +2161,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2150,7 +2176,7 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2161,7 +2187,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+2][2*x+1] += 0.25*tmp;
 
@@ -2175,7 +2201,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2186,7 +2212,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+2][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2200,7 +2226,7 @@ void scaleup( Level& coarse, Level& fine ) {
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             for ( signed_size_t x= 0; x < extentc[2] - sub[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2211,7 +2237,7 @@ void scaleup( Level& coarse, Level& fine ) {
             but without the +2 steps in x-dimension */
             for ( signed_size_t x= extentc[2] - sub[2]; x < extentc[2]; x++ ) {
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
 
                 finegrid.local[2*z+0][2*y+0][2*x+1] += 0.25*tmp;
 
@@ -2226,24 +2252,24 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+2][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+0][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+2][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
@@ -2252,24 +2278,24 @@ void scaleup( Level& coarse, Level& fine ) {
         { signed_size_t y= -1;
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+2][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+2][2*x+0] += 0.125*tmp;
             }
         }
         if ( 0 == sub[1] ) { signed_size_t y= extentc[1];
             { signed_size_t x= -1;
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+0][2*x+2] += 0.125*tmp;
             }
             if ( 0 == sub[2]) { signed_size_t x= extentc[2];
 
-                double tmp= *coarse.src_halo->halo_element_at_global( {cornerc[0]+z,cornerc[1]+y,cornerc[2]+x} );
+                double tmp= *coarse.src_halo->halo_element_at_local( {z,y,x} );
                 finegrid.local[2*z+0][2*y+0][2*x+0] += 0.125*tmp;
             }
         }
@@ -2278,7 +2304,7 @@ void scaleup( Level& coarse, Level& fine ) {
     minimon.stop( "scaleup", par, param );
 }
 
-#endif /* SCALEUP */
+#endif /* USE_NEW_SCALEUP */
 
 /* this version uses a correct prolongation from the coarser grid of (2^n)^3 to (2^(n+1))^3
 elements. Note that it is 2^n elements per dimension instead of 2^n -1!
@@ -2479,7 +2505,7 @@ Smoothen the given level from oldgrid+src_halo to newgrid. Call Level::swap() at
 The parallel global residual is returned as a return parameter, but only
 if it is not NULL because then the expensive parallel reduction is just avoided.
 */
-double smoothen( Level& level, Allreduce& res ) {
+double smoothen( Level& level, Allreduce& res, double coeff= 1.0 ) {
     SCOREP_USER_FUNC()
 
     uint32_t par= level.src_grid->team().size();
@@ -2502,7 +2528,7 @@ double smoothen( Level& level, Allreduce& res ) {
     double ff= level.ff;
     double m= level.m;
 
-    const double c= 1.0;
+    const double c= coeff;
 
     // async halo update
     level.src_halo->update_async();
@@ -3340,7 +3366,7 @@ if ( 0 == dash::myid()  ) {
 }
 
 
-void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
+void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
     SCOREP_USER_FUNC()
 
     // setup
@@ -3390,7 +3416,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
             teamspec.num_units(2) << " units" << endl;
     }
 
-    levels.push_back( new Level( 1.0, 1.0, 1.0,
+    levels.push_back( new Level( dim[0], dim[1], dim[2],
         (1<<(howmanylevels))-1,
         (1<<(howmanylevels))-1,
         (1<<(howmanylevels))-1,
@@ -3504,7 +3530,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps ) {
 
 
 /* elastic mode runs but still seems to have errors in it */
-void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
+void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
 
     // setup
     minimon.start();
@@ -3551,7 +3577,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
             teamspec.num_units(2) << " units" << endl;
     }
 
-    levels.push_back( new Level( 1.0, 1.0, 1.0,
+    levels.push_back( new Level( dim[0], dim[1], dim[2],
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
         ((1<<(howmanylevels))-1)*factor_x ,
@@ -3598,7 +3624,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
                 }
                 */
                 levels.push_back(
-                    new Level( 1.0, 1.0, 1.0,
+                    new Level( dim[0], dim[1], dim[2],
                                ((1<<(howmanylevels+1))-1)*factor_z,
                                ((1<<(howmanylevels+1))-1)*factor_y,
                                ((1<<(howmanylevels+1))-1)*factor_x,
@@ -3628,7 +3654,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
                     ((1<<(howmanylevels))-1)*factor_x < currentteam.size() * (1<<27) );
 
             levels.push_back(
-                new Level( 1.0, 1.0, 1.0,
+                new Level( dim[0], dim[1], dim[2],
                            ((1<<(howmanylevels))-1)*factor_z ,
                            ((1<<(howmanylevels))-1)*factor_y ,
                            ((1<<(howmanylevels))-1)*factor_x ,
@@ -3703,7 +3729,118 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps ) {
 }
 
 
-void do_flat_iteration( uint32_t howmanylevels, double eps ) {
+void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
+                    std::array< double, 3 >& dim ) {
+
+    // do_simulation
+    minimon.start();
+
+    TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
+    teamspec.balance_extents();
+
+    /* determine factors for width and height such that every unit has a power of two
+    extent in every dimension and that the area is close to a square
+    with aspect ratio \in [0,75,1,5] */
+
+    uint32_t factor_z= 1;
+    uint32_t factor_y= 1;
+    uint32_t factor_x= 1;
+
+    if ( 0 == dash::myid() ) {
+
+        cout << "run simulation with " << dash::Team::All().size() << " units "
+            "for grid of " <<
+            ((1<<(howmanylevels))-1)*factor_z << "x" <<
+            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_x <<
+            " for " << timerange << " seconds with output steps every " << timestep << " seconds " <<endl << endl;
+    }
+
+    /* physical dimensions 10m³ because it allows larger dt */
+    Level* level= new Level( dim[0], dim[1], dim[2],
+        ((1<<(howmanylevels))-1)*factor_z ,
+        ((1<<(howmanylevels))-1)*factor_y ,
+        ((1<<(howmanylevels))-1)*factor_x ,
+        dash::Team::All(), teamspec );
+
+    dash::barrier();
+
+    initboundary( *level );
+
+    initgrid( *level );
+    // markunits( *level->src_grid );
+
+    writeToCsv( *level );
+
+    dash::barrier();
+
+    double dt= level->max_dt();
+
+    // do_simulation_loop
+    minimon.start();
+
+    Allreduce res( dash::Team::All() );
+
+
+    double time= 0.0;
+    double timenext= time + timestep;
+    uint32_t j= 0;
+
+    if ( 0 == dash::myid() ) { cout << "   t= " << time << " j= " << j << endl; }
+    writeToCsv( *level );
+
+    while ( time < timerange ) {
+
+        while ( time + dt < timenext ) {
+
+            smoothen( *level, res, dt );
+            ++j;
+            time += dt;
+            // if ( 0 == dash::myid() ) { cout << "   t= " << time << " dt= " << dt << endl; }
+        }
+
+        double shorten= ( timenext - time ) / dt;
+         smoothen( *level, res, dt*shorten );
+        ++j;
+
+        time += timenext - time;
+        timenext += timestep;
+
+        if ( 0 == dash::myid() ) { cout << "   t= " << time << " j= " << j << endl; }
+        writeToCsv( *level );
+    }
+
+
+# if 0
+
+    while ( res.get() > eps && j < 100000 ) {
+
+        smoothen( *level, res );
+
+        if ( 0 == j % 100 ) {
+            writeToCsv( *level );
+        }
+
+        j++;
+
+        if ( 0 == dash::myid() && ( 0 == j % 100 ) ) {
+            cout << j << ": smoothen grid with residual " << res.get() << endl;
+        }
+    }
+    writeToCsv( *level );
+
+
+#endif /* 0 */
+    minimon.stop( "do_simulation_loop", dash::Team::All().size() );
+
+    minimon.stop( "do_simulation", dash::Team::All().size() );
+
+    delete level;
+    level= NULL;
+}
+
+
+void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
 
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -3720,14 +3857,14 @@ void do_flat_iteration( uint32_t howmanylevels, double eps ) {
     if ( 0 == dash::myid() ) {
 
         cout << "run flat iteration with " << dash::Team::All().size() << " units "
-            "for grids of " <<
+            "for grid of " <<
             ((1<<(howmanylevels))-1)*factor_z << "x" <<
             ((1<<(howmanylevels))-1)*factor_y << "x" <<
             ((1<<(howmanylevels))-1)*factor_x <<
             endl << endl;
     }
 
-    Level* level= new Level( 1.0, 1.0, 1.0,
+    Level* level= new Level( dim[0], dim[1], dim[2],
         ((1<<(howmanylevels))-1)*factor_z ,
         ((1<<(howmanylevels))-1)*factor_y ,
         ((1<<(howmanylevels))-1)*factor_x ,
@@ -4104,48 +4241,101 @@ int main( int argc, char* argv[] ) {
     filenumber->barrier();
 #endif /* WITHCSVOUTPUT */
 
-    bool do_alltests= false;
-    bool do_flatsolver= false;
-    bool do_elastic= false;
-    bool do_old= false;
+    enum { TEST, FLAT, SIM, MULTIGRID, ELASTICMULTIGRID };
+
+    int whattodo= MULTIGRID;
+
     uint32_t howmanylevels= 5;
     uint32_t howmanylevels_minimum= 2;
     double epsilon= 1.0e-3;
+    double timerange= 10.0; /* 10 seconds */
+    double timestep= 1.0/25.0; /* 25 FPS */
 
-    /* alpha defines the number of v-cycles or w-cycles or whatever, 
-    0 == alpha means flat mode with only final smoothing
-    */
-    uint32_t alpha= 2;
-    /* beta is the number of smoothing steps between grids */
-    uint32_t beta= 20;
-    /* gamma is the number of recursive cycle calls, so 1 == gamma 
-    gives a v-cycle, 2 == gamma gives a w-cycle, you should not use more. */
-    uint32_t gamma= 1;
+    /* physical dimensions of the simulation grid */
+    std::array< double, 3 > dimensions= {10.0,10.0,10.0};
 
+    /* round 1 over all command line arguments: check only for -h and --help */
     for ( int a= 1; a < argc; a++ ) {
 
         if ( 0 == strncmp( "-h", argv[a], 2  ) ||
                 0 == strncmp( "--help", argv[a], 6 ) ) {
 
+const char* HELPTEXT= "\n"
+" <l>           number of levels to use at most, the simulation grid which is\n"
+"               the finest grid in the multigrid hierarchy of grids will have\n"
+"               2^l -1 inner elements plus 2 boundary elements per dimension\n"
+"\n"
+" Modes of operation\n"
+"\n"
+" -t|--test     run some internal tests\n"
+" -e|--elastic  use elastic multigrid mode i.e., use fewer units (processes)\n"
+"               on coarser grids\n"
+" -f|--flat     run flat mode i.e., use iterative solver on a single grid\n"
+" --sim <t> <s> run a simulation over time, that is also a \"flat\" solver\n"
+"               working only on a single grid. It runs t seconds simulation\n"
+"               time. The time step dt is determined by the grid and the\n"
+"               stability condition. This mode matches all time steps n*s <= t\n"
+"               exactly for the sake of a nice visualization.\n"
+"               (Visualization only active when compiled with WITHCSVOUTPUT.)\n"
+" \n"
+" Further options\n"
+"\n"
+" --eps <eps>   define epsilon for the iterative solver in flat or multigrid modes,\n"
+"               the iterative solver on any grid stops when residual <= eps\n"
+" -g <n>        determine size of CSV output -- only when compiled with WITHCSVOUTPUT\n"
+"               the combined CVS output from all units (processes) will be\n"
+"               2^n +1 points in every dimension, default is n= 5 or 33^3 elements\n"
+" -d <d h w>    Set physical dimensions of the simulation grid in meters\n"
+"               (default 10.0, 10.0, 10.0)\n"
+"\n"
+#ifdef WITHCSVOUTPUT
+" (This executable was compiled with WITHCSVOUTPUT)\n"
+#else /* WITHCSVOUTPUT */
+" (This executable was compiled without WITHCSVOUTPUT)\n"
+#endif /* WITHCSVOUTPUT */
+"\n\n";
+
             if ( 0 == dash::myid() ) {
 
-                cout << "call me as [mpirun] '" << argv[0] << "' [-h|--help] [number-of-levels=5]" << endl;
+                cout << "\n"
+                    " Call me as 'mpirun " << argv[0] << "' [-h|--help] [levels(default "<<howmanylevels<<")] "
+                    "[...more options...]" <<
+                    HELPTEXT;
             }
-            exit(0);
 
-        } else if ( 0 == strncmp( "-t", argv[a], 2  ) ||
+            dash::finalize();
+            return 0;
+        }
+    }
+
+    /* round 2 over all command line arguments */
+    for ( int a= 1; a < argc; a++ ) {
+
+        if ( 0 == strncmp( "-t", argv[a], 2  ) ||
                 0 == strncmp( "--tests", argv[a], 7 )) {
 
-            do_alltests= true;
+            whattodo= TEST;
             if ( 0 == dash::myid() ) {
 
                 cout << "run tests" << endl;
             }
 
+        } else if ( 0 == strncmp( "--sim", argv[a], 5 ) && ( a+2 < argc ) ) {
+
+            whattodo= SIM;
+            timerange= atof( argv[a+1] );
+            timestep= atof( argv[a+2] );
+            a += 2;
+            if ( 0 == dash::myid() ) {
+
+                cout << "do simulation over " << timerange << " seconds with output "
+                    "interval " << timestep << endl;
+            }
+
         } else if ( 0 == strncmp( "-f", argv[a], 2  ) ||
                 0 == strncmp( "--flat", argv[a], 6 )) {
 
-            do_flatsolver= true;
+            whattodo= FLAT;
             if ( 0 == dash::myid() ) {
 
                 cout << "do flat iteration instead of multigrid" << endl;
@@ -4154,7 +4344,7 @@ int main( int argc, char* argv[] ) {
         } else if ( 0 == strncmp( "-e", argv[a], 2  ) ||
                 0 == strncmp( "--elastic", argv[a], 9 )) {
 
-            do_elastic= true;
+            whattodo= ELASTICMULTIGRID;
             if ( 0 == dash::myid() ) {
 
                 cout << "do multigrid iteration with changing number of units per grid" << endl;
@@ -4163,10 +4353,35 @@ int main( int argc, char* argv[] ) {
         } else if ( 0 == strncmp( "--eps", argv[a], 5  ) && ( a+1 < argc ) ) {
 
             epsilon= atof( argv[a+1] );
-            ++a;
+            a += 1;
             if ( 0 == dash::myid() ) {
 
                 cout << "using epsilon " << epsilon << endl;
+            }
+
+        } else if ( 0 == strncmp( "-g", argv[a], 2  ) && ( a+1 < argc ) ) {
+
+            int g= atoi( argv[a+1] );
+            ++a;
+            if ( 0 == dash::myid() ) {
+
+                cout << "using CSV output grid size 2^"<<g<<"+1 == " << ((1<<g)+1) <<
+                    " in every dimension" << endl;
+            }
+            for ( uint32_t i= 0; i < 3; ++i ) resolution[i]= (1<<g)+1;
+
+        } else if ( 0 == strncmp( "-d", argv[a], 2  ) && ( a+3 < argc ) ) {
+
+            dimensions[0]= atof( argv[a+1] );
+            dimensions[1]= atof( argv[a+2] );
+            dimensions[2]= atof( argv[a+3] );
+            a += 3;
+            if ( 0 == dash::myid() ) {
+
+                cout << "using grid of dimensions " <<
+                    dimensions[0] << "m x " <<
+                    dimensions[1] << "m x " <<
+                    dimensions[2] << "m" << endl;
             }
 
         } else {
@@ -4183,154 +4398,22 @@ int main( int argc, char* argv[] ) {
     assert( howmanylevels > 2 );
     assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
 
-    if ( do_alltests ) {
+    switch ( whattodo ) {
 
-        do_tests();
-
-    } else if ( do_flatsolver ) {
-
-        do_flat_iteration( howmanylevels, epsilon );
-
-    } else if ( do_elastic ) {
-
-        do_multigrid_elastic( howmanylevels, epsilon );
-
-    } else if ( do_old ) {
-
-        cout << "do_old" << endl;
-
-        do_multigrid_iteration( howmanylevels, epsilon );
-
-    } else {
-
-        TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
-        teamspec.balance_extents();
-
-        vector<Level*> levels;
-
-        /* construct hierarchy of levels according to command line parameters */
-
-        // setup grids
-        minimon.start();
-
-        /* finest level */
-
-        /* finest grid needs to be larger than 2*teamspec per dimension, 
-        that means local grid is >= 2 elements */
-        assert( (1<<howmanylevels)-1 >= 2*teamspec.num_units(0) );
-        assert( (1<<howmanylevels)-1 >= 2*teamspec.num_units(1) );
-        assert( (1<<howmanylevels)-1 >= 2*teamspec.num_units(2) );
-
-        levels.push_back( new Level( 1.0, 1.0, 1.0, 
-            (1<<howmanylevels)-1,
-            (1<<howmanylevels)-1,
-            (1<<howmanylevels)-1,
-            dash::Team::All(), teamspec ) );
-
-        initgrid( *levels.front() );
-        //markunits( *levels.front()->src_grid );
-        initboundary( *levels.front() );
-
-        writeToCsv( *levels.front() );
-
-        dash::barrier();
-        --howmanylevels;
-        while ( howmanylevels > howmanylevels_minimum ) {
-
-            Level& previouslevel= *levels.back();
-            dash::Team& previousteam= previouslevel.src_grid->team();
-            dash::Team& currentteam= ( 444 == howmanylevels ) ? previousteam.split(2) : previousteam;
-            TeamSpecT localteamspec( currentteam.size(), 1, 1 );
-            localteamspec.balance_extents();
-
-            if ( (1<<howmanylevels)-1 < 2*localteamspec.num_units(0) ||
-                (1<<howmanylevels)-1 < 2*localteamspec.num_units(1) ||
-                (1<<howmanylevels)-1 < 2*localteamspec.num_units(2) ) break;
-
-            if ( 0 == currentteam.position() ) {
-
-                if ( previousteam.size() != currentteam.size() ) {
-
-                    /* the team working on the following grid layers has just
-                    been reduced. Therefore, we add an additional transfer with the
-                    same size as the previous one but for the reduced team. Then,
-                    copying the data from the domain of the larger team to the
-                    domain of the smaller team is easy. */
-
-                    levels.push_back(
-                        new Level( previouslevel,
-                                (1<<(howmanylevels+1))-1,
-                                (1<<(howmanylevels+1))-1,
-                                (1<<(howmanylevels+1))-1,
-                                currentteam, localteamspec ) );
-
-                    // not needed, is it?
-                    initgrid( *levels.back() );
-                    initboundary_zero( *levels.back() );
-                }
-
-                //cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
-
-                levels.push_back(
-                    new Level( previouslevel,
-                            (1<<howmanylevels)-1,
-                            (1<<howmanylevels)-1,
-                            (1<<howmanylevels)-1,
-                            currentteam, localteamspec ) );
-
-                initgrid( *levels.back() );
-                initboundary_zero( *levels.back() );
-
-            } else {
-
-                /* this is a passive unit not takin part in the subteam that
-                handles the coarser grids. insert a dummy entry in the vector
-                of levels to signal that this is not the coarsest level globally. */
-                levels.push_back( NULL );
-
-                break;
-            }
-
-            --howmanylevels;
-        }
-        minimon.stop( "setup grids", dash::Team::All().size() );
-
-        dash::barrier();
-
-        // solve
-        minimon.start();
-
-        Allreduce res( dash::Team::All() );
-
-        /* execute multigrid with v- or w-cycle ... use \gamma value from command line parameters */
-        for ( uint32_t a= 0; a < alpha; ++a ) {
-
-            if ( 0 == dash::myid()  ) {
-                cout << endl << "start recursive with eps " << epsilon << endl << endl;
-            }
-
-            recursive_cycle( levels.begin(), levels.end(), beta, gamma, epsilon, res );
-            //v_cycle( levels.begin(), levels.end(), beta, /*gamma,*/ epsilon, res );
-        }
-
-        if ( 0 == dash::myid()  ) {
-            cout << endl << "final smoothing with res " << epsilon << endl << endl;
-        }
-
-        smoothen_final( *levels.front(), epsilon, res );
-        writeToCsv( *levels.front() );
-
-        dash::Team::All().barrier();
-
-        if ( 0 == dash::myid() ) {
-
-            if ( ! check_symmetry( *levels.front()->src_grid, 10.0*epsilon ) ) {
-
-                cout << "test for asymmetry of soution failed!" << endl;
-            }
-        }
-
-        minimon.stop( "solve", dash::Team::All().size() );
+        case TEST:
+            do_tests();
+            break;
+        case SIM:
+            do_simulation( howmanylevels, timerange, timestep, dimensions );
+            break;
+        case FLAT:
+            do_flat_iteration( howmanylevels, epsilon, dimensions );
+            break;
+        case ELASTICMULTIGRID:
+            do_multigrid_elastic( howmanylevels, epsilon, dimensions );
+            break;
+        default:
+            do_multigrid_iteration( howmanylevels, epsilon, dimensions );
     }
 
 #ifdef WITHCSVOUTPUT

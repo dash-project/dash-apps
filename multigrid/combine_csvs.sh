@@ -6,6 +6,9 @@ cat overview_0*.csv >"overview"$1".csv"
 rm -Rf overview_0*.csv
 `dirname $0`/overview.gnuplot
 
+    -e "filename='<name_of_tracefile.csv>'"
+
+
 ls image_unit0.csv.* 2>/dev/null || exit 0
 
 for i in image_unit0.csv.*; do
