@@ -29,7 +29,7 @@ function update_dims_list(dims,extents) {
     dimx.setAttribute("class","dim_select");
     dimx.setAttribute("id","dimx_"+dims[i]);
     dimx.setAttribute("value",i);
-    if(i == 0) {
+    if(i == 1) {
       dimx.checked = true;
       document.getElementById("dimx").value = dims[i];
     }
@@ -55,7 +55,7 @@ function update_dims_list(dims,extents) {
     dimy.setAttribute("name","dimy_select");
     dimy.setAttribute("id","dimy_"+dims[i]);
     dimy.setAttribute("value",i);
-    if(i == 1) {
+    if(i == 0) {
       dimy.checked = true;
       document.getElementById("dimy").value = dims[i];
     }
