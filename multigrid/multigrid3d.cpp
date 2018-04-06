@@ -1151,19 +1151,13 @@ void scaleup( Level& coarse, Level& fine ) {
          sub[i]= ( extentc[i] * 2 == extentf[i] ) ? 1 : 0;
     }
 
-    /* 1) start async halo exchange for coarse grid*/
+    /* start async halo exchange for coarse grid*/
     coarse.src_halo->update_async();
 
-    /* 2) first set fine grid to 0.0, becasue afterwards there are
-    multiple += operations per fine grid element */
-
-    /* 3) second loop over the coarse grid and add the contributions to the
+    /* second loop over the coarse grid and add the contributions to the
     fine grid elements */
 
-    /* for correctness, write down the clear and simple version first and
-    try to apply the optimization from scaleup_old() again -- see above.
-    Make sure that this was correct though. And write down some good comment
-    why it is correct! */
+    /* this is the iterator-ized version of the code */
 
     auto& stencil_op_fine = *fine.src_op;
 
@@ -1183,13 +1177,11 @@ void scaleup( Level& coarse, Level& fine ) {
                     *it, 1.0,std::plus<double>());
     }
 
-    /* 4) wait for async halo exchange */
+    /* wait for async halo exchange */
     coarse.src_halo->wait();
 
-    /* 5) do the remaining updates with contributions from the coarse halo,
-    this is quite a spaghetti code for 6 sides, 12 edges, and 8 corners -- can we do this any better? */
-
-    /* 6 planes */
+    /* do the remaining updates with contributions from the coarse halo 
+	for 6 planes, 12 edges, and 8 corners */
 
     const auto& halo_block = coarse.src_halo->halo_block();
     const auto& view = halo_block.view();
@@ -1257,7 +1249,9 @@ void scaleup( Level& coarse, Level& fine ) {
     assert( 0 == cornerc[2] %2 );
 
     assert( extentc[0] * 2 == extentf[0] || extentc[0] * 2 +1 == extentf[0] );
-    assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
+    assert( ext    /* first set fine grid to 0.0, becasue afterwards there are
+    multiple += operations per fine grid element */
+entc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
     /* if last element in coarse grid per dimension has no 2*i+2 element in
@@ -1268,13 +1262,10 @@ void scaleup( Level& coarse, Level& fine ) {
          sub[i]= ( extentc[i] * 2 == extentf[i] ) ? 1 : 0;
     }
 
-    /* 1) start async halo exchange for coarse grid*/
+    /* start async halo exchange for coarse grid*/
     coarse.src_halo->update_async();
 
-    /* 2) first set fine grid to 0.0, becasue afterwards there are
-    multiple += operations per fine grid element */
-
-    /* 3) second loop over the coarse grid and add the contributions to the
+    /* second loop over the coarse grid and add the contributions to the
     fine grid elements */
 
     /* for correctness, write down the clear and simple version first and
@@ -1500,10 +1491,10 @@ void scaleup( Level& coarse, Level& fine ) {
         }
     }
 
-    /* 4) wait for async halo exchange */
+    /* wait for async halo exchange */
     coarse.src_halo->wait();
 
-    /* 5) do the remaining updates with contributions from the coarse halo,
+    /* do the remaining updates with contributions from the coarse halo,
     this is quite a spaghetti code for 6 sides, 12 edges, and 8 corners -- can we do this any better? */
 
     /* 6 planes */
