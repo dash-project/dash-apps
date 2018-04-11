@@ -365,6 +365,8 @@ function draw_memlayout(pattern, idx_dimx, idx_dimy, coords, svg_elem) {
         starty = endy;
 
         contiguous = true;
+      } else {
+        contiguous = false;
       }
 
       offset++;
