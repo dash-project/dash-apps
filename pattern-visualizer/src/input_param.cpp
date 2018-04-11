@@ -90,6 +90,8 @@ cli_params parse_args(int argc, char * argv[])
     }
     if (flag == "-b") {
       params.output_blocks = true;
+    } else if (flag == "-t") {
+      params.output_tiles = true;
     } else if (flag == "-m") {
       params.output_memlayout = true;
     } else if (flag == "-r") {

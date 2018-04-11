@@ -10,6 +10,7 @@ using json = nlohmann::json;
 typedef struct cli_params_t {
   cli_params_t() = default;
   bool output_blocks = true;
+  bool output_tiles = false;
   bool output_memlayout = true;
   bool reduced = false;
 } cli_params;

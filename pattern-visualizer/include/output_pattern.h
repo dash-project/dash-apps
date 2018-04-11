@@ -104,6 +104,7 @@ void print_example(
   std::cout << "{\"success\": true, \"name\": \"" << pattern_file << "\", ";
   std::cout <<  "\"pattern\": ";
   pv.draw_pattern(std::cout,output_params.output_blocks,
+                            output_params.output_tiles,
                             output_params.output_memlayout,
                             true,  // Currently hardcoded true as support of dash is missing
                             output_params.reduced);

@@ -49,6 +49,8 @@ public:
       std::ostream & os,
       /// Output the blocks of the pattern
       bool output_blocks = true,
+      /// Output the tiles of the pattern
+      bool output_tiles = false,
       /// Output the memory layout of the pattern
       bool output_memlayout = true,
       // Only output the memlayout of the first unit
@@ -96,7 +98,7 @@ public:
 
     os << ",\n";
     // TODO for irregular patterns
-    os << "\"regular\": true";
+    os << "\"rectangular\": true";
 
     if(output_blocks) {
       // default blocksize
@@ -114,9 +116,11 @@ public:
       draw_blocks(os, coords, dims);
     }
 
-    // Redo in seperate function for irregular patterns
-    // perhaps read information from memlayout
-    //draw_tiles(os, sz, coords, dimx, dimy);
+
+    if(output_tiles) {
+      os << ",\n";
+      draw_tiles(os, coords, dims);
+    }
 
     if(output_memlayout) {
       os << ",\n";
@@ -129,34 +133,53 @@ public:
   /**
    * Draws the separate tiles of the pattern
    */
-  /*void draw_tiles(std::ostream & os,
-                  const sizes & sz,
+  void draw_tiles(std::ostream & os,
                   std::array<index_t, PatternT::ndim()> coords,
-                  int dimx, int dimy) {
-    for (int i = 0; i < _pattern.extent(dimx); i++) {
-      for (int j = 0; j < _pattern.extent(dimy); j++) {
+                  std::vector<index_t> dims) {
+    os << "\"tiles\": [";
 
-        os << "<rect x=\"" << (i * sz.gridx) << "\" y=\"" << (j * sz.gridy) << "\" ";
-        os << "height=\"" << sz.tileszy << "\" width=\"" << sz.tileszx << "\" ";
+    bool first_iteration = true;
+    for(auto rit=std::prev(dims.crend()); rit != dims.crend(); ++rit) {
+      auto cur_dim = *rit;
 
-        coords[dimx] = i;
-        coords[dimy] = j;
+      if(first_iteration) {
+        coords[cur_dim] = 0;
+        first_iteration = false;
+      } else {
+        ++coords[cur_dim];
+        if(!(coords[cur_dim] < _pattern.extent(cur_dim))) {
+          os << "]";
+          continue;
+        }
+        os << "," << std::endl;
+      }
+
+      while(rit != dims.crbegin()) {
+        --rit;
+        cur_dim = *rit;
+
+        coords[cur_dim] = 0;
+        os << "[";
+      }
+
+      while(coords[cur_dim] < _pattern.extent(cur_dim)) {
+        if(coords[cur_dim] != 0) {
+          os << ",";
+        }
 
         auto unit  = _pattern.unit_at(coords);
         auto loffs = _pattern.at(coords);
 
-        os << tilestyle(unit);
-        os << " tooltip=\"enable\" > ";
-        os << " <title>Elem: (" << j << "," << i <<"),";
-        os << " Unit " << unit;
-        os << " Local offs. " << loffs;
-        os << "</title>";
+        os << "{\"u\":" << unit;
+        os << ",\"lo\":" << loffs;
+        os << "}";
 
-          //os << "<!-- i=" << i << " j=" << j << "--> ";
-        os << "</rect>" << std::endl;
+        ++coords[cur_dim];
       }
+
+      os << "]";
     }
-  }*/
+  }
 
   /**
    * Draws the blocks of the pattern
