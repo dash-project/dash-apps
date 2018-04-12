@@ -2802,523 +2802,6 @@ void recursive_cycle( Iterator it, Iterator itend,
 }
 
 
-
-template<typename Iterator>
-void v_cycle( Iterator it, Iterator itend,
-        uint32_t numiter, double epsilon, Allreduce& res ) {
-    SCOREP_USER_FUNC()
-
-    Iterator itnext( it );
-    ++itnext;
-    /* reached end of recursion? */
-    if ( itend == itnext ) {
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== start on coarsest grid ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-        /* smoothen completely  */
-        uint32_t j= 0;
-        res.reset( (*it)->src_grid->team() );
-        while ( res.get() > epsilon ) {
-            /* need global residual for iteration count */
-            smoothen( **it, res );
-
-            j++;
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== after smoothen coarsest " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-        }
-        if ( 0 == dash::myid()  ) {
-            cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
-        }
-        writeToCsv( **it );
-
-        return;
-    }
-
-    /* stepped on the dummy level? ... which is there to signal that it is not
-    the end of the parallel recursion on the coarsest level but a subteam is
-    going on to solve the coarser levels and this unit is not in that subteam.
-    ... sounds complicated, is complicated, change only if you know what you
-    are doing. */
-    if ( NULL == *itnext ) {
-
-        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
-        (*it)->src_grid->team().barrier();
-
-        cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
-
-        return;
-    }
-
-    /* stepped on a transfer level? */
-    if ( (*it)->src_grid->team().size() != (*itnext)->src_grid->team().size() ) {
-
-        /* only the members of the reduced team need to work, all others do siesta. */
-        //if ( 0 == (*itnext)->grid.team().position() )
-        assert( 0 == (*itnext)->src_grid->team().position() );
-        {
-
-            cout << "transfer to " <<
-                (*it)->src_grid->extent(2) << "x" <<
-                (*it)->src_grid->extent(1) << "x" <<
-                (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units "
-                " --> " <<
-                (*itnext)->src_grid->extent(2) << "x" <<
-                (*itnext)->src_grid->extent(1) << "x" <<
-                (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units " << endl;
-
-            transfertofewer( **it, **itnext );
-
-            v_cycle( itnext, itend, numiter, epsilon, res );
-
-            cout << "transfer back " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
-            (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units "
-            " --> " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
-            (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units " <<  endl;
-
-            transfertomore( **itnext, **it );
-        }
-
-        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
-        (*it)->src_grid->team().barrier();
-
-
-        cout << "all meet again here: I'm active unit " << dash::myid() << endl;
-        return;
-    }
-
-
-    /* **** normal recursion **** **** **** **** **** **** **** **** **** */
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== before ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  dst_grid" << endl;
-    (*it)->printout_dst();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-    /* smoothen fixed number of times */
-    uint32_t j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon && j < numiter ) {
-
-        /* need global residual for iteration count */
-        smoothen( **it, res );
-
-        j++;
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== on way down after smoothen " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  dst_grid" << endl;
-    (*it)->printout_dst();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-    }
-    if ( 0 == dash::myid()  ) {
-        cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
-    }
-
-    writeToCsv( **it );
-
-    /* scale down */
-    if ( 0 == dash::myid() ) {
-        cout << "scale down " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
-            (*it)->src_grid->extent(0) <<
-            " --> " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
-            (*itnext)->src_grid->extent(0) << endl;
-    }
-
-    scaledown( **it, **itnext );
-    writeToCsv( **itnext );
-
-    /* recurse  */
-    v_cycle( itnext, itend, numiter, epsilon, res );
-
-    /* scale up */
-    if ( 0 == dash::myid() ) {
-        cout << "scale up " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
-            (*itnext)->src_grid->extent(0) <<
-            " --> " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
-            (*it)->src_grid->extent(0) << endl;
-    }
-    scaleup( **itnext, **it );
-    writeToCsv( **it );
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== back on fine grid ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-    /* on the way up it ought to solve the grid rather completley,
-    thus repeat until rey < eps here too???
-
-    uint32_t j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon ) {
-
-        smoothen( **it, res );
-
-        j++;
-    }
-    if ( 0 == dash::myid() ) {
-        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
-    }
-    */
-
-    j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon && j < numiter ) {
-
-        /* need global residual for iteration count */
-        smoothen( **it, res );
-
-        j++;
-
-        if ( 0 == dash::myid() && 0 == j % 1000 ) {
-
-            cout << "        j " << j << " res " << res.get() << endl;
-        }
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== final smoothen " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-    }
-    if ( 0 == dash::myid() ) {
-        cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
-    }
-
-    writeToCsv( **it );
-}
-
-
-template<typename Iterator>
-void w_cycle( Iterator it, Iterator itend,
-        uint32_t numiter, double epsilon, Allreduce& res ) {
-    SCOREP_USER_FUNC()
-
-    Iterator itnext( it );
-    ++itnext;
-    /* reached end of recursion? */
-    if ( itend == itnext ) {
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== start on coarsest grid ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-        /* smoothen completely  */
-        uint32_t j= 0;
-        res.reset( (*it)->src_grid->team() );
-        while ( res.get() > epsilon ) {
-            /* need global residual for iteration count */
-            smoothen( **it, res );
-
-            j++;
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== after smoothen coarsest " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-        }
-        if ( 0 == dash::myid()  ) {
-            cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
-        }
-        writeToCsv( **it );
-
-        return;
-    }
-
-    /* stepped on the dummy level? ... which is there to signal that it is not
-    the end of the parallel recursion on the coarsest level but a subteam is
-    going on to solve the coarser levels and this unit is not in that subteam.
-    ... sounds complicated, is complicated, change only if you know what you
-    are doing. */
-    if ( NULL == *itnext ) {
-
-        /* barrier 'Alice', belongs together with the next barrier 'Bob' below */
-        (*it)->src_grid->team().barrier();
-
-        cout << "all meet again here: I'm passive unit " << dash::myid() << endl;
-
-        return;
-    }
-
-    /* stepped on a transfer level? */
-    if ( (*it)->src_grid->team().size() != (*itnext)->src_grid->team().size() ) {
-
-        /* only the members of the reduced team need to work, all others do siesta. */
-        //if ( 0 == (*itnext)->grid.team().position() )
-        assert( 0 == (*itnext)->src_grid->team().position() );
-        {
-
-            cout << "transfer to " <<
-                (*it)->src_grid->extent(2) << "x" <<
-                (*it)->src_grid->extent(1) << "x" <<
-                (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units "
-                " --> " <<
-                (*itnext)->src_grid->extent(2) << "x" <<
-                (*itnext)->src_grid->extent(1) << "x" <<
-                (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units " << endl;
-
-            transfertofewer( **it, **itnext );
-
-            w_cycle( itnext, itend, numiter, epsilon, res );
-
-            cout << "transfer back " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
-            (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units "
-            " --> " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
-            (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units " <<  endl;
-
-            transfertomore( **itnext, **it );
-        }
-
-        /* barrier 'Bob', belongs together with the previous barrier 'Alice' above */
-        (*it)->src_grid->team().barrier();
-
-
-        cout << "all meet again here: I'm active unit " << dash::myid() << endl;
-        return;
-    }
-
-
-    /* **** normal recursion **** **** **** **** **** **** **** **** **** */
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== before ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-    /* smoothen fixed number of times */
-    uint32_t j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon && j < numiter ) {
-
-        /* need global residual for iteration count */
-        smoothen( **it, res );
-
-        j++;
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== after smoothen " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-    }
-    if ( 0 == dash::myid()  ) {
-        cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
-    }
-
-    writeToCsv( **it );
-
-    /* scale down */
-    if ( 0 == dash::myid() ) {
-        cout << "scale down " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
-            (*it)->src_grid->extent(0) <<
-            " --> " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
-            (*itnext)->src_grid->extent(0) << endl;
-    }
-
-    scaledown( **it, **itnext );
-    writeToCsv( **itnext );
-
-    /* recurse first */
-    w_cycle( itnext, itend, numiter, epsilon, res );
-
-#if 0
-    j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon && j < numiter ) {
-
-        /* need global residual for iteration count */
-        smoothen( **it, res );
-
-        j++;
-
-        if ( 0 == dash::myid() && 0 == j % 1000 ) {
-
-            cout << "        j " << j << " res " << res.get() << endl;
-        }
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== final smoothen " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-    }
-#endif /* 0 */
-    if ( 0 == dash::myid() ) {
-        cout << "    smoothing in the middle " << j << " times with residual " << res.get() << endl;
-    }
-
-
-    /* recurse second */
-    w_cycle( itnext, itend, numiter, epsilon, res );
-
-    /* scale up */
-    if ( 0 == dash::myid() ) {
-        cout << "scale up " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
-            (*itnext)->src_grid->extent(0) <<
-            " --> " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
-            (*it)->src_grid->extent(0) << endl;
-    }
-    scaleup( **itnext, **it );
-    writeToCsv( **it );
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== back on fine grid ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-    /* on the way up it ought to solve the grid rather completley,
-    thus repeat until rey < eps here too???
-
-    uint32_t j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon ) {
-
-        smoothen( **it, res );
-
-        j++;
-    }
-    if ( 0 == dash::myid() ) {
-        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
-    }
-    */
-
-    j= 0;
-    res.reset( (*it)->src_grid->team() );
-    while ( res.get() > epsilon && j < numiter ) {
-
-        /* need global residual for iteration count */
-        smoothen( **it, res );
-
-        j++;
-
-        if ( 0 == dash::myid() && 0 == j % 1000 ) {
-
-            cout << "        j " << j << " res " << res.get() << endl;
-        }
-
-/////////////////////////////////////////
-#ifdef DETAILOUTPUT
-if ( 0 == dash::myid()  ) {
-    cout << "== final smoothen " << j << " times ==" << endl;
-    cout << "  src_grid" << endl;
-    (*it)->printout();
-    cout << "  rhs_grid" << endl;
-    (*it)->printout_rhs();
-}
-#endif /* DETAILOUTPUT */
-
-    }
-    if ( 0 == dash::myid() ) {
-        cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
-    }
-
-    writeToCsv( **it );
-}
-
-
 void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
     SCOREP_USER_FUNC()
 
@@ -3478,29 +2961,17 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
     Allreduce res( dash::Team::All() );
 
     minimon.stop( "setup", dash::Team::All().size() );
-/*
-    if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.1 << endl << endl;
-    }
-    v_cycle( levels.begin(), levels.end(), 2, 0.1, res );
-    dash::Team::All().barrier();
 
-*/
-    int n= 20;
-    for ( int v=0; v < 2; ++v ) {
-        if ( 0 == dash::myid()  ) {
-            cout << endl << "start v-cycle with res " << eps << endl << endl;
-        }
-        w_cycle( levels.begin(), levels.end(), n, eps, res );
-        dash::Team::All().barrier();
-    }
-/*
+    //v_cycle( levels.begin(), levels.end(), 20, eps, res );
+    //recursive_cycle( levels.begin(), levels.end(), 20, 1 /* 1 for v cycle */, eps, res );
+
     if ( 0 == dash::myid()  ) {
         cout << endl << "start w-cycle with res " << eps << endl << endl;
     }
-    w_cycle( levels.begin(), levels.end(), n, eps, res );
+    //w_cycle( levels.begin(), levels.end(), 20, eps, res );
+    recursive_cycle( levels.begin(), levels.end(), 20, 2 /* 2 for w cycle */, eps, res );
     dash::Team::All().barrier();
-*/
+
 
     if ( 0 == dash::myid()  ) {
         cout << endl << "final smoothing with res " << eps << endl << endl;
@@ -3512,7 +2983,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
 
     if ( 0 == dash::myid() ) {
 
-        if ( ! check_symmetry( *levels.front()->src_grid, 0.001 ) ) {
+        if ( ! check_symmetry( *levels.front()->src_grid, eps ) ) {
 
             cout << "test for asymmetry of soution failed!" << endl;
         }
@@ -3614,8 +3085,9 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
                         localteamspec.num_units(2) << " units" << endl;
                 }
                 */
+
                 levels.push_back(
-                    new Level( dim[0], dim[1], dim[2],
+                    new Level( *levels.back(),
                                ((1<<(howmanylevels+1))-1)*factor_z,
                                ((1<<(howmanylevels+1))-1)*factor_y,
                                ((1<<(howmanylevels+1))-1)*factor_x,
@@ -3645,7 +3117,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
                     ((1<<(howmanylevels))-1)*factor_x < currentteam.size() * (1<<27) );
 
             levels.push_back(
-                new Level( dim[0], dim[1], dim[2],
+                new Level( *levels.back(),
                            ((1<<(howmanylevels))-1)*factor_z ,
                            ((1<<(howmanylevels))-1)*factor_y ,
                            ((1<<(howmanylevels))-1)*factor_x ,
@@ -3675,7 +3147,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     /* Fill finest level. Strictly, we don't need to set any initial values here
     but we do it for demonstration in the graphical output */
     initgrid( *levels.front() );
-    markunits( *levels.front()->src_grid );
+    //markunits( *levels.front()->src_grid );
 
     writeToCsv( *levels.front() );
 
@@ -3700,19 +3172,24 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 */
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << eps << endl << endl;
+        cout << endl << "start w-cycle with res " << eps << endl << endl;
     }
-    v_cycle( levels.begin(), levels.end(), 4, eps, res );
+    //v_cycle( levels.begin(), levels.end(), 20, eps, res );
+    recursive_cycle( levels.begin(), levels.end(), 20, 2 /* 2 for w cycle */, eps, res );
+
     dash::Team::All().barrier();
 
-
+    if ( 0 == dash::myid()  ) {
+        cout << endl << "final smoothing with res " << eps << endl << endl;
+    }
+    smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
 
     dash::Team::All().barrier();
 
     if ( 0 == dash::myid() ) {
 
-        if ( ! check_symmetry( *levels.front()->src_grid, 0.001 ) ) {
+        if ( ! check_symmetry( *levels.front()->src_grid, eps ) ) {
 
             cout << "test for asymmetry of soution failed!" << endl;
         }
