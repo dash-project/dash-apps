@@ -3776,6 +3776,7 @@ const char* HELPTEXT= "\n"
         }
     }
 
+    std::vector<std::string> tags;
     /* round 2 over all command line arguments */
     for ( int a= 1; a < argc; a++ ) {
 
@@ -3866,27 +3867,40 @@ const char* HELPTEXT= "\n"
     assert( howmanylevels > 2 );
     assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
 
-    std::string kind;
+    std::string scaleup_kind =
+#ifdef USE_NEW_SCALEUP
+        "new"
+#else
+        "old"
+#endif
+    ;
     switch ( whattodo ) {
 
         case TEST:
-            kind = "test";
+            tags.push_back("test");
             do_tests();
             break;
         case SIM:
-            kind = "sim";
+            tags.push_back("sim");
+            tags.push_back("timerange=" + std::to_string(timerange));
+            tags.push_back("timestep=" + std::to_string(timestep));
             do_simulation( howmanylevels, timerange, timestep, dimensions );
             break;
         case FLAT:
-            kind = "flat";
+            tags.push_back("flat");
+            tags.push_back("eps=" + std::to_string(epsilon));
             do_flat_iteration( howmanylevels, epsilon, dimensions );
             break;
         case ELASTICMULTIGRID:
-            kind = "multigridelastic";
+            tags.push_back("multigridelastic");
+            tags.push_back("eps=" + std::to_string(epsilon));
+            tags.push_back("scaleup=" + scaleup_kind);
             do_multigrid_elastic( howmanylevels, epsilon, dimensions );
             break;
         default:
-            kind = "multigrid";
+            tags.push_back("multigrid");
+            tags.push_back("eps=" + std::to_string(epsilon));
+            tags.push_back("scaleup=" + scaleup_kind);
             do_multigrid_iteration( howmanylevels, epsilon, dimensions );
     }
 
@@ -3904,14 +3918,7 @@ const char* HELPTEXT= "\n"
     minimon.stop( "dash::finalize", dash::Team::All().size() );
 
     minimon.stop( "main", dash::Team::All().size() );
-    minimon.print(id, {
-        kind
-#ifdef USE_NEW_SCALEUP
-        , "new-scaleup"
-#else
-        , "old-scaleup"
-#endif
-    });
+    minimon.print(id, tags);
 
     return 0;
 }
