@@ -3866,21 +3866,27 @@ const char* HELPTEXT= "\n"
     assert( howmanylevels > 2 );
     assert( howmanylevels <= 16 ); /* please adapt if you really want to go so high */
 
+    std::string kind;
     switch ( whattodo ) {
 
         case TEST:
+            kind = "test";
             do_tests();
             break;
         case SIM:
+            kind = "sim";
             do_simulation( howmanylevels, timerange, timestep, dimensions );
             break;
         case FLAT:
+            kind = "flat";
             do_flat_iteration( howmanylevels, epsilon, dimensions );
             break;
         case ELASTICMULTIGRID:
+            kind = "multigridelastic";
             do_multigrid_elastic( howmanylevels, epsilon, dimensions );
             break;
         default:
+            kind = "multigrid";
             do_multigrid_iteration( howmanylevels, epsilon, dimensions );
     }
 
@@ -3898,7 +3904,14 @@ const char* HELPTEXT= "\n"
     minimon.stop( "dash::finalize", dash::Team::All().size() );
 
     minimon.stop( "main", dash::Team::All().size() );
-    minimon.print(id);
+    minimon.print(id, {
+        kind
+#ifdef USE_NEW_SCALEUP
+        , "new-scaleup"
+#else
+        , "old-scaleup"
+#endif
+    });
 
     return 0;
 }

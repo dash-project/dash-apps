@@ -34,6 +34,16 @@ struct MiniMonValue {
 };
 
 
+static std::ofstream& operator<<(std::ofstream& ofs, const std::vector<std::string>& args) {
+  std::string sep = "";
+  for (const auto &s : args) {
+      ofs << sep;
+      ofs << s;
+      sep = ",";
+  }
+  return ofs;
+}
+
 class MiniMon {
 
 public:
@@ -53,7 +63,7 @@ public:
       _entries.pop();
    }
 
-   void print(uint32_t id) {
+   void print(uint32_t id, const std::vector<std::string>& tags) {
       /* print out log to individual files */
 
       {
@@ -62,12 +72,13 @@ public:
       file_name << "overview_" << std::setw(5) << std::setfill('0') << id << ".csv";
       file.open(file_name.str());
 
-      file << "# function_name;par;elements;flops;num_calls;avg_runtime;min_runtime;max_runtime"
+      file << "# tag;function_name;par;elements;flops;num_calls;avg_runtime;min_runtime;max_runtime"
            << std::endl;
 
       for( auto& e : _store) {
-         file << std::get<0>(e.first) << ";" << 
-            std::get<1>(e.first) << ";" << 
+         file << tags << ";" <<
+            std::get<0>(e.first) << ";" <<
+            std::get<1>(e.first) << ";" <<
             std::get<2>(e.first) << ";" <<
             std::get<3>(e.first) << ";" <<
             e.second.num << ";" <<

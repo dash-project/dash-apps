@@ -25,15 +25,15 @@ set output filename_out
 
 set xrange[0.5:*]
 plot \
-    filename using 3:( strcol(1) eq "smoothen" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen", \
-    filename using 3:( strcol(1) eq "smoothen_inner" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen inner", \
-    filename using 3:( strcol(1) eq "smoothen_outer" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen outer", \
-    filename using 3:( strcol(1) eq "scaledown" ? $6 : 1/0 ):7:8 with yerrorbars t "scaledown", \
-    filename using 3:( strcol(1) eq "scaleup" ? $6 : 1/0 ):7:8 with yerrorbars t "scaleup", \
-    filename using 3:( strcol(1) eq "main" ? $6 : 1/0 ):7:8 with yerrorbars t "main", \
-    filename using 3:( strcol(1) eq "setup" ? $6 : 1/0 ):7:8 with yerrorbars t "setup", \
-    filename using 3:( strcol(1) eq "dash::init" ? $6 : 1/0 ):7:8 with yerrorbars t "dash::init", \
-    filename using 3:( strcol(1) eq "dash::finalize" ? $6 : 1/0 ):7:8 with yerrorbars t "dash::finalize"
+    filename using 4:( strcol(2) eq "smoothen" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen", \
+    filename using 4:( strcol(2) eq "smoothen_inner" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen inner", \
+    filename using 4:( strcol(2) eq "smoothen_outer" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen outer", \
+    filename using 4:( strcol(2) eq "scaledown" ? $7 : 1/0 ):8:9 with yerrorbars t "scaledown", \
+    filename using 4:( strcol(2) eq "scaleup" ? $7 : 1/0 ):8:9 with yerrorbars t "scaleup", \
+    filename using 4:( strcol(2) eq "main" ? $7 : 1/0 ):8:9 with yerrorbars t "main", \
+    filename using 4:( strcol(2) eq "setup" ? $7 : 1/0 ):8:9 with yerrorbars t "setup", \
+    filename using 4:( strcol(2) eq "dash::init" ? $7 : 1/0 ):8:9 with yerrorbars t "dash::init", \
+    filename using 4:( strcol(2) eq "dash::finalize" ? $7 : 1/0 ):8:9 with yerrorbars t "dash::finalize"
 
 
 filename_out=filename.".detail.png"
@@ -42,14 +42,14 @@ set output filename_out
 
 set xrange[0.5:*]
 plot \
-    filename using 3:( strcol(1) eq "smoothen" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen", \
-    filename using 3:( strcol(1) eq "smoothen_inner" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen inner", \
-    filename using 3:( strcol(1) eq "smoothen_outer" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen outer", \
-    filename using 3:( strcol(1) eq "smoothen_wait" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen wait", \
-    filename using 3:( strcol(1) eq "smoothen_wait_res" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen wait res", \
-    filename using 3:( strcol(1) eq "smoothen_collect" ? $6 : 1/0 ):7:8 with yerrorbars t "smoothen collect", \
-    filename using 3:( strcol(1) eq "scaledown" ? $6 : 1/0 ):7:8 with yerrorbars t "scaledown", \
-    filename using 3:( strcol(1) eq "scaleup" ? $6 : 1/0 ):7:8 with yerrorbars t "scaleup"
+    filename using 4:( strcol(2) eq "smoothen" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen", \
+    filename using 4:( strcol(2) eq "smoothen_inner" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen inner", \
+    filename using 4:( strcol(2) eq "smoothen_outer" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen outer", \
+    filename using 4:( strcol(2) eq "smoothen_wait" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen wait", \
+    filename using 4:( strcol(2) eq "smoothen_wait_res" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen wait res", \
+    filename using 4:( strcol(2) eq "smoothen_collect" ? $7 : 1/0 ):8:9 with yerrorbars t "smoothen collect", \
+    filename using 4:( strcol(2) eq "scaledown" ? $7 : 1/0 ):8:9 with yerrorbars t "scaledown", \
+    filename using 4:( strcol(2) eq "scaleup" ? $7 : 1/0 ):8:9 with yerrorbars t "scaleup"
 
 filename_out=filename.".flops.png"
 set output filename_out
@@ -58,11 +58,11 @@ set ylabel "Speed [Flop/s]"
 
 set xrange[0.5:*]
 plot \
-    filename using 3:( strcol(1) eq "smoothen" ? $4/$6 : 1/0 ):($4/$7):($4/$8) with yerrorbars t "smoothen", \
-    filename using 3:( strcol(1) eq "smoothen_inner" ? $4/$6 : 1/0 ):($4/$7):($4/$8) with yerrorbars t "smoothen inner", \
-    filename using 3:( strcol(1) eq "smoothen_outer" ? $4/$6 : 1/0 ):($4/$7):($4/$8) with yerrorbars t "smoothen outer", \
-    filename using 3:( strcol(1) eq "scaledown" ? $4/$6 : 1/0 ):($4/$7):($4/$8) with yerrorbars t "scaledown", \
-    filename using 3:( strcol(1) eq "scaleup" ? $4/$6 : 1/0 ):($4/$7):($4/$8) with yerrorbars t "scaleup"
+    filename using 3:( strcol(1) eq "smoothen" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen", \
+    filename using 3:( strcol(1) eq "smoothen_inner" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen inner", \
+    filename using 3:( strcol(1) eq "smoothen_outer" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen outer", \
+    filename using 3:( strcol(1) eq "scaledown" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "scaledown", \
+    filename using 3:( strcol(1) eq "scaleup" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "scaleup"
 
 
 
