@@ -2990,7 +2990,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
 
 
 /* elastic mode runs but still seems to have errors in it */
-void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
+void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim, int split ) {
 
     // setup
     minimon.start();
@@ -3020,6 +3020,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
             ((1<<(howmanylevels))-1)*factor_z << "×" <<
             ((1<<(howmanylevels))-1)*factor_y << "×" <<
             ((1<<(howmanylevels))-1)*factor_x <<
+            " splitting every " << split << (split == 1 ? "st" : split == 2 ? "nd" : split == 3 ? "rd" : "th") << " level" <<
             endl << endl;
     }
 
@@ -3049,10 +3050,11 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     dash::barrier();
 
     --howmanylevels;
+    int split_steps=1;
     while ( 0 < howmanylevels ) {
 
         dash::Team& previousteam= levels.back()->src_grid->team();
-        dash::Team& currentteam= ( 4 == howmanylevels ) ? previousteam.split(2) : previousteam;
+        dash::Team& currentteam= ( ++split_steps % split == 0 && previousteam.size() > 1 ) ? previousteam.split(8) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
 
@@ -3734,9 +3736,11 @@ const char* HELPTEXT= "\n"
 " Modes of operation\n"
 "\n"
 " -t|--test     run some internal tests\n"
-" -e|--elastic  use elastic multigrid mode i.e., use fewer units (processes)\n"
-"               on coarser grids\n"
-" -f|--flat     run flat mode i.e., use iterative solver on a single grid\n"
+" -e[<s>]|--elastic[=<s>]\n"
+"               use elastic multigrid mode, i.e., use fewer units (processes)\n"
+"               on coarser grids, <s> gives the stepping for the unit reduction\n"
+"               (default is every 3 levels a reduction of units)"
+" -f|--flat     run flat mode, i.e., use iterative solver on a single grid\n"
 " --sim <t> <s> run a simulation over time, that is also a \"flat\" solver\n"
 "               working only on a single grid. It runs t seconds simulation\n"
 "               time. The time step dt is determined by the grid and the\n"
@@ -3775,6 +3779,7 @@ const char* HELPTEXT= "\n"
     }
 
     std::vector<std::string> tags;
+    int split = 3;
     /* round 2 over all command line arguments */
     for ( int a= 1; a < argc; a++ ) {
 
@@ -3808,14 +3813,28 @@ const char* HELPTEXT= "\n"
                 cout << "do flat iteration instead of multigrid" << endl;
             }
 
-        } else if ( 0 == strncmp( "-e", argv[a], 2  ) ||
-                0 == strncmp( "--elastic", argv[a], 9 )) {
+        } else if ( 0 == strcmp( "-e", argv[a] ) ||
+                0 == strcmp( "--elastic", argv[a] )) {
 
             whattodo= ELASTICMULTIGRID;
             if ( 0 == dash::myid() ) {
 
                 cout << "do multigrid iteration with changing number of units per grid" << endl;
             }
+
+        } else if ( 0 == strncmp( "-e", argv[a], 2 ) ||
+                0 == strncmp( "--elastic=", argv[a], 10 )) {
+
+            whattodo= ELASTICMULTIGRID;
+            if ( 0 == dash::myid() ) {
+
+                cout << "do multigrid iteration with changing number of units per grid" << endl;
+            }
+            const char* split_arg = argv[a] + 2;
+            if ( 0 == strncmp( "--elastic=", argv[a], 10 ) ) {
+                split_arg = argv[a] + 10;
+            }
+            split = atoi(split_arg);
 
         } else if ( 0 == strncmp( "--eps", argv[a], 5  ) && ( a+1 < argc ) ) {
 
@@ -3892,8 +3911,9 @@ const char* HELPTEXT= "\n"
         case ELASTICMULTIGRID:
             tags.push_back("multigridelastic");
             tags.push_back("eps=" + std::to_string(epsilon));
+            tags.push_back("split=" + std::to_string(split));
             tags.push_back("scaleup=" + scaleup_kind);
-            do_multigrid_elastic( howmanylevels, epsilon, dimensions );
+            do_multigrid_elastic( howmanylevels, epsilon, dimensions, split );
             break;
         default:
             tags.push_back("multigrid");
