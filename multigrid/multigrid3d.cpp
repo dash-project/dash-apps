@@ -157,14 +157,13 @@ public:
 
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
-
                 if ( 0 == a ) {
                     cout << "Level " <<
-                        "dim. " << lz << "m*" << ly << "m*" << lz << "m " <<
-                        "in grid of " << nz << "*" << ny << "*" << nx <<
+                        "dim. " << lz << "m×" << ly << "m×" << lz << "m " <<
+                        "in grid of " << nz << "×" << ny << "×" << nx <<
                         " h_= " << hz << "," << hy << "," << hx <<
                         " with team of " << team.size() <<
-                        " --> a_= " << acenter << "," << ax << "," << ay << "," << az <<
+                        " ⇒ a_= " << acenter << "," << ax << "," << ay << "," << az <<
                         " , m= " << m << " , ff= " << ff <<endl;
                 }
             }
@@ -211,12 +210,11 @@ public:
 
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
-
                 if ( 0 == a ) {
                     cout << "Level with a parent level " <<
-                        "in grid of " << nz << "*" << ny << "*" << nx <<
+                        "in grid of " << nz << "×" << ny << "×" << nx <<
                         " with team of " << team.size() <<
-                        " --> a_= " << acenter << "," << ax << "," << ay << "," << az <<
+                        " ⇒ a_= " << acenter << "," << ax << "," << ay << "," << az <<
                         " , m= " << m << " , ff= " << ff << endl;
                 }
             }
@@ -307,7 +305,7 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << endl << "unit " << unit << ": " << n[1] << "," << n[2] << endl;
+                cout << "unit " << unit << ": " << n[1] << "," << n[2] << endl;
                 int z= -1;
                 for ( int y= -1; y <= (int) n[1]; ++y ) {
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
@@ -332,7 +330,7 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << endl << "unit " << unit << ": " << n[1] << "," << n[2] << endl;
+                cout << "unit " << unit << ": " << n[1] << "," << n[2] << endl;
                 int z= n[0];
                 for ( int y= -1; y <= (int) n[1]; ++y ) {
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
@@ -357,7 +355,7 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << endl << "unit " << unit << ": " << n[0] << "," << n[2] << endl;
+                cout << "unit " << unit << ": " << n[0] << "," << n[2] << endl;
                 int y= -1;
                 for ( int z= -1; z <= (int) n[0]; ++z ) {
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
@@ -382,7 +380,7 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << endl << "unit " << unit << ": " << n[0] << "," << n[2] << endl;
+                cout << "unit " << unit << ": " << n[0] << "," << n[2] << endl;
                 int y= n[1];
                 for ( int z= -1; z <= (int) n[0]; ++z ) {
                     for ( int x= -1; x <= (int) n[2]; ++x ) {
@@ -407,7 +405,7 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << endl << "unit " << unit << ": " << n[0] << "," << n[1] << endl;
+                cout << "unit " << unit << ": " << n[0] << "," << n[1] << endl;
                 int x= -1;
                 for ( int z= -1; z <= (int) n[0]; ++z ) {
                     for ( int y= -1; y <= (int) n[1]; ++y ) {
@@ -432,7 +430,7 @@ public:
             src_grid->barrier();
             if ( dash::myid() == unit ) {
 
-                cout << endl << "unit " << unit << ": " << n[0] << "," << n[1] << endl;
+                cout << "unit " << unit << ": " << n[0] << "," << n[1] << endl;
                 int x= n[2];
                 for ( int z= -1; z <= (int) n[0]; ++z ) {
                     for ( int y= -1; y <= (int) n[1]; ++y ) {
@@ -2668,7 +2666,7 @@ void recursive_cycle( Iterator it, Iterator itend,
             j++;
         }
         if ( 0 == dash::myid()  ) {
-            cout << "    smoothing coarsest " << j << " times with residual " << res.get() << endl;
+            cout << "smoothing coarsest " << j << " times with residual " << res.get() << endl;
         }
         writeToCsv( **it );
 
@@ -2699,12 +2697,12 @@ void recursive_cycle( Iterator it, Iterator itend,
         {
 
             cout << "transfer to " <<
-                (*it)->src_grid->extent(2) << "x" <<
-                (*it)->src_grid->extent(1) << "x" <<
+                (*it)->src_grid->extent(2) << "×" <<
+                (*it)->src_grid->extent(1) << "×" <<
                 (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units "
-                " --> " <<
-                (*itnext)->src_grid->extent(2) << "x" <<
-                (*itnext)->src_grid->extent(1) << "x" <<
+                " ⇒ " <<
+                (*itnext)->src_grid->extent(2) << "×" <<
+                (*itnext)->src_grid->extent(1) << "×" <<
                 (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units " << endl;
 
             transfertofewer( **it, **itnext );
@@ -2713,12 +2711,12 @@ void recursive_cycle( Iterator it, Iterator itend,
             recursive_cycle( itnext, itend, beta, gamma, epsilon, res );
 
             cout << "transfer back " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(2) << "×" <<
+            (*itnext)->src_grid->extent(1) << "×" <<
             (*itnext)->src_grid->extent(0) << " with " << (*itnext)->src_grid->team().size() << " units "
-            " --> " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
+            " ⇒ " <<
+            (*it)->src_grid->extent(2) << "×" <<
+            (*it)->src_grid->extent(1) << "×" <<
             (*it)->src_grid->extent(0) << " with " << (*it)->src_grid->team().size() << " units " <<  endl;
 
             transfertomore( **itnext, **it );
@@ -2746,7 +2744,7 @@ void recursive_cycle( Iterator it, Iterator itend,
         j++;
     }
     if ( 0 == dash::myid()  ) {
-        cout << "    smoothing on way down " << j << " times with residual " << res.get() << endl;
+        cout << "smoothing on way down " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -2754,12 +2752,12 @@ void recursive_cycle( Iterator it, Iterator itend,
     /* scale down */
     if ( 0 == dash::myid() ) {
         cout << "scale down " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
+            (*it)->src_grid->extent(2) << "×" <<
+            (*it)->src_grid->extent(1) << "×" <<
             (*it)->src_grid->extent(0) <<
-            " --> " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
+            " ⇒ " <<
+            (*itnext)->src_grid->extent(2) << "×" <<
+            (*itnext)->src_grid->extent(1) << "×" <<
             (*itnext)->src_grid->extent(0) << endl;
     }
 
@@ -2774,12 +2772,12 @@ void recursive_cycle( Iterator it, Iterator itend,
     /* scale up */
     if ( 0 == dash::myid() ) {
         cout << "scale up " <<
-            (*itnext)->src_grid->extent(2) << "x" <<
-            (*itnext)->src_grid->extent(1) << "x" <<
+            (*itnext)->src_grid->extent(2) << "×" <<
+            (*itnext)->src_grid->extent(1) << "×" <<
             (*itnext)->src_grid->extent(0) <<
-            " --> " <<
-            (*it)->src_grid->extent(2) << "x" <<
-            (*it)->src_grid->extent(1) << "x" <<
+            " ⇒ " <<
+            (*it)->src_grid->extent(2) << "×" <<
+            (*it)->src_grid->extent(1) << "×" <<
             (*it)->src_grid->extent(0) << endl;
     }
     scaleup( **itnext, **it );
@@ -2795,7 +2793,7 @@ void recursive_cycle( Iterator it, Iterator itend,
         j++;
     }
     if ( 0 == dash::myid() ) {
-        cout << "    smoothing on way up " << j << " times with residual " << res.get() << endl;
+        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -2817,7 +2815,7 @@ void smoothen_final( Level& level, double epsilon, Allreduce& res ) {
         smoothen( level, res );
         j++;
         if ( ( 0 == dash::myid() ) && ( 0 == j % 100 ) ) {
-            cout << j << " smoothen finest, residual " << res.get() << "    "<< fflush << "\r";
+            cout << j << "smoothen finest, residual " << res.get() << "    "<< fflush << "\r";
         }
 
     }
@@ -2860,12 +2858,12 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
 
         cout << "run multigrid iteration with " << dash::Team::All().size() << " units "
             "for with grids from " <<
-            2 << "x" <<
-            2 << "x" <<
+            2 << "×" <<
+            2 << "×" <<
             2 <<
             " to " <<
-            ((1<<(howmanylevels))-1) << "x" <<
-            ((1<<(howmanylevels))-1) << "x" <<
+            ((1<<(howmanylevels))-1) << "×" <<
+            ((1<<(howmanylevels))-1) << "×" <<
             ((1<<(howmanylevels))-1) <<
             endl;
     }
@@ -2881,12 +2879,12 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
 
     if ( 0 == dash::myid() ) {
         cout << "finest level is " <<
-            (1<<(howmanylevels))-1 << "x" <<
-            (1<<(howmanylevels))-1 << "x" <<
+            (1<<(howmanylevels))-1 << "×" <<
+            (1<<(howmanylevels))-1 << "×" <<
             (1<<(howmanylevels))-1 <<
             " distributed over " <<
-            teamspec.num_units(0) << "x" <<
-            teamspec.num_units(1) << "x" <<
+            teamspec.num_units(0) << "×" <<
+            teamspec.num_units(1) << "×" <<
             teamspec.num_units(2) << " units" << endl;
     }
 
@@ -2909,12 +2907,12 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
         /*
         if ( 0 == dash::myid() ) {
             cout << "compute level " << l << " is " <<
-                (1<<(howmanylevels))-1 << "x" <<
-                (1<<(howmanylevels))-1 << "x" <<
+                (1<<(howmanylevels))-1 << "×" <<
+                (1<<(howmanylevels))-1 << "×" <<
                 (1<<(howmanylevels))-1 <<
                 " distributed over " <<
-                teamspec.num_units(0) << "x" <<
-                teamspec.num_units(1) << "x" <<
+                teamspec.num_units(0) << "×" <<
+                teamspec.num_units(1) << "×" <<
                 teamspec.num_units(2) << " units" << endl;
         }
         */
@@ -2966,7 +2964,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
     //recursive_cycle( levels.begin(), levels.end(), 20, 1 /* 1 for v cycle */, eps, res );
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start w-cycle with res " << eps << endl << endl;
+        cout << "start w-cycle with res " << eps << endl << endl;
     }
     //w_cycle( levels.begin(), levels.end(), 20, eps, res );
     recursive_cycle( levels.begin(), levels.end(), 20, 2 /* 2 for w cycle */, eps, res );
@@ -2974,7 +2972,7 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
 
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "final smoothing with res " << eps << endl << endl;
+        cout << "final smoothing with res " << eps << endl;
     }
     smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
@@ -3015,12 +3013,12 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 
         cout << "run elastic multigrid iteration with " << dash::Team::All().size() << " units "
             "for with grids from " <<
-            2*factor_z << "x" <<
-            2*factor_y << "x" <<
+            2*factor_z << "×" <<
+            2*factor_y << "×" <<
             2* factor_x <<
             " to " <<
-            ((1<<(howmanylevels))-1)*factor_z << "x" <<
-            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_z << "×" <<
+            ((1<<(howmanylevels))-1)*factor_y << "×" <<
             ((1<<(howmanylevels))-1)*factor_x <<
             endl << endl;
     }
@@ -3030,12 +3028,12 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 
     if ( 0 == dash::myid() ) {
         cout << "finest level is " <<
-            ((1<<(howmanylevels))-1)*factor_z << "x" <<
-            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_z << "×" <<
+            ((1<<(howmanylevels))-1)*factor_y << "×" <<
             ((1<<(howmanylevels))-1)*factor_x <<
             " distributed over " <<
-            teamspec.num_units(0) << "x" <<
-            teamspec.num_units(1) << "x" <<
+            teamspec.num_units(0) << "×" <<
+            teamspec.num_units(1) << "×" <<
             teamspec.num_units(2) << " units" << endl;
     }
 
@@ -3045,7 +3043,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
         ((1<<(howmanylevels))-1)*factor_x ,
         dash::Team::All(), teamspec ) );
 
-    /* only do initgrid on the finest level, use caledownboundary for all others */
+    /* only do initgrid on the finest level, use scaledownboundary for all others */
     initboundary( *levels.back() );
 
     dash::barrier();
@@ -3076,12 +3074,12 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
                 /*
                 if ( 0 == currentteam.myid() ) {
                     cout << "transfer level " <<
-                        ((1<<(howmanylevels+1))-1)*factor_z << "x" <<
-                        ((1<<(howmanylevels+1))-1)*factor_y << "x" <<
+                        ((1<<(howmanylevels+1))-1)*factor_z << "×" <<
+                        ((1<<(howmanylevels+1))-1)*factor_y << "×" <<
                         ((1<<(howmanylevels+1))-1)*factor_x <<
                         " distributed over " <<
-                        localteamspec.num_units(0) << "x" <<
-                        localteamspec.num_units(1) << "x" <<
+                        localteamspec.num_units(0) << "×" <<
+                        localteamspec.num_units(1) << "×" <<
                         localteamspec.num_units(2) << " units" << endl;
                 }
                 */
@@ -3100,12 +3098,12 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
             /*
             if ( 0 == currentteam.myid() ) {
                 cout << "compute level " <<
-                    ((1<<(howmanylevels))-1)*factor_z << "x" <<
-                    ((1<<(howmanylevels))-1)*factor_y << "x" <<
+                    ((1<<(howmanylevels))-1)*factor_z << "×" <<
+                    ((1<<(howmanylevels))-1)*factor_y << "×" <<
                     ((1<<(howmanylevels))-1)*factor_x <<
                     " distributed over " <<
-                    localteamspec.num_units(0) << "x" <<
-                    localteamspec.num_units(1) << "x" <<
+                    localteamspec.num_units(0) << "×" <<
+                    localteamspec.num_units(1) << "×" <<
                     localteamspec.num_units(2) << " units" << endl;
             }
             */
@@ -3158,21 +3156,21 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     minimon.stop( "setup", dash::Team::All().size() );
 /*
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.1 << endl << endl;
+        cout << "start v-cycle with res " << 0.1 << endl << endl;
     }
     v_cycle( levels.begin(), levels.end(), 2, 0.1, res );
     dash::Team::All().barrier();
 
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start v-cycle with res " << 0.01 << endl << endl;
+        cout << "start v-cycle with res " << 0.01 << endl << endl;
     }
     v_cycle( levels.begin(), levels.end(), 2, 0.01, res );
     dash::Team::All().barrier();
 */
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "start w-cycle with res " << eps << endl << endl;
+        cout << "start w-cycle with res " << eps << endl;
     }
     //v_cycle( levels.begin(), levels.end(), 20, eps, res );
     recursive_cycle( levels.begin(), levels.end(), 20, 2 /* 2 for w cycle */, eps, res );
@@ -3180,7 +3178,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     dash::Team::All().barrier();
 
     if ( 0 == dash::myid()  ) {
-        cout << endl << "final smoothing with res " << eps << endl << endl;
+        cout << "final smoothing with res " << eps << endl;
     }
     smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
@@ -3218,10 +3216,10 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
         cout << "run simulation with " << dash::Team::All().size() << " units "
             "for grid of " <<
-            ((1<<(howmanylevels))-1)*factor_z << "x" <<
-            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_z << "×" <<
+            ((1<<(howmanylevels))-1)*factor_y << "×" <<
             ((1<<(howmanylevels))-1)*factor_x <<
-            " for " << timerange << " seconds with output steps every " << timestep << " seconds " <<endl << endl;
+            " for " << timerange << " seconds with output steps every " << timestep << " seconds " << endl;
     }
 
     /* physical dimensions 10m³ because it allows larger dt */
@@ -3254,7 +3252,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
     double timenext= time + timestep;
     uint32_t j= 0;
 
-    if ( 0 == dash::myid() ) { cout << "   t= " << time << " j= " << j << endl; }
+    if ( 0 == dash::myid() ) { cout << "t= " << time << " j= " << j << endl; }
     writeToCsv( *level );
 
     while ( time < timerange ) {
@@ -3264,7 +3262,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
             smoothen( *level, res, dt );
             ++j;
             time += dt;
-            // if ( 0 == dash::myid() ) { cout << "   t= " << time << " dt= " << dt << endl; }
+            // if ( 0 == dash::myid() ) { cout << "t= " << time << " dt= " << dt << endl; }
         }
 
         double shorten= ( timenext - time ) / dt;
@@ -3274,7 +3272,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
         time += timenext - time;
         timenext += timestep;
 
-        if ( 0 == dash::myid() ) { cout << "   t= " << time << " j= " << j << endl; }
+        if ( 0 == dash::myid() ) { cout << "t= " << time << " j= " << j << endl; }
         writeToCsv( *level );
     }
 
@@ -3326,10 +3324,10 @@ void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 
 
         cout << "run flat iteration with " << dash::Team::All().size() << " units "
             "for grid of " <<
-            ((1<<(howmanylevels))-1)*factor_z << "x" <<
-            ((1<<(howmanylevels))-1)*factor_y << "x" <<
+            ((1<<(howmanylevels))-1)*factor_z << "×" <<
+            ((1<<(howmanylevels))-1)*factor_y << "×" <<
             ((1<<(howmanylevels))-1)*factor_x <<
-            endl << endl;
+            endl;
     }
 
     Level* level= new Level( dim[0], dim[1], dim[2],
@@ -3848,8 +3846,8 @@ const char* HELPTEXT= "\n"
             if ( 0 == dash::myid() ) {
 
                 cout << "using grid of dimensions " <<
-                    dimensions[0] << "m x " <<
-                    dimensions[1] << "m x " <<
+                    dimensions[0] << "m×" <<
+                    dimensions[1] << "m×" <<
                     dimensions[2] << "m" << endl;
             }
 
@@ -3859,7 +3857,7 @@ const char* HELPTEXT= "\n"
             howmanylevels= atoi( argv[a] );
             if ( 0 == dash::myid() ) {
                 cout << "using " << howmanylevels << " levels, " <<
-                (1<<howmanylevels) << "^3" << " per unit" << endl;
+                (1<<howmanylevels) << "³" << " per unit" << endl;
             }
         }
     }
