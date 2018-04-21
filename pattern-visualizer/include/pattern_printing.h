@@ -1,3 +1,5 @@
+#include <dash/Exception.h>
+
 #include <input_param.h>
 #include <pattern_creation.h>
 #include <output_pattern.h>
@@ -53,7 +55,9 @@ make_and_print_constructor_pattern_h1<csr>(const dash::dim_t ndim_r,
   if(ndim_r == 1) {
     make_and_print_constructor_pattern_h2<csr,1>(arr_r,con_params,output_params);
   } else {
-    // error
+    // CSRPattern is only implemented for NumDims == 1
+    throw dash::exception::NotImplemented("CSRPattern is only implemented for "
+                                          "NumDimensions == 1");
   }
 }
 
