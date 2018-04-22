@@ -2,9 +2,9 @@
 "name": "patviz_params",
 "type": "group",
 "content": [
-  {"name":"format","label":"Creation format","type":"tab","values":[
+  {"name":"format","label":"Creation format","type":"tab","value":0,"values":[
     {"name":"con","label":"Constructor","params":[
-      {"name":"pattern","label":"Pattern","type":"selection","values":[
+      {"name":"pattern","label":"Pattern","type":"selection","value":0,"values":[
         {"name":"block","label":"BlockPattern"},
         {"name":"tile","label":"TilePattern"},
         {"name":"shiftTile","label":"ShiftTilePattern"},
@@ -13,26 +13,26 @@
         {"name":"csr","label":"CSRPattern"}
       ]},
       {"name":"numDim","label":"Number of Dimensions","type":"range","value":2,"min":1,"max":5},
-      {"name":"arrangement","label":"Arrangement","type":"selection","values":[
+      {"name":"arrangement","label":"Arrangement","type":"selection","value":0,"values":[
         {"name":"row","label":"ROW_MAJOR"},
         {"name":"col","label":"COL_MAJOR"}
       ]},
       {"type":"br"},
       {"name":"balance_team","label":"Balance TeamSpec","type":"radio","value":0,"values":[
-        {"name":"yes","params":[{"name":"numUnits","label":"Unit Count","type":"number"}]},
+        {"name":"yes","params":[{"name":"numUnits","label":"Unit Count","type":"number","value":4}]},
         {"name":"no","params":[
-          {"name":"team","label":"TeamSpec Dimension","type":"number","quantity":"numDim"}
+          {"name":"team","label":"TeamSpec Dimension","type":"number","quantity":"numDim","value":[2,2,2,2,2]}
         ]}
       ]},
       {"type":"br"},
       {"name":"ext_group","type":"group","quantity":"numDim","content":[
-        {"name":"size","label":"SizeSpec Dimension","type":"logrange"},
-        {"name":"dist","label":"DistributionSpec Dimension","type":"selection","values":[
+        {"name":"size","label":"SizeSpec Dimension","type":"logrange","value":[32,40,16,16,16]},
+        {"name":"dist","label":"DistributionSpec Dimension","type":"selection","value":[0,4,2,2,2],"values":[
           {"name":"BLOCKED"},
           {"name":"CYCLIC"},
           {"name":"NONE"},
-          {"name":"TILE","params":[{"name":"T_blocksize","label":"Block Size","type":"number"}]},
-          {"name":"BLOCKCYCLIC","params":[{"name":"BC_blocksize","label":"Block Size","type":"number"}]}
+          {"name":"TILE","params":[{"name":"T_blocksize","label":"Block Size","type":"number","value":[8,8,8,8,8]}]},
+          {"name":"BLOCKCYCLIC","params":[{"name":"BC_blocksize","label":"Block Size","type":"number","value":[12,12,12,12,12]}]}
         ]}
       ]}
     ]},
