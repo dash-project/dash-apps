@@ -16,6 +16,7 @@ function sendPOST() {
     var response = JSON.parse(responseText);
     if(response.success) {
       pattern_received = response.pattern;
+      document.getElementById("export_name").value = response.name;
       // update Options (dimensions / export link / save load share)
       prepare_pattern(response.pattern);
       /*var exportLink = document.createElement("a");

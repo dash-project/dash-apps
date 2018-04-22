@@ -75,8 +75,7 @@ std::string pattern_to_filename(
      << "--"
      << "size-"   << sspc.extents() << "--"
      << "team-"   << tspc.extents() << "--"
-     << "blocks-" << bspc.extents()
-     << ".svg";
+     << "blocks-" << bspc.extents();
 
   return ss.str();
 }

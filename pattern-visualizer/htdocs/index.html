@@ -22,7 +22,12 @@
 <div id="dims_list"></div>
 <input type="button" value="Redraw" onclick="draw_pattern(pattern_combined)" /><br />
 <br />
-Export-Button (WIP)
+<label for="export_name">Name</label><input id="export_name" type="text" /><br />
+<select id="export_format">
+  <option value="none">Choose format</option>
+</select><br />
+<input type="button" value="Export" onclick="export_pattern()">
+<a id="export_goal"></a>
 </form>
 </div>
 <div id="key" class="pane rightPane">
@@ -36,9 +41,11 @@ Export-Button (WIP)
 <script type="text/javascript" src="params.js"></script>
 <script type="text/javascript" src="submit.js"></script>
 <script type="text/javascript" src="draw.js"></script>
+<script type="text/javascript" src="export.js"></script>
 <script type="text/javascript">
 loadParams();
 document.getElementById("params").addEventListener("submit",submitParams);
+prepareExport();
 </script>
 </body>
 </html>
