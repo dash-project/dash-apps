@@ -11,7 +11,7 @@ html {
 }
 
 .pane {
-  width: 240px;
+  width: 160px;
   padding: 0px 8px 0px 8px;
 }
 
@@ -24,8 +24,8 @@ html {
 }
 
 .main {
-  margin-left: 240px;
-  margin-right: 240px;
+  min-width: 500px;
+  margin: 8px 192px 8px 8px;
   overflow: auto;
 }
 
@@ -64,4 +64,13 @@ html {
 
 .dim_select:checked ~ input[type="range"] {
   display: none;
+}
+
+.key_identifier {
+  display: inline-block;
+  position: relative;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
 }

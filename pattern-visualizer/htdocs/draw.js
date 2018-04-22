@@ -8,6 +8,7 @@ function prepare_pattern(pattern) {
   // clear previous pattern
 
   // perhaps draw key
+  update_key(pattern.maxUnits);
 
   // perhaps draw default view of pattern
   draw_pattern(pattern);
@@ -138,6 +139,25 @@ document.getElementById("blocked").addEventListener("change",function(e) {
   }
 });
 
+function update_key(maxUnits) {
+  var key = document.getElementById("key");
+  while(key.firstChild) {
+    key.removeChild(key.firstChild);
+  }
+
+  for(var i=0; i < maxUnits; i++) {
+    var key_entry = document.createElement("div");
+    var key_identifier = document.createElement("span");
+    key_identifier.setAttribute("class","key_identifier u"+i);
+    key_identifier.setAttribute("style","background-color: "+unit_color(i));
+    var key_description = document.createTextNode("Unit "+i);
+    key_entry.appendChild(key_identifier);
+    key_entry.appendChild(key_description);
+    key.appendChild(key_entry);
+  }
+}
+
+
 /*var scale_value = 1.0;
 
 function scale(e) {
@@ -177,9 +197,11 @@ function draw_pattern(pattern) {
   // style, scripts
   create_defs(svg, pattern.maxUnits,blocked);
 
-  //draw_axis(pattern, idx_dimx, idx_dimy, svg);
+  // axes
+  draw_axes(pattern, idx_dimx, idx_dimy, svg);
 
   var content = createElementSVG("g");
+  content.setAttribute("transform","translate(24,24)");
   svg.appendChild(content);
 
   var svg_size = draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, content);
@@ -194,8 +216,8 @@ function draw_pattern(pattern) {
     cont.removeChild(cont.firstChild);
   }
 
-  svg.setAttribute("width",svg_size["width"]);
-  svg.setAttribute("height",svg_size["height"]);
+  svg.setAttribute("width",svg_size["width"]+24+16);
+  svg.setAttribute("height",svg_size["height"]+24+16);
   cont.appendChild(svg);
 
   if(blocked) {
@@ -204,6 +226,42 @@ function draw_pattern(pattern) {
       nonBlockedStyle.sheet.disabled = true;
     }
   }
+}
+
+function draw_axes(pattern, idx_dimx, idx_dimy, svg_elem) {
+  var startx = 18;
+  var starty = 18;
+  var lenx = pattern.extents[idx_dimx] * grid_base + grid_base;
+  var leny = pattern.extents[idx_dimy] * grid_base + grid_base;
+
+  var axisX = createElementSVG("path");
+  axisX.setAttribute("d","M"+startx+" "+starty+" h"+lenx);
+  axisX.setAttribute("class","axis");
+  axisX.setAttribute("marker-end","url(#arrowhead)");
+  var axisX_label = createElementSVG("text");
+  axisX_label.setAttribute("text-anchor","start");
+  axisX_label.setAttribute("x",""+(startx + (lenx/3)));
+  axisX_label.setAttribute("y",""+(starty - fontsz/2));
+  axisX_label.setAttribute("font-size",""+fontsz);
+  axisX_label.setAttribute("class","axis_label");
+  axisX_label.appendChild(document.createTextNode("Dimension "+pattern.dims[idx_dimx]));
+  var axisY = createElementSVG("path");
+  axisY.setAttribute("d","M"+startx+" "+starty+" v"+leny);
+  axisY.setAttribute("class","axis");
+  axisY.setAttribute("marker-end","url(#arrowhead)");
+  var axisY_label = createElementSVG("text");
+  axisY_label.setAttribute("text-anchor","end");
+  axisY_label.setAttribute("x",""+(startx - fontsz/2));
+  axisY_label.setAttribute("y",""+(starty + (leny/3)));
+  axisY_label.setAttribute("transform","rotate(-90,"+(startx-(fontsz/2))+","+(starty+(leny/3))+")");
+  axisY_label.setAttribute("font-size",""+fontsz);
+  axisY_label.setAttribute("class","axis_label");
+  axisY_label.appendChild(document.createTextNode("Dimension "+pattern.dims[idx_dimy]));
+
+  svg_elem.appendChild(axisX);
+  svg_elem.appendChild(axisX_label);
+  svg_elem.appendChild(axisY);
+  svg_elem.appendChild(axisY_label);
 }
 
 function draw_blocks_regular(pattern, idx_dimx, idx_dimy, coords, svg_elem) {
@@ -408,6 +466,8 @@ function create_defs(svg,maxUnits,blocked) {
 
   var defaultStyle = createElementSVG("style");
   var defaultStyle_content = "/* <![CDATA[ */\n";
+  defaultStyle_content += ".axis { fill:grey;stroke:grey;stroke-width: 1 }\n";
+  defaultStyle_content += ".axis_label { fill:grey;stroke-width: 0 }\n";
   defaultStyle_content += ".block { stroke-width: 0 }\n";
   defaultStyle_content += ".tile { stroke-width: 0 }\n";
   defaultStyle_content += ".mem { stroke: #E0E0E0; stroke-width: 1; fill: #E0E0E0; display: none }\n";
@@ -431,10 +491,24 @@ function create_defs(svg,maxUnits,blocked) {
   nonBlockedStyle_content += "/* ]]> */";
   nonBlockedStyle.appendChild(document.createTextNode(nonBlockedStyle_content));
 
+  var axisMarker = createElementSVG("marker");
+  axisMarker.setAttribute("id","arrowhead");
+  axisMarker.setAttribute("orient","auto");
+  axisMarker.setAttribute("markerWidth","6");
+  axisMarker.setAttribute("markerHeight","6");
+  axisMarker.setAttribute("refX","0");
+  axisMarker.setAttribute("refY","0");
+  axisMarker.setAttribute("viewBox","-10 -15 30 30");
+  var arrowHead = createElementSVG("path");
+  arrowHead.setAttribute("d","M-10 -15 L20 0 L-10 15 L0 0 Z");
+  arrowHead.setAttribute("class","axis");
+  axisMarker.appendChild(arrowHead);
+
   defs.appendChild(unitStyle);
   defs.appendChild(defaultStyle);
   defs.appendChild(blockedStyle);
   defs.appendChild(nonBlockedStyle);
+  defs.appendChild(axisMarker);
   svg.appendChild(defs);
 }
 
