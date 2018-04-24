@@ -109,7 +109,7 @@ public:
     time simulation mode */
     double dt;
 
-    /***
+    /*
     lz, ly, lx are the dimensions in meters of the grid including the boundary regions,
     nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions,
     therefore, lz,ly,lx are discretized into (nz+2)*(ny+2)*(nx+2) grid points
@@ -3054,7 +3054,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     while ( 0 < howmanylevels ) {
 
         dash::Team& previousteam= levels.back()->src_grid->team();
-        dash::Team& currentteam= ( ++split_steps % split == 0 && previousteam.size() > 1 ) ? previousteam.split(8) : previousteam;
+        dash::Team& currentteam= ( split_steps++ % split == 0 && previousteam.size() > 1 ) ? previousteam.split(8) : previousteam;
         TeamSpecT localteamspec( currentteam.size(), 1, 1 );
         localteamspec.balance_extents();
 
@@ -3129,7 +3129,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 
             //cout << "waiting unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
 
-            /* this is a passive unit not takin part in the subteam that
+            /* this is a passive unit not taking part in the subteam that
             handles the coarser grids. insert a dummy entry in the vector
             of levels to signal that this is not the coarsest level globally. */
             levels.push_back( NULL );
