@@ -42,11 +42,11 @@ using std::vector;
 using TeamSpecT = dash::TeamSpec<3>;
 using MatrixT = dash::NArray<double,3>;
 using PatternT = typename MatrixT::pattern_type;
-using StencilT = dash::StencilPoint<3>;
-using StencilSpecT = dash::StencilSpec<StencilT,26>;
-using CycleSpecT = dash::GlobalBoundarySpec<3>;
-using HaloT = dash::HaloMatrixWrapper<MatrixT>;
-using StencilOpT = dash::HaloStencilOperator<double,PatternT,StencilSpecT>;
+using StencilT = dash::halo::StencilPoint<3>;
+using StencilSpecT = dash::halo::StencilSpec<StencilT,26>;
+using CycleSpecT = dash::halo::GlobalBoundarySpec<3>;
+using HaloT = dash::halo::HaloMatrixWrapper<MatrixT>;
+using StencilOpT = dash::halo::StencilOperator<double,PatternT,StencilSpecT>;
 
 /* for the smoothing operation, only the 6-point stencil is needed.
 However, the prolongation operation also needs the */
@@ -68,9 +68,9 @@ constexpr StencilSpecT stencil_spec(
     StencilT(0.125, -1, 1, 1), StencilT( 0.125, 1, 1, 1));
 
 constexpr CycleSpecT cycle_spec(
-    dash::BoundaryProp::CUSTOM,
-    dash::BoundaryProp::CUSTOM,
-    dash::BoundaryProp::CUSTOM );
+    dash::halo::BoundaryProp::CUSTOM,
+    dash::halo::BoundaryProp::CUSTOM,
+    dash::halo::BoundaryProp::CUSTOM );
 
 struct Level {
 
@@ -926,6 +926,106 @@ void scaledownboundary( Level& fine, Level& coarse ) {
     coarse.dst_halo->set_custom_halos( lambda );
 }
 
+#define USE_NEW_SCALEUP
+
+#ifdef USE_NEW_SCALEUP
+
+void scaledown( Level& fine, Level& coarse ) {
+    using signed_size_t = typename std::make_signed<size_t>::type;
+
+    auto& finegrid= *fine.src_grid;
+    auto& fine_rhs_grid= *fine.rhs_grid;
+    auto& coarsegrid= *coarse.src_grid;
+    auto& coarse_rhs_grid= *coarse.rhs_grid;
+    auto& finehalo = *fine.src_halo;
+
+    // stencil points for scale down with coefficients
+    dash::halo::StencilSpec<StencilT,6> stencil_spec(
+      StencilT(-fine.az, -1, 0, 0), StencilT(-fine.az, 1, 0, 0),
+      StencilT(-fine.ay,  0,-1, 0), StencilT(-fine.ay, 0, 1, 0),
+      StencilT(-fine.ax,  0, 0,-1), StencilT(-fine.ax, 0, 0, 1)
+    );
+
+    // scaledown
+    minimon.start();
+
+    assert( (coarsegrid.extent(2)+1) * 2 == finegrid.extent(2)+1 );
+    assert( (coarsegrid.extent(1)+1) * 2 == finegrid.extent(1)+1 );
+    assert( (coarsegrid.extent(0)+1) * 2 == finegrid.extent(0)+1 );
+
+    const auto& extentc= coarsegrid.local.extents();
+    const auto& cornerc= coarsegrid.pattern().global( {0,0,0} );
+    const auto& extentf= finegrid.local.extents();
+    const auto& cornerf= finegrid.pattern().global( {0,0,0} );
+
+    assert( cornerc[0] * 2 == cornerf[0] );
+    assert( cornerc[1] * 2 == cornerf[1] );
+    assert( cornerc[2] * 2 == cornerf[2] );
+
+    assert( 0 == cornerc[0] %2 );
+    assert( 0 == cornerc[1] %2 );
+    assert( 0 == cornerc[2] %2 );
+
+    assert( extentc[0] * 2 == extentf[0] || extentc[0] * 2 +1 == extentf[0] );
+    assert( extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
+    assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
+
+    /* Here we  $ r= f - Au $ on the fine grid and 'straigth injection' to the
+    rhs of the coarser grid in one. Therefore, we don't need a halo of the fine
+    grid, because the stencil neighbor points on the fine grid are always there
+    for a coarse grid point.
+    According to the text book (Introduction to Algebraic Multigrid -- Course notes
+    of an algebraic multigrid course at univertisty of Heidelberg in Wintersemester
+    1998/99, Version 1.1 by Christian Wagner http://www.mgnet.org/mgnet/papers/Wagner/amgV11.pdf)
+    there should by an extra factor 1/2^3 for the coarse value. But this doesn't seem to work,
+    factor 4.0 works much better. */
+    double extra_factor= 4.0;
+
+    /* 1) start async halo exchange for fine grid*/
+    finehalo.update_async();
+
+    // iterates over all inner elements and calculates value for coarse rhs grid
+    auto stencil_op_fine = fine.src_halo->stencil_operator(stencil_spec);
+    for ( signed_size_t z= 1; z < extentc[0] - 1 ; z++ ) {
+      for ( signed_size_t y= 1; y < extentc[1] - 1 ; y++ ) {
+        for ( signed_size_t x= 1; x < extentc[2] - 1 ; x++ ) {
+          coarse_rhs_grid.local[z][y][x] = extra_factor * (
+              fine.ff * fine_rhs_grid.local[2*z+1][2*y+1][2*x+1] +
+              stencil_op_fine.inner.get_value_at({2*z+1,2*y+1,2*x+1}, -fine.acenter));
+        }
+      }
+    }
+
+    /* 3) set coarse grid to 0.0 */
+    dash::fill( coarsegrid.begin(), coarsegrid.end(), 0.0 );
+
+    /* 4) wait for async halo exchange. Technically, we need only the back halos in every
+    dimension and only for the front unit per dimension. However, we do the halo update
+    collectvely to keep it managable. */
+
+    finehalo.wait();
+
+    auto& stencil_op_coarse = *coarse.src_op;
+    auto* coarse_rhs_begin = coarse_rhs_grid.lbegin();
+    // update all boundary elements for coarse rhs grid
+    // coarse grid halo wrapper used to get coordinates for coarse rhs grid
+    // elements
+    auto bend = stencil_op_coarse.boundary.end();
+    for( auto it = stencil_op_coarse.boundary.begin(); it != bend; ++it ) {
+      const auto& coords = it.coords();
+      // coarse coords to fine grid coords
+      decltype(coords) coords_fine = {2*coords[0] + 1, 2*coords[1] + 1, 2*coords[2] + 1};
+      // updates value for coarse rhs grid
+      coarse_rhs_begin[it.lpos()] = extra_factor * (
+        fine.ff * fine_rhs_grid.local[coords_fine[0]][coords_fine[1]][coords_fine[2]] +
+        // default operation std::plus used for stencil point and center values
+        stencil_op_fine.boundary.get_value_at(coords_fine, -fine.acenter));
+    }
+
+    minimon.stop( "scaledown", finegrid.team().size(), finegrid.local_size() );
+}
+
+#else
 
 void scaledown( Level& fine, Level& coarse ) {
     using signed_size_t = typename std::make_signed<size_t>::type;
@@ -1100,7 +1200,7 @@ void scaledown( Level& fine, Level& coarse ) {
     minimon.stop( "scaledown", par, param );
 }
 
-#define USE_NEW_SCALEUP
+#endif
 
 #ifdef USE_NEW_SCALEUP
 
@@ -1113,9 +1213,6 @@ void scaleup( Level& coarse, Level& fine ) {
 
     MatrixT& coarsegrid= *coarse.src_grid;
     MatrixT& finegrid= *fine.src_grid;
-
-    uint64_t par= coarsegrid.team().size();
-    uint64_t param= coarsegrid.local.extent(0)*coarsegrid.local.extent(1)*coarsegrid.local.extent(2);
 
     // scaleup
     minimon.start();
@@ -1158,60 +1255,89 @@ void scaleup( Level& coarse, Level& fine ) {
     /* this is the iterator-ized version of the code */
 
     auto& stencil_op_fine = *fine.src_op;
-
+    // set inner elements
     for ( signed_size_t z= 1; z < extentc[0] - 1; z++ ) {
-        for ( signed_size_t y= 1; y < extentc[1] - 1; y++ ) {
-            for ( signed_size_t x= 1; x < extentc[2] - 1; x++ ) {
-                stencil_op_fine.set_value_at_inner_local({2*z+1, 2*y+1,2*x+1},
-                    coarsegrid.local[z][y][x], 1.0,std::plus<double>());
-            }
+      for ( signed_size_t y= 1; y < extentc[1] - 1; y++ ) {
+        for ( signed_size_t x= 1; x < extentc[2] - 1; x++ ) {
+          stencil_op_fine.inner.set_values_at({2*z+1, 2*y+1,2*x+1},
+          coarsegrid.local[z][y][x], 1.0,std::plus<double>());
         }
+      }
     }
-    auto bend = coarse.src_op->bend();
-    for (auto it = coarse.src_op->bbegin(); it != bend; ++it ) {
+
+    // set values for boundary elements, halo elements are excluded
+    auto bend = coarse.src_op->boundary.end();
+    for (auto it = coarse.src_op->boundary.begin(); it != bend; ++it ) {
       const auto& coords = it.coords();
-        stencil_op_fine.set_value_at_boundary_local(
-            {2*coords[0]+1, 2*coords[1]+1, 2*coords[2]+1},
-                    *it, 1.0,std::plus<double>());
+      stencil_op_fine.boundary.set_values_at( {2*coords[0]+1, 2*coords[1]+1,
+          2*coords[2]+1}, *it, 1.0, std::plus<double>());
     }
 
     /* wait for async halo exchange */
     coarse.src_halo->wait();
 
-    /* do the remaining updates with contributions from the coarse halo 
+    /* do the remaining updates with contributions from the coarse halo
 	for 6 planes, 12 edges, and 8 corners */
 
     const auto& halo_block = coarse.src_halo->halo_block();
     const auto& view = halo_block.view();
+    const auto& specs = stencil_op_fine.stencil_spec().specs();
 
+    // iterates over all halo regions to find and get all halo regions before
+    // center -> only needed for element update
     for(const auto& region : halo_block.halo_regions()) {
-      if(region.is_custom_region())
-        continue;
 
-      if((region.spec()[0] == 2 && sub[0]) ||
+      // region filter -> custom halo regions and regions behind center are
+      // excluded
+      if(region.is_custom_region() ||
+         (region.spec()[0] == 2 && sub[0]) ||
          (region.spec()[1] == 2 && sub[1]) ||
          (region.spec()[2] == 2 && sub[2])) {
         continue;
       }
 
+      // iterates over all region elements und updates all  elements in fine
+      // grid, except halo elements
       auto region_end = region.end();
       for(auto it = region.begin(); it != region_end; ++it) {
         auto coords = it.gcoords();
-        double tmp= *coarse.src_halo->halo_element_at_global(coords);
+        // pointer to halo element
+        double* halo_element = coarse.src_halo->halo_element_at_global(coords);
 
+        // if halo element == nullptr no halo element exists for the given
+        // coordinates -> continue with next element
+        if(halo_element == nullptr)
+          continue;
+
+        // convert global coordinate to local and fine grid coordinate
         for(auto d = 0; d < 3; d++) {
-           coords[d] -= view.offset(d);
-          if(coords[d] < 0 || coords[d] >= view.extent(d))
+          coords[d] -= view.offset(d); // to local
+          if(coords[d] < 0 )
             continue;
 
-          coords[d] = coords[d] * 2 + 1;
+          coords[d] = coords[d] * 2 + 1; // to fine grid
         }
-        stencil_op_fine.set_value_at_boundary_local(coords, tmp, 0.0, std::plus<double>());
 
+        // iterates over all stencil points
+        for(auto i = 0; i < specs.size(); ++i) {
+          // returns pair -> first stencil_point adjusted coords, second check for halo
+          auto coords_stencilp = specs[i].stencil_coords_check_abort(coords,
+              stencil_op_fine.view_local());
+          /*
+           * Checks if stencil point points to a local memory element.
+           * if its points to a halo element continue with next stencil point
+           */
+          if(coords_stencilp.second)
+            continue;
+
+          // set new value for stencil point element
+          auto offset =  stencil_op_fine.get_offset(coords_stencilp.first);
+          finegrid.lbegin()[offset] += specs[i].coefficient() * *halo_element;
+        }
       }
     }
 
-    minimon.stop( "scaleup", par, param );
+    minimon.stop( "scaleup", coarsegrid.team().size(), coarsegrid.local_size() );
 }
 
 #else /* USE_NEW_SCALEUP */
@@ -1247,9 +1373,9 @@ void scaleup( Level& coarse, Level& fine ) {
     assert( 0 == cornerc[2] %2 );
 
     assert( extentc[0] * 2 == extentf[0] || extentc[0] * 2 +1 == extentf[0] );
-    assert( ext    /* first set fine grid to 0.0, becasue afterwards there are
+    assert( /* first set fine grid to 0.0, becasue afterwards there are
     multiple += operations per fine grid element */
-entc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
+extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
     /* if last element in coarse grid per dimension has no 2*i+2 element in
@@ -2606,9 +2732,9 @@ double smoothen( Level& level, Allreduce& res, double coeff= 1.0 ) {
     auto grid_local_begin= level.dst_grid->lbegin();
     auto rhs_grid_local_begin= level.rhs_grid->lbegin();
 
-    auto bend = level.src_op->bend();
+    auto bend = level.src_op->boundary.end();
     // update border area
-    for( auto it = level.src_op->bbegin(); it != bend; ++it ) {
+    for( auto it = level.src_op->boundary.begin(); it != bend; ++it ) {
 
         double dtheta= m * (
             ff * rhs_grid_local_begin[ it.lpos() ] -
