@@ -2657,6 +2657,20 @@ double smoothen( Level& level, Allreduce& res, double coeff= 1.0 ) {
     a border area next to the halo -- then the first column or row is covered below in
     the border update -- or there is an outside border -- then the first column or row
     contains the boundary values. */
+#if 1
+    auto p_rhs=   level.rhs_grid->lbegin();
+    level.src_op->inner.update(level.dst_grid->lbegin(),
+        [&](auto* center, auto* center_dst, auto offset, const auto& offsets) {
+                double dtheta= m * (
+                    ff * p_rhs[offset] -
+                    ax * ( center[offsets[4]] + center[offsets[5]] ) -
+                    ay * ( center[offsets[2]] + center[offsets[3]] ) -
+                    az * ( center[offsets[0]] + center[offsets[1]] ) -
+                    ac * *center );
+                localres= std::max( localres, std::fabs( dtheta ) );
+                *center_dst = *center + c * dtheta;
+        });
+#else
     auto next_layer_off = lw * lh;
     auto core_offset = lw * (lh + 1) + 1;
     for ( size_t z= 1; z < ld-1; z++ ) {
@@ -2705,7 +2719,7 @@ double smoothen( Level& level, Allreduce& res, double coeff= 1.0 ) {
         }
         core_offset += 2 * lw;
     }
-
+#endif
     minimon.stop( "smoothen_inner", par, /* elements */ (ld-2)*(lh-2)*(lw-2), /* flops */ 16*(ld-2)*(lh-2)*(lw-2), /*loads*/ 7*(ld-2)*(lh-2)*(lw-2), /* stores */ (ld-2)*(lh-2)*(lw-2) );
 
     // smoothen_wait
