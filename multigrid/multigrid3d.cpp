@@ -1337,7 +1337,13 @@ void scaleup( Level& coarse, Level& fine ) {
       }
     }
 
-    minimon.stop( "scaleup", coarsegrid.team().size(), coarsegrid.local_size() );
+    /* how to calculate the number of flops here: for every element there are 2 flop (one add, one mul), 
+    then calculate the number of finegrid points that receive a contribution from a coarse grid point with 
+    coefficient 1.0, 0.5, 0.25, an 0.125 separately. Consider the case where a unit is last in the distributions
+    in any dimension, which is marked with 'sub[.]==1'. In those cases change '(extentc[.]-1)' --> '(extentc[.]-1+sub[.])'
+    Then sum them up and simplify. */
+    minimon.stop( "scaleup", coarsegrid.team().size() /* param */, coarsegrid.local_size() /* elem */, 
+        (2*extentc[0]-1+sub[0])*(2*extentc[1]-1+sub[1])*(2*extentc[2]-1+sub[2])*2 /* flops */ );
 }
 
 #else /* USE_NEW_SCALEUP */
@@ -1375,7 +1381,7 @@ void scaleup( Level& coarse, Level& fine ) {
     assert( extentc[0] * 2 == extentf[0] || extentc[0] * 2 +1 == extentf[0] );
     assert( /* first set fine grid to 0.0, becasue afterwards there are
     multiple += operations per fine grid element */
-extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
+    extentc[1] * 2 == extentf[1] || extentc[1] * 2 +1 == extentf[1] );
     assert( extentc[2] * 2 == extentf[2] || extentc[2] * 2 +1 == extentf[2] );
 
     /* if last element in coarse grid per dimension has no 2*i+2 element in
