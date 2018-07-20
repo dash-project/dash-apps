@@ -58,14 +58,11 @@ set ylabel "Speed [Flop/s]"
 
 set xrange[0.5:*]
 plot \
-    filename using 3:( strcol(1) eq "smoothen" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen", \
-    filename using 3:( strcol(1) eq "smoothen_inner" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen inner", \
-    filename using 3:( strcol(1) eq "smoothen_outer" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen outer", \
-    filename using 3:( strcol(1) eq "scaledown" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "scaledown", \
-    filename using 3:( strcol(1) eq "scaleup" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "scaleup"
-
-
-
+    filename using 4:( strcol(2) eq "smoothen" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen", \
+    filename using 4:( strcol(2) eq "smoothen_inner" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen inner", \
+    filename using 4:( strcol(2) eq "smoothen_outer" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "smoothen outer", \
+    filename using 4:( strcol(2) eq "scaledown" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "scaledown", \
+    filename using 4:( strcol(2) eq "scaleup" ? $5/$7 : 1/0 ):($5/$8):($5/$9) with yerrorbars t "scaleup"
 
 
 
