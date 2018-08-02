@@ -3,6 +3,8 @@
 
 #include <libdash.h>
 
+//#define DEBUG
+
 template<typename MatrixT>
 class MatrixBlock {
 public:
@@ -34,7 +36,8 @@ public:
     std::cout << "BlockCache: " << block_row_idx << "x" << block_col_idx << " "
               << blocksize << "x" << blocksize
               << " (size=" << _size << ", is_local=" << _is_local
-              << ", glob_idx=" << glob_index
+              << ", local_ptr=" << _local_ptr
+              << ", glob_idx=" << glob_index << ", gptr=" << begin().dart_gptr()
               << std::endl;
 #endif
   }
@@ -95,7 +98,6 @@ public:
   value_t *lend() {
     if (!this->_is_local) {
       fetch_data();
-      return this->_local_ptr + this->_size;
     }
     return this->_local_ptr + this->_size;
   }
@@ -193,5 +195,7 @@ private:
   dart_handle_t _handle = DART_HANDLE_NULL;
   bool     _is_local  = true;
 };
+
+#undef DEBUG
 
 #endif // CHOLESKY_MATRIXBLOCK_H

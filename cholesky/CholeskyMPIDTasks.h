@@ -288,6 +288,11 @@ compute(TiledMatrix& matrix, size_t block_size){
 
   double tmp = t_c.Elapsed();
 
+  if (dash::myid() == 0)
+    std::cout << "Done executing tasks in "
+              << t_c.Elapsed() / 1E3 << "ms"
+              << std::endl;
+
   delete[] block_k_pre;
   delete[] blocks_ki_pre;
 
