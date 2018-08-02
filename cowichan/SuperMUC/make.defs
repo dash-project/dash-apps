@@ -2,18 +2,18 @@ DASH_ROOT = $(HOME)/opt/dash-0.3.0
 
 DART_IMPL = mpi
 
-INC=-I$(DASH_ROOT)/include
-LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base 
-# $(PAPI_SHLIB) $(HWLOC_SHLIB)
+INC=-I$(DASH_ROOT)/include $(PAPI_INC) $(HWLOC_INC)
+LIB=-L$(DASH_ROOT)/lib -ldash-$(DART_IMPL) -ldart-$(DART_IMPL) -ldart-base $(PAPI_SHLIB) $(HWLOC_SHLIB)
 
- CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
-#CXXFLAGS= -O3 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
-#CXXFLAGS= -Ofast -xHost -qopenmp -funroll-loops
+#CXXFLAGS= -g -O0 -Wall -DDASH_DEBUG=1 -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
+ CXXFLAGS= -Ofast -xHost -qopenmp -funroll-loops
 #CXXFLAGS=
 
 # used on SuperMUC:
-#CXX     = mpiCC -cxx=icpc -std=c++11 $(CXXFLAGS)
-
+CXX     = mpiCC -cxx=icpc -std=c++11 $(CXXFLAGS)
 
 # used on project03:
-CXX      = mpicxx -std=c++11 $(CXXFLAGS)
+# CXX      = mpicxx -std=c++11 $(CXXFLAGS)
+
+# dash-mpicxx not found
+

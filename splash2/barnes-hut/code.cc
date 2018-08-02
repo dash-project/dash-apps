@@ -359,7 +359,6 @@ std::ostream &operator<<(std::ostream &os, const cell &c)
 
 int main(int argc, char *argv[])
 {
-  long c;
   dash::init(&argc, &argv);
 
   Timer::Calibrate(0);
@@ -372,6 +371,7 @@ int main(int argc, char *argv[])
   }
 
   int exit = 2;
+  long c;
 
   while ((c = getopt(argc, argv, "h")) != -1) {
     switch (c) {
@@ -514,11 +514,6 @@ void ANLinit()
 
   auto const nlocal_elem = dash::math::div_ceil(nbody, nprocs);
 
-  dash::BlockPattern<1, dash::ROW_MAJOR> pat_blocked(
-      dash::SizeSpec<1>(nlocal_elem),
-      dash::DistributionSpec<1>(dash::BLOCKED), dash::TeamSpec<1>(),
-      dash::Team::All());
-
   if (!bodytab.allocate(nbody)) {
     error("testdata: not enough memory\n");
   }
@@ -571,50 +566,26 @@ void init_root()
 {
   // The root is always the first cell
   //
-  celltab.local[0].type   = CELL;
-  celltab.local[0].seqnum = 0;
-  celltab.local[0].done   = FALSE;
-  celltab.local[0].level  = IMAX >> 1;
+  auto & root = celltab.local[0];
+  root.type   = CELL;
+  root.seqnum = 0;
+  root.done   = FALSE;
+  root.level  = IMAX >> 1;
 
   G_root.set(static_cast<cellptr>(celltab.begin()));
   // The root has initially no children
-  std::fill(celltab.local[0].subp, celltab.local[0].subp + NSUB, cellptr{});
+  std::fill(root.subp, root.subp + NSUB, cellptr{});
   Local.mynumcell = 1;
 }
 
-#if 0
-long Log_base_2(long number)
-{
-  long cumulative;
-  long out;
-
-  cumulative = 1;
-  for (out = 0; out < 20; out++) {
-    if (cumulative == number) {
-      return (out);
-    }
-    else {
-      cumulative = cumulative * 2;
-    }
-  }
-
-  fprintf(stderr, "Log_base_2: couldn't find log2 of %ld\n", number);
-  exit(-1);
-}
-
-/*
- * TAB_INIT : allocate body and cell data space
- */
-
-#endif
 void tab_init()
 {
   /*allocate/cell space */
   if (dash::myid() == 0) {
-    auto const fleaves_val = static_cast<double>(fleaves.get());
+    auto const fleaves_val = fleaves.get();
     ASSERT(fleaves_val);
     auto const maxleaf_val =
-        static_cast<long>(static_cast<double>(fleaves.get()) * nbody);
+        static_cast<long>(fleaves_val * nbody);
     maxleaf.set(maxleaf_val);
     maxcell.set(static_cast<long>(fcells.get()) * maxleaf_val);
   }
@@ -622,12 +593,14 @@ void tab_init()
 
   auto const ncells = static_cast<long>(maxcell.get());
   celltab.allocate(ncells);
-  leaftab.allocate(static_cast<long>(maxleaf.get()));
+  leaftab.allocate(maxleaf.get());
 
   /*allocate space for personal lists of body pointers */
   maxmybody =
       (nbody + maxleaf.get() * MAX_BODIES_PER_LEAF) / bodytab.team().size();
 
+
+  //TODO: replace with unique_ptr (std::make_unique)
   Local.mybodytab = new bodyptr[maxmybody];
   /* space is allocated so that every */
   /* process can have a maximum of maxmybody pointers to bodies */
