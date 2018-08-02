@@ -21,7 +21,7 @@ else()
   message(STATUS "DASH_BASE set to ${DASH_BASE_DIR}")
 endif()
 
-set(DASH_BASE_CMAKE_DIR "${DASH_BASE_DIR}/cmake")
+set(DASH_BASE_CMAKE_DIR "${DASH_BASE_DIR}/share/cmake")
 
 find_package("DASH-${DASH_DART_IMPL}" REQUIRED HINTS ${DASH_BASE_CMAKE_DIR})
 find_package(MPI)
