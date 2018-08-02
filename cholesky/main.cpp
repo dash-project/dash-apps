@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 static
 void fill_random(TiledMatrix &matrix)
 {
-#if defined(DEBUG) || defined(CHECK_RESULT)
+#if defined(DEBUG) //|| defined(CHECK_RESULT)
   // have unit 0 fill the whole matrix
   //int c = 0;
   if (dash::myid() == 0)
