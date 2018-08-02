@@ -1,0 +1,8 @@
+
+DART_IMPL = mpi
+DART_VER  = v3.2
+DASH_ROOT = /home/fuerling/code/dash
+
+CXX       = dash-mpicxx -std=c++11 -O3 -g #-pg 
+#CFLAGS    = -DDASH_ENABLE_DEFAULT_INDEX_TYPE_LONG
+
