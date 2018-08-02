@@ -181,7 +181,7 @@ void fill_random(TiledMatrix &matrix)
   }
 #elif defined(FAST_INIT) && USE_TASKS
   using value_t = typename TiledMatrix::value_type;
-  dash::tasks::parallel_for(matrix.lbegin(), matrix.lend(),
+  dash::tasks::taskloop(matrix.lbegin(), matrix.lend(),
     [](value_t* first, value_t* last){
       int ISEED[4] = {0,0,0,1};
       int intONE=1;

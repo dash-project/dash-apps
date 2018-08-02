@@ -12,8 +12,6 @@ void dgemm_ (const char *transa, const char *transb, int *l, int *n, int *m, dou
              const void *a, int *lda, void *b, int *ldb, double *beta, void *c, int *ldc);
 void dtrsm_ (char *side, char *uplo, char *transa, char *diag, int *m, int *n, double *alpha,
              double *a, int *lda, double *b, int *ldb);
-void dtrmm_ (char *side, char *uplo, char *transa, char *diag, int *m, int *n, double *alpha,
-             double *a, int *lda, double *b, int *ldb);
 void dsyrk_ (char *uplo, char *trans, int *n, int *k, double *alpha, double *a, int *lda,
              double *beta, double *c, int *ldc);
 //void dpotrf_(const char* uplo, int& n, float* a, int* lda, int* info);
