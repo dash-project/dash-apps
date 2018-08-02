@@ -271,6 +271,19 @@ static uninitialized_vector<KEY_TYPE> make_input(void)
 
   timer_stop(&timers[TIMER_INPUT]);
 
+#ifdef DEBUG
+
+  char msg[1024];
+  sprintf(msg,"Rank %d: Initial Keys: ", my_rank);
+  for(int i = 0; i < NUM_KEYS_PER_PE; ++i){
+    if(i < PRINT_MAX)
+    sprintf(msg + strlen(msg),"%d ", my_keys[i]);
+  }
+  sprintf(msg + strlen(msg),"\n");
+  printf("%s",msg);
+  fflush(stdout);
+
+#endif
   return my_keys;
 }
 
@@ -295,6 +308,20 @@ static inline int * count_local_bucket_sizes(
   }
 
   timer_stop(&timers[TIMER_BCOUNT]);
+
+#ifdef DEBUG
+
+  char msg[1024];
+  sprintf(msg,"Rank %d: local bucket sizes: ", my_rank);
+  for(int i = 0; i < NUM_BUCKETS; ++i){
+    if(i < PRINT_MAX)
+    sprintf(msg + strlen(msg),"%d ", local_bucket_sizes[i]);
+  }
+  sprintf(msg + strlen(msg),"\n");
+  printf("%s",msg);
+  fflush(stdout);
+
+#endif
 
   return local_bucket_sizes;
 }
@@ -384,11 +411,11 @@ static inline uninitialized_vector<KEY_TYPE> exchange_keys(
     dart_get(
       my_bucket_keys.data() + offset,
       buckets(i, myid, 0).dart_gptr(),
-      my_bucket_sizes[i], DART_TYPE_INT);
+      my_bucket_sizes[i], DART_TYPE_INT, DART_TYPE_INT);
     offset += my_bucket_sizes[i];
   }
 
-  buckets.flush_all();
+  buckets.flush();
 
   dash::barrier();
   timer_stop(&timers[TIMER_ATA_KEYS]);
@@ -425,6 +452,20 @@ count_local_keys(const uninitialized_vector<KEY_TYPE>& my_bucket_keys,
     ++mlk[key_index];
   }
   timer_stop(&timers[TIMER_SORT]);
+
+#ifdef DEBUG
+
+  char msg[4096];
+  sprintf(msg,"Rank %d: Bucket Size %lld | Local Key Counts:", my_rank, my_bucket_size);
+  for(int i = 0; i < BUCKET_WIDTH; ++i){
+    if(i < PRINT_MAX)
+    sprintf(msg + strlen(msg),"%d ", my_local_key_counts[i]);
+  }
+  sprintf(msg + strlen(msg),"\n");
+  printf("%s",msg);
+  fflush(stdout);
+
+#endif
 
   return my_local_key_counts;
 }

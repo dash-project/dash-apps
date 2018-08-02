@@ -66,7 +66,7 @@ export -f genrandmatcmdfile
 
 benchrandmat()
 {
-  genrandmatcmdfile $1 $2 $3 $4 $5 $6 | xargs llsubmit
+   llsubmit $(genrandmatcmdfile $1 $2 $3 $4 $5 $6)
 }
 export -f benchrandmat
 
@@ -127,7 +127,7 @@ export -f genthreshcmdfile
 
 benchthresh()
 {
-  genthreshcmdfile $1 $2 $3 $4 $5 $6 $7 | xargs llsubmit
+  llsubmit $(genthreshcmdfile $1 $2 $3 $4 $5 $6 $7)
 }
 export -f benchthresh
 
@@ -191,7 +191,7 @@ export -f genwinnowcmdfile
 
 benchwinnow()
 {
-  genwinnowcmdfile $1 $2 $3 $4 $5 $6 $7 $8 | xargs llsubmit
+  llsubmit $(genwinnowcmdfile $1 $2 $3 $4 $5 $6 $7 $8 )
 }
 export -f benchwinnow
 
@@ -249,7 +249,7 @@ export -f genoutercmdfile
 
 benchouter()
 {
-  genoutercmdfile $1 $2 $3 $4 $5 $6 | xargs llsubmit
+  llsubmit $(genoutercmdfile $1 $2 $3 $4 $5 $6 )
 }
 export -f benchouter
 
@@ -306,7 +306,7 @@ export -f genproductcmdfile
 
 benchproduct()
 {
-  genproductcmdfile $1 $2 $3 $4 $5 $6 | xargs llsubmit
+  llsubmit $(genproductcmdfile $1 $2 $3 $4 $5 $6)
 }
 export -f benchproduct
 
@@ -372,6 +372,42 @@ export -f genchaincmdfile
 
 benchchain()
 {
-  genchaincmdfile $1 $2 $3 $4 $5 $6 $7 $8 | xargs llsubmit
+  llsubmit $(genchaincmdfile $1 $2 $3 $4 $5 $6 $7 $8)
 }
 export -f benchchain
+
+show()
+{
+  echo "tmp:"
+  echo "-----------------------------"
+  ls -l ~/tmp
+
+  echo "logs:"
+  echo "-----------------------------"
+  ls -l ~/logs
+
+  echo "out:"
+  echo "-----------------------------"
+  ls -l ~/out
+}
+export -f show
+
+
+
+clean()
+{
+  rm ~/tmp/*
+  rm ~/logs/*
+  
+  echo "tmp:"
+  echo "-----------------------------"
+  ls -l ~/tmp
+
+  echo "logs:"
+  echo "-----------------------------"
+  ls -l ~/logs
+}
+export -f show
+
+
+
