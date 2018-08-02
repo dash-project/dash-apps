@@ -51,6 +51,12 @@ void DASHComm::ExchangeNodalMass()
 	  dom.sizeX() + 1, dom.sizeY() + 1, dom.sizeZ() +  1,
 	  true, false);
 
+  for (auto& fut : comm.sendRequest) {
+    if (fut.valid()) {
+      fut.wait();
+    }
+  }
+
   dash::barrier();
   DASHCommSBN(dom, comm, 1, &fieldData);
 }
@@ -83,6 +89,12 @@ void DASHComm::Sync_PosVel()
 {
   DASHComm& comm = *this;
   Domain&  dom  = m_dom;
+
+  for (auto& fut : comm.sendRequest) {
+    if (fut.valid()) {
+      fut.wait();
+    }
+  }
 
   dash::barrier();
   DASHCommSyncPosVel(dom, comm);
@@ -117,6 +129,11 @@ void DASHComm::Sync_Force()
 
   DASHComm& comm = *this;
   Domain&  dom  = m_dom;
+  for (auto& fut : comm.sendRequest) {
+    if (fut.valid()) {
+      fut.wait();
+    }
+  }
 
   dash::barrier();
   DASHCommSBN(dom, comm, 3, fieldData);
@@ -148,6 +165,12 @@ void DASHComm::Sync_MonoQ()
 {
   DASHComm& comm = *this;
   Domain&  dom  = m_dom;
+
+  for (auto& fut : comm.sendRequest) {
+    if (fut.valid()) {
+      fut.wait();
+    }
+  }
 
   dash::barrier();
   DASHCommMonoQ(dom,comm);
