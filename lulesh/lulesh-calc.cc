@@ -1931,7 +1931,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
    Real_t emin    = domain.emin() ;
    Real_t rho0    = domain.refdens() ;
 
-   // These temporaries will be of different size for 
+   // These temporaries will be of different size for
    // each call (due to different sized region element
    // lists)
    Real_t *e_old = Allocate<Real_t>(numElemReg) ;
@@ -1948,13 +1948,13 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
    Real_t *q_new = Allocate<Real_t>(numElemReg) ;
    Real_t *bvc = Allocate<Real_t>(numElemReg) ;
    Real_t *pbvc = Allocate<Real_t>(numElemReg) ;
- 
-   //loop to add load imbalance based on region number 
+
+   //loop to add load imbalance based on region number
    for(Int_t j = 0; j < rep; j++) {
       /* compress data, minimal set */
 #pragma omp parallel
       {
-#pragma omp for nowait firstprivate(numElemReg)
+#pragma omp for firstprivate(numElemReg)
          for (Index_t i=0; i<numElemReg; ++i) {
             Index_t elem = regElemList[i];
             e_old[i] = domain.e(elem) ;
@@ -1998,7 +1998,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
 #pragma omp for nowait firstprivate(numElemReg)
          for (Index_t i = 0 ; i < numElemReg ; ++i) {
-            work[i] = Real_t(0.) ; 
+            work[i] = Real_t(0.) ;
          }
       }
       CalcEnergyForElems(p_new, e_new, q_new, bvc, pbvc,
