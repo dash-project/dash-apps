@@ -80,6 +80,7 @@ Command line options:
 #include "load.h"
 #include "stdinc.h"
 #include "util.h"
+#include "Logging.h"
 
 typedef struct dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
 
@@ -502,7 +503,7 @@ void ANLinit()
     error("testdata: not enough memory\n");
   }
 
-  // CountLock.init();
+  CountLock.init();
 
   //(dtime.allocate());
   //(dthf.allocate());
@@ -916,6 +917,8 @@ void stepsystem(long ProcessId)
   auto const Cavg =
       static_cast<real>(Cost(*(static_cast<cellptr>(G_root.get())))) / nprocs;
 
+  LOG("Cavg: " << Cavg);
+
   //even distribution
   Local.workMin = Cavg * ProcessId;
   Local.workMax =
@@ -937,6 +940,7 @@ void stepsystem(long ProcessId)
 
   Local.mynbody = 0;
   find_my_bodies(G_root.get().get(), 0, BRC_FUC, ProcessId);
+  LOG("my nbodies: " << Local.mynbody);
 
   /*     B*RRIER(Global->Barcom,NPROC); */
   if ((ProcessId == 0) && (Local.nstep >= 2)) {

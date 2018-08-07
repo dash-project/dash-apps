@@ -26,6 +26,7 @@
 
 #include "code.h"
 #include "load.h"
+#include "Logging.h"
 
 extern pthread_t PThreadTable[];
 
@@ -141,6 +142,8 @@ void maketree(long ProcessId)
     }
   }
   dash::barrier();
+  LOG("mynleaf: " << Local.mynleaf << ", myncell: " << Local.myncell);
+
   hackcofm(ProcessId);
   dash::barrier();
 }
@@ -393,15 +396,13 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         flag = false;
         *p   = body_val;
         //*le  = le_val;
-        // mynode_val.subp[kidIndex]) = le
         *qptr = le;
-        // cast as a cell
-        // Not sure if we need this
-        //*NODE_AS_CELL(mynode) = mynode_val;
-//#ifdef ENABLE_ASSERTIONS
-//        auto const tmp = static_cast<cell>(*NODE_AS_CELL(mynode));
-//        ASSERT(tmp.subp[kidIndex] == le);
-//#endif
+        //mynode_val.subp[kidIndex] = le;
+        *NODE_AS_CELL(mynode) = mynode_val;
+#ifdef ENABLE_ASSERTIONS
+        auto const tmp = static_cast<cell>(*NODE_AS_CELL(mynode));
+        ASSERT(tmp.subp[kidIndex] == le);
+#endif
       }
       CellLock.at(mynode_val.seqnum % MAXLOCK).unlock();
       /* unlock the parent cell */
@@ -420,7 +421,7 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
           // mynode_val.subp[kidIndex]) = SubdivideLeaf(le, mynode, l,
           // ProcessId)
           *qptr = SubdivideLeaf(le, mynode, l, ProcessId);
-          //*NODE_AS_CELL(mynode) = mynode_val;
+          *NODE_AS_CELL(mynode) = mynode_val;
         }
         else {
           // CASE 1: Leaf has still some free space, so add the particle
@@ -564,8 +565,8 @@ void hackcofm(long ProcessId)
     // write the modified value back
     //*l = l_val;
     // write atomically true
-    //AtomicDone(*l) = true;
-    l_val.done = true;
+    AtomicDone(*l) = true;
+    //l_val.done = true;
   }
 
   for (auto cc = std::next(std::begin(Local.mycelltab), Local.myncell - 1);
@@ -615,8 +616,8 @@ void hackcofm(long ProcessId)
     }
 #endif
     //*q             = q_val;
-    //AtomicDone(*q) = true;
-    q_val.done = true;
+    AtomicDone(*q) = true;
+    //q_val.done = true;
   }
 }
 

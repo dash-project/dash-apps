@@ -3,7 +3,7 @@ TARGET=BARNES-dash.bin
 DASHROOT?=$(HOME)/opt/dash-0.3.0
 DASHCXX=$(DASHROOT)/bin/dash-mpic++ -dash:verbose
 
-CXXFLAGS= -ggdb3 -O0 -Wall
+CXXFLAGS= -ggdb3 -O0 -Wall -DENABLE_LOGGING
 #CXXFLAGS= -O3 -Wall
 
 .phony: all
