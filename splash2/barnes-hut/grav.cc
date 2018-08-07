@@ -48,7 +48,7 @@ void hackgrav(bodyptr p, long ProcessId)
   CLRV(Local.acc0);
   Local.myn2bterm = 0;
   Local.mynbcterm = 0;
-  Local.skipself  = FALSE;
+  Local.skipself  = false;
   hackwalk(ProcessId);
   p_val.phi = Local.phi0;
   SETV(p_val.acc, Local.acc0);
@@ -76,7 +76,7 @@ void gravsub(nodeptr p, long ProcessId)
     DOTVP(Local.drsq, Local.dr, Local.dr);
   }
 
-  Local.drsq += epssq.get();
+  Local.drsq += epssq;
   drabs = sqrt((double)Local.drsq);
   phii  = p_val.mass / drabs;
   Local.phi0 -= phii;
@@ -142,12 +142,13 @@ void walksub(nodeptr n, real dsq, long ProcessId)
           gravsub(p, ProcessId);
         }
         else {
-          Local.skipself = TRUE;
+          Local.skipself = true;
         }
       }
     }
   }
   else {
+    //Body to body or body / cell interaction
     gravsub(n, ProcessId);
   }
 }
@@ -164,5 +165,5 @@ bool subdivp(nodeptr const p, real dsq, long ProcessId)
   SUBV(Local.dr, p_val.pos, Local.pos0);
   DOTVP(Local.drsq, Local.dr, Local.dr);
   Local.pmem = p;
-  return (tolsq.get() * Local.drsq < dsq);
+  return (tolsq * Local.drsq < dsq);
 }

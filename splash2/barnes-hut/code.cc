@@ -1,4 +1,4 @@
-/*************************************************************************/ /*                                                                       */
+/*s***********************************************************************/ /*                                                                       */
 /*  Copyright (c) 1994 Stanford University                               */
 /*                                                                       */
 /*  All rights reserved.                                                 */
@@ -85,28 +85,28 @@ typedef struct dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
 
 /***********************************************
  * DEFINITIONS OF EXTERN GLOBAL VARIABLES      *
-***********************************************/
-string             headline;
-size_t               nbody;
-dash::Shared<real> dtime;   /* timestep for leapfrog integrator */
-dash::Shared<real> dtout;   /* time between data outputs */
-dash::Shared<real> tstop;   /* time to stop calculation */
-dash::Shared<real> fcells;  /* ratio of cells/leaves allocated */
-dash::Shared<real> fleaves; /* ratio of leaves/bodies allocated */
-dash::Shared<real> tol;     /* accuracy parameter: 0.0 => exact */
-dash::Shared<real> tolsq;   /* square of previous */
-dash::Shared<real> eps;     /* potential softening parameter */
-dash::Shared<real> epssq;   /* square of previous */
-dash::Shared<real> dthf;    /* half time step */
+ ***********************************************/
+string headline;
+size_t nbody;
+real   dtime;   /* timestep for leapfrog integrator */
+real   dtout;   /* time between data outputs */
+real   tstop;   /* time to stop calculation */
+real   fcells;  /* ratio of cells/leaves allocated */
+real   fleaves; /* ratio of leaves/bodies allocated */
+real   tol;     /* accuracy parameter: 0.0 => exact */
+real   tolsq;   /* square of previous */
+real   eps;     /* potential softening parameter */
+real   epssq;   /* square of previous */
+real   dthf;    /* half time step */
 
-dash::Shared<long> maxcell;
-dash::Shared<long> maxleaf;
-size_t               maxmybody;
-size_t               maxmycell;
-size_t               maxmyleaf;
-dash::Shared<long> n2bcalc; /* total number of body/cell interactions  */
-dash::Shared<long> nbccalc; /* total number of body/body interactions  */
-dash::Shared<long> selfint; /* number of self interactions             */
+long   maxcell;
+long   maxleaf;
+size_t maxmybody;
+size_t maxmycell;
+size_t maxmyleaf;
+// dash::Shared<long> n2bcalc; /* total number of body/cell interactions  */
+// dash::Shared<long> nbccalc; /* total number of body/body interactions  */
+// dash::Shared<long> selfint; /* number of self interactions             */
 
 dash::Array<body> bodytab; /* array size is exactly nbody bodies */
 dash::Array<cell> celltab;
@@ -117,31 +117,36 @@ dash::Mutex              CountLock;
 
 dash::Shared<real> mtot; /* total mass of N-body system             */
 // dash::Shared<real> etot[3];      /* binding, kinetic, potential energy */
-dash::Shared<sh_mat> keten; /* kinetic energy tensor                   */
-dash::Shared<sh_mat> peten; /* potential energy tensor                 */
+// dash::Shared<sh_mat> keten; /* kinetic energy tensor                   */
+// dash::Shared<sh_mat> peten; /* potential energy tensor                 */
 //* center of mass coordinates and velocity */
 // dash::Shared<vector> cmphase[2];
-dash::Shared<sh_vec>  amvec;  /* angular momentum vector                 */
-dash::Shared<cellptr> G_root; /* root of the whole tree                  */
-dash::Shared<sh_vec>  rmin;   /* lower-left corner of coordinate box     */
-dash::Shared<sh_vec>  min;    /* temporary lower-left corner of the box  */
-dash::Shared<sh_vec>  max;    /* temporary upper right corner of the box */
-dash::Shared<real>    rsize;  /* side-length of integer coordinate box   */
+// dash::Shared<sh_vec>  amvec;  /* angular momentum vector                 */
 
-dash::Shared<unsigned long> createstart, createend, computestart, computeend;
-dash::Shared<unsigned long> trackstart, trackend, tracktime;
-dash::Shared<unsigned long> partitionstart, partitionend, partitiontime;
-dash::Shared<unsigned long> treebuildstart, treebuildend, treebuildtime;
-dash::Shared<unsigned long> forcecalcstart, forcecalcend, forcecalctime;
+dash::Shared<cellptr> G_root; /* root of the whole tree */
+/* lower-left corner of coordinate box */
+dash::SharedArray<vector> rmin;
+/* temporary lower-left corner of the box  */
+dash::SharedArray<vector> min;
+/* temporary upper right corner of the box */
+dash::SharedArray<vector> max;
+/* side-length of integer coordinate box   */
+dash::Shared<real> rsize;
+
+long computestart, computeend;
+long tracktime;
+long partitiontime;
+long treebuildtime;
+long forcecalctime;
 
 struct local_memory Local;
 
 /***********************************************
  * PRIVATE VARIABLES                           *
-***********************************************/
-static dash::Shared<double> globtout;
-static dash::Shared<double> globtnow;
-static dash::Shared<int>    globnstep;
+ ***********************************************/
+// static dash::Shared<double> globtout;
+// static dash::Shared<double>               globtnow;
+// static dash::Shared<int>    globnstep;
 
 const char *defv[] = {
     /* DEFAULT PARAMETER VALUES              */
@@ -306,56 +311,31 @@ static long Direction_Sequence[NUM_DIRECTIONS][NSUB] = {
     /* FDA_BLA */
 };
 
-std::ostream &operator<<(std::ostream &os, const sh_vec vec)
+static void LocalInit()
 {
-  os << "{" << vec.x << "," << vec.y << "," << vec.z << "}";
-  return os;
-};
+  // Command Line Params
+  dtime   = 0.025;
+  dthf    = 0.5 * dtime;
+  dtout   = 0.25;
+  tstop   = 0.075;
+  fcells  = 2.0;
+  fleaves = 5.0;
+  tol     = 1.0;
+  tolsq   = tol * tol;
+  eps     = 0.05;
+  epssq   = eps * eps;
 
-std::ostream &operator<<(std::ostream &os, const body &b)
-{
-  os << "{"
-     << "type: " << b.type << ", "
-     << "mass: " << std::setprecision(7) << std::fixed << b.mass << ", "
-     << "pos: [" << std::setprecision(5) << std::fixed << b.pos[0] << ", "
-     << b.pos[1] << ", " << b.pos[2] << "], "
-     << "cost: " << b.cost << ", "
-     << "level: " << b.level << ", "
-     //<< "parent: " << b.parent << ", "
-     << "child_num: " << b.child_num << ", "
-     << "vel: [" << b.vel[0] << ", " << b.vel[1] << ", " << b.vel[2] << "], "
-     << "acc: [" << b.acc[0] << ", " << b.acc[1] << ", " << b.acc[2] << "], "
-     << "phi: " << b.phi << "}";
+  // for allocation of body and leaf tab
+  maxleaf = fleaves * nbody;
+  maxcell = fcells * maxleaf;
 
-  return os;
-};
-
-std::ostream &operator<<(std::ostream &os, const cell &c)
-{
-  os << "{"
-     << "type: " << c.type << ", "
-     << "mass: " << std::setprecision(7) << c.mass << ", "
-     << "pos: [" << std::scientific << c.pos[0] << ", " << c.pos[1] << ", "
-     << c.pos[2] << "], "
-     << "cost: " << c.cost << ", "
-     << "level: " << c.level << ", "
-     << "child_num: " << c.child_num << ", "
-     << "parent: " << c.parent << ", "
-     << "processor: " << c.processor << ", "
-     << "seq_num: " << c.seqnum << ", "
-     << "subp: [";
-
-  for (auto idx = 0; idx < NSUB; ++idx) {
-    os << c.subp[idx] << ",";
-  }
-
-  os << "]}";
-
-  return os;
+  Local.tnow  = 0.0;
+  Local.tout  = Local.tnow + dtout;
+  Local.nstep = 0;
 }
 /***********************************************
  * IMPLEMENTATION OF BARNES HUT                *
-***********************************************/
+ ***********************************************/
 
 int main(int argc, char *argv[])
 {
@@ -370,7 +350,7 @@ int main(int argc, char *argv[])
     dash::finalize();
   }
 
-  int exit = 2;
+  int  exit = 2;
   long c;
 
   while ((c = getopt(argc, argv, "h")) != -1) {
@@ -407,15 +387,19 @@ int main(int argc, char *argv[])
 
     if (dash::myid() == 0 && debug) {
       int wait = 1;
-      while (wait);
+      while (wait)
+        ;
     }
   }
 
   ANLinit();  // Prepare all global data structures
 
+  // Prepare global data structures
+  LocalInit();
+
   if (dash::myid() == 0) {
     initparam(defv);
-    //initoutput();
+    // initoutput();
     startrun();
   }
 
@@ -424,14 +408,13 @@ int main(int argc, char *argv[])
   dash::barrier();
 
   if (dash::myid() == 0) {
-    tracktime.set(0);
-    partitiontime.set(0);
-    treebuildtime.set(0);
-    forcecalctime.set(0);
-    computestart.set(Timer::Now());
+    tracktime     = 0;
+    partitiontime = 0;
+    treebuildtime = 0;
+    forcecalctime = 0;
+    computestart  = Timer::Now();
     printf(
-        "COMPUTESTART  = %12lu\n",
-        static_cast<unsigned long>(computestart.get()));
+        "COMPUTESTART  = %12lu\n", static_cast<unsigned long>(computestart));
   }
 
   SlaveStart();
@@ -440,39 +423,37 @@ int main(int argc, char *argv[])
   dash::barrier();
 
   if (dash::myid() == 0) {
-    computeend.set(Timer::Now());
+    computeend = Timer::Now();
 
     std::ostringstream os;
 
     os << "COMPUTEEND=" << std::setw(12)
-       << static_cast<unsigned long>(computeend.get()) << "\n";
+       << static_cast<unsigned long>(computeend) << "\n";
     os << "COMPUTETIME=" << std::setw(12)
-       << static_cast<unsigned long>(computeend.get() - computestart.get())
-       << "\n";
+       << static_cast<unsigned long>(computeend - computestart) << "\n";
 
     std::cout << os.str();
 
-    printf("TRACKTIME     = %12lu\n", tracktime.get().get());
+    printf("TRACKTIME     = %12lu\n", tracktime);
     printf(
-        "PARTITIONTIME = %12lu\t%5.2f\n", partitiontime.get().get(),
-        (static_cast<double>(partitiontime.get().get()) /
-         tracktime.get().get()));
-    printf("TREEBUILDTIME = %12lu\t%5.2f\n", treebuildtime.get().get(),
-        (static_cast<double>(treebuildtime.get().get()) /
-         tracktime.get().get()));
+        "PARTITIONTIME = %12lu\t%5.2f\n",
+        partitiontime,
+        (static_cast<double>(partitiontime) / tracktime));
     printf(
-        "FORCECALCTIME = %12lu\t%5.2f\n", forcecalctime.get().get(),
-        (static_cast<double>(forcecalctime.get().get())) /
-            tracktime.get().get());
+        "TREEBUILDTIME = %12lu\t%5.2f\n",
+        treebuildtime,
+        (static_cast<double>(treebuildtime) / tracktime));
+    printf(
+        "FORCECALCTIME = %12lu\t%5.2f\n",
+        forcecalctime,
+        (static_cast<double>(forcecalctime)) / tracktime);
 
-    auto const track = tracktime.get().get();
     printf(
         "RESTTIME      = %12lu\t%5.2f\n",
-        tracktime.get().get() - partitiontime.get().get() -
-            treebuildtime.get().get() - forcecalctime.get().get(),
-        static_cast<double>((tracktime.get().get() - partitiontime.get().get() -
-          treebuildtime.get().get() - forcecalctime.get().get())) /
-            track);
+        tracktime - partitiontime - treebuildtime - forcecalctime,
+        static_cast<double>(
+            (tracktime - partitiontime - treebuildtime - forcecalctime)) /
+            tracktime);
   }
   return EXIT_SUCCESS;
 }
@@ -504,59 +485,61 @@ void ANLinit()
   };
 #endif
 
-  CellLock.reserve(MAXLOCK);
+  /*
   for (auto u = 0; u < MAXLOCK; ++u) {
     CellLock.emplace_back(dash::Team::All());
   }
+  */
+  CellLock.reserve(MAXLOCK);
 
+  std::generate_n(std::back_inserter(CellLock), MAXLOCK, []() {
+    return dash::Mutex{dash::Team::All()};
+  });
 
   auto const nprocs = dash::size();
-
-  auto const nlocal_elem = dash::math::div_ceil(nbody, nprocs);
 
   if (!bodytab.allocate(nbody)) {
     error("testdata: not enough memory\n");
   }
 
-  CountLock.init(bodytab.team());
+  // CountLock.init();
 
-
-  (dtime.allocate());
-  (dthf.allocate());
-  (eps.allocate());
-  (epssq.allocate());
-  (tol.allocate());
-  (tolsq.allocate());
-  (fcells.allocate());
-  (fleaves.allocate());
-  (tstop.allocate());
-  (dtout.allocate());
-  (globtout.allocate());
-  (globtnow.allocate());
-  (globnstep.allocate());
-  (maxleaf.allocate());
-  (maxcell.allocate());
-  (rsize.allocate());
-  (rmin.allocate());
-  (max.allocate());
-  (min.allocate());
-  (createstart.allocate());
-  (createend.allocate());
-  (computestart.allocate());
-  (computeend.allocate());
-  (trackstart.allocate());
-  (trackend.allocate());
-  (tracktime.allocate());
-  (partitionstart.allocate());
-  (partitionend.allocate());
-  (partitiontime.allocate());
-  (treebuildstart.allocate());
-  (treebuildend.allocate());
-  (treebuildtime.allocate());
-  (forcecalcstart.allocate());
-  (forcecalcend.allocate());
-  (forcecalctime.allocate());
-  (G_root.allocate());
+  //(dtime.allocate());
+  //(dthf.allocate());
+  //(eps.allocate());
+  //(epssq.allocate());
+  //(tol.allocate());
+  //(tolsq.allocate());
+  //(fcells.allocate());
+  //(fleaves.allocate());
+  //(tstop.allocate());
+  //(dtout.allocate());
+  //(globtout.allocate());
+  //(globtnow.allocate());
+  //(globnstep.allocate());
+  //(maxleaf.allocate());
+  //(maxcell.allocate());
+  (rsize.init());  //
+  (rmin.init());
+  (max.init());
+  (min.init());
+  //(createstart.allocate());
+  //(createend.allocate());
+  // (computestart.allocate());
+  // (computeend.allocate());
+  // (trackstart.allocate());
+  // (trackend.allocate());
+  // (tracktime.allocate());
+  // (partitionstart.allocate());
+  // (partitionend.allocate());
+  // (partitiontime.allocate());
+  // (treebuildstart.allocate());
+  // (treebuildend.allocate());
+  // (treebuildtime.allocate());
+  // (forcecalcstart.allocate());
+  // (forcecalcend.allocate());
+  // (forcecalctime.allocate());
+  (G_root.init());
 }
 
 /*
@@ -566,49 +549,37 @@ void init_root()
 {
   // The root is always the first cell
   //
-  auto & root = celltab.local[0];
+  auto &root  = celltab.local[0];
   root.type   = CELL;
   root.seqnum = 0;
-  root.done   = FALSE;
+  root.done   = false;
   root.level  = IMAX >> 1;
 
+  //convert reference to pointer
   G_root.set(static_cast<cellptr>(celltab.begin()));
   // The root has initially no children
-  std::fill(root.subp, root.subp + NSUB, cellptr{});
+  std::fill(std::begin(root.subp), std::end(root.subp), cellptr{});
   Local.mynumcell = 1;
 }
 
 void tab_init()
 {
-  /*allocate/cell space */
-  if (dash::myid() == 0) {
-    auto const fleaves_val = fleaves.get();
-    ASSERT(fleaves_val);
-    auto const maxleaf_val =
-        static_cast<long>(fleaves_val * nbody);
-    maxleaf.set(maxleaf_val);
-    maxcell.set(static_cast<long>(fcells.get()) * maxleaf_val);
-  }
-  dash::barrier();
+  ASSERT(maxleaf);
+  ASSERT(maxcell);
 
-  auto const ncells = static_cast<long>(maxcell.get());
-  celltab.allocate(ncells);
-  leaftab.allocate(maxleaf.get());
+  celltab.allocate(maxcell);
+  leaftab.allocate(maxleaf);
 
   /*allocate space for personal lists of body pointers */
-  maxmybody =
-      (nbody + maxleaf.get() * MAX_BODIES_PER_LEAF) / bodytab.team().size();
+  maxmybody = (nbody + maxleaf * MAX_BODIES_PER_LEAF) / bodytab.team().size();
 
-
-  //TODO: replace with unique_ptr (std::make_unique)
-  Local.mybodytab = new bodyptr[maxmybody];
   /* space is allocated so that every */
   /* process can have a maximum of maxmybody pointers to bodies */
   /* then there is an array of bodies called bodytab which is  */
   /* allocated in the distribution generation or when the distr. */
   /* file is read */
-  maxmycell = maxcell.get() / bodytab.team().size();
-  maxmyleaf = maxleaf.get() / bodytab.team().size();
+  maxmycell = maxcell / bodytab.team().size();
+  maxmyleaf = maxleaf / bodytab.team().size();
 
   std::ostringstream ss;
 
@@ -618,8 +589,9 @@ void tab_init()
 
   std::cout << ss.str() << std::endl;
 
-  Local.mycelltab = new cellptr[maxmycell];
-  Local.myleaftab = new leafptr[maxmyleaf];
+  Local.mybodytab.resize(maxmybody);
+  Local.mycelltab.resize(maxmycell);
+  Local.myleaftab.resize(maxmyleaf);
 }
 
 /*
@@ -669,16 +641,14 @@ void SlaveStart()
   */
 
 #endif
-  Local.tout  = globtout.get();
-  Local.tnow  = globtnow.get();
-  Local.nstep = globnstep.get();
+  // Local.tout = globtout.get();
+  // Local.tnow  = globtnow.get();
+  // Local.nstep = globnstep.get();
 
   find_my_initial_bodies(bodytab, nbody, ProcessId);
 
   /* main loop */
-  auto const tstop_val = tstop.get();
-  auto const dtime_val = dtime.get();
-  while (Local.tnow < tstop_val + 0.1 * dtime_val) {
+  while (Local.tnow < tstop + 0.1 * dtime) {
     stepsystem(ProcessId);
   }
   if (ProcessId == 0) printtree(G_root.get().get());
@@ -691,40 +661,43 @@ void startrun()
   // Original Settings as in reference implementation
   seed = 123;
   // outfile        = NULL;
-  dtime.set(0.025);
 
-  dthf.set(0.5 * 0.025);
-  eps.set(0.05);
-  epssq.set(0.05 * 0.05);
-  tol.set(1.0);
-  tolsq.set(1.0 * 1.0);
-  fcells.set(2.0);
-  fleaves.set(5.0);
-  tstop.set(0.075);
-  dtout.set(0.25);
+  // dtime.set(0.025);
+  // dthf.set(0.5 * 0.025);
+  // eps.set(0.05);
+  // epssq.set(0.05 * 0.05);
+  // tol.set(1.0);
+  // tolsq.set(1.0 * 1.0);
+  // fcells.set(2.0);
+  // fleaves.set(5.0);
+  // tstop.set(0.075);
+  // dtout.set(0.25);
   // NPROC          = getiparam("NPROC")
-  Local.nstep = 0;
-  globnstep.set(0);
+  // Local.nstep = 0;
+  // globnstep.set(0);
   pranset(seed);
   testdata();
   setbound();
 
-  Local.tout = Local.tnow + dtout.get();
-  globtout.set(Local.tout);
-  globtnow.set(Local.tnow);
+  // Local.tnow is 0.0
+  // dtout is a param, so we can simply fix that without a global shared
+  // variable
+  // Local.tout = Local.tnow + dtout;
+  // globtout.set(Local.tout);
+  // globtnow.set(Local.tnow);
 
   printf("----------PARAMS----------------\n");
   printf("infile = \n");
   printf("nbody = %ld\n", nbody);
   printf("seed = %ld\n", seed);
   printf("outfile = \n");
-  printf("dtime = %f\n", dtime.get().get());
-  printf("eps = %f\n", eps.get().get());
-  printf("tol = %f\n", tol.get().get());
-  printf("fcells = %f\n", fcells.get().get());
-  printf("fleaves = %f\n", fleaves.get().get());
-  printf("tstop = %f\n", tstop.get().get());
-  printf("dtout = %f\n", dtout.get().get());
+  printf("dtime = %f\n", dtime);
+  printf("eps = %f\n", eps);
+  printf("tol = %f\n", tol);
+  printf("fcells = %f\n", fcells);
+  printf("fleaves = %f\n", fleaves);
+  printf("tstop = %f\n", tstop);
+  printf("dtout = %f\n", dtout);
   printf("NPROC = %zd\n", dash::size());
 }
 
@@ -744,8 +717,8 @@ void testdata()
   long   halfnbody, i;
   float  offset;
 
-  headline   = "Hack code: Plummer model";
-  Local.tnow = 0.0;
+  headline = "Hack code: Plummer model";
+  // Local.tnow = 0.0;
 
   rsc = 9 * PI / 16;
   vsc = sqrt(1.0 / rsc);
@@ -768,11 +741,11 @@ void testdata()
     p.mass = 1.0 / nbody;
     p.cost = 1;
 
-    r = 1 / sqrt(pow(xrand(0.0, MFRAC), -2.0 / 3.0) - 1);
+    r = 1 / std::sqrt(std::pow(xrand(0.0, MFRAC), -2.0 / 3.0) - 1);
     /*   reject radii greater than 10 */
     while (r > 9.0) {
       rejects++;
-      r = 1 / sqrt(pow(xrand(0.0, MFRAC), -2.0 / 3.0) - 1);
+      r = 1 / std::sqrt(std::pow(xrand(0.0, MFRAC), -2.0 / 3.0) - 1);
     }
     pickshell(p.pos, rsc * r);
     ADDV(cmr, cmr, p.pos);
@@ -780,9 +753,9 @@ void testdata()
       x = xrand(0.0, 1.0);
       y = xrand(0.0, 0.1);
 
-    } while (y > x * x * pow(1 - x * x, 3.5));
+    } while (y > x * x * std::pow(1 - x * x, 3.5));
 
-    v = sqrt(2.0) * x / pow(1 + r * r, 0.25);
+    v = sqrt(2.0) * x / std::pow(1 + r * r, 0.25);
     pickshell(p.vel, vsc * v);
     ADDV(cmv, cmv, p.vel);
     // write back
@@ -792,12 +765,13 @@ void testdata()
   offset = 4.0;
 
   for (auto iter = bodytab.begin() + halfnbody;
-       iter < bodytab.begin() + nbody; ++iter) {
-    body p      = *iter;
-    p.type      = BODY;
-    p.mass      = 1.0 / nbody;
-    p.cost      = 1;
-    p.child_num = 0;
+       iter < bodytab.begin() + nbody;
+       ++iter) {
+    body p = *iter;
+    p.type = BODY;
+    p.mass = 1.0 / nbody;
+    p.cost = 1;
+    // p.child_num = 0;
 
     auto const cp = static_cast<body>(*(iter - halfnbody));
     for (i = 0; i < NDIM; i++) {
@@ -806,6 +780,7 @@ void testdata()
     }
     ADDV(cmr, cmr, p.pos);
     ADDV(cmv, cmv, p.vel);
+
     *iter = p;
   }
 
@@ -855,7 +830,7 @@ long intpow(long i, long j)
 void stepsystem(long ProcessId)
 {
   long i;
-  real Cavg;
+  // real Cavg;
   // bodyptr p, *pp;
   vector dvel, vel1, dpos;
   long   trackstart, trackend;
@@ -933,15 +908,18 @@ void stepsystem(long ProcessId)
   if (ProcessId == 0 && Local.nstep >= 2) {
     treebuildend = Timer::Now();
 
-    treebuildtime.set(treebuildend - treebuildstart);
+    treebuildtime = treebuildend - treebuildstart;
   }
 
   Housekeep(ProcessId);
 
-  Cavg =
+  auto const Cavg =
       static_cast<real>(Cost(*(static_cast<cellptr>(G_root.get())))) / nprocs;
+
+  //even distribution
   Local.workMin = Cavg * ProcessId;
-  Local.workMax = (Cavg * (ProcessId + 1) + (ProcessId == static_cast<long>(nprocs - 1)));
+  Local.workMax =
+      (Cavg * (ProcessId + 1) + (ProcessId == static_cast<long>(nprocs - 1)));
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -974,10 +952,7 @@ void stepsystem(long ProcessId)
     */
     partitionend = Timer::Now();
 
-    dash::GlobRef<dash::Atomic<unsigned long>> a_partitiontime{
-        partitiontime.get().dart_gptr()};
-
-    a_partitiontime.add(partitionend - partitionstart);
+    partitiontime += partitionend - partitionstart;
   }
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
@@ -1010,23 +985,22 @@ void stepsystem(long ProcessId)
     };
     */
     forcecalcend = Timer::Now();
-    dash::GlobRef<dash::Atomic<unsigned long>> a_forcecalctime{
-        forcecalctime.get().dart_gptr()};
-    a_forcecalctime.add(forcecalcend - forcecalcstart);
+    forcecalctime += forcecalcend - forcecalcstart;
   }
 
   /* advance my bodies */
-  for (auto pp = Local.mybodytab; pp < Local.mybodytab + Local.mynbody;
-       pp++) {
-    auto p     = *pp;
-    auto p_val = static_cast<body>(*p);
-    MULVS(dvel, p_val.acc, dthf.get());
+  for (auto pp = std::begin(Local.mybodytab);
+       pp < std::next(std::begin(Local.mybodytab), Local.mynbody);
+       ++pp) {
+    auto p_gptr = *pp;
+    auto p_val  = static_cast<body>(*p_gptr);
+    MULVS(dvel, p_val.acc, dthf);
     ADDV(vel1, p_val.vel, dvel);
-    MULVS(dpos, vel1, dtime.get());
+    MULVS(dpos, vel1, dtime);
     ADDV(p_val.pos, p_val.pos, dpos);
     ADDV(p_val.vel, vel1, dvel);
 
-    *p = p_val;
+    *p_gptr = p_val;
 
     for (i = 0; i < NDIM; i++) {
       if (p_val.pos[i] < Local.min[i]) {
@@ -1044,39 +1018,34 @@ void stepsystem(long ProcessId)
   */
 
   CountLock.lock();
-  auto   tmp_min = static_cast<sh_vec>(min.get());
-  vector min_vec = {tmp_min.x, tmp_min.y, tmp_min.z};
+  // TODO rko: This can be replaced with an atomic operation
+  vector g_min_v, g_max_v, g_min_v_cpy, g_max_v_cpy;
 
-  auto   tmp_max = static_cast<sh_vec>(max.get());
-  vector max_vec = {tmp_max.x, tmp_max.y, tmp_max.z};
+  // Get the global minimum into a local variable
+  min.get(g_min_v);
+  max.get(g_max_v);
 
-  bool min_vec_modified = false;
-  bool max_vec_modified = false;
+  // Keep a copy of it
+  std::copy(std::begin(g_min_v), std::end(g_min_v), std::begin(g_min_v_cpy));
+  std::copy(std::begin(g_max_v), std::end(g_max_v), std::begin(g_max_v_cpy));
 
-  // TODO rko: This is really ugly so we need a way to store arrays in
-  // dash::Shared
+  // Update global min / max
   for (i = 0; i < NDIM; i++) {
-    if (min_vec[i] > Local.min[i]) {
-      min_vec[i]       = Local.min[i];
-      min_vec_modified = true;
-    }
-    if (max_vec[i] < Local.max[i]) {
-      max_vec[i]       = Local.max[i];
-      max_vec_modified = true;
-    }
+    g_min_v[i] = std::min(Local.min[i], g_min_v[i]);
+    g_max_v[i] = std::max(Local.max[i], g_max_v[i]);
   }
-  if (max_vec_modified) {
-    tmp_max.x = max_vec[0];
-    tmp_max.y = max_vec[1];
-    tmp_max.z = max_vec[2];
-    max.set(tmp_max);
+
+  // Reset global min and max if value has changed
+  if (!(std::equal(
+          std::begin(g_min_v), std::end(g_min_v), std::begin(g_min_v_cpy)))) {
+    min.set(g_min_v);
   }
-  if (min_vec_modified) {
-    tmp_min.x = min_vec[0];
-    tmp_min.y = min_vec[1];
-    tmp_min.z = min_vec[2];
-    min.set(tmp_min);
+
+  if (!(std::equal(
+          std::begin(g_max_v), std::end(g_max_v), std::begin(g_max_v_cpy)))) {
+    max.set(g_max_v);
   }
+
   /*
   {
     pthread_mutex_unlock(&(Global->CountLock));
@@ -1108,58 +1077,66 @@ void stepsystem(long ProcessId)
     };
     */
     trackend = Timer::Now();
-
-    dash::GlobRef<dash::Atomic<unsigned long>> a_tracktime{
-        tracktime.get().dart_gptr()};
-
-    a_tracktime.add(trackend - trackstart);
+    tracktime += trackend - trackstart;
   }
+
   if (ProcessId == 0) {
-    real rsize_val = 0;
+    // real g_rsize_v = 0;
 
-    auto   tmp_max = static_cast<sh_vec>(max.get());
-    vector max_vec = {tmp_max.x, tmp_max.y, tmp_max.z};
+    // update global max
+    max.get(g_max_v);
+    min.get(g_min_v);
 
-    auto   tmp_min = static_cast<sh_vec>(min.get());
-    vector min_vec = {tmp_min.x, tmp_min.y, tmp_min.z};
+    // SUBV(Global->max,Global->max,Global->min);
+    SUBV(g_max_v, g_max_v, g_min_v);
+    // max.set(g_max_v);
 
-    SUBV(max_vec, max_vec, min_vec);
+    /*
     for (i = 0; i < NDIM; i++) {
-      if (rsize_val < max_vec[i]) {
-        rsize_val = max_vec[i];
+      if (Global->rsize < Global->max[i]) {
+        Global->rsize = Global->max[i];
       }
     }
+    */
 
-    auto   tmp_rmin = static_cast<sh_vec>(rmin.get());
-    vector rmin_vec = {tmp_rmin.x, tmp_rmin.y, tmp_rmin.z};
-    ADDVS(rmin_vec, min_vec, -rsize_val / 100000.0);
-    rmin.set({rmin_vec[0], rmin_vec[1], rmin_vec[2]});
+    auto g_rsize_v = std::max(
+        real{0}, *std::max_element(std::begin(g_max_v), std::end(g_max_v)));
 
-    rsize_val = 1.00002 * rsize_val;
+    // ADDVS(Global->rmin,Global->min,-Global->rsize/100000.0);
+    vector g_rmin_v;
+    rmin.get(g_rmin_v);
 
-    rsize.set(rsize_val);
+    // ADDVS(Global->rmin,Global->min,-Global->rsize/100000.0);
+    ADDVS(g_rmin_v, g_min_v, -g_rsize_v / 100000.0);
+    rmin.set(g_rmin_v);
 
-    SETVS(min_vec, 1E99);
-    SETVS(max_vec, -1E99);
-    min.set({min_vec[0], min_vec[1], min_vec[2]});
-    max.set({max_vec[0], max_vec[1], max_vec[2]});
+    // Global->rsize = 1.00002*Global->rsize;
+    g_rsize_v = 1.00002 * g_rsize_v;
+    rsize.set(g_rsize_v);
+
+    SETVS(g_min_v, 1E99);
+    SETVS(g_max_v, -1E99);
+    min.set(g_min_v);
+    max.set(g_max_v);
   }
   Local.nstep++;
-  Local.tnow += dtime.get();
+  Local.tnow += dtime;
   // printtree(G_root.get().get());
 }
 
 void ComputeForces(long ProcessId)
 {
-  bodyptr p, *pp;
+  bodyptr p;
   vector  acc1, dacc, dvel;
 
-  for (pp = Local.mybodytab; pp < Local.mybodytab + Local.mynbody; pp++) {
+  for (auto pp = std::begin(Local.mybodytab);
+       pp < std::next(std::begin(Local.mybodytab), Local.mynbody);
+       ++pp) {
     p = *pp;
     ASSERT(p);
     body p_val = *p;
     SETV(acc1, p_val.acc);
-    Cost(*p) = 0;
+    //Cost(*p) = 0;
     hackgrav(p, ProcessId);
     // reload p_val since the global pointer p is modified
     p_val = *p;
@@ -1171,7 +1148,7 @@ void ComputeForces(long ProcessId)
     if (Local.nstep > 0) {
       /*   use change in accel to make 2nd order correction to vel      */
       SUBV(dacc, p_val.acc, acc1);
-      MULVS(dvel, dacc, dthf.get());
+      MULVS(dvel, dacc, dthf);
       ADDV(p_val.vel, p_val.vel, dvel);
     }
     *p = p_val;
@@ -1186,15 +1163,18 @@ void ComputeForces(long ProcessId)
 void find_my_initial_bodies(
     dash::Array<body> &btab, long nbody, long ProcessId)
 {
-  long extra, offset;
-  size_t i;
+  long /*extra,*/ offset;
+  size_t          i;
 
-  Local.mynbody = nbody / bodytab.team().size();
-  extra         = nbody % bodytab.team().size();
+  offset = btab.pattern().global(0);
+  // Local.mynbody = nbody / bodytab.team().size();
+  // extra         = nbody % bodytab.team().size();
+  Local.mynbody = btab.lsize();
 
+#if 0
   if (ProcessId < extra) {
-    Local.mynbody++;
-    offset = Local.mynbody * ProcessId;
+    //Local.mynbody++;
+    //offset = Local.mynbody * ProcessId;
   }
 
   if (ProcessId >= extra) {
@@ -1202,15 +1182,20 @@ void find_my_initial_bodies(
     offset = (Local.mynbody + 1) * extra +
              (ProcessId - extra) * Local.mynbody;
              */
-    //local to global index mapping
-    offset = bodytab.pattern().global(0);
+    // local to global index mapping
   }
+#endif
 
-  ASSERT(Local.mynbody <= btab.lsize());
+  //ASSERT(Local.mynbody <= btab.lsize());
 
-  // TODO: use dash::copy() --> global to local copy
+  using iter_t = decltype(btab.begin());
+
+
+  //TODO: use dash::transform
   for (i = 0; i < Local.mynbody; i++) {
-    Local.mybodytab[i] = static_cast<bodyptr>(bodytab.begin() + offset + i);
+    // copy local pointer
+    Local.mybodytab[i] =
+        static_cast<typename iter_t::pointer>(btab.begin() + offset + i);
   }
 }
 
@@ -1218,6 +1203,7 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
 {
   long i;
 
+  /* NOTE: Local.mynbody has been reset to 0 before calling this method */
   if (Type((*mycell)) == LEAF) {
     auto       l     = static_cast<leafptr>(mycell);
     auto const l_val = static_cast<leaf>(*l);
@@ -1227,7 +1213,8 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
           error(
               "find_my_bodies: Processor %ld needs more than %ld bodies; "
               "increase fleaves\n",
-              ProcessId, maxmybody);
+              ProcessId,
+              maxmybody);
         }
         Local.mybodytab[Local.mynbody++] = l_val.bodyp[i];
       }
@@ -1241,14 +1228,14 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
     for (i = 0; (i < NSUB) && (work < (Local.workMax - .1)); i++) {
       auto const mycell_val = static_cast<cell>(*NODE_AS_CELL(mycell));
 
-      auto qptr = mycell_val.subp[Child_Sequence[direction][i]];
-      if (qptr) {
-        auto const cost = Cost(*qptr).get();
+      auto qptr    = mycell_val.subp[Child_Sequence[direction][i]];
+      if (qptr != nodeptr{}) {
+        auto const cost = static_cast<long>(Cost(*qptr));
         if ((work + cost) >= (Local.workMin - .1)) {
           find_my_bodies(
               qptr, work, Direction_Sequence[direction][i], ProcessId);
         }
-        work += cost;
+        work += static_cast<long>(Cost(*qptr));
       }
     }
   }
@@ -1298,16 +1285,13 @@ void setbound()
   vector tmp;
 
   ADDVS(tmp, Local.min, -side / 100000.0);
-  sh_vec tmp_val = {tmp[0], tmp[1], tmp[2]};
-  rmin.set(tmp_val);
+  rmin.set(tmp);
 
   SETVS(tmp, -1E99)
-  tmp_val = {tmp[0], tmp[1], tmp[2]};
-  max.set(tmp_val);
+  max.set(tmp);
 
   SETVS(tmp, 1E99)
-  tmp_val = {tmp[0], tmp[1], tmp[2]};
-  min.set(tmp_val);
+  min.set(tmp);
 }
 
 void Help()
