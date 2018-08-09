@@ -11,6 +11,6 @@ fi
 gpat='^Cell\|Child\|Leaf\|Body'
 spat='s/ //g;s/Num=[0-9]\+,//g'
 
-colordiff -w \
+diff -w \
   <(grep "$gpat" "$1" | sed "$spat" | sort) \
   <(grep "$gpat" "$2" | sed "$spat" | sort)
