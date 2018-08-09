@@ -92,9 +92,9 @@ extern dash::Shared<cellptr> G_root; /* root of the whole tree */
 /* lower-left corner of coordinate box */
 extern dash::SharedArray<vector> rmin;
 /* temporary lower-left corner of the box  */
-extern dash::SharedArray<vector> min;
+extern vector g_min;
 /* temporary upper right corner of the box */
-extern dash::SharedArray<vector> max;
+extern vector g_max;
 /* side-length of integer coordinate box   */
 extern dash::Shared<real> rsize;
 

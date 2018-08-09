@@ -128,9 +128,9 @@ dash::Shared<cellptr> G_root; /* root of the whole tree */
 /* lower-left corner of coordinate box */
 dash::SharedArray<vector> rmin;
 /* temporary lower-left corner of the box  */
-dash::SharedArray<vector> min;
+vector g_min;
 /* temporary upper right corner of the box */
-dash::SharedArray<vector> max;
+vector g_max;
 /* side-length of integer coordinate box   */
 dash::Shared<real> rsize;
 
@@ -333,6 +333,11 @@ static void LocalInit()
   Local.tnow  = 0.0;
   Local.tout  = Local.tnow + dtout;
   Local.nstep = 0;
+
+
+  //Init globally shared variables
+  SETVS(g_min, 1E99);
+  SETVS(g_max, -1E99)
 }
 /***********************************************
  * IMPLEMENTATION OF BARNES HUT                *
@@ -524,8 +529,8 @@ void ANLinit()
   //(maxcell.allocate());
   (rsize.init());  //
   (rmin.init());
-  (max.init());
-  (min.init());
+  //(max.init());
+  //(min.init());
   //(createstart.allocate());
   //(createend.allocate());
   // (computestart.allocate());
@@ -999,43 +1004,21 @@ void stepsystem(long ProcessId)
   };
   */
 
-  CountLock.lock();
-  // TODO rko: This can be replaced with an atomic operation
-  vector g_min_v, g_max_v, g_min_v_cpy, g_max_v_cpy;
+  dart_allreduce(
+      Local.min,
+      g_min,
+      NDIM,
+      dash::dart_datatype<real>::value,
+      DART_OP_MIN,
+      bodytab.team().dart_id());
 
-  // Get the global minimum into a local variable
-  min.get(g_min_v);
-  max.get(g_max_v);
-
-  // Keep a copy of it
-  std::copy(std::begin(g_min_v), std::end(g_min_v), std::begin(g_min_v_cpy));
-  std::copy(std::begin(g_max_v), std::end(g_max_v), std::begin(g_max_v_cpy));
-
-  // Update global min / max
-  for (i = 0; i < NDIM; i++) {
-    g_min_v[i] = std::min(Local.min[i], g_min_v[i]);
-    g_max_v[i] = std::max(Local.max[i], g_max_v[i]);
-  }
-
-  // Reset global min and max if value has changed
-  if (!(std::equal(
-          std::begin(g_min_v), std::end(g_min_v), std::begin(g_min_v_cpy)))) {
-    min.set(g_min_v);
-  }
-
-  if (!(std::equal(
-          std::begin(g_max_v), std::end(g_max_v), std::begin(g_max_v_cpy)))) {
-    max.set(g_max_v);
-  }
-
-
-
-  /*
-  {
-    pthread_mutex_unlock(&(Global->CountLock));
-  };
-  */
-  CountLock.unlock();
+  dart_allreduce(
+      Local.max,
+      g_max,
+      NDIM,
+      dash::dart_datatype<real>::value,
+      DART_OP_MAX,
+      bodytab.team().dart_id());
 
   /* bar needed to make sure that every process has computed its min */
   /* and max coordinates, and has accumulated them into the global   */
@@ -1064,43 +1047,29 @@ void stepsystem(long ProcessId)
   }
 
   if (ProcessId == 0) {
-    // real g_rsize_v = 0;
 
-    // update global max
-    max.get(g_max_v);
-    min.get(g_min_v);
-
-    // SUBV(Global->max,Global->max,Global->min);
-    SUBV(g_max_v, g_max_v, g_min_v);
-
-    /*
-    for (i = 0; i < NDIM; i++) {
-      if (Global->rsize < Global->max[i]) {
-        Global->rsize = Global->max[i];
-      }
-    }
-    */
+    SUBV(g_max, g_max, g_min);
 
     auto g_rsize_v = std::max(
-        real{0}, *std::max_element(std::begin(g_max_v), std::end(g_max_v)));
+        real{0}, *std::max_element(std::begin(g_max), std::end(g_max)));
 
     // ADDVS(Global->rmin,Global->min,-Global->rsize/100000.0);
     vector g_rmin_v;
     rmin.get(g_rmin_v);
 
     // ADDVS(Global->rmin,Global->min,-Global->rsize/100000.0);
-    ADDVS(g_rmin_v, g_min_v, -g_rsize_v / 100000.0);
+    ADDVS(g_rmin_v, g_min, -g_rsize_v / 100000.0);
     rmin.set(g_rmin_v);
 
     // Global->rsize = 1.00002*Global->rsize;
     g_rsize_v = 1.00002 * g_rsize_v;
     rsize.set(g_rsize_v);
 
-    SETVS(g_min_v, 1E99);
-    SETVS(g_max_v, -1E99);
-    min.set(g_min_v);
-    max.set(g_max_v);
   }
+
+  SETVS(g_min, 1E99);
+  SETVS(g_max, -1E99);
+
   Local.nstep++;
   Local.tnow += dtime;
 }
@@ -1268,11 +1237,6 @@ void setbound()
   ADDVS(tmp, Local.min, -side / 100000.0);
   rmin.set(tmp);
 
-  SETVS(tmp, -1E99)
-  max.set(tmp);
-
-  SETVS(tmp, 1E99)
-  min.set(tmp);
 }
 
 void Help()
