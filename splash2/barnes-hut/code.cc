@@ -587,17 +587,13 @@ void tab_init()
   maxmycell = maxcell / bodytab.team().size();
   maxmyleaf = maxleaf / bodytab.team().size();
 
-  std::ostringstream ss;
-
-  ss << "maxmybody: " << maxmybody << "\n"
-     << "maxmycell: " << maxmycell << "\n"
-     << "maxmyleaf: " << maxmyleaf << "\n";
-
-  std::cout << ss.str() << std::endl;
-
   Local.mybodytab.resize(maxmybody);
   Local.mycelltab.resize(maxmycell);
   Local.myleaftab.resize(maxmyleaf);
+
+  LOG("maxmybody: " << maxmybody);
+  LOG("maxmycell: " << maxmycell);
+  LOG("maxmyleaf: " << maxmyleaf);
 }
 
 /*
@@ -669,29 +665,9 @@ void startrun()
   seed = 123;
   // outfile        = NULL;
 
-  // dtime.set(0.025);
-  // dthf.set(0.5 * 0.025);
-  // eps.set(0.05);
-  // epssq.set(0.05 * 0.05);
-  // tol.set(1.0);
-  // tolsq.set(1.0 * 1.0);
-  // fcells.set(2.0);
-  // fleaves.set(5.0);
-  // tstop.set(0.075);
-  // dtout.set(0.25);
-  // NPROC          = getiparam("NPROC")
-  // Local.nstep = 0;
-  // globnstep.set(0);
   pranset(seed);
   testdata();
   setbound();
-
-  // Local.tnow is 0.0
-  // dtout is a param, so we can simply fix that without a global shared
-  // variable
-  // Local.tout = Local.tnow + dtout;
-  // globtout.set(Local.tout);
-  // globtnow.set(Local.tnow);
 
   printf("----------PARAMS----------------\n");
   printf("infile = \n");
@@ -733,11 +709,9 @@ void testdata()
   CLRV(cmr);
   CLRV(cmv);
 
-  // TODO: make updates more efficient as we traverse over all bodies twice
-
   halfnbody = nbody / 2;
   if (nbody % 2 != 0) halfnbody++;
-  // TODO: use dash::transform
+
   for (auto iter = bodytab.begin(); iter < bodytab.begin() + halfnbody;
        ++iter) {
     // local copy
@@ -948,7 +922,6 @@ void stepsystem(long ProcessId)
   find_my_bodies(G_root.get().get(), 0, BRC_FUC, ProcessId);
   LOG("my nbodies: " << Local.mynbody);
 
-  /*     B*RRIER(Global->Barcom,NPROC); */
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
     {
@@ -980,18 +953,6 @@ void stepsystem(long ProcessId)
   }
 
   ComputeForces(ProcessId);
-
-#if 0
-  dash::barrier();
-
-  if (ProcessId == 0) {
-    LOG("after compute forces");
-    //printtree(G_root.get().get());
-  }
-
-  dash::barrier();
-  // printtree(G_root.get().get());
-#endif
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -1032,17 +993,6 @@ void stepsystem(long ProcessId)
     }
   }
 
-#if 0
-
-  dash::barrier();
-
-  if (ProcessId == 0) {
-    LOG("after advance bodies");
-    //printtree(G_root.get().get());
-  }
-
-  dash::barrier();
-#endif
   /*
   {
     pthread_mutex_lock(&(Global->CountLock));
@@ -1087,27 +1037,6 @@ void stepsystem(long ProcessId)
   */
   CountLock.unlock();
 
-#if 0
-  dash::barrier();
-
-  if (ProcessId == 0) {
-    vector g_min_v, g_max_v;
-    min.get(g_min_v);
-    max.get(g_max_v);
-
-    std::ostringstream os;
-    os << "gmin: [ ";
-    std::copy(std::begin(g_min_v), std::end(g_min_v), std::ostream_iterator<real>(os, " "));
-    os << "]\n";
-    os << "gmax: [ ";
-    std::copy(std::begin(g_max_v), std::end(g_max_v), std::ostream_iterator<real>(os, " "));
-    os << "]\n";
-
-    LOG(os.str());
-  }
-
-#endif
-
   /* bar needed to make sure that every process has computed its min */
   /* and max coordinates, and has accumulated them into the global   */
   /* min and max, before the new dimensions are computed
@@ -1143,7 +1072,6 @@ void stepsystem(long ProcessId)
 
     // SUBV(Global->max,Global->max,Global->min);
     SUBV(g_max_v, g_max_v, g_min_v);
-    // max.set(g_max_v);
 
     /*
     for (i = 0; i < NDIM; i++) {
@@ -1175,7 +1103,6 @@ void stepsystem(long ProcessId)
   }
   Local.nstep++;
   Local.tnow += dtime;
-  // printtree(G_root.get().get());
 }
 
 void ComputeForces(long ProcessId)
