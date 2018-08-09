@@ -61,19 +61,19 @@ typedef struct _node *nodelptr;
 
 typedef struct _node {
   // 8
-  long type; /* code for node type: body or cell */
+  long type{}; /* code for node type: body or cell */
   // 8
-  real mass; /* total mass of node */
+  real mass{}; /* total mass of node */
   // 24
-  vector pos; /* position of node */
+  vector pos{}; /* position of node */
   // 8
-  long cost; /* number of interactions computed */
+  long cost{}; /* number of interactions computed */
   // 8
-  long level;
+  long level{};
   // 40
-  nodeptr parent; /* ptr to parent of this node in tree */
+  nodeptr parent{}; /* ptr to parent of this node in tree */
   // 8
-  long child_num; /* Index that this node should be put at in parent cell */
+  long child_num{}; /* Index that this node should be put at in parent cell */
 } node;
 
 /*
@@ -127,11 +127,11 @@ struct _body_old {
 typedef struct _body : public node {
   //-------- Unique attribute in body
   // 24
-  vector vel; /* velocity of body */
+  vector vel{}; /* velocity of body */
   // 24
-  vector acc; /* acceleration of body */
+  vector acc{}; /* acceleration of body */
   // 8
-  real phi; /* potential at body */
+  real phi{}; /* potential at body */
 } body;
 
 std::ostream &operator<<(std::ostream &os, const body &b);
@@ -177,15 +177,15 @@ struct _cell_old {
 
 typedef struct _cell : public node {
   //-------- Unique attribute in cell
-  long processor; /* Used by partition code */
+  long processor{}; /* Used by partition code */
   // Not really used, so no problem in DASH
-  struct _cell *next, *prev; /* Used in the partition array */
-  long seqnum; // seqnum for locks
+  struct _cell *next{}, *prev{}; /* Used in the partition array */
+  long seqnum{}; // seqnum for locks
 #ifdef QUADPOLE
-  matrix quad; /* quad. moment of cell */
+  matrix quad{}; /* quad. moment of cell */
 #endif
-  /*volatile*/ long done; /* flag to tell when the c.of.m is ready */
-  nodeptr subp[NSUB];     /* descendents of cell */
+  /*volatile*/ long done{}; /* flag to tell when the c.of.m is ready */
+  nodeptr subp[NSUB]{nodeptr{}};     /* descendents of cell */
 } cell;
 
 std::ostream &operator<<(std::ostream &os, const cell &c);
@@ -225,16 +225,16 @@ struct _leaf_old {
 };
 
 typedef struct _leaf : public node {
-  long processor; /* Used by partition code */
+  long processor{}; /* Used by partition code */
   // Not really used!!! So no problem in DASH
-  struct _leaf *next, *prev; /* Used in the partition array */
-  long seqnum;
+  struct _leaf *next{}, *prev{}; /* Used in the partition array */
+  long seqnum{};
 #ifdef QUADPOLE
-  matrix quad; /* quad. moment of leaf */
+  matrix quad{}; /* quad. moment of leaf */
 #endif
   /*volatile */ long done; /* flag to tell when the c.of.m is ready */
-  long num_bodies;
-  bodyptr bodyp[MAX_BODIES_PER_LEAF]; /* bodies of leaf */
+  long num_bodies{};
+  bodyptr bodyp[MAX_BODIES_PER_LEAF]{bodyptr{}}; /* bodies of leaf */
 } leaf;
 
 static_assert(sizeof(struct _leaf_old) == sizeof(struct _leaf),

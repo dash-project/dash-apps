@@ -503,6 +503,8 @@ void ANLinit()
     error("testdata: not enough memory\n");
   }
 
+  std::uninitialized_fill(bodytab.lbegin(), bodytab.lend(), body{});
+
   CountLock.init();
 
   //(dtime.allocate());
@@ -570,6 +572,9 @@ void tab_init()
 
   celltab.allocate(maxcell);
   leaftab.allocate(maxleaf);
+
+  std::uninitialized_fill(celltab.lbegin(), celltab.lend(), cell{});
+  std::uninitialized_fill(leaftab.lbegin(), leaftab.lend(), leaf{});
 
   /*allocate space for personal lists of body pointers */
   maxmybody = (nbody + maxleaf * MAX_BODIES_PER_LEAF) / bodytab.team().size();
@@ -651,6 +656,7 @@ void SlaveStart()
   /* main loop */
   while (Local.tnow < tstop + 0.1 * dtime) {
     stepsystem(ProcessId);
+    //if (ProcessId == 0) printtree(G_root.get().get());
   }
   if (ProcessId == 0) printtree(G_root.get().get());
 }
@@ -975,7 +981,17 @@ void stepsystem(long ProcessId)
 
   ComputeForces(ProcessId);
 
+#if 0
+  dash::barrier();
+
+  if (ProcessId == 0) {
+    LOG("after compute forces");
+    //printtree(G_root.get().get());
+  }
+
+  dash::barrier();
   // printtree(G_root.get().get());
+#endif
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -1015,6 +1031,18 @@ void stepsystem(long ProcessId)
       }
     }
   }
+
+#if 0
+
+  dash::barrier();
+
+  if (ProcessId == 0) {
+    LOG("after advance bodies");
+    //printtree(G_root.get().get());
+  }
+
+  dash::barrier();
+#endif
   /*
   {
     pthread_mutex_lock(&(Global->CountLock));
@@ -1050,12 +1078,35 @@ void stepsystem(long ProcessId)
     max.set(g_max_v);
   }
 
+
+
   /*
   {
     pthread_mutex_unlock(&(Global->CountLock));
   };
   */
   CountLock.unlock();
+
+#if 0
+  dash::barrier();
+
+  if (ProcessId == 0) {
+    vector g_min_v, g_max_v;
+    min.get(g_min_v);
+    max.get(g_max_v);
+
+    std::ostringstream os;
+    os << "gmin: [ ";
+    std::copy(std::begin(g_min_v), std::end(g_min_v), std::ostream_iterator<real>(os, " "));
+    os << "]\n";
+    os << "gmax: [ ";
+    std::copy(std::begin(g_max_v), std::end(g_max_v), std::ostream_iterator<real>(os, " "));
+    os << "]\n";
+
+    LOG(os.str());
+  }
+
+#endif
 
   /* bar needed to make sure that every process has computed its min */
   /* and max coordinates, and has accumulated them into the global   */
@@ -1066,7 +1117,6 @@ void stepsystem(long ProcessId)
     pthread_barrier_wait(&(Global->Barrier));
   };
   */
-
   dash::barrier();
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
@@ -1137,10 +1187,10 @@ void ComputeForces(long ProcessId)
        pp < std::next(std::begin(Local.mybodytab), Local.mynbody);
        ++pp) {
     p = *pp;
-    ASSERT(p);
-    body p_val = *p;
+    ASSERT(p != bodyptr{});
+    auto p_val = static_cast<body>(*p);
     SETV(acc1, p_val.acc);
-    //Cost(*p) = 0;
+    Cost(*p) = 0;
     hackgrav(p, ProcessId);
     // reload p_val since the global pointer p is modified
     p_val = *p;

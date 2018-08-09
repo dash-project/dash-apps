@@ -28,6 +28,7 @@
 #include "defs.h"
 #include "shared_array.h"
 #include "stdinc.h"
+#include <cassert>
 
 #define PAD_SIZE (PAGE_SIZE / (sizeof(long)))
 /* Workaround since dash::Shared does not support arrays as value types */
@@ -202,16 +203,8 @@ void setbound(void);
 long Log_base_2(long number);
 long intpow(long i, long j);
 
-#ifdef ENABLE_ASSERTIONS
-#define ASSERT(expr)                                  \
-  do {                                                \
-    if (!(expr)) {                                    \
-      throw(                                          \
-          dash::exception::AssertionFailed,           \
-          "Assertion failed: "                        \
-              << " " << __FILE__ << ":" << __LINE__); \
-    }                                                 \
-  } while (0)
+#ifndef NDEBUG
+#define ASSERT(expr) (assert((expr)))
 #else
 #define ASSERT(expr) (void)(expr)
 #endif

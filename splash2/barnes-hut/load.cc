@@ -142,10 +142,31 @@ void maketree(long ProcessId)
     }
   }
   dash::barrier();
+
   LOG("mynleaf: " << Local.mynleaf << ", myncell: " << Local.myncell);
 
-  hackcofm(ProcessId);
+#if 0
+  if (ProcessId == 0) {
+//    LOG("before hackcofm");
+//    printtree(G_root.get().get());
+  }
+
   dash::barrier();
+#endif
+
+  hackcofm(ProcessId);
+
+  dash::barrier();
+
+#if 0
+  if (ProcessId == 0) {
+    LOG("after hackcofm");
+    printtree(G_root.get().get());
+  }
+
+  dash::barrier();
+#endif
+
 }
 
 cellptr InitCell(cellptr parent, long ProcessId)
@@ -153,7 +174,7 @@ cellptr InitCell(cellptr parent, long ProcessId)
   auto c = makecell(ProcessId);
   ASSERT(c.local());
   // auto c_val     = static_cast<cell>(*c);
-  auto &c_val     = *c.local();
+  auto &c_val     = *(c.local());
   c_val.processor = ProcessId;
   c_val.next      = NULL;
   c_val.prev      = NULL;
@@ -177,7 +198,7 @@ leafptr InitLeaf(cellptr parent, long ProcessId)
   ASSERT(leaf_gptr.local());
   //auto l_ref = *leaf_gptr;
   // dereference it, local copy
-  auto & lv      = *leaf_gptr.local();
+  auto & lv      = *(leaf_gptr.local());
   lv.processor = ProcessId;
   lv.next      = NULL;
   lv.prev      = NULL;
@@ -249,9 +270,13 @@ static void _printtree(nodeptr n, std::ostringstream &ss)
       for (k = 0; k < l_val.num_bodies; k++) {
         p = l_val.bodyp[k];
 
-        auto const p_val = (*p).get();
+        //auto const p_val = (*p).get();
 
-        ss << "Body #" << p - static_cast<bodyptr>(bodytab.begin())
+        //construct a new GlobPtr to get the distance
+        auto const p_tmp = bodyptr{bodytab.globmem(), p.dart_gptr()};
+        auto const p_val = (*p_tmp).get();
+
+        ss << "Body #" << p_tmp - static_cast<bodyptr>(bodytab.begin())
            << ": Num = " << k << ", Level = " << p_val.level << ", ";
         PRTV(ss, "Pos", p_val.pos);
         ss << "\n";
@@ -268,7 +293,8 @@ void printtree(nodeptr n)
 {
   std::ostringstream ss;
   _printtree(n, ss);
-  std::cout << ss.str() << std::endl;
+  ss << std::endl;
+  std::cout << ss.str();
 }
 
 /*
@@ -376,13 +402,17 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
       // CASE 3: Empty Cell!!
       //{pthread_mutex_lock(&CellLock->CL[((cellptr)mynode)->seqnum %
       // MAXLOCK]);}
+      auto const sn = mynode_val.seqnum;
       CellLock.at(mynode_val.seqnum % MAXLOCK).lock();
+      //reloading mynode_val
+      mynode_val = static_cast<cell>(*NODE_AS_CELL(mynode));
+      ASSERT(mynode_val.seqnum == sn);
       if (*qptr == nodeptr{}) {
         // insert particle into the cell, treat the cell as a leaf
         le          = InitLeaf(static_cast<cellptr>(mynode), ProcessId);
         ASSERT(le.local());
         //auto le_val = static_cast<leaf>(*le);
-        auto & le_val = *le.local();
+        auto & le_val = *(le.local());
 
         body_val.parent = le;
         body_val.level  = l;
@@ -396,8 +426,9 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         flag = false;
         *p   = body_val;
         //*le  = le_val;
+        //This changes mynode_val
         *qptr = le;
-        //mynode_val.subp[kidIndex] = le;
+        //write mynode_val back
         *NODE_AS_CELL(mynode) = mynode_val;
 #ifdef ENABLE_ASSERTIONS
         auto const tmp = static_cast<cell>(*NODE_AS_CELL(mynode));
@@ -411,8 +442,12 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
       /*   reached a "leaf"?      */
       //{pthread_mutex_lock(&CellLock->CL[((cellptr)mynode)->seqnum %
       // MAXLOCK]);};
+      auto const sn = mynode_val.seqnum;
       CellLock.at(mynode_val.seqnum % MAXLOCK).lock();
       /* lock the parent cell */
+      //reloading mynode_val
+      mynode_val = static_cast<cell>(*NODE_AS_CELL(mynode));
+      ASSERT(mynode_val.seqnum == sn);
       if (Type(*(*qptr)) == LEAF) { /* still a "leaf"?      */
         le          = *qptr;
         auto le_val = static_cast<leaf>(*le);
@@ -539,8 +574,7 @@ void hackcofm(long ProcessId)
     l_val.cost = 0;
     CLRV(l_val.pos);
     for (i = 0; i < l_val.num_bodies; i++) {
-      auto       p     = l_val.bodyp[i];
-      auto const p_val = static_cast<body>(*p);
+      auto const p_val = static_cast<body>(*(l_val.bodyp[i]));
       l_val.mass += p_val.mass;
       l_val.cost += p_val.cost;
       MULVS(tmpv, p_val.pos, p_val.mass);
@@ -566,6 +600,7 @@ void hackcofm(long ProcessId)
     //*l = l_val;
     // write atomically true
     AtomicDone(*l) = true;
+    ASSERT(l_val.done == true);
     //l_val.done = true;
   }
 
@@ -617,6 +652,7 @@ void hackcofm(long ProcessId)
 #endif
     //*q             = q_val;
     AtomicDone(*q) = true;
+    ASSERT(q_val.done == true);
     //q_val.done = true;
   }
 }
@@ -718,6 +754,9 @@ cellptr makecell(long ProcessId)
   c.type   = CELL;
   c.done   = false;
   c.mass   = 0.0;
+  c.cost   = 0;
+
+  std::fill(std::begin(c.pos), std::end(c.pos), real{0});
   /*
   for (i = 0; i < NSUB; i++) {
     Subp(c)[i] = NULL;
@@ -759,8 +798,10 @@ leafptr makeleaf(long ProcessId)
   le_val.done       = false;
   le_val.mass       = 0.0;
   le_val.num_bodies = 0;
+  le_val.cost       = 0;
 
   std::fill(le_val.bodyp, le_val.bodyp + MAX_BODIES_PER_LEAF, bodyptr{});
+  std::fill(std::begin(le_val.pos), std::end(le_val.pos), real{0});
   // write the value back to global memory
   //*le                              = le_val;
   Local.myleaftab[Local.mynleaf++] = le_ptr;

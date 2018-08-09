@@ -1,21 +1,34 @@
-----------PARAMS----------------
-infile = 
-nbody = 64
-seed = 123
-outfile = 
-dtime = 0.025000
-eps = 0.050000
-tol = 1.000000
-fcells = 2.000000
-fleaves = 5.000000
-tstop = 0.075000
-dtout = 0.250000
-NPROC = 1
-maxmybody: 3264
-maxmycell: 640
-maxmyleaf: 320
 
-COMPUTESTART  = 1507648798222761
+		Hack code: Plummer model
+
+     nbody     dtime       eps       tol     dtout     tstop    fcells     NPROC
+        64   0.02500    0.0500      1.00     0.250     0.075      2.00         1
+
+COMPUTESTART  = 1533815633886806
+myncell: 3, mynleaf: 16
+Cavg: 64.000000
+after compute forces
+after advance bodies
+gmin: [ -8.653803 -6.467853 -5.806404 ]
+gmax: [ 7.463587 6.905601 11.050360 ]
+myncell: 3, mynleaf: 16
+Cavg: 2380.000000
+after compute forces
+after advance bodies
+gmin: [ -8.652631 -6.469779 -5.801497 ]
+gmax: [ 7.462985 6.907461 11.050568 ]
+myncell: 3, mynleaf: 16
+Cavg: 2379.000000
+after compute forces
+after advance bodies
+gmin: [ -8.651454 -6.471696 -5.796574 ]
+gmax: [ 7.462381 6.909320 11.050773 ]
+myncell: 3, mynleaf: 16
+Cavg: 2379.000000
+after compute forces
+after advance bodies
+gmin: [ -8.650271 -6.473604 -5.791636 ]
+gmax: [ 7.461777 6.911177 11.050976 ]
 Cell : Cost = 2379, Pos = [  -0.0000,   0.0000,  -0.0000] 
 Child #0: C: Cost = 1050, Pos = [  -2.6876,  -2.1513,  -2.1863] 
 Child #1: NONE
@@ -123,10 +136,10 @@ Body #39: Num =  1, Level = 576460752303423488, Pos = [   2.6163,   0.5529,  -1.
 Leaf : # Bodies =  2, Cost = 68, Pos = [   4.5707,   0.8078,   2.1304] 
 Body #34: Num =  0, Level = 576460752303423488, Pos = [   4.3451,   0.7556,   1.7576] 
 Body #52: Num =  1, Level = 576460752303423488, Pos = [   4.8023,   0.8476,   2.4927] 
-COMPUTEEND    = 1507648798226200
-COMPUTETIME   =         3439
-TRACKTIME     =          516
-PARTITIONTIME =            4	 0.01
-TREEBUILDTIME =           44	 0.09
-FORCECALCTIME =          456	 0.88
-RESTTIME      =           12	 0.02
+COMPUTEEND    = 1533815633889862
+COMPUTETIME   =         3056
+TRACKTIME     =         1261
+PARTITIONTIME =           13	 0.01
+TREEBUILDTIME =          114	 0.09
+FORCECALCTIME =         1088	 0.86
+RESTTIME      =           46	 0.04
