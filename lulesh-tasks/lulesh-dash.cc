@@ -1065,10 +1065,6 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
             if (vnew[i] > eosvmax)
               vnew[i] = eosvmax ;
           }
-      },
-      [vnew]
-      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-        *deps = dash::tasks::out(&vnew[from]);
       });
     //dash::tasks::complete();
 
@@ -1135,10 +1131,6 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
 #endif
             }
           }
-        },
-        [vnew]
-        (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-          *deps = dash::tasks::in(&vnew[from]);
         });
       dash::tasks::complete();
     }
