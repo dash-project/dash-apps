@@ -332,7 +332,6 @@ static void LocalInit()
   Local.tnow  = 0.0;
   Local.tout  = Local.tnow + dtout;
   Local.nstep = 0;
-
 }
 /***********************************************
  * IMPLEMENTATION OF BARNES HUT                *
@@ -773,9 +772,6 @@ long intpow(long i, long j)
 
 void stepsystem(long ProcessId)
 {
-  long i;
-  // real Cavg;
-  // bodyptr p, *pp;
   vector dvel, vel1, dpos;
   long   trackstart, trackend;
   long   partitionstart, partitionend;
@@ -946,14 +942,32 @@ void stepsystem(long ProcessId)
 
     *p_gptr = p_val;
 
+    /*
     for (i = 0; i < NDIM; i++) {
       if (p_val.pos[i] < Local.min[i]) {
         Local.min[i] = p_val.pos[i];
       }
+
       if (p_val.pos[i] > Local.max[i]) {
         Local.max[i] = p_val.pos[i];
       }
     }
+    */
+
+    std::transform(
+        std::begin(Local.min),
+        std::end(Local.min),
+        std::begin(p_val.pos),
+        std::begin(Local.min),
+        [](const real &lhs, const real &rhs) { return std::min(lhs, rhs); });
+
+    std::transform(
+        std::begin(Local.max),
+        std::end(Local.max),
+        std::begin(p_val.pos),
+        std::begin(Local.max),
+        [](const real &lhs, const real &rhs) { return std::max(lhs, rhs); });
+
   }
 
   /*
@@ -1163,14 +1177,29 @@ void setbound()
   */
 
   for (auto liter = bodytab.lbegin(); liter < bodytab.lend(); ++liter) {
+    /*
+    for (size_t i = 0; i < NDIM; i++) {
+      if (p.pos[i] < Local.min[i]) Local.min[i] = p.pos[i];
+      if (p.pos[i] > Local.max[i]) Local.max[i] = p.pos[i];
+    }
+    */
+
     auto const &p = *liter;
 
-    for (size_t i = 0; i < NDIM; i++) {
-      // if (p.pos[i] < Local.min[i]) Local.min[i] = p.pos[i];
-      Local.min[i] = std::min(Local.min[i], p.pos[i]);
-      // if (p.pos[i] > Local.max[i]) Local.max[i] = p.pos[i];
-      Local.max[i] = std::max(Local.max[i], p.pos[i]);
-    }
+    std::transform(
+        std::begin(Local.min),
+        std::end(Local.min),
+        std::begin(p.pos),
+        std::begin(Local.min),
+        [](const real &lhs, const real &rhs) { return std::min(lhs, rhs); });
+
+    std::transform(
+        std::begin(Local.max),
+        std::end(Local.max),
+        std::begin(p.pos),
+        std::begin(Local.max),
+        [](const real &lhs, const real &rhs) { return std::max(lhs, rhs); });
+
   }
 
   dart_allreduce(
@@ -1195,8 +1224,8 @@ void setbound()
     if (side < Local.max[i]) side = Local.max[i];
   }
   */
-  auto const side =
-      std::max(real{0}, *std::max_element(std::begin(g_max), std::end(g_max)));
+  auto const side = std::max(
+      real{0}, *std::max_element(std::begin(g_max), std::end(g_max)));
 
   g_rsize = 1.00002 * side;
 
