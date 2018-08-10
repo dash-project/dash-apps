@@ -1767,6 +1767,37 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
                           Index_t length, Index_t *regElemList,
                           bool block = true)
 {
+  dash::tasks::taskloop(Index_t{0}, length,
+                        length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+    [=](Index_t from, Index_t to) {
+      for (Index_t i = from; i < to; ++i) {
+        Real_t c1s = Real_t(2.0)/Real_t(3.0) ;
+        bvc[i] = c1s * (compression[i] + Real_t(1.));
+        pbvc[i] = c1s;
+
+        Index_t elem = regElemList[i];
+
+        p_new[i] = bvc[i] * e_old[i] ;
+
+        if    (FABS(p_new[i]) <  p_cut   )
+          p_new[i] = Real_t(0.0) ;
+
+        if    ( vnewc[elem] >= eosvmax ) /* impossible condition here? */
+          p_new[i] = Real_t(0.0) ;
+
+        if    (p_new[i]       <  pmin)
+          p_new[i]   = pmin ;
+      }
+    },
+    [bvc, compression, p_new, e_old]
+    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      *deps = dash::tasks::out(&bvc[from]);
+      *deps = dash::tasks::in(&compression[from]);
+      *deps = dash::tasks::out(&p_new[from]);
+      *deps = dash::tasks::in(&e_old[from]);
+    });
+
+#if 0
 //#pragma omp parallel for firstprivate(length)
   dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
@@ -1805,6 +1836,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
       *deps = dash::tasks::in(&e_old[from]);
       *deps = dash::tasks::out(&p_new[from]);
     });
+#endif
   if (block)
     dash::tasks::complete();
 }
@@ -1871,6 +1903,15 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
         e_new[i] = e_new[i] + Real_t(0.5) * delvc[i]
             * (  Real_t(3.0)*(p_old[i]     + q_old[i])
                 - Real_t(4.0)*(pHalfStep[i] + q_new[i])) ;
+
+        e_new[i] += Real_t(0.5) * work[i];
+
+        if (FABS(e_new[i]) < e_cut) {
+          e_new[i] = Real_t(0.)  ;
+        }
+        if (     e_new[i]  < emin ) {
+          e_new[i] = emin ;
+        }
       }
     },
     [e_new, q_new, compHalfStep, bvc, pHalfStep]
@@ -1883,6 +1924,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
     });
   //dash::tasks::complete();
 
+#if 0
 //#pragma omp parallel for firstprivate(length, emin, e_cut)
   dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
@@ -1903,6 +1945,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       *deps = dash::tasks::out(&e_new[from]);
     });
   //dash::tasks::complete();
+#endif
 
   CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
                        pmin, p_cut, eosvmax, length, regElemList, false);
@@ -2069,6 +2112,40 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
   //loop to add load imbalance based on region number
   for(Int_t j = 0; j < rep; j++) {
     /* compress data, minimal set */
+
+    dash::tasks::taskloop(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      [=, &domain](Index_t from, Index_t to) {
+        for (Index_t i=from; i<to; ++i) {
+          Index_t elem = regElemList[i];
+          e_old[i] = domain.e(elem) ;
+          delvc[i] = domain.delv(elem) ;
+          p_old[i] = domain.p(elem) ;
+          q_old[i] = domain.q(elem) ;
+          qq_old[i] = domain.qq(elem) ;
+          ql_old[i] = domain.ql(elem) ;
+
+          Real_t vchalf ;
+          compression[i] = Real_t(1.) / vnewc[elem] - Real_t(1.);
+          vchalf = vnewc[elem] - delvc[i] * Real_t(.5);
+          compHalfStep[i] = Real_t(1.) / vchalf - Real_t(1.);
+
+          if (vnewc[elem] <= eosvmin) { /* impossible due to calling func? */
+            compHalfStep[i] = compression[i] ;
+          }
+
+          if (vnewc[elem] >= eosvmax) { /* impossible due to calling func? */
+            p_old[i]        = Real_t(0.) ;
+            compression[i]  = Real_t(0.) ;
+            compHalfStep[i] = Real_t(0.) ;
+          }
+
+          work[i] = Real_t(0.) ;
+        }
+      });
+
+    dash::tasks::complete();
+
+#if 0
 //#pragma omp parallel
     {
 //#pragma omp for nowait firstprivate(numElemReg)
@@ -2156,6 +2233,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
       });
       dash::tasks::complete();
     }
+#endif
 
     // TODO integrate with computation above
 

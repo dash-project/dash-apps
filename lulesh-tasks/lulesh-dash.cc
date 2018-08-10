@@ -1051,9 +1051,30 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
     Real_t eosvmin = domain.eosvmin() ;
     Real_t eosvmax = domain.eosvmax() ;
 
+//#pragma omp for firstprivate(numElem)
+    dash::tasks::taskloop(Index_t{0}, numElem,
+      [&, eosvmin](Index_t from, Index_t to){
+        if (eosvmin != Real_t(0.))
+          for(Index_t i=from; i<to; ++i) {
+            if (vnew[i] < eosvmin)
+              vnew[i] = eosvmin ;
+          }
+
+        if (eosvmax != Real_t(0.))
+          for(Index_t i=from; i<to; ++i) {
+            if (vnew[i] > eosvmax)
+              vnew[i] = eosvmax ;
+          }
+      },
+      [vnew]
+      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+        *deps = dash::tasks::out(&vnew[from]);
+      });
+    //dash::tasks::complete();
+
 //#pragma omp parallel
     {
-
+#if 0
       // Bound the updated relative volumes with eosvmin/max
       if (eosvmin != Real_t(0.)) {
 //#pragma omp for firstprivate(numElem)
@@ -1087,6 +1108,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
           });
         //dash::tasks::complete();
       }
+#endif
 
       // This check may not make perfect sense in LULESH, but
       // it's representative of something in the full code -
@@ -1116,7 +1138,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
         },
         [vnew]
         (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-          *deps = dash::tasks::out(&vnew[from]);
+          *deps = dash::tasks::in(&vnew[from]);
         });
       dash::tasks::complete();
     }
