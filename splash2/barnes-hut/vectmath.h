@@ -265,15 +265,15 @@ typedef real matrix[NDIM][NDIM];
 #define PRTV(ss, name, vec) /* PRinT Vector */ \
   {                                            \
     ss << name << " = [";                      \
-    ss << std::setprecision(4);                \
+    ss << std::setprecision(3);                \
     ss << std::fixed;                          \
     ss << std::setw(9);                        \
     ss << vec[0] << ",";                       \
-    ss << std::setprecision(4);                \
+    ss << std::setprecision(3);                \
     ss << std::fixed;                          \
     ss << std::setw(9);                        \
     ss << vec[1] << ",";                       \
-    ss << std::setprecision(4);                \
+    ss << std::setprecision(3);                \
     ss << std::fixed;                          \
     ss << std::setw(9);                        \
     ss << vec[2] << "] ";                      \
