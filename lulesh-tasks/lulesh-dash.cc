@@ -301,6 +301,7 @@ void Domain::TimeIncrement()
 
       ++domain.cycle() ;
     },
+    DART_PRIO_HIGH,
     dash::tasks::in(&domain.dtcourant()),
     dash::tasks::in(&domain.dthydro()),
     dash::tasks::out(&domain.deltatime())
