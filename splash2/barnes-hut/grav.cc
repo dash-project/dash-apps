@@ -110,7 +110,7 @@ void gravsub(nodeptr p, long ProcessId)
 void hackwalk(long ProcessId)
 {
   walksub(G_root.get().get(),
-          rsize.get().get() * rsize.get().get(), ProcessId);
+         g_rsize * g_rsize, ProcessId);
 }
 
 /*

@@ -73,6 +73,7 @@ Command line options:
 
 #include <algorithm>
 
+#include "Logging.h"
 #include "code.h"
 #include "defs.h"
 #include "getparam.h"
@@ -80,7 +81,6 @@ Command line options:
 #include "load.h"
 #include "stdinc.h"
 #include "util.h"
-#include "Logging.h"
 
 typedef struct dash::util::Timer<dash::util::TimeMeasure::Clock> Timer;
 
@@ -114,7 +114,6 @@ dash::Array<cell> celltab;
 dash::Array<leaf> leaftab;
 
 std::vector<dash::Mutex> CellLock;
-dash::Mutex              CountLock;
 
 dash::Shared<real> mtot; /* total mass of N-body system             */
 // dash::Shared<real> etot[3];      /* binding, kinetic, potential energy */
@@ -126,13 +125,13 @@ dash::Shared<real> mtot; /* total mass of N-body system             */
 
 dash::Shared<cellptr> G_root; /* root of the whole tree */
 /* lower-left corner of coordinate box */
-dash::SharedArray<vector> rmin;
+vector g_rmin;
 /* temporary lower-left corner of the box  */
 vector g_min;
 /* temporary upper right corner of the box */
 vector g_max;
 /* side-length of integer coordinate box   */
-dash::Shared<real> rsize;
+real g_rsize;
 
 long computestart, computeend;
 long tracktime;
@@ -334,10 +333,6 @@ static void LocalInit()
   Local.tout  = Local.tnow + dtout;
   Local.nstep = 0;
 
-
-  //Init globally shared variables
-  SETVS(g_min, 1E99);
-  SETVS(g_max, -1E99)
 }
 /***********************************************
  * IMPLEMENTATION OF BARNES HUT                *
@@ -392,6 +387,7 @@ int main(int argc, char *argv[])
     int debug = ::std::atoi(argv[2]);
 
     if (dash::myid() == 0 && debug) {
+      LOG("my pid: " << getpid());
       int wait = 1;
       while (wait)
         ;
@@ -408,6 +404,8 @@ int main(int argc, char *argv[])
     // initoutput();
     startrun();
   }
+
+  setbound();
 
   tab_init();
 
@@ -502,51 +500,12 @@ void ANLinit()
     return dash::Mutex{dash::Team::All()};
   });
 
-  auto const nprocs = dash::size();
-
   if (!bodytab.allocate(nbody)) {
     error("testdata: not enough memory\n");
   }
 
   std::uninitialized_fill(bodytab.lbegin(), bodytab.lend(), body{});
 
-  CountLock.init();
-
-  //(dtime.allocate());
-  //(dthf.allocate());
-  //(eps.allocate());
-  //(epssq.allocate());
-  //(tol.allocate());
-  //(tolsq.allocate());
-  //(fcells.allocate());
-  //(fleaves.allocate());
-  //(tstop.allocate());
-  //(dtout.allocate());
-  //(globtout.allocate());
-  //(globtnow.allocate());
-  //(globnstep.allocate());
-  //(maxleaf.allocate());
-  //(maxcell.allocate());
-  (rsize.init());  //
-  (rmin.init());
-  //(max.init());
-  //(min.init());
-  //(createstart.allocate());
-  //(createend.allocate());
-  // (computestart.allocate());
-  // (computeend.allocate());
-  // (trackstart.allocate());
-  // (trackend.allocate());
-  // (tracktime.allocate());
-  // (partitionstart.allocate());
-  // (partitionend.allocate());
-  // (partitiontime.allocate());
-  // (treebuildstart.allocate());
-  // (treebuildend.allocate());
-  // (treebuildtime.allocate());
-  // (forcecalcstart.allocate());
-  // (forcecalcend.allocate());
-  // (forcecalctime.allocate());
   (G_root.init());
 }
 
@@ -563,7 +522,7 @@ void init_root()
   root.done   = false;
   root.level  = IMAX >> 1;
 
-  //convert reference to pointer
+  // convert reference to pointer
   G_root.set(static_cast<cellptr>(celltab.begin()));
   // The root has initially no children
   std::fill(std::begin(root.subp), std::end(root.subp), cellptr{});
@@ -657,7 +616,7 @@ void SlaveStart()
   /* main loop */
   while (Local.tnow < tstop + 0.1 * dtime) {
     stepsystem(ProcessId);
-    //if (ProcessId == 0) printtree(G_root.get().get());
+    // if (ProcessId == 0) printtree(G_root.get().get());
   }
   if (ProcessId == 0) printtree(G_root.get().get());
 }
@@ -672,7 +631,6 @@ void startrun()
 
   pranset(seed);
   testdata();
-  setbound();
 
   printf("----------PARAMS----------------\n");
   printf("infile = \n");
@@ -904,7 +862,7 @@ void stepsystem(long ProcessId)
 
   LOG("Cavg: " << Cavg);
 
-  //even distribution
+  // even distribution
   Local.workMin = Cavg * ProcessId;
   Local.workMax =
       (Cavg * (ProcessId + 1) + (ProcessId == static_cast<long>(nprocs - 1)));
@@ -1004,6 +962,8 @@ void stepsystem(long ProcessId)
   };
   */
 
+  // This can possibly been combined into a single operation. It at least
+  // works with native MPI.
   dart_allreduce(
       Local.min,
       g_min,
@@ -1029,7 +989,6 @@ void stepsystem(long ProcessId)
     pthread_barrier_wait(&(Global->Barrier));
   };
   */
-  dash::barrier();
 
   if ((ProcessId == 0) && (Local.nstep >= 2)) {
     /*
@@ -1046,28 +1005,28 @@ void stepsystem(long ProcessId)
     tracktime += trackend - trackstart;
   }
 
-  if (ProcessId == 0) {
+  // SUBV(Global->max, Global->max, Global->min);
+  SUBV(g_max, g_max, g_min);
 
-    SUBV(g_max, g_max, g_min);
-
-    auto g_rsize_v = std::max(
-        real{0}, *std::max_element(std::begin(g_max), std::end(g_max)));
-
-    // ADDVS(Global->rmin,Global->min,-Global->rsize/100000.0);
-    vector g_rmin_v;
-    rmin.get(g_rmin_v);
-
-    // ADDVS(Global->rmin,Global->min,-Global->rsize/100000.0);
-    ADDVS(g_rmin_v, g_min, -g_rsize_v / 100000.0);
-    rmin.set(g_rmin_v);
-
-    // Global->rsize = 1.00002*Global->rsize;
-    g_rsize_v = 1.00002 * g_rsize_v;
-    rsize.set(g_rsize_v);
-
+  /*
+  for (i = 0; i < NDIM; i++) {
+    if (Global->rsize < Global->max[i]) {
+      Global->rsize = Global->max[i];
+    }
   }
+  */
+  g_rsize = std::max(
+      real{0}, *std::max_element(std::begin(g_max), std::end(g_max)));
 
+  // ADDVS(Global->rmin, Global->min, -Global->rsize / 100000.0);
+  ADDVS(g_rmin, g_min, -g_rsize / 100000.0);
+
+  // Global->rsize = 1.00002*Global->rsize;
+  g_rsize = 1.00002 * g_rsize;
+
+  // SETVS(Global->min, 1E99);
   SETVS(g_min, 1E99);
+  // SETVS(Global->max, -1E99);
   SETVS(g_max, -1E99);
 
   Local.nstep++;
@@ -1113,35 +1072,16 @@ void ComputeForces(long ProcessId)
 void find_my_initial_bodies(
     dash::Array<body> &btab, long nbody, long ProcessId)
 {
-  long /*extra,*/ offset;
-  size_t          i;
+  long   offset;
+  size_t i;
 
+  // global index of first local element
   offset = btab.pattern().global(0);
-  // Local.mynbody = nbody / bodytab.team().size();
-  // extra         = nbody % bodytab.team().size();
+
   Local.mynbody = btab.lsize();
-
-#if 0
-  if (ProcessId < extra) {
-    //Local.mynbody++;
-    //offset = Local.mynbody * ProcessId;
-  }
-
-  if (ProcessId >= extra) {
-    /*
-    offset = (Local.mynbody + 1) * extra +
-             (ProcessId - extra) * Local.mynbody;
-             */
-    // local to global index mapping
-  }
-#endif
-
-  //ASSERT(Local.mynbody <= btab.lsize());
 
   using iter_t = decltype(btab.begin());
 
-
-  //TODO: use dash::transform
   for (i = 0; i < Local.mynbody; i++) {
     // copy local pointer
     Local.mybodytab[i] =
@@ -1178,7 +1118,7 @@ void find_my_bodies(nodeptr mycell, long work, long direction, long ProcessId)
     for (i = 0; (i < NSUB) && (work < (Local.workMax - .1)); i++) {
       auto const mycell_val = static_cast<cell>(*NODE_AS_CELL(mycell));
 
-      auto qptr    = mycell_val.subp[Child_Sequence[direction][i]];
+      auto qptr = mycell_val.subp[Child_Sequence[direction][i]];
       if (qptr != nodeptr{}) {
         auto const cost = static_cast<long>(Cost(*qptr));
         if ((work + cost) >= (Local.workMin - .1)) {
@@ -1209,14 +1149,10 @@ void Housekeep(long ProcessId)
  */
 void setbound()
 {
-  long    i;
-  real    side;
-  bodyptr p;
-
   SETVS(Local.min, 1E99);
   SETVS(Local.max, -1E99);
-  side = 0;
 
+  /*
   for (auto iter = bodytab.begin(); iter < bodytab.end(); ++iter) {
     auto const p = static_cast<body>(*iter);
     for (i = 0; i < NDIM; i++) {
@@ -1224,19 +1160,51 @@ void setbound()
       if (p.pos[i] > Local.max[i]) Local.max[i] = p.pos[i];
     }
   }
+  */
 
-  SUBV(Local.max, Local.max, Local.min);
-  for (i = 0; i < NDIM; i++) {
-    if (side < Local.max[i]) side = Local.max[i];
+  for (auto liter = bodytab.lbegin(); liter < bodytab.lend(); ++liter) {
+    auto const &p = *liter;
+
+    for (size_t i = 0; i < NDIM; i++) {
+      // if (p.pos[i] < Local.min[i]) Local.min[i] = p.pos[i];
+      Local.min[i] = std::min(Local.min[i], p.pos[i]);
+      // if (p.pos[i] > Local.max[i]) Local.max[i] = p.pos[i];
+      Local.max[i] = std::max(Local.max[i], p.pos[i]);
+    }
   }
 
-  rsize.set(1.00002 * side);
+  dart_allreduce(
+      Local.min,
+      g_min,
+      NDIM,
+      dash::dart_datatype<real>::value,
+      DART_OP_MIN,
+      bodytab.team().dart_id());
 
-  vector tmp;
+  dart_allreduce(
+      Local.max,
+      g_max,
+      NDIM,
+      dash::dart_datatype<real>::value,
+      DART_OP_MAX,
+      bodytab.team().dart_id());
 
-  ADDVS(tmp, Local.min, -side / 100000.0);
-  rmin.set(tmp);
+  SUBV(g_max, g_max, g_min);
+  /*
+  for (size_t i = 0; i < NDIM; i++) {
+    if (side < Local.max[i]) side = Local.max[i];
+  }
+  */
+  auto const side =
+      std::max(real{0}, *std::max_element(std::begin(g_max), std::end(g_max)));
 
+  g_rsize = 1.00002 * side;
+
+  ADDVS(g_rmin, g_min, -side / 100000.0);
+
+  // Init globally shared variables
+  SETVS(g_min, 1E99);
+  SETVS(g_max, -1E99)
 }
 
 void Help()

@@ -24,9 +24,9 @@
 
 #include <malloc.h>
 
+#include "Logging.h"
 #include "code.h"
 #include "load.h"
-#include "Logging.h"
 
 extern pthread_t PThreadTable[];
 
@@ -113,13 +113,7 @@ void maketree(long ProcessId)
     Local.mycelltab[Local.myncell++] = G_root.get();
   }
   // The processes remotely access the root
-  Local.Current_Root = G_root
-                           .
-                       // Shared -> GlobRef
-                       get()
-                           .
-                       // GlobRef -> nodeptr
-                       get();
+  Local.Current_Root = static_cast<cellptr>(G_root.get());
 
   for (auto pp = std::begin(Local.mybodytab);
        pp < std::next(std::begin(Local.mybodytab), Local.mynbody);
@@ -145,35 +139,15 @@ void maketree(long ProcessId)
 
   LOG("mynleaf: " << Local.mynleaf << ", myncell: " << Local.myncell);
 
-#if 0
-  if (ProcessId == 0) {
-//    LOG("before hackcofm");
-//    printtree(G_root.get().get());
-  }
-
-  dash::barrier();
-#endif
-
   hackcofm(ProcessId);
 
   dash::barrier();
-
-#if 0
-  if (ProcessId == 0) {
-    LOG("after hackcofm");
-    printtree(G_root.get().get());
-  }
-
-  dash::barrier();
-#endif
-
 }
 
 cellptr InitCell(cellptr parent, long ProcessId)
 {
   auto c = makecell(ProcessId);
   ASSERT(c.local());
-  // auto c_val     = static_cast<cell>(*c);
   auto &c_val     = *(c.local());
   c_val.processor = ProcessId;
   c_val.next      = NULL;
@@ -187,18 +161,15 @@ cellptr InitCell(cellptr parent, long ProcessId)
 
   c_val.parent    = parent;
   c_val.child_num = 0;
-  //*c              = c_val;
   return c;
 }
 
 leafptr InitLeaf(cellptr parent, long ProcessId)
 {
-  //allocate a local leaf
-  auto leaf_gptr     = makeleaf(ProcessId);
+  // allocate a local leaf
+  auto leaf_gptr = makeleaf(ProcessId);
   ASSERT(leaf_gptr.local());
-  //auto l_ref = *leaf_gptr;
-  // dereference it, local copy
-  auto & lv      = *(leaf_gptr.local());
+  auto &lv     = *(leaf_gptr.local());
   lv.processor = ProcessId;
   lv.next      = NULL;
   lv.prev      = NULL;
@@ -212,8 +183,6 @@ leafptr InitLeaf(cellptr parent, long ProcessId)
 
   lv.child_num = 0;
 
-  // write it back
-  //l_ref = lv;
   return (leaf_gptr);
 }
 
@@ -270,9 +239,11 @@ static void _printtree(nodeptr n, std::ostringstream &ss)
       for (k = 0; k < l_val.num_bodies; k++) {
         p = l_val.bodyp[k];
 
-        //auto const p_val = (*p).get();
-
-        //construct a new GlobPtr to get the distance
+        // BUG: We cannot copy around dash::GlobPtr and use all functionality.
+        // This is because a dash::GlobPtr has some native pointer members
+        // with invalid addresses on a different unit. For this reason we
+        // construct a new global pointer with the proper members based on a
+        // DART pointer
         auto const p_tmp = bodyptr{bodytab.globmem(), p.dart_gptr()};
         auto const p_val = (*p_tmp).get();
 
@@ -404,15 +375,15 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
       // MAXLOCK]);}
       auto const sn = mynode_val.seqnum;
       CellLock.at(mynode_val.seqnum % MAXLOCK).lock();
-      //reloading mynode_val
+      // reloading mynode_val since it may have changed after acquiring the
+      // lock
       mynode_val = static_cast<cell>(*NODE_AS_CELL(mynode));
       ASSERT(mynode_val.seqnum == sn);
       if (*qptr == nodeptr{}) {
         // insert particle into the cell, treat the cell as a leaf
-        le          = InitLeaf(static_cast<cellptr>(mynode), ProcessId);
+        le = InitLeaf(static_cast<cellptr>(mynode), ProcessId);
         ASSERT(le.local());
-        //auto le_val = static_cast<leaf>(*le);
-        auto & le_val = *(le.local());
+        auto &le_val = *(le.local());
 
         body_val.parent = le;
         body_val.level  = l;
@@ -425,15 +396,10 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
         // Update current quad tree ptr to leaf
         flag = false;
         *p   = body_val;
-        //*le  = le_val;
-        //This changes mynode_val
+        // This changes mynode_val
         *qptr = le;
-        //write mynode_val back
+        // write mynode_val back
         *NODE_AS_CELL(mynode) = mynode_val;
-#ifdef ENABLE_ASSERTIONS
-        auto const tmp = static_cast<cell>(*NODE_AS_CELL(mynode));
-        ASSERT(tmp.subp[kidIndex] == le);
-#endif
       }
       CellLock.at(mynode_val.seqnum % MAXLOCK).unlock();
       /* unlock the parent cell */
@@ -445,7 +411,8 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
       auto const sn = mynode_val.seqnum;
       CellLock.at(mynode_val.seqnum % MAXLOCK).lock();
       /* lock the parent cell */
-      //reloading mynode_val
+      // reloading mynode_val since it may have changed after acquiring the
+      // lock
       mynode_val = static_cast<cell>(*NODE_AS_CELL(mynode));
       ASSERT(mynode_val.seqnum == sn);
       if (Type(*(*qptr)) == LEAF) { /* still a "leaf"?      */
@@ -455,7 +422,7 @@ nodeptr loadtree(bodyptr p, cellptr root, long ProcessId)
           // CASE 2: Subdivide the Tree
           // mynode_val.subp[kidIndex]) = SubdivideLeaf(le, mynode, l,
           // ProcessId)
-          *qptr = SubdivideLeaf(le, mynode, l, ProcessId);
+          *qptr                 = SubdivideLeaf(le, mynode, l, ProcessId);
           *NODE_AS_CELL(mynode) = mynode_val;
         }
         else {
@@ -504,10 +471,8 @@ bool intcoord(long xp[NDIM], vector const rp)
 
   inb = true;
   ASSERT(NDIM == 3);
-  vector g_rmin_v;
-  rmin.get(g_rmin_v);
   for (k = 0; k < NDIM; k++) {
-    xsc = (rp[k] - g_rmin_v[k]) / static_cast<real>(rsize.get());
+    xsc = (rp[k] - g_rmin[k]) / g_rsize;
     if (0.0 <= xsc && xsc < 1.0) {
       xp[k] = floor(IMAX * xsc);
     }
@@ -553,10 +518,6 @@ long subindex(long x[NDIM], long l)
 
 void hackcofm(long ProcessId)
 {
-  long i;
-  // nodeptr  r;
-  // leafptr  l;
-  // cellptr *cc;
   vector tmpv;
 
   /* get a cell using get*sub.  Cells are got in reverse of the order in */
@@ -566,14 +527,13 @@ void hackcofm(long ProcessId)
   for (auto ll = std::next(std::begin(Local.myleaftab), Local.mynleaf - 1);
        ll >= std::begin(Local.myleaftab);
        --ll) {
-    auto l     = *ll;
+    auto l = *ll;
     ASSERT(l.local());
-    //auto l_val = static_cast<leaf>(*l);
-    auto & l_val = *l.local();
-    l_val.mass = 0.0;
-    l_val.cost = 0;
+    auto &l_val = *l.local();
+    l_val.mass  = 0.0;
+    l_val.cost  = 0;
     CLRV(l_val.pos);
-    for (i = 0; i < l_val.num_bodies; i++) {
+    for (size_t i = 0; i < static_cast<size_t>(l_val.num_bodies); i++) {
       auto const p_val = static_cast<body>(*(l_val.bodyp[i]));
       l_val.mass += p_val.mass;
       l_val.cost += p_val.cost;
@@ -583,7 +543,7 @@ void hackcofm(long ProcessId)
     DIVVS(l_val.pos, l_val.pos, l_val.mass);
 #ifdef QUADPOLE
     CLRM(l_val.quad);
-    for (i = 0; i < l_val.num_bodies; i++) {
+    for (size_t i = 0; i < l_val.num_bodies; i++) {
       p = l_val.bodyp[i];
       SUBV(dr, Pos(p), Pos(l));
       OUTVP(drdr, dr, dr);
@@ -596,27 +556,20 @@ void hackcofm(long ProcessId)
       ADDM(Quad(l), Quad(l), tmpm);
     }
 #endif
-    // write the modified value back
-    //*l = l_val;
-    // write atomically true
     AtomicDone(*l) = true;
-    ASSERT(l_val.done == true);
-    //l_val.done = true;
   }
 
   for (auto cc = std::next(std::begin(Local.mycelltab), Local.myncell - 1);
        cc >= std::begin(Local.mycelltab);
        --cc) {
-    // cellptr  q;
     auto q = *cc;
     ASSERT(q.local());
 
-    //auto q_val = static_cast<cell>(*q);
-    auto & q_val = *q.local();
-    q_val.mass = 0.0;
-    q_val.cost = 0;
+    auto &q_val = *q.local();
+    q_val.mass  = 0.0;
+    q_val.cost  = 0;
     CLRV(q_val.pos);
-    for (i = 0; i < NSUB; i++) {
+    for (size_t i = 0; i < NSUB; i++) {
       auto r = q_val.subp[i];
       if (r != nodeptr{}) {
         while (!(static_cast<long>(AtomicDone(*r)))) {
@@ -650,10 +603,7 @@ void hackcofm(long ProcessId)
       }
     }
 #endif
-    //*q             = q_val;
     AtomicDone(*q) = true;
-    ASSERT(q_val.done == true);
-    //q_val.done = true;
   }
 }
 
@@ -680,7 +630,6 @@ cellptr SubdivideLeaf(leafptr le, cellptr parent, long l, long ProcessId)
   /* create the parent cell for this subtree */
   auto c = InitCell(parent, ProcessId);
   ASSERT(c.local());
-  // auto c_val = static_cast<cell>(*c);
   auto &c_val = *(c.local());
 
   c_val.child_num = le_val.child_num;
@@ -727,7 +676,7 @@ cellptr SubdivideLeaf(leafptr le, cellptr parent, long l, long ProcessId)
     *p  = p_val;
     *le = le_val;
   }
-  //*c = c_val;
+
   return c;
 }
 
@@ -737,24 +686,21 @@ cellptr SubdivideLeaf(leafptr le, cellptr parent, long l, long ProcessId)
 
 cellptr makecell(long ProcessId)
 {
-  long Mycell;
-
   if (Local.mynumcell == maxmycell) {
     error(
         "makecell: Proc %ld needs more than %ld cells; increase fcells\n",
         ProcessId,
         maxmycell);
   }
-  Mycell       = Local.mynumcell++;
+  auto const Mycell       = Local.mynumcell++;
   auto  c_gpos = celltab.pattern().global(Mycell);
-  auto  c_gptr   = static_cast<cellptr>(celltab.begin() + c_gpos);
+  auto  c_gptr = static_cast<cellptr>(celltab.begin() + c_gpos);
   auto &c      = celltab.local[Mycell];
-  // auto c_val   = static_cast<cell>(*c);
-  c.seqnum = ProcessId * maxmycell + Mycell;
-  c.type   = CELL;
-  c.done   = false;
-  c.mass   = 0.0;
-  c.cost   = 0;
+  c.seqnum     = ProcessId * maxmycell + Mycell;
+  c.type       = CELL;
+  c.done       = false;
+  c.mass       = 0.0;
+  c.cost       = 0;
 
   std::fill(std::begin(c.pos), std::end(c.pos), real{0});
   /*
@@ -763,8 +709,6 @@ cellptr makecell(long ProcessId)
   }
   */
   std::fill(c.subp, c.subp + NSUB, cellptr{nullptr});
-
-  //*c = c_val;
 
   Local.mycelltab[Local.myncell++] = c_gptr;
   return c_gptr;
@@ -776,8 +720,6 @@ cellptr makecell(long ProcessId)
 
 leafptr makeleaf(long ProcessId)
 {
-  long Myleaf;
-
   if (Local.mynumleaf == maxmyleaf) {
     error(
         "makeleaf: Proc %ld needs more than %ld leaves; increase fleaves\n",
@@ -785,13 +727,12 @@ leafptr makeleaf(long ProcessId)
         maxmyleaf);
   }
 
-  Myleaf = Local.mynumleaf++;
+  auto const Myleaf = Local.mynumleaf++;
   // Resolve the global index of a specific unit's local index 'Myleaf'
   auto const gpos = leaftab.pattern().global(Myleaf);
   // Get global pointer to local element
   auto le_ptr = static_cast<leafptr>(leaftab.begin() + gpos);
-  // auto       le_val = static_cast<leaf>(*le);
-  // ASSERT(le.local() != nullptr);
+  ASSERT(le_ptr.local());
   auto &le_val      = leaftab.local[Myleaf];
   le_val.seqnum     = ProcessId * maxmyleaf + Myleaf;
   le_val.type       = LEAF;
@@ -802,8 +743,7 @@ leafptr makeleaf(long ProcessId)
 
   std::fill(le_val.bodyp, le_val.bodyp + MAX_BODIES_PER_LEAF, bodyptr{});
   std::fill(std::begin(le_val.pos), std::end(le_val.pos), real{0});
-  // write the value back to global memory
-  //*le                              = le_val;
+
   Local.myleaftab[Local.mynleaf++] = le_ptr;
   return (le_ptr);
 }

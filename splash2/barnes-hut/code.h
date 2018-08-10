@@ -70,7 +70,6 @@ extern dash::Array<cell> celltab;
 extern dash::Array<leaf> leaftab;
 
 extern std::vector<dash::Mutex> CellLock;
-extern dash::Mutex              CountLock;
 
 // struct GlobalMemory  {  /* all this info is for the whole system */
 
@@ -90,13 +89,13 @@ extern dash::Shared<real> mtot; /* total mass of N-body system             */
 // extern dash::Shared<sh_vec>  amvec;  /* angular momentum vector */
 extern dash::Shared<cellptr> G_root; /* root of the whole tree */
 /* lower-left corner of coordinate box */
-extern dash::SharedArray<vector> rmin;
+extern vector g_rmin;
 /* temporary lower-left corner of the box  */
 extern vector g_min;
 /* temporary upper right corner of the box */
 extern vector g_max;
 /* side-length of integer coordinate box   */
-extern dash::Shared<real> rsize;
+extern real g_rsize;
 
 extern struct local_memory Local;
 
@@ -137,9 +136,9 @@ struct local_memory {
   vector min = {0}, max = {0}; /* min and max of coordinates for each Proc. */
 
   /* num. of cells used for this proc in ctab */
-  long mynumcell;
+  size_t mynumcell;
   /* num. of leaves used for this proc in ctab */
-  long mynumleaf;
+  size_t mynumleaf;
   /* num bodies allocated to the processor */
   size_t mynbody;
   /* array of bodies allocated / processor */
