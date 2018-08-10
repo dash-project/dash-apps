@@ -82,8 +82,6 @@ void DASHComm::Send_PosVel()
   DASHComm& comm = *this;
   Domain&  dom  = m_dom;
 
-  dash::tasks::async_barrier();
-
   DASHCommPut(dom, comm, 6, fieldData,
 	  dom.sizeX() + 1, dom.sizeY() + 1, dom.sizeZ() + 1,
 	  false, false);
@@ -104,6 +102,7 @@ void DASHComm::Sync_PosVel()
     fieldData[4] = &Domain::yd;
     fieldData[5] = &Domain::zd;
   }
+//
   dash::tasks::async_barrier();
 
   DASHCommSyncPosVel(dom, comm, 6, fieldData);
@@ -143,8 +142,6 @@ void DASHComm::Send_Force()
     fieldData[1] = &Domain::fy;
     fieldData[2] = &Domain::fz;
   }
-
-  dash::tasks::async_barrier();
 
   DASHCommPut(dom, comm, 3, fieldData,
               dom.sizeX() + 1, dom.sizeY() + 1, dom.sizeZ() +  1,
@@ -198,9 +195,6 @@ void DASHComm::Send_MonoQ()
     fieldData[1] = &Domain::delv_eta;
     fieldData[2] = &Domain::delv_zeta;
   }
-
-
-  dash::tasks::async_barrier();
 
   DASHCommPut(dom, comm, 3, fieldData,
 	  dom.sizeX(), dom.sizeY(), dom.sizeZ(),
