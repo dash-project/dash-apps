@@ -586,7 +586,6 @@ void CalcTimeConstraintsForElems(Domain& domain)
     [&domain](){
       // Initialize conditions to a very large value
       dash::tasks::Combinator<Real_t> dtcourant_c(1.0e+20);
-      dash::tasks::Combinator<Real_t> dthydro_c(1.0e+20);
       for (Index_t r=0 ; r < domain.numReg() ; ++r) {
         dash::tasks::async(
           [&domain, &dtcourant_c, r](){
@@ -597,6 +596,23 @@ void CalcTimeConstraintsForElems(Domain& domain)
                 dtcourant_c.local());
           }
         );
+      }
+      dash::tasks::complete();
+      domain.dtcourant() = dtcourant_c.reduce(
+        [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
+
+    },
+    dash::tasks::in(&domain.arealg(0)),
+    dash::tasks::in(&domain.vdov(0)),
+    dash::tasks::in(&domain.ss(0)),
+    dash::tasks::out(&domain.dtcourant())
+  );
+
+  dash::tasks::async(
+    [&domain](){
+      // Initialize conditions to a very large value
+      dash::tasks::Combinator<Real_t> dthydro_c(1.0e+20);
+      for (Index_t r=0 ; r < domain.numReg() ; ++r) {
         dash::tasks::async(
           [&domain, &dthydro_c, r](){
             /* check hydro constraint */
@@ -607,16 +623,12 @@ void CalcTimeConstraintsForElems(Domain& domain)
           });
       }
       dash::tasks::complete();
-      domain.dtcourant() = dtcourant_c.reduce(
-        [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
       domain.dthydro()   = dthydro_c.reduce(
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
 
     },
     dash::tasks::in(&domain.arealg(0)),
     dash::tasks::in(&domain.vdov(0)),
-    dash::tasks::in(&domain.ss(0)),
-    dash::tasks::out(&domain.dtcourant()),
     dash::tasks::out(&domain.dthydro())
   );
 }
