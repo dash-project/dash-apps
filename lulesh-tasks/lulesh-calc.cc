@@ -1770,6 +1770,30 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
     +-- 14x Release<Real_t>(numElemReg)
   ================================================================= */
 
+
+static inline
+void CalcPressureForElem(Real_t& p_new, Real_t& bvc,
+                         Real_t& pbvc,  Real_t e_old,
+                         Real_t& compression, Real_t& vnew,
+                         Real_t pmin,
+                         Real_t p_cut, Real_t eosvmax)
+{
+  constexpr const Real_t c1s = Real_t(2.0)/Real_t(3.0) ;
+  bvc = c1s * (compression + Real_t(1.));
+  pbvc = c1s;
+
+  p_new = bvc * e_old ;
+
+  if    (FABS(p_new) <  p_cut   )
+    p_new = Real_t(0.0) ;
+
+  if    ( vnew >= eosvmax ) /* impossible condition here? */
+    p_new = Real_t(0.0) ;
+
+  if    (p_new       <  pmin)
+    p_new   = pmin ;
+}
+
 static inline
 void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
                           Real_t* pbvc, Real_t* e_old,
@@ -1879,6 +1903,92 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
         if (e_new[i]  < emin ) {
           e_new[i] = emin ;
         }
+
+        CalcPressureForElem(pHalfStep[i], bvc[i], pbvc[i], e_new[i], compHalfStep[i], vnewc[i],
+                            pmin, p_cut, eosvmax);
+
+        Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep[i]) ;
+
+        if ( delvc[i] > Real_t(0.) ) {
+          q_new[i] /* = qq_old[i] = ql_old[i] */ = Real_t(0.) ;
+        }
+        else {
+          Real_t ssc = ( pbvc[i] * e_new[i]
+                  + vhalf * vhalf * bvc[i] * pHalfStep[i] ) / rho0 ;
+
+          if ( ssc <= Real_t(.1111111e-36) ) {
+            ssc = Real_t(.3333333e-18) ;
+          } else {
+            ssc = SQRT(ssc) ;
+          }
+
+          q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
+        }
+
+        e_new[i] = e_new[i] + Real_t(0.5) * delvc[i]
+            * (  Real_t(3.0)*(p_old[i]     + q_old[i])
+                - Real_t(4.0)*(pHalfStep[i] + q_new[i])) ;
+
+        e_new[i] += Real_t(0.5) * work[i];
+
+        if (FABS(e_new[i]) < e_cut) {
+          e_new[i] = Real_t(0.)  ;
+        }
+        if (     e_new[i]  < emin ) {
+          e_new[i] = emin ;
+        }
+
+        CalcPressureForElem(p_new[i], bvc[i], pbvc[i], e_new[i], compression[i], vnewc[i],
+                            pmin, p_cut, eosvmax);
+
+        const Real_t sixth = Real_t(1.0) / Real_t(6.0) ;
+        Index_t elem = regElemList[i];
+        Real_t q_tilde ;
+
+        if (delvc[i] > Real_t(0.)) {
+          q_tilde = Real_t(0.) ;
+        }
+        else {
+          Real_t ssc = ( pbvc[i] * e_new[i]
+                  + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
+
+          if ( ssc <= Real_t(.1111111e-36) ) {
+            ssc = Real_t(.3333333e-18) ;
+          } else {
+            ssc = SQRT(ssc) ;
+          }
+
+          q_tilde = (ssc*ql_old[i] + qq_old[i]) ;
+        }
+
+        e_new[i] = e_new[i] - (  Real_t(7.0)*(p_old[i]     + q_old[i])
+                                  - Real_t(8.0)*(pHalfStep[i] + q_new[i])
+                                  + (p_new[i] + q_tilde)) * delvc[i]*sixth ;
+
+        if (FABS(e_new[i]) < e_cut) {
+            e_new[i] = Real_t(0.)  ;
+        }
+        if (     e_new[i]  < emin ) {
+            e_new[i] = emin ;
+        }
+
+        CalcPressureForElem(p_new[i], bvc[i], pbvc[i], e_new[i], compression[i], vnewc[i],
+                            pmin, p_cut, eosvmax);
+
+        if ( delvc[i] <= Real_t(0.) ) {
+          Real_t ssc = ( pbvc[i] * e_new[i]
+                  + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
+
+          if ( ssc <= Real_t(.1111111e-36) ) {
+            ssc = Real_t(.3333333e-18) ;
+          } else {
+            ssc = SQRT(ssc) ;
+          }
+
+          q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
+
+          if (FABS(q_new[i]) < q_cut) q_new[i] = Real_t(0.) ;
+        }
       }
     },
     [e_new]
@@ -1887,6 +1997,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
     });
   //dash::tasks::complete();
 
+#if 0
   CalcPressureForElems(pHalfStep, bvc, pbvc, e_new, compHalfStep, vnewc,
                       pmin, p_cut, eosvmax, length, regElemList, false);
 
@@ -1958,7 +2069,6 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
     });
   //dash::tasks::complete();
 #endif
-
   CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
                        pmin, p_cut, eosvmax, length, regElemList, false);
 
@@ -2012,6 +2122,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
   CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
                       pmin, p_cut, eosvmax, length, regElemList, false);
 
+
 //#pragma omp parallel for firstprivate(length, rho0, q_cut)
   dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
@@ -2042,6 +2153,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       *deps = dash::tasks::in(&p_new[from]);
       *deps = dash::tasks::out(&q_new[from]);
     });
+#endif
 
   dash::tasks::complete();
 
@@ -2153,9 +2265,11 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
           work[i] = Real_t(0.) ;
         }
+      },
+      [e_new]
+      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+        *deps = dash::tasks::out(&e_new[from]);
       });
-
-    dash::tasks::complete();
 
 #if 0
 //#pragma omp parallel
@@ -2255,6 +2369,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
                       p_cut, e_cut, q_cut, emin,
                       qq_old, ql_old, rho0, eosvmax,
                       numElemReg, regElemList);
+    dash::tasks::complete();
   }
 
 

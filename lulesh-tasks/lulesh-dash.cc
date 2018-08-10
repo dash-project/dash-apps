@@ -422,6 +422,9 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 
 //#pragma omp parallel
   {
+    if (!(domain.symmXempty() != 0) &&
+        !(domain.symmYempty() != 0) &&
+        !(domain.symmZempty() != 0))
     dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
       [&](Index_t from, Index_t to){
         if (!domain.symmXempty() != 0)
