@@ -617,7 +617,7 @@ void SlaveStart()
     stepsystem(ProcessId);
     // if (ProcessId == 0) printtree(G_root.get().get());
   }
-  if (ProcessId == 0) printtree(G_root.get().get());
+  //if (ProcessId == 0) printtree(G_root.get().get());
 }
 
 void startrun()

@@ -26,7 +26,6 @@
 #include <dash/Shared.h>
 #include <type_traits>
 #include "defs.h"
-#include "shared_array.h"
 #include "stdinc.h"
 #include <cassert>
 
