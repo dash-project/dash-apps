@@ -417,12 +417,28 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
   Index_t size = domain.sizeX();
   Index_t numNodeBC = (size+1)*(size+1) ;
 
+  size_t grainsize = numNodeBC / (dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR);
+
 //#pragma omp parallel
   {
+    dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
+      [&](Index_t from, Index_t to){
+        if (!domain.symmXempty() != 0)
+          for(Index_t i=from; i<to; ++i)
+            domain.xdd(domain.symmX(i)) = Real_t(0.0) ;
+
+        if (!domain.symmYempty() != 0)
+          for(Index_t i=from; i<to; ++i)
+            domain.ydd(domain.symmY(i)) = Real_t(0.0) ;
+
+        if (!domain.symmZempty() != 0)
+          for(Index_t i=from; i<to; ++i)
+            domain.zdd(domain.symmZ(i)) = Real_t(0.0) ;
+      });
+#if 0
     if (!domain.symmXempty() != 0) {
 //#pragma omp for nowait firstprivate(numNodeBC)
-      dash::tasks::taskloop(Index_t{0}, numNodeBC,
-                           numNodeBC/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
         [&](Index_t from, Index_t to){
           for(Index_t i=from; i<to; ++i)
             domain.xdd(domain.symmX(i)) = Real_t(0.0) ;
@@ -431,8 +447,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 
     if (!domain.symmYempty() != 0) {
 //#pragma omp for nowait firstprivate(numNodeBC)
-      dash::tasks::taskloop(Index_t{0}, numNodeBC,
-                            numNodeBC/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
         [&](Index_t from, Index_t to){
           for(Index_t i=from; i<to; ++i)
             domain.ydd(domain.symmY(i)) = Real_t(0.0) ;
@@ -441,13 +456,13 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 
     if (!domain.symmZempty() != 0) {
 //#pragma omp for nowait firstprivate(numNodeBC)
-      dash::tasks::taskloop(Index_t{0}, numNodeBC,
-                            numNodeBC/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
         [&](Index_t from, Index_t to){
           for(Index_t i=from; i<to; ++i)
             domain.zdd(domain.symmZ(i)) = Real_t(0.0) ;
         });
     }
+#endif
   }
   dash::tasks::complete();
 }
