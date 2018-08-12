@@ -1,6 +1,7 @@
 
 #include "lulesh.h"
 #include "lulesh-calc.h"
+#include "extrae.h"
 
 #define DASH_TASKLOOP_FACTOR 2
 
@@ -587,6 +588,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
 {
   dash::tasks::async(
     [&domain](){
+      EXTRAE_ENTER(COURANTCONSTRAINTS);
       // Initialize conditions to a very large value
       dash::tasks::Combinator<Real_t> dtcourant_c(1.0e+20);
       for (Index_t r=0 ; r < domain.numReg() ; ++r) {
@@ -603,7 +605,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
       dash::tasks::complete();
       domain.dtcourant() = dtcourant_c.reduce(
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
-
+      EXTRAE_EXIT(COURANTCONSTRAINTS);
     },
     dash::tasks::in(&domain.arealg(0)),
     dash::tasks::in(&domain.vdov(0)),
@@ -613,6 +615,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
 
   dash::tasks::async(
     [&domain](){
+      EXTRAE_ENTER(HYDROCONSTRAINTS);
       // Initialize conditions to a very large value
       dash::tasks::Combinator<Real_t> dthydro_c(1.0e+20);
       for (Index_t r=0 ; r < domain.numReg() ; ++r) {
@@ -628,7 +631,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
       dash::tasks::complete();
       domain.dthydro()   = dthydro_c.reduce(
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
-
+      EXTRAE_EXIT(HYDROCONSTRAINTS);
     },
     dash::tasks::in(&domain.arealg(0)),
     dash::tasks::in(&domain.vdov(0)),

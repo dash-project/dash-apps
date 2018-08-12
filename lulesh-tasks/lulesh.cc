@@ -5,13 +5,7 @@
 #include "lulesh-opts.h"
 #include "lulesh-dash.h"
 #include "lulesh-util.h"
-
-extern "C" {
-dart_ret_t
-dart__tasking__task_complete();
-dart_ret_t
-dart__tasking__task_complete2();
-}
+#include "extrae.h"
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +33,8 @@ int main(int argc, char *argv[])
   Domain dom(opts);
 
   auto nnodes = (1+opts.nx()) * (1+opts.nx()) * (1+opts.nx());
+
+  EXTRAE_INIT();
 
   // if(dash::myid()==0) print_config(dom, std::cout);
   // if( dash::myid()==0 ) peek( &(dom.nodalMass(0)), (size_t)20 );

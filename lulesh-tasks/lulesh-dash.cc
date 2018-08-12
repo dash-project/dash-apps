@@ -15,6 +15,8 @@
 #include "lulesh-comm-dash.h"
 #endif
 
+#include "extrae.h"
+
 #define DASH_TASKLOOP_FACTOR 2
 
 using std::cout; using std::cerr; using std::endl;
@@ -253,6 +255,7 @@ void Domain::TimeIncrement()
   Domain& domain = (*this);
   dash::tasks::async(
     [=, &domain](){
+      EXTRAE_ENTER(TIME_INCREMENT);
       Real_t targetdt = domain.stoptime() - domain.time() ;
 
       if ((domain.dtfixed() <= Real_t(0.0)) && (domain.cycle() != Int_t(0))) {
@@ -300,6 +303,7 @@ void Domain::TimeIncrement()
       domain.time() += domain.deltatime() ;
 
       ++domain.cycle() ;
+      EXTRAE_EXIT(TIME_INCREMENT);
     },
     DART_PRIO_HIGH,
     dash::tasks::in(&domain.dtcourant()),
@@ -326,18 +330,22 @@ void Domain::LagrangeNodal()
 
   dash::tasks::async(
     [=](){
+      EXTRAE_ENTER(CALCACCELERATIONFORNODES);
       CalcAccelerationForNodes(numNode());
       ApplyAccelerationBoundaryConditionsForNodes();
+      EXTRAE_EXIT(CALCACCELERATIONFORNODES);
     },
     dash::tasks::in(&this->fx(0)),
     dash::tasks::out(&this->xdd(0))
   );
   dash::tasks::async(
     [=](){
+      EXTRAE_ENTER(CALCVELPOSFORNODES);
       const Real_t delt = deltatime();
       CalcVelocityForNodes(delt, ucut, numNode()) ;
       CalcPositionForNodes(delt, numNode());
       dash::tasks::complete();
+      EXTRAE_EXIT(CALCVELPOSFORNODES);
     },
     dash::tasks::in(&this->deltatime()),
     dash::tasks::in(&this->xdd(0)),
@@ -366,8 +374,10 @@ void Domain::LagrangeElements()
   // new relative vol -- temp
   dash::tasks::async(
     [&](){
+      EXTRAE_ENTER(LAGRANGEELEMS);
       AllocateVnew(numElem());
       CalcLagrangeElements(m_vnew.data());
+      EXTRAE_EXIT(LAGRANGEELEMS);
     },
     dash::tasks::in(&this->x(0)),
     dash::tasks::out(&this->dxx(0)),
@@ -381,11 +391,13 @@ void Domain::LagrangeElements()
 
   dash::tasks::async(
     [&](){
+      EXTRAE_ENTER(MATERIALPROPERTIES);
       ApplyMaterialPropertiesForElems(m_vnew.data());
 
       UpdateVolumesForElems(m_vnew.data(), v_cut(), numElem());
 
       DeallocateVnew();
+      EXTRAE_EXIT(MATERIALPROPERTIES);
     },
     dash::tasks::in(&this->x(0)),
     dash::tasks::out(&this->v(0)),
@@ -532,10 +544,11 @@ void Domain::CalcForceForNodes()
 //#pragma omp parallel for firstprivate(numNode)
   dash::tasks::async(
     [&](){
-    Domain& domain = (*this);
+      EXTRAE_ENTER(CALCFORCEFORNODES);
+      Domain& domain = (*this);
       Index_t numNode = domain.numNode() ;
       dash::tasks::taskloop(Index_t{0}, numNode,
-                            dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                            dash::tasks::num_chunks(dash::tasks::numthreads()),
         [&](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
             domain.fx(i) = Real_t(0.0) ;
@@ -543,13 +556,16 @@ void Domain::CalcForceForNodes()
             domain.fz(i) = Real_t(0.0) ;
           }
         });
+      dash::tasks::complete();
 
       // Calcforce calls partial, force, hourq
       CalcVolumeForceForElems(domain);
+      EXTRAE_EXIT(CALCFORCEFORNODES);
     },
     dash::tasks::in(&this->v(0)),
     dash::tasks::out(&this->fx(0))
   );
+
   m_comm.Send_Force();
   m_comm.Sync_Force();
 }
@@ -1002,10 +1018,12 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
 
     dash::tasks::async(
       [=, &domain, &vnew](){
+        EXTRAE_ENTER(MONOQGRADIENTS);
         domain.AllocateGradients(numElem, allElem);
 
         /* Calculate velocity gradients */
         CalcMonotonicQGradientsForElems(domain, vnew.data());
+        EXTRAE_EXIT(MONOQGRADIENTS);
       },
       dash::tasks::in(&vnew),
       dash::tasks::out(&this->delv_xi(0))
@@ -1016,6 +1034,7 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
 
     dash::tasks::async(
       [=, &domain, &vnew](){
+        EXTRAE_ENTER(MONOQELEMS);
         CalcMonotonicQForElems(domain, vnew.data()) ;
 
         // Free up memory
@@ -1037,6 +1056,7 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
           exit(QStopError);
 #endif
         }
+        EXTRAE_EXIT(MONOQELEMS);
       },
       dash::tasks::in(&this->delv_xi(0)),
       dash::tasks::out(&vnew),
