@@ -401,7 +401,8 @@ void Domain::LagrangeElements()
 void Domain::CalcAccelerationForNodes(Index_t numNode)
 {
 //#pragma omp parallel for firstprivate(numNode)
-      dash::tasks::taskloop(0, numNode, numNode/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::taskloop(0, numNode,
+                            dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [&](Index_t from, Index_t to){
           for (Index_t i = from; i < to; ++i) {
             xdd(i) = fx(i) / nodalMass(i);
@@ -418,7 +419,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
   Index_t size = domain.sizeX();
   Index_t numNodeBC = (size+1)*(size+1) ;
 
-  size_t grainsize = numNodeBC / (dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR);
+  auto grainsize = dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR);
 
 //#pragma omp parallel
   {
@@ -477,7 +478,7 @@ void Domain::CalcVelocityForNodes(const Real_t dt,
 {
 //#pragma omp parallel for firstprivate(numNode)
   dash::tasks::taskloop(Index_t{0}, numNode,
-                        numNode/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&, u_cut, dt](Index_t from, Index_t to){
       for ( Index_t i = from; i < to; ++i )
       {
@@ -509,7 +510,7 @@ void Domain::CalcPositionForNodes(const Real_t dt,
 {
 //#pragma omp parallel for firstprivate(numNode)
   dash::tasks::taskloop(Index_t{0}, numNode,
-                        numNode/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&, dt](Index_t from, Index_t to){
       for( Index_t i = from; i < to; ++i )
       {
@@ -534,7 +535,7 @@ void Domain::CalcForceForNodes()
     Domain& domain = (*this);
       Index_t numNode = domain.numNode() ;
       dash::tasks::taskloop(Index_t{0}, numNode,
-                            numNode/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                            dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [&](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
             domain.fx(i) = Real_t(0.0) ;
@@ -954,7 +955,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
 //#pragma omp parallel for firstprivate(numElem)
 
     dash::tasks::taskloop(Index_t{0}, numElem,
-                          numElem/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to){
       for ( Index_t k=from; k<to; ++k )
       {
@@ -1057,6 +1058,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
 
 //#pragma omp for firstprivate(numElem)
     dash::tasks::taskloop(Index_t{0}, numElem,
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
       [&, eosvmin](Index_t from, Index_t to){
         if (eosvmin != Real_t(0.))
           for(Index_t i=from; i<to; ++i) {
@@ -1115,7 +1117,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
       // just leave it in, please
 //#pragma omp for nowait firstprivate(numElem)
       dash::tasks::taskloop(Index_t{0}, numElem,
-                            numElem/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                            dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [&, eosvmin, eosvmax](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
             Real_t vc = domain.v(i) ;
@@ -1170,7 +1172,8 @@ void Domain::UpdateVolumesForElems(Real_t *vnew,
 
   if (length != 0) {
 //#pragma omp parallel for firstprivate(length, v_cut)
-    dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+    dash::tasks::taskloop(Index_t{0}, length,
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
       [&, v_cut, vnew](Index_t from, Index_t to){
         for(Index_t i=from; i<to; ++i) {
           Real_t tmpV = vnew[i] ;
