@@ -965,7 +965,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
 
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [&](Index_t from, Index_t to) {
+    [=, &domain](Index_t from, Index_t to) {
       for(Index_t i2=from;i2<to;++i2){
         Real_t *fx_local, *fy_local, *fz_local ;
         Real_t hgfx[8], hgfy[8], hgfz[8] ;
@@ -1150,19 +1150,22 @@ void CalcFBHourglassForceForElems(Domain &domain,
         }
       }
     },
-    [determ, &domain]
+    [determ, x8n, fz_elem, &domain]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
       *deps = dash::tasks::in(&determ[from]);
       *deps = dash::tasks::in(&domain.fx(0));
+      *deps = dash::tasks::out(&fz_elem[from]);
+      *deps = dash::tasks::in(&x8n[0]);
     });
-  dash::tasks::complete();
+  //dash::tasks::complete();
 
   if (numthreads > 1) {
     // Collect the data from the local arrays into the final force arrays
+    dash::tasks::async([](){}, dash::tasks::out(&domain.fx(0)));
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::taskloop(Index_t{0}, numNode,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-      [&](Index_t from, Index_t to) {
+                          dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
+      [fx_elem, fy_elem, fz_elem, &domain](Index_t from, Index_t to) {
         for( Index_t gnode=from; gnode<to; ++gnode )
         {
           Index_t count = domain.nodeElemCount(gnode) ;
@@ -1180,11 +1183,25 @@ void CalcFBHourglassForceForElems(Domain &domain,
           domain.fy(gnode) += fy_tmp ;
           domain.fz(gnode) += fz_tmp ;
         }
+      },
+      [fz_elem, fx_elem, &domain]
+      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+        *deps = dash::tasks::in(&fx_elem[0]);
+        *deps = dash::tasks::in(&domain.fx(0));
+        *deps = dash::tasks::in(&fz_elem[from]);
       });
-    dash::tasks::complete();
-    Release(&fz_elem) ;
-    Release(&fy_elem) ;
-    Release(&fx_elem) ;
+    dash::tasks::async(
+      [=](){
+        auto tmp = fx_elem;
+        Release(&tmp) ;
+        tmp = fy_elem;
+        Release(&tmp) ;
+        tmp = fz_elem;
+        Release(&tmp) ;
+      },
+      dash::tasks::out(&fx_elem[0])
+    );
+    //dash::tasks::complete();
   }
 }
 
@@ -1237,9 +1254,10 @@ void CalcHourglassControlForElems(Domain& domain,
           }
       }
     },
-    [determ]
+    [determ, x8n]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
       *deps = dash::tasks::out(&determ[from]);
+      *deps = dash::tasks::in(&x8n[0]);
     }
   );
   // tasks flow into CalcFBHourglassForceForElems
@@ -1249,16 +1267,20 @@ void CalcHourglassControlForElems(Domain& domain,
     CalcFBHourglassForceForElems( domain,
                                   determ, x8n, y8n, z8n, dvdx, dvdy, dvdz,
                                   hgcoef, numElem, domain.numNode()) ;
-  } else {
-    dash::tasks::complete();
   }
 
-  Release(&z8n) ;
-  Release(&y8n) ;
-  Release(&x8n) ;
-  Release(&dvdz) ;
-  Release(&dvdy) ;
-  Release(&dvdx) ;
+  dash::tasks::async(
+    [&]() mutable {
+      Release(&z8n) ;
+      Release(&y8n) ;
+      Release(&x8n) ;
+      Release(&dvdz) ;
+      Release(&dvdy) ;
+      Release(&dvdx) ;
+    },
+    dash::tasks::out(&x8n[0])
+  );
+  dash::tasks::complete();
 }
 
 static inline
@@ -1357,6 +1379,7 @@ void IntegrateStressForElems( Domain &domain,
       *deps = dash::tasks::in(&domain.fx(0));
       *deps = dash::tasks::in(&sigxx[from]);
       *deps = dash::tasks::out(&determ[from]);
+      *deps = dash::tasks::in(&sigxx[0]);
     });
   //dash::tasks::complete();
 
@@ -1419,11 +1442,22 @@ void CalcVolumeForceForElems(Domain& domain)
     /* Sum contributions to total stress tensor */
     InitStressTermsForElems(domain, sigxx, sigyy, sigzz, numElem);
 
+
     // call elemlib stress integration loop to produce nodal forces from
     // material stresses.
     IntegrateStressForElems( domain,
 			     sigxx, sigyy, sigzz, determ, numElem,
 			     domain.numNode()) ;
+
+    dash::tasks::async(
+      [&]() mutable {
+        Release(&sigzz) ;
+        Release(&sigyy) ;
+        Release(&sigxx) ;
+      },
+      dash::tasks::out(&sigxx[0])
+    );
+
 
     // check for negative element volume
 //#pragma omp parallel for firstprivate(numElem)
@@ -1450,10 +1484,8 @@ void CalcVolumeForceForElems(Domain& domain)
 
     CalcHourglassControlForElems(domain, determ, hgcoef) ;
 
+    dash::tasks::complete();
     Release(&determ) ;
-    Release(&sigzz) ;
-    Release(&sigyy) ;
-    Release(&sigxx) ;
   }
 }
 
