@@ -1153,6 +1153,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
     [determ, x8n, fz_elem, &domain]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
       *deps = dash::tasks::in(&determ[from]);
+      *deps = dash::tasks::in(&determ[0]);
       *deps = dash::tasks::in(&domain.fx(0));
       *deps = dash::tasks::out(&fz_elem[from]);
       *deps = dash::tasks::in(&x8n[0]);
@@ -1199,6 +1200,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
         tmp = fz_elem;
         Release(&tmp) ;
       },
+      DART_PRIO_HIGH,
       dash::tasks::out(&fx_elem[0])
     );
     //dash::tasks::complete();
@@ -1278,9 +1280,10 @@ void CalcHourglassControlForElems(Domain& domain,
       Release(&dvdy) ;
       Release(&dvdx) ;
     },
+    DART_PRIO_HIGH,
     dash::tasks::out(&x8n[0])
   );
-  dash::tasks::complete();
+  //dash::tasks::complete();
 }
 
 static inline
@@ -1423,7 +1426,9 @@ void IntegrateStressForElems( Domain &domain,
         Release(&fy_elem) ;
         Release(&fx_elem) ;
       },
-      dash::tasks::out(&domain.fx(0)));
+      DART_PRIO_HIGH,
+      dash::tasks::out(&domain.fx(0))
+    );
   }
 }
 
@@ -1455,6 +1460,7 @@ void CalcVolumeForceForElems(Domain& domain)
         Release(&sigyy) ;
         Release(&sigxx) ;
       },
+      DART_PRIO_HIGH,
       dash::tasks::out(&sigxx[0])
     );
 
@@ -1484,8 +1490,15 @@ void CalcVolumeForceForElems(Domain& domain)
 
     CalcHourglassControlForElems(domain, determ, hgcoef) ;
 
+    dash::tasks::async(
+      [&]() mutable {
+        Release(&determ) ;
+      },
+      DART_PRIO_HIGH,
+      dash::tasks::out(&determ[0])
+    );
+
     dash::tasks::complete();
-    Release(&determ) ;
   }
 }
 
