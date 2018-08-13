@@ -2473,9 +2473,24 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
                       p_cut, e_cut, q_cut, emin,
                       qq_old, ql_old, rho0, eosvmax,
                       numElemReg, regElemList);
-    dash::tasks::complete();
+    // CalcEnergyForElems calls  complete() for us
+    //dash::tasks::complete();
   }
 
+  dash::tasks::async(
+    [=]() mutable {
+      Release(&work) ;
+      Release(&ql_old) ;
+      Release(&qq_old) ;
+      Release(&compHalfStep) ;
+      Release(&compression) ;
+      Release(&q_old) ;
+      Release(&p_old) ;
+      Release(&delvc) ;
+      Release(&e_old) ;
+    },
+    DART_PRIO_HIGH
+  );
 
   // we can overlap the following loop with the loop in CalcSoundSpeedForElems
 
@@ -2503,13 +2518,4 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
   Release(&q_new) ;
   Release(&e_new) ;
   Release(&p_new) ;
-  Release(&work) ;
-  Release(&ql_old) ;
-  Release(&qq_old) ;
-  Release(&compHalfStep) ;
-  Release(&compression) ;
-  Release(&q_old) ;
-  Release(&p_old) ;
-  Release(&delvc) ;
-  Release(&e_old) ;
 }
