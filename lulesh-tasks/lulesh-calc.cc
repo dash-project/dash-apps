@@ -1149,6 +1149,11 @@ void CalcFBHourglassForceForElems(Domain &domain,
           domain.fz(n7si2) += hgfz[7];
         }
       }
+    },
+    [determ, &domain]
+    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      *deps = dash::tasks::in(&determ[from]);
+      *deps = dash::tasks::in(&domain.fx(0));
     });
   dash::tasks::complete();
 
@@ -1231,13 +1236,21 @@ void CalcHourglassControlForElems(Domain& domain,
             exit(VolumeError);
           }
       }
-  });
-  dash::tasks::complete();
+    },
+    [determ]
+    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      *deps = dash::tasks::out(&determ[from]);
+    }
+  );
+  // tasks flow into CalcFBHourglassForceForElems
+  //dash::tasks::complete();
 
   if ( hgcoef > Real_t(0.) ) {
     CalcFBHourglassForceForElems( domain,
                                   determ, x8n, y8n, z8n, dvdx, dvdy, dvdz,
                                   hgcoef, numElem, domain.numNode()) ;
+  } else {
+    dash::tasks::complete();
   }
 
   Release(&z8n) ;
@@ -1260,12 +1273,16 @@ void InitStressTermsForElems(Domain &domain,
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [&](Index_t from, Index_t to) {
+    [sigxx, sigyy, sigzz, &domain](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i){
         sigxx[i] = sigyy[i] = sigzz[i] =  - domain.p(i) - domain.q(i) ;
       }
+    },
+    [sigxx]
+    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      *deps = dash::tasks::out(&sigxx[from]);
     });
-  dash::tasks::complete();
+  //dash::tasks::complete();
 }
 
 static inline
@@ -1276,12 +1293,9 @@ void IntegrateStressForElems( Domain &domain,
    auto numthreads = dash::tasks::numthreads();
 
    Index_t numElem8 = numElem * 8 ;
-   Real_t *fx_elem = nullptr;
-   Real_t *fy_elem = nullptr;
-   Real_t *fz_elem = nullptr;
-   Real_t fx_local[8] ;
-   Real_t fy_local[8] ;
-   Real_t fz_local[8] ;
+   static Real_t *fx_elem = nullptr;
+   static Real_t *fy_elem = nullptr;
+   static Real_t *fz_elem = nullptr;
 
 
   if (numthreads > 1) {
@@ -1294,7 +1308,7 @@ void IntegrateStressForElems( Domain &domain,
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [&](Index_t from, Index_t to) {
+    [sigxx, sigyy, sigzz, determ, numthreads, &domain](Index_t from, Index_t to) {
       for( Index_t k=from; k<to; ++k )
       {
         const Index_t* const elemToNode = domain.nodelist(k);
@@ -1302,6 +1316,9 @@ void IntegrateStressForElems( Domain &domain,
         Real_t x_local[8] ;
         Real_t y_local[8] ;
         Real_t z_local[8] ;
+        Real_t fx_local[8] ;
+        Real_t fy_local[8] ;
+        Real_t fz_local[8] ;
 
         // get nodal coordinates from global arrays and copy into local arrays.
         CollectDomainNodesToElemNodes(domain, elemToNode, x_local, y_local, z_local);
@@ -1334,16 +1351,25 @@ void IntegrateStressForElems( Domain &domain,
           }
         }
       }
+    },
+    [determ, sigxx, &domain]
+    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      *deps = dash::tasks::in(&domain.fx(0));
+      *deps = dash::tasks::in(&sigxx[from]);
+      *deps = dash::tasks::out(&determ[from]);
     });
-  dash::tasks::complete();
+  //dash::tasks::complete();
+
 
   if (numthreads > 1) {
-     // If threaded, then we need to copy the data out of the temporary
-     // arrays used above into the final forces field
+    // dummy task to mimic CONCURRENT dependency
+    dash::tasks::async([](){}, dash::tasks::out(&domain.fx(0)));
+    // If threaded, then we need to copy the data out of the temporary
+    // arrays used above into the final forces field
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::taskloop(Index_t{0}, numNode,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-      [&](Index_t from, Index_t to) {
+                          dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
+      [&domain](Index_t from, Index_t to) {
         for( Index_t gnode=from; gnode<to; ++gnode )
         {
           Index_t count = domain.nodeElemCount(gnode) ;
@@ -1361,17 +1387,27 @@ void IntegrateStressForElems( Domain &domain,
           domain.fy(gnode) = fy_tmp ;
           domain.fz(gnode) = fz_tmp ;
         }
+      },
+      [&domain]
+      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+        *deps = dash::tasks::in(&domain.fx(0));
       });
-    dash::tasks::complete();
-    Release(&fz_elem) ;
-    Release(&fy_elem) ;
-    Release(&fx_elem) ;
+    //dash::tasks::complete();
+
+    // dummy task to mimic CONCURRENT dependency
+    dash::tasks::async([]() mutable {
+        Release(&fz_elem) ;
+        Release(&fy_elem) ;
+        Release(&fx_elem) ;
+      },
+      dash::tasks::out(&domain.fx(0)));
   }
 }
 
 
 void CalcVolumeForceForElems(Domain& domain)
 {
+  // TODO There is a lot to overlap here, make it so!
   Index_t numElem = domain.numElem() ;
   if (numElem != 0) {
     Real_t  hgcoef = domain.hgcoef() ;
@@ -1396,7 +1432,7 @@ void CalcVolumeForceForElems(Domain& domain)
       [&](Index_t from, Index_t to) {
         for ( Index_t k=from; k<to; ++k ) {
           if (determ[k] <= Real_t(0.0)) {
-            std::cerr << dash::myid() << " determ "<< determ[k] << std::endl;
+            std::cerr << dash::myid() << " determ[" << k << "] "<< determ[k] << std::endl;
 #if USE_MPI
             MPI_Abort(MPI_COMM_WORLD, VolumeError);
 #else
@@ -1404,8 +1440,13 @@ void CalcVolumeForceForElems(Domain& domain)
 #endif
           }
         }
+    },
+    [determ]
+    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      *deps = dash::tasks::in(&determ[from]);
     });
-    dash::tasks::complete();
+
+    // dependencies flow into CalcHourglassControlForElems
 
     CalcHourglassControlForElems(domain, determ, hgcoef) ;
 
