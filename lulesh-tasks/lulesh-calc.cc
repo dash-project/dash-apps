@@ -1,4 +1,4 @@
-
+#include <mutex>
 #include "lulesh.h"
 #include "lulesh-calc.h"
 #include "extrae.h"
@@ -16,9 +16,13 @@ template <typename T>
 static inline
 void Release(T **ptr)
 {
+  static std::mutex mtx;
   if (*ptr != NULL) {
+    // memory management is serialized so avoid waiting in free()
+    while (!mtx.try_lock()) { dash::tasks::yield(); }
     free(*ptr) ;
     *ptr = NULL ;
+    mtx.unlock();
   }
 }
 
