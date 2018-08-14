@@ -2000,7 +2000,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
 
 //#pragma omp parallel for firstprivate(length, emin)
   dash::tasks::taskloop(Index_t{0}, length,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
         e_new[i] = e_old[i] - Real_t(0.5) * delvc[i] * (p_old[i] + q_old[i])
@@ -2345,7 +2345,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
     /* compress data, minimal set */
 
     dash::tasks::taskloop(Index_t{0}, numElemReg,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()),
       [=, &domain](Index_t from, Index_t to) {
         for (Index_t i=from; i<to; ++i) {
           Index_t elem = regElemList[i];
