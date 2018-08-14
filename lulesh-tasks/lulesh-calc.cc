@@ -1225,7 +1225,7 @@ void CalcHourglassControlForElems(Domain& domain,
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [&](Index_t from, Index_t to) {
+    [=, &domain](Index_t from, Index_t to) {
       for (Index_t i=from; i<to; ++i){
           Real_t  x1[8],  y1[8],  z1[8] ;
           Real_t pfx[8], pfy[8], pfz[8] ;
@@ -1272,7 +1272,7 @@ void CalcHourglassControlForElems(Domain& domain,
   }
 
   dash::tasks::async(
-    [&]() mutable {
+    [=]() mutable {
       Release(&z8n) ;
       Release(&y8n) ;
       Release(&x8n) ;
@@ -2274,7 +2274,7 @@ void CalcSoundSpeedForElems(Domain &domain,
 {
 //#pragma omp parallel for firstprivate(rho0, ss4o3)
   dash::tasks::taskloop(Index_t{0}, len,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=, &domain](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
         Index_t elem = regElemList[i];
@@ -2496,7 +2496,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
 //#pragma omp parallel for firstprivate(numElemReg)
   dash::tasks::taskloop(Index_t{0}, numElemReg,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=, &domain](Index_t from, Index_t to) {
       for (Index_t i=from; i<to; ++i) {
         Index_t elem = regElemList[i];

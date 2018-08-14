@@ -1078,7 +1078,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
 
 //#pragma omp for firstprivate(numElem)
     dash::tasks::taskloop(Index_t{0}, numElem,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()),
       [&, eosvmin](Index_t from, Index_t to){
         if (eosvmin != Real_t(0.))
           for(Index_t i=from; i<to; ++i) {
@@ -1137,7 +1137,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
       // just leave it in, please
 //#pragma omp for nowait firstprivate(numElem)
       dash::tasks::taskloop(Index_t{0}, numElem,
-                            dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                            dash::tasks::num_chunks(dash::tasks::numthreads()),
         [&, eosvmin, eosvmax](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
             Real_t vc = domain.v(i) ;
@@ -1193,7 +1193,7 @@ void Domain::UpdateVolumesForElems(Real_t *vnew,
   if (length != 0) {
 //#pragma omp parallel for firstprivate(length, v_cut)
     dash::tasks::taskloop(Index_t{0}, length,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()),
       [&, v_cut, vnew](Index_t from, Index_t to){
         for(Index_t i=from; i<to; ++i) {
           Real_t tmpV = vnew[i] ;
