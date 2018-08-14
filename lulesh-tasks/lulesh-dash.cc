@@ -33,10 +33,8 @@ static inline
 void Release(T **ptr)
 {
   if (*ptr != NULL) {
-    EXTRAE_ENTER(RELEASE);
     free(*ptr) ;
     *ptr = NULL ;
-    EXTRAE_EXIT(RELEASE);
   }
 }
 

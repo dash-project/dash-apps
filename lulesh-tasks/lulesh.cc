@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
   auto nnodes = (1+opts.nx()) * (1+opts.nx()) * (1+opts.nx());
 
   EXTRAE_INIT();
+  EXTRAE_TASK_INIT();
 
   // if(dash::myid()==0) print_config(dom, std::cout);
   // if( dash::myid()==0 ) peek( &(dom.nodalMass(0)), (size_t)20 );

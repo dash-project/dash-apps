@@ -20,6 +20,7 @@ void Release(T **ptr)
   if (*ptr != NULL) {
     // memory management is serialized so avoid waiting in free()
     while (!mtx.try_lock()) { dash::tasks::yield(); }
+    extrae_task_event ev(RELEASE);
     free(*ptr) ;
     *ptr = NULL ;
     mtx.unlock();
@@ -970,6 +971,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
+      extrae_task_event ev(FBHOURGLASSFORCEFORELEMS);
       for(Index_t i2=from;i2<to;++i2){
         Real_t *fx_local, *fy_local, *fz_local ;
         Real_t hgfx[8], hgfy[8], hgfz[8] ;
@@ -1171,6 +1173,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
     dash::tasks::taskloop(Index_t{0}, numNode,
                           dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
       [fx_elem, fy_elem, fz_elem, &domain](Index_t from, Index_t to) {
+        extrae_task_event ev(FBHOURGLASSFORCEFORELEMSREDUCTION);
         for( Index_t gnode=from; gnode<to; ++gnode )
         {
           Index_t count = domain.nodeElemCount(gnode) ;
@@ -1230,6 +1233,7 @@ void CalcHourglassControlForElems(Domain& domain,
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
+      extrae_task_event ev(HOURGLASSCONTROLFORELEM);
       for (Index_t i=from; i<to; ++i){
           Real_t  x1[8],  y1[8],  z1[8] ;
           Real_t pfx[8], pfy[8], pfz[8] ;
@@ -1303,6 +1307,7 @@ void InitStressTermsForElems(Domain &domain,
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [sigxx, sigyy, sigzz, &domain](Index_t from, Index_t to) {
+      extrae_task_event ev(INITSTRESSTERMSFORELEMS);
       for (Index_t i = from; i < to; ++i){
         sigxx[i] = sigyy[i] = sigzz[i] =  - domain.p(i) - domain.q(i) ;
       }
@@ -1338,6 +1343,7 @@ void IntegrateStressForElems( Domain &domain,
   dash::tasks::taskloop(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [sigxx, sigyy, sigzz, determ, numthreads, &domain](Index_t from, Index_t to) {
+      extrae_task_event ev(INTEGRATESTRESSFORELEMS);
       for( Index_t k=from; k<to; ++k )
       {
         const Index_t* const elemToNode = domain.nodelist(k);
@@ -1400,6 +1406,7 @@ void IntegrateStressForElems( Domain &domain,
     dash::tasks::taskloop(Index_t{0}, numNode,
                           dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
       [&domain](Index_t from, Index_t to) {
+        extrae_task_event ev(INTEGRATESTRESSFORELEMSREDUCTION);
         for( Index_t gnode=from; gnode<to; ++gnode )
         {
           Index_t count = domain.nodeElemCount(gnode) ;
@@ -1474,6 +1481,7 @@ void CalcVolumeForceForElems(Domain& domain)
     dash::tasks::taskloop(Index_t{0}, numElem,
                           dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
       [&](Index_t from, Index_t to) {
+        extrae_task_event ev(CHECKDETERM);
         for ( Index_t k=from; k<to; ++k ) {
           if (determ[k] <= Real_t(0.0)) {
             std::cerr << dash::myid() << " determ[" << k << "] "<< determ[k] << std::endl;
