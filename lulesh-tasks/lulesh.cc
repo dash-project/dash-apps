@@ -24,9 +24,14 @@ int main(int argc, char *argv[])
     dash::finalize();
     return 0;
   }
-  if( (myRank == 0) && (!opts.quiet()) ) {
-    opts.printBanner(std::cout);
-  }
+
+  // exclude thread creation from timing loop
+  dash::tasks::async([&](){
+    if( (myRank == 0) && (!opts.quiet()) ) {
+      opts.printBanner(std::cout);
+    }
+  });
+  dash::tasks::complete();
 
   std::cout << "Rank " << dash::myid() << std::endl;
 
