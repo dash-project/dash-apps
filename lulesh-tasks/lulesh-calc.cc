@@ -1161,7 +1161,6 @@ void CalcFBHourglassForceForElems(Domain &domain,
       *deps = dash::tasks::in(&determ[from]);
       *deps = dash::tasks::in(&determ[0]);
       *deps = dash::tasks::in(&domain.fx(0));
-      *deps = dash::tasks::out(&fz_elem[from]);
       *deps = dash::tasks::in(&x8n[0]);
     });
   //dash::tasks::complete();
@@ -1196,7 +1195,6 @@ void CalcFBHourglassForceForElems(Domain &domain,
       (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
         *deps = dash::tasks::in(&fx_elem[0]);
         *deps = dash::tasks::in(&domain.fx(0));
-        *deps = dash::tasks::in(&fz_elem[from]);
       });
     dash::tasks::async(
       [=](){
@@ -1428,17 +1426,20 @@ void IntegrateStressForElems( Domain &domain,
       [&domain]
       (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
         *deps = dash::tasks::in(&domain.fx(0));
+        *deps = dash::tasks::in(&fx_elem[0]);
       });
     //dash::tasks::complete();
 
     // dummy task to mimic CONCURRENT dependency
+
+    dash::tasks::async([]{}(), dash::tasks::out(&domain.fx(0)));
     dash::tasks::async([]() mutable {
         Release(&fz_elem) ;
         Release(&fy_elem) ;
         Release(&fx_elem) ;
       },
       DART_PRIO_HIGH,
-      dash::tasks::out(&domain.fx(0))
+      dash::tasks::out(&fx_elem[0])
     );
   }
 }
