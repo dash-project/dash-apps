@@ -1432,7 +1432,7 @@ void IntegrateStressForElems( Domain &domain,
 
     // dummy task to mimic CONCURRENT dependency
 
-    dash::tasks::async([]{}(), dash::tasks::out(&domain.fx(0)));
+    dash::tasks::async([](){}, dash::tasks::out(&domain.fx(0)));
     dash::tasks::async([]() mutable {
         Release(&fz_elem) ;
         Release(&fy_elem) ;
