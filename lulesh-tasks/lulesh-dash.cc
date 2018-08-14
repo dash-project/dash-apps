@@ -25,17 +25,19 @@ template <typename T>
 static inline
 T *Allocate(size_t size)
 {
-   return static_cast<T *>(malloc(sizeof(T)*size)) ;
+  return static_cast<T *>(malloc(sizeof(T)*size)) ;
 }
 
 template <typename T>
 static inline
 void Release(T **ptr)
 {
-   if (*ptr != NULL) {
-      free(*ptr) ;
-      *ptr = NULL ;
-   }
+  if (*ptr != NULL) {
+    EXTRAE_ENTER(RELEASE);
+    free(*ptr) ;
+    *ptr = NULL ;
+    EXTRAE_EXIT(RELEASE);
+  }
 }
 
 template<>
@@ -563,6 +565,8 @@ void Domain::CalcForceForNodes()
       EXTRAE_EXIT(CALCFORCEFORNODES);
     },
     dash::tasks::in(&this->v(0)),
+    dash::tasks::in(&this->p(0)),
+    dash::tasks::in(&this->q(0)),
     dash::tasks::out(&this->fx(0))
   );
 

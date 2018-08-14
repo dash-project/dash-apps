@@ -17,6 +17,7 @@ enum {
   MONOQELEMS,
   COURANTCONSTRAINTS,
   HYDROCONSTRAINTS,
+  RELEASE,
   _NUM_EVENTS
 };
 
@@ -34,8 +35,8 @@ void Extrae_event (extrae_type_t type, extrae_value_t value) __attribute__((weak
 void Extrae_define_event_type (extrae_type_t *type, const char *type_description, unsigned *nvalues, extrae_value_t *values, const char **values_description) __attribute__((weak));
 void Extrae_fini (void) __attribute__((weak));
 static extrae_type_t et = 1000;
-static extrae_value_t ev[] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110};
-static const char *extrae_names[] = {"NONE", "TimeIncrement", "CalcForceForNodes", "SyncForce", "CalcAccelerationForNodes", "CalcVelPosForNodes", "LagrangeElems", "MaterialProperties", "CalcMonotonicQGradientsForElems", "CalcMonotonicQForElems", "CourantConstraintForElems", "HydroConstraintForElems"};
+static extrae_value_t ev[] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120};
+static const char *extrae_names[] = {"NONE", "TimeIncrement", "CalcForceForNodes", "SyncForce", "CalcAccelerationForNodes", "CalcVelPosForNodes", "LagrangeElems", "MaterialProperties", "CalcMonotonicQGradientsForElems", "CalcMonotonicQForElems", "CourantConstraintForElems", "HydroConstraintForElems", "RELEASE"};
 
 
 #ifdef __cplusplus
