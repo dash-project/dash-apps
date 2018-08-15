@@ -1205,7 +1205,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
         tmp = fz_elem;
         Release(&tmp) ;
       },
-      DART_PRIO_HIGH,
+      //DART_PRIO_HIGH,
       dash::tasks::out(&fx_elem[0])
     );
     //dash::tasks::complete();
@@ -1286,7 +1286,7 @@ void CalcHourglassControlForElems(Domain& domain,
       Release(&dvdy) ;
       Release(&dvdx) ;
     },
-    DART_PRIO_HIGH,
+    //DART_PRIO_HIGH,
     dash::tasks::out(&x8n[0])
   );
   //dash::tasks::complete();
@@ -1402,7 +1402,7 @@ void IntegrateStressForElems( Domain &domain,
     // arrays used above into the final forces field
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::taskloop(Index_t{0}, numNode,
-                          dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(numthreads),
       [&domain](Index_t from, Index_t to) {
         extrae_task_event ev(INTEGRATESTRESSFORELEMSREDUCTION);
         for( Index_t gnode=from; gnode<to; ++gnode )
@@ -1438,7 +1438,7 @@ void IntegrateStressForElems( Domain &domain,
         Release(&fy_elem) ;
         Release(&fx_elem) ;
       },
-      DART_PRIO_HIGH,
+      //DART_PRIO_HIGH,
       dash::tasks::out(&fx_elem[0])
     );
   }
@@ -1465,17 +1465,6 @@ void CalcVolumeForceForElems(Domain& domain)
     IntegrateStressForElems( domain,
 			     sigxx, sigyy, sigzz, determ, numElem,
 			     domain.numNode()) ;
-
-    dash::tasks::async(
-      [&]() mutable {
-        Release(&sigzz) ;
-        Release(&sigyy) ;
-        Release(&sigxx) ;
-      },
-      DART_PRIO_HIGH,
-      dash::tasks::out(&sigxx[0])
-    );
-
 
     // check for negative element volume
 //#pragma omp parallel for firstprivate(numElem)
@@ -1505,9 +1494,12 @@ void CalcVolumeForceForElems(Domain& domain)
 
     dash::tasks::async(
       [&]() mutable {
+        Release(&sigzz) ;
+        Release(&sigyy) ;
+        Release(&sigxx) ;
         Release(&determ) ;
       },
-      DART_PRIO_HIGH,
+      //DART_PRIO_HIGH,
       dash::tasks::out(&determ[0])
     );
 
