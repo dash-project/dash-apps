@@ -2765,7 +2765,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
         fieldOffset[fi] += opCount;
     }
     if (rowNotMax) {
-      auto src = comm.src(myRank - domain.tp(), Y0, xferFields);
+      auto src = comm.src(myRank + domain.tp(), Y0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
