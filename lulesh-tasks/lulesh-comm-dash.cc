@@ -219,7 +219,7 @@ void DASHComm::Sync_MonoQ()
   );
 }
 
-Int_t DASHComm::offset(Int_t desc)
+Int_t DASHComm::offset(Int_t desc, Int_t xferFields)
 {
   Index_t maxPlaneSize = CACHE_ALIGN_REAL( m_dom.maxPlaneSize() );
   Index_t maxEdgeSize  = CACHE_ALIGN_REAL( m_dom.maxEdgeSize()  );
@@ -237,18 +237,32 @@ Int_t DASHComm::offset(Int_t desc)
     emsg * maxEdgeSize +
     cmsg * CACHE_COHERENCE_PAD_REAL;
 
-  return offs;
+  return offs*xferFields;
 }
 
 dash::GlobIter<Real_t, dash::Pattern<1>>
-DASHComm::dest(Int_t rank, Int_t desc)
+DASHComm::dest(Int_t rank, Int_t desc, Int_t xferFields)
 {
   auto& pat = m_commDataRecv->pattern();
 
-  auto offs = offset(desc);
+  auto offs = offset(desc, xferFields);
 
   dash::GlobIter<Real_t, dash::Pattern<1> > it
     = m_commDataRecv->begin() + pat.global_index(dash::team_unit_t(rank),
+                                                 {offs});
+
+  return it;
+}
+
+dash::GlobIter<Real_t, dash::Pattern<1>>
+DASHComm::src(Int_t rank, Int_t desc, Int_t xferFields)
+{
+  auto& pat = m_commDataRecv->pattern();
+
+  auto offs = offset(desc, xferFields);
+
+  dash::GlobIter<Real_t, dash::Pattern<1> > it
+    = m_commDataSend->begin() + pat.global_index(dash::team_unit_t(rank),
                                                  {offs});
 
   return it;

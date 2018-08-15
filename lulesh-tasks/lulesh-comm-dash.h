@@ -90,12 +90,15 @@ public:
 
   // given a location descriptor (e.g., X1Z0) determine its storage
   // offset
-  Int_t offset(Int_t desc);
+  Int_t offset(Int_t desc, Int_t xferFields);
 
   // determine global destination pointer for a target unit rank and
   // location descriptor
   dash::GlobIter<Real_t, dash::Pattern<1>>
-    dest( Int_t rank, Int_t desc );
+    dest( Int_t rank, Int_t desc, Int_t xferFields );
+
+  dash::GlobIter<Real_t, dash::Pattern<1>>
+    src( Int_t rank, Int_t desc, Int_t xferFields );
 
   // 26 = 6 faces + 12 edges + 8 corners
   dash::Future<array_type::iterator> recvRequest[26];

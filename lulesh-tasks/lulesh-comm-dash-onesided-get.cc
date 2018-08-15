@@ -5,7 +5,7 @@
 #include "lulesh-comm-dash.h"
 #include "lulesh-comm-dash-onesided.h"
 
-#ifndef DASH_USE_GET
+#ifdef DASH_USE_GET
 
 using namespace std;
 
@@ -80,12 +80,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     // ASSUMING ONE DOMAIN PER RANK, CONSTANT BLOCK SIZE HERE
 
     if (planeNotMin) {
-      auto dest = comm.dest(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
+      auto dest = &comm.commDataSend()[comm.offset(Z0, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
           int sendCount = dx * dy;
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<sendCount; ++i) {
@@ -93,14 +92,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
-          destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr,
-              destAddr + (xferFields * sendCount),
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -119,12 +110,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++pmsg;
     }
     if (planeNotMax && doSend) {
-      auto dest = comm.dest(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
+      //auto dest = comm.dest(myRank + (domain.tp() * domain.tp()), Z0);
+      auto dest = &comm.commDataSend()[comm.offset(Z1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           int sendCount = dx * dy;
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<sendCount; ++i) {
@@ -132,14 +123,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
-          destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr,
-              destAddr + (xferFields * sendCount),
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -160,12 +143,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
   if (rowNotMin | rowNotMax) {
     // ASSUMING ONE DOMAIN PER RANK, CONSTANT BLOCK SIZE HERE
     if (rowNotMin) {
-      auto dest = comm.dest(myRank - domain.tp(), Y1, xferFields);
+      auto dest = &comm.commDataSend()[comm.offset(Y0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           int sendCount = dx * dz;
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -175,14 +157,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
-          destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr,
-              destAddr + xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -200,12 +174,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++pmsg;
     }
     if (rowNotMax && doSend) {
-      auto dest = comm.dest( myRank + domain.tp(), Y0, xferFields);
+      auto dest = &comm.commDataSend()[comm.offset(Y1, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
           int sendCount = dx * dz;
-          int myRank = dash::myid();
-          Real_t *destAddr;
+          Real_t *destAddr = dest;
           destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
@@ -216,13 +189,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
-          destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -245,12 +211,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     // ASSUMING ONE DOMAIN PER RANK, CONSTANT BLOCK SIZE HERE
 
     if (colNotMin) {
-      auto dest = comm.dest( myRank - 1, X1, xferFields);
+      auto dest = &comm.commDataSend()[comm.offset(X0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           int sendCount = dy * dz;
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -260,15 +225,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
-          destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             *deps = dash::tasks::in(&(domain.*src)(0));
@@ -285,12 +243,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++pmsg;
     }
     if (colNotMax && doSend) {
-      auto dest = comm.dest( myRank + 1, X0, xferFields );
+      auto dest = &comm.commDataSend()[comm.offset(X1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           int sendCount = dy * dz;
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -300,13 +257,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
-          destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -328,13 +278,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
   if (!planeOnly) {
     if (rowNotMin && colNotMin) {
-      int toRank = myRank - domain.tp() - 1;
-      auto dest  = comm.dest( toRank, X1Y1, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(X0Y0, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -342,13 +289,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
-          destAddr -= xferFields*dz;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -367,13 +307,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMin && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() - domain.tp();
-      auto dest = comm.dest( toRank, X1Z1, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(Y0Z0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -381,13 +318,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
-          destAddr -= xferFields*dx;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -406,13 +336,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (colNotMin && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() - 1;
-      auto dest = comm.dest( toRank, Y1Z1, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(X0Z0, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -420,13 +347,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
-          destAddr -= xferFields*dy;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -445,13 +365,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMax && colNotMax && doSend) {
-      int toRank = myRank + domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y0, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(X1Y1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -459,13 +376,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
-          destAddr -= xferFields*dz;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -483,13 +393,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMax && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() + domain.tp();
-      auto dest = comm.dest( toRank, X0Z0, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(Y1Z1, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -497,13 +404,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
-          destAddr -= xferFields*dx;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -521,13 +421,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (colNotMax && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() + 1;
-      auto dest = comm.dest( toRank, Y0Z0, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(X1Z1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -535,13 +432,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
-          destAddr -= xferFields*dy;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -559,13 +449,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMax && colNotMin && doSend) {
-      int toRank = myRank + domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y0, xferFields);
+      auto dest  = &comm.commDataSend()[comm.offset(X1Y0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -573,13 +460,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
-          destAddr -= xferFields*dz;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -597,13 +477,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMin && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() - domain.tp();
-      auto dest = comm.dest( toRank, Y1Z0);
+      auto dest  = &comm.commDataSend()[comm.offset(Y0Z1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -611,13 +488,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
-          destAddr -= xferFields*dx;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -635,13 +505,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (colNotMin && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Z0);
+      auto dest  = &comm.commDataSend()[comm.offset(X0Z1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -649,13 +516,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
-          destAddr -= xferFields*dy;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -673,13 +533,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMin && colNotMax) {
-      int toRank = myRank - domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y1);
+      auto dest  = &comm.commDataSend()[comm.offset(X1Y0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -687,13 +544,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
-          destAddr -= xferFields*dz;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -711,13 +561,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMax && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() + domain.tp();
-      auto dest = comm.dest( toRank, Y0Z1 );
+      auto dest  = &comm.commDataSend()[comm.offset(Y1Z0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+        [=, &domain](){
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -725,13 +572,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
-          destAddr -= xferFields*dx;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -750,13 +590,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (colNotMax && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Z1);
+      auto dest  = &comm.commDataSend()[comm.offset(X1Z0, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
-          Real_t *destAddr;
-          destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                          emsg * maxEdgeComm];
+          Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -764,13 +601,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
-          destAddr -= xferFields*dy;
-
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -789,23 +619,14 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMin && colNotMin && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() - domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y1Z1, xferFields );
+      auto dest = &comm.commDataSend()[X0Y0Z0];
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 0, 0)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(0);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -823,24 +644,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMin && colNotMin && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() - domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y1Z0, xferFields );
+      auto dest = &comm.commDataSend()[comm.offset(X0Y0Z1, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 0, 1)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx*dy*(dz - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -858,24 +670,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMin && colNotMax && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y1Z1);
+      auto dest = &comm.commDataSend()[comm.offset(X1Y0Z0, xferFields)];
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 0)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx - 1;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -893,24 +696,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMin && colNotMax && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y1Z0 );
+      auto dest = &comm.commDataSend()[X1Y0Z1];
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 1)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx*dy*(dz - 1) + (dx - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -928,24 +722,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMax && colNotMin && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y0Z1);
+      auto dest = &comm.commDataSend()[comm.offset(X0Y1Z0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           // corner at domain logical coord (0, 1, 0)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx*(dy - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -963,24 +748,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMax && colNotMin && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y0Z0 );
+      auto dest = &comm.commDataSend()[comm.offset(X0Y1Z1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           // corner at domain logical coord (0, 1, 1)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -998,24 +774,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMax && colNotMax && planeNotMin) {
-      int toRank = myRank - domain.tp()*domain.tp() + domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y0Z1, xferFields );
+      auto dest = &comm.commDataSend()[comm.offset(X1Y1Z0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           // corner at domain logical coord (1, 1, 0)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx*dy - 1;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1033,24 +800,15 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMax && colNotMax && planeNotMax && doSend) {
-      int toRank = myRank + domain.tp()*domain.tp() + domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y0Z0, xferFields );
+      auto dest = &comm.commDataSend()[comm.offset(X1Y1Z1, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           // corner at domain logical coord (1, 1, 1)
-          Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                                emsg * maxEdgeComm +
-                                                cmsg * CACHE_COHERENCE_PAD_REAL];
+          Real_t *comBuf = dest;
           Index_t idx = dx*dy*dz - 1;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
-
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1102,27 +860,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dy;
 
     if (planeNotMin) {
-      dash::tasks::async(
-        [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
-          //MPI_Wait(&comm.recvRequest[pmsg], &status);
-          DBGSYNC(xferFields, opCount, Z0);
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            for (Index_t i=0; i<opCount; ++i) {
-              (domain.*dest)(i) += srcAddr[i];
-            }
-            srcAddr += opCount;
-          }
-        },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]),
-        // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
-      );
-    }
-    if (planeNotMax) {
+      auto src = comm.src(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
@@ -1130,6 +868,47 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Z1);
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
+          for (Index_t fi=0; fi<xferFields; ++fi) {
+            Domain_member dest = fieldData[fi];
+            for (Index_t i=0; i<opCount; ++i) {
+              (domain.*dest)(i) += srcAddr[i];
+            }
+            srcAddr += opCount;
+          }
+
+        },
+        dash::tasks::in(src),
+        // TODO: dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(&(domain.*fieldData[0])(0))
+      );
+    }
+    if (planeNotMax) {
+      auto src = comm.src(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
+      dash::tasks::async(
+        [=, &domain, &comm](){
+          Real_t *srcAddr;
+          /* contiguous memory */
+          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+          //MPI_Wait(&comm.recvRequest[pmsg], &status);
+          DBGSYNC(xferFields, opCount, Z0);
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             for (Index_t i=0; i<opCount; ++i) {
@@ -1138,7 +917,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z1, xferFields)]),
+        dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
         dash::tasks::in(&(domain.*fieldData[0])(0))
       );
@@ -1150,12 +929,22 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dz;
 
     if (rowNotMin) {
+      auto src = comm.src(myRank - domain.tp(), Y1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
-          DBGSYNC(xferFields, opCount, Y0);
+          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+          DBGSYNC(xferFields, opCount, Y1);
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1167,18 +956,28 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0, xferFields)]),
+        dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
         dash::tasks::in(&(domain.*fieldData[0])(0))
       );
     }
     if (rowNotMax) {
+      auto src = comm.src(myRank + domain.tp(), Y0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
-          DBGSYNC(xferFields, opCount, Y1);
+          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+          DBGSYNC(xferFields, opCount, Y0);
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1190,7 +989,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1, xferFields)]),
+        dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
         dash::tasks::in(&(domain.*fieldData[0])(0))
       );
@@ -1201,12 +1000,22 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dy * dz;
 
     if (colNotMin) {
+      auto src = comm.src( myRank - 1, X1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
-          DBGSYNC(xferFields, opCount, X0);
+          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+          DBGSYNC(xferFields, opCount, X1);
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1218,18 +1027,28 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X0, xferFields)]),
+        dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
         dash::tasks::in(&(domain.*fieldData[0])(0))
       );
     }
     if (colNotMax) {
+      auto src = comm.src( myRank + 1, X0, xferFields );
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
-          DBGSYNC(xferFields, opCount, X1);
+          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+          DBGSYNC(xferFields, opCount, X0);
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1241,7 +1060,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X1, xferFields)]),
+        dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
         dash::tasks::in(&(domain.*fieldData[0])(0))
       );
@@ -1249,11 +1068,22 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   }
 
   if (rowNotMin & colNotMin) {
+    int rank = myRank - domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
-        DBGSYNC(xferFields, dz, X0Y0);
+        srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
+        DBGSYNC(xferFields, dz, X1Y1);
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1263,18 +1093,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() - domain.tp();
+    auto src  = comm.src( rank, Y1Z1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
-        DBGSYNC(xferFields, dx, Y0Z0);
+        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
+        DBGSYNC(xferFields, dx, Y1Z1);
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1284,18 +1125,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMin & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() - 1;
+    auto src  = comm.src( rank, X1Z1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
-        DBGSYNC(xferFields, dy, X0Z0);
+        srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
+        DBGSYNC(xferFields, dy, X1Z1);
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1305,18 +1157,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & colNotMax) {
+    int  rank = myRank + domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
-        DBGSYNC(xferFields, dz, X1Y1);
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
+        DBGSYNC(xferFields, dz, X0Y0);
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1326,18 +1189,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + domain.tp();
+    auto src  = comm.src( rank, Y0Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
-        DBGSYNC(xferFields, dx, Y1Z1);
+        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
+        DBGSYNC(xferFields, dx, Y0Z0);
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1347,18 +1221,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMax & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + 1;
+    auto src  = comm.src( rank, X0Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
-        DBGSYNC(xferFields, dy, X1Z1);
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
+        DBGSYNC(xferFields, dy, X0Z0);
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1368,18 +1253,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & colNotMin) {
+    int  rank = myRank + domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
-        DBGSYNC(xferFields, dz, X0Y1);
+        srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
+        DBGSYNC(xferFields, dz, X1Y0);
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1389,18 +1285,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - domain.tp();
+    auto src  = comm.src( rank, Y1Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
-        DBGSYNC(xferFields, dx, Y0Z1);
+        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
+        DBGSYNC(xferFields, dx, Y1Z0);
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1410,18 +1317,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMin & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - 1;
+    auto src  = comm.src( rank, X1Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
-        DBGSYNC(xferFields, dy, X0Z1);
+        srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
+        DBGSYNC(xferFields, dy, X1Z0);
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1431,18 +1349,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & colNotMax) {
+    int  rank = myRank - domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
-        DBGSYNC(xferFields, dz, X1Y0);
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
+        DBGSYNC(xferFields, dz, X0Y1);
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1452,18 +1381,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() + domain.tp();
+    auto src  = comm.src( rank, Y0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
-        DBGSYNC(xferFields, dx, Y1Z0);
+        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
+        DBGSYNC(xferFields, dx, Y0Z1);
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1473,18 +1413,29 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMax & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() + 1;
+    auto src  = comm.src( rank, X0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
-        DBGSYNC(xferFields, dy, X1Z0);
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
+        DBGSYNC(xferFields, dy, X0Z1);
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1494,143 +1445,231 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & colNotMin & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() - domain.tp() - 1;
+    auto src  = comm.dest( rank, X1Y1Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
-        DBGSYNC(xferFields, 1, X0Y0Z0);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
+        DBGSYNC(xferFields, 1, X1Y1Z1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(0) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMin & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y1Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
-        DBGSYNC(xferFields, 1, X0Y0Z1);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
+        DBGSYNC(xferFields, 1, X1Y1Z0);
         Index_t idx = dx*dy*(dz - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMax & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y1Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
-        DBGSYNC(xferFields, 1, X1Y0Z0);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
+        DBGSYNC(xferFields, 1, X0Y1Z1);
         Index_t idx = dx - 1;
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMax & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
+    auto src  = comm.dest( rank, X0Y1Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
-        DBGSYNC(xferFields, 1, X1Y0Z1);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
+        DBGSYNC(xferFields, 1, X0Y1Z0);
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMin & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
-        DBGSYNC(xferFields, 1, X0Y1Z0);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
+        DBGSYNC(xferFields, 1, X1Y0Z1);
         Index_t idx = dx*(dy - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMin & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y0Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
-        DBGSYNC(xferFields, 1, X0Y1Z1);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
+        DBGSYNC(xferFields, 1, X1Y0Z0);
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMax & planeNotMin) {
+    int  rank = myRank - domain.tp()*domain.tp() + domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
-        DBGSYNC(xferFields, 1, X1Y1Z0);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
+        DBGSYNC(xferFields, 1, X0Y0Z1);
         Index_t idx = dx*dy - 1;
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMax & planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y0Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
-        DBGSYNC(xferFields, 1, X1Y1Z1);
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
+        DBGSYNC(xferFields, 1, X0Y0Z0);
         Index_t idx = dx*dy*dz - 1;
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)]),
+      dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
       dash::tasks::in(&(domain.*fieldData[0])(0))
     );
@@ -1667,11 +1706,21 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dy;
 
     if (planeNotMin && doRecv) {
+      auto src = comm.src(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1687,16 +1736,26 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
     }
     if (planeNotMax) {
+      auto src = comm.src(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           // contiguous memory
-          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1706,13 +1765,13 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Z1, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
     }
@@ -1722,11 +1781,21 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dz;
 
     if (rowNotMin && doRecv) {
+      auto src = comm.src(myRank - domain.tp(), Y1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1738,22 +1807,32 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
     }
     if (rowNotMax) {
+      auto src = comm.src( myRank + domain.tp(), Y0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1765,13 +1844,13 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
     }
@@ -1782,11 +1861,21 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dy * dz;
 
     if (colNotMin && doRecv) {
+      auto src = comm.src( myRank - 1, X1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1804,16 +1893,26 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
     }
     if (colNotMax) {
+      auto src = comm.src( myRank + 1, X0, xferFields );
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1825,22 +1924,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
     }
   }
   if (rowNotMin && colNotMin && doRecv) {
+      int  rank = myRank - domain.tp() - 1;
+      auto src  = comm.src( rank, X1Y1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
-          srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
+
+          size_t recvCount = xferFields*dz;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -1850,22 +1960,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += dz;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
             *deps = dash::tasks::in(&(domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0, xferFields)]);
+          *deps = dash::tasks::in(src);
         }
       );
   }
 
   if (rowNotMin && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() - domain.tp();
+    auto src  = comm.src( rank, Y1Z1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1875,22 +1996,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (colNotMin && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() - 1;
+    auto src  = comm.src( rank, Y1Z1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1906,16 +2038,27 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMax && colNotMax) {
+    int  rank = myRank + domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1925,22 +2068,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMax && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + domain.tp();
+    auto src  = comm.src( rank, Y0Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1950,22 +2104,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (colNotMax && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + 1;
+    auto src  = comm.src( rank, X0Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -1975,22 +2140,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMax && colNotMin) {
+    int  rank = myRank + domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -2000,22 +2176,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMin && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - domain.tp();
+    auto src  = comm.src( rank, Y1Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -2025,22 +2212,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (colNotMin && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - 1;
+    auto src  = comm.dest( rank, X1Z0, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -2050,22 +2248,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMin && colNotMax && doRecv) {
+    int  rank = myRank - domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y1, xferFields);
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
+
+        size_t recvCount = xferFields*dz;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -2075,22 +2284,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMax && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() + domain.tp();
+    auto src  = comm.src( rank, Y0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
+
+        size_t recvCount = xferFields*dx;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -2100,22 +2320,33 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (colNotMax && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() + 1;
+    auto src  = comm.dest( rank, X0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
+        srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
+
+        size_t recvCount = xferFields*dy;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            srcAddr);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
@@ -2125,85 +2356,129 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
 
   if (rowNotMin && colNotMin && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() - domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y1Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(0) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMin && colNotMin && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y1Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
         Index_t idx = dx*dy*(dz - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMin && colNotMax && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y1Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
         Index_t idx = dx - 1;
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMin && colNotMax && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
+    auto src  = comm.src( rank, X1Y0Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
@@ -2215,58 +2490,91 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMax && colNotMin && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
         Index_t idx = dx*(dy - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMax && colNotMin && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
+    auto src  = comm.src( rank, X1Y0Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain](dash::tasks::DependencyVectorInserter deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMax && colNotMax && planeNotMin && doRecv) {
+    int  rank = myRank - domain.tp()*domain.tp() + domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y0Z1, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
         Index_t idx = dx*dy - 1;
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
@@ -2278,16 +2586,27 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
   if (rowNotMax && colNotMax && planeNotMax) {
+    int  rank = myRank + domain.tp()*domain.tp() + domain.tp() + 1;
+    auto src  = comm.src( rank, X0Y0Z0, xferFields );
     dash::tasks::async(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
+        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
         Index_t idx = dx*dy*dz - 1;
+
+        size_t recvCount = xferFields;
+        auto fut =
+          dash::copy_async(
+            src,
+            src + recvCount,
+            comBuf);
+        while(!fut.test()) dash::tasks::yield();
+
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
           (domain.*fieldData[fi])(idx) = comBuf[fi];
@@ -2299,7 +2618,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
           *deps = dash::tasks::in(&(domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)]);
+        *deps = dash::tasks::in(src);
       }
     );
   }
@@ -2347,11 +2666,21 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     Index_t opCount = dx * dy;
 
     if (planeNotMin) {
+      auto src = comm.src(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -2361,18 +2690,28 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]),
+        dash::tasks::in(src),
         dash::tasks::in(&domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
     }
     if (planeNotMax) {
+      auto src = comm.src(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -2382,7 +2721,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]),
+        dash::tasks::in(src),
         dash::tasks::in(&domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
@@ -2395,11 +2734,21 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     Index_t opCount = dx * dz;
 
     if (rowNotMin) {
+      auto src = comm.src(myRank - domain.tp(), Y1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -2409,18 +2758,28 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]),
+        dash::tasks::in(src),
         dash::tasks::in(&domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
     }
     if (rowNotMax) {
+      auto src = comm.src(myRank - domain.tp(), Y0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -2430,7 +2789,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1, xferFields)]),
+        dash::tasks::in(src),
         dash::tasks::in(&domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
@@ -2442,11 +2801,21 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     Index_t opCount = dy * dz;
 
     if (colNotMin) {
+      auto src = comm.src(myRank - 1, X1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -2456,18 +2825,28 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X0, xferFields)]),
+        dash::tasks::in(src),
         dash::tasks::in(&domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
     }
     if (colNotMax) {
+      auto src = comm.src(myRank + 1, X0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+
+          size_t recvCount = xferFields*opCount;
+          auto fut =
+            dash::copy_async(
+              src,
+              src + recvCount,
+              srcAddr);
+          while(!fut.test()) dash::tasks::yield();
+
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -2477,11 +2856,11 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X1, xferFields)]),
+        dash::tasks::in(src),
         dash::tasks::in(&domain.delv_xi(0))
       );
     }
   }
 }
 
-#endif // !DASH_USE_GET
+#endif // DASH_USE_GET
