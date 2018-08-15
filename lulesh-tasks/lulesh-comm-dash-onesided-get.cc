@@ -449,7 +449,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMax && colNotMin && doSend) {
-      auto dest  = &comm.commDataSend()[comm.offset(X1Y0, xferFields)];
+      auto dest  = &comm.commDataSend()[comm.offset(X0Y1, xferFields)];
       dash::tasks::async(
         [=, &domain](){
           Real_t *destAddr = dest;
