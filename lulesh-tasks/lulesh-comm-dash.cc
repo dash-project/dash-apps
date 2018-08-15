@@ -105,6 +105,15 @@ void DASHComm::Sync_PosVel()
 //
   dash::tasks::async_barrier();
 
+  // dummy task to emulate CONCURRENT dependency
+  dash::tasks::async(
+    [](){
+      // nothing to do
+    },
+    dash::tasks::out(&dom.x(0))
+  );
+
+
   DASHCommSyncPosVel(dom, comm, 6, fieldData);
 
   // dummy task to emulate CONCURRENT dependency
@@ -164,6 +173,14 @@ void DASHComm::Sync_Force()
 
   dash::tasks::async_barrier();
 
+  // dummy task to emulate CONCURRENT dependency
+  dash::tasks::async(
+    [](){
+      // nothing to do
+    },
+    dash::tasks::out(&dom.fx(0))
+  );
+
   DASHCommSBN(dom, comm, 3, fieldData);
 
   // dummy task to emulate CONCURRENT dependency
@@ -207,6 +224,14 @@ void DASHComm::Sync_MonoQ()
   Domain&  dom  = m_dom;
 
   dash::tasks::async_barrier();
+
+  // dummy task to emulate CONCURRENT dependency
+  dash::tasks::async(
+    [](){
+      // nothing to do
+    },
+    dash::tasks::out(&dom.delv_xi(0))
+  );
 
   DASHCommMonoQ(dom,comm);
 
