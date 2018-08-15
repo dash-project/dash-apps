@@ -598,7 +598,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMin && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() - domain.tp();
-      auto dest = comm.dest( toRank, Y1Z0);
+      auto dest = comm.dest( toRank, Y1Z0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *destAddr;
@@ -636,7 +636,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMin && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Z0);
+      auto dest = comm.dest( toRank, X1Z0, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *destAddr;
@@ -674,7 +674,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMin && colNotMax) {
       int toRank = myRank - domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y1);
+      auto dest = comm.dest( toRank, X0Y1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *destAddr;
@@ -712,7 +712,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMax && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() + domain.tp();
-      auto dest = comm.dest( toRank, Y0Z1 );
+      auto dest = comm.dest( toRank, Y0Z1, xferFields );
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *destAddr;
@@ -751,7 +751,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMax && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Z1);
+      auto dest = comm.dest( toRank, X0Z1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           Real_t *destAddr;
@@ -859,7 +859,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMin && colNotMax && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y1Z1);
+      auto dest = comm.dest( toRank, X0Y1Z1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 0)
@@ -894,7 +894,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMin && colNotMax && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
-      auto dest = comm.dest( toRank, X0Y1Z0 );
+      auto dest = comm.dest( toRank, X0Y1Z0, xferFields );
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 1)
@@ -929,7 +929,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && colNotMin && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y0Z1);
+      auto dest = comm.dest( toRank, X1Y0Z1, xferFields);
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 1, 0)
@@ -964,7 +964,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && colNotMin && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
-      auto dest = comm.dest( toRank, X1Y0Z0 );
+      auto dest = comm.dest( toRank, X1Y0Z0, xferFields );
       dash::tasks::async(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 1, 1)
