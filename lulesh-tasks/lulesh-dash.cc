@@ -990,8 +990,11 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
         // See if any volumes are negative, and take appropriate action.
         if (vnew[k] <= Real_t(0.0))
         {
+          std::cerr << "VOLUME ERROR: vnew[k]=" << vnew[k] << std::endl;
 #if USE_MPI
           MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#elif USE_DASH
+          dart_abort(VolumeError);
 #else
           exit(VolumeError);
 #endif
@@ -1052,8 +1055,12 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         }
 
         if(idx >= 0) {
+          std::cerr << "VOLUME ERROR: domain.q(" << idx << ")=" << domain.q(idx)
+                    << std::endl;
 #if USE_MPI
           MPI_Abort(MPI_COMM_WORLD, QStopError) ;
+#elif USE_DASH
+          dart_abort(VolumeError);
 #else
           exit(QStopError);
 #endif
@@ -1152,8 +1159,11 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
                 vc = eosvmax ;
             }
             if (vc <= 0.) {
+              std::cerr << "VOLUME ERROR: vc=" << vc << std::endl;
 #if USE_MPI
               MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#elif USE_DASH
+              dart_abort(VolumeError);
 #else
               exit(VolumeError);
 #endif
