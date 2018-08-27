@@ -22,6 +22,9 @@ DASHComm::DASHComm(Domain& dom) : m_dom(dom)
   // factor of 16 is so each buffer has its own cache line
   comBufSize +=  8 * CACHE_COHERENCE_PAD_REAL;
 
+  // adjust for the number of fields copied at once
+  comBufSize += 6;
+
   m_commDataSend = new dash::Array<Real_t>(dash::size()*comBufSize,
 					   dash::BLOCKED);
 
@@ -107,6 +110,7 @@ void DASHComm::Sync_PosVel()
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
+    "Sync_PosVel_DUMMY",
     [](){
       // nothing to do
     },
@@ -118,6 +122,7 @@ void DASHComm::Sync_PosVel()
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
+    "Sync_PosVel_DUMMY2",
     [](){
       // nothing to do
     },
@@ -168,6 +173,7 @@ void DASHComm::Sync_Force()
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
+    "Sync_Force_DUMMY",
     [](){
       // nothing to do
     },
@@ -178,6 +184,7 @@ void DASHComm::Sync_Force()
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
+    "Sync_Force_DUMMY2",
     [](){
       // nothing to do
     },
@@ -220,6 +227,7 @@ void DASHComm::Sync_MonoQ()
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
+    "Sync_MonoQ_DUMMY",
     [](){
       // nothing to do
     },
@@ -230,6 +238,7 @@ void DASHComm::Sync_MonoQ()
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
+    "Sync_MonoQ_DUMMY2",
     [](){
       // nothing to do
     },

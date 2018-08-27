@@ -253,7 +253,7 @@ void Domain::InitialBoundaryExchange()
 void Domain::TimeIncrement()
 {
   Domain& domain = (*this);
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [=, &domain](){
       EXTRAE_ENTER(TIME_INCREMENT);
       Real_t targetdt = domain.stoptime() - domain.time() ;
@@ -328,7 +328,7 @@ void Domain::LagrangeNodal()
 
   CalcForceForNodes();
 
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [=](){
       EXTRAE_ENTER(CALCACCELERATIONFORNODES);
       CalcAccelerationForNodes(numNode());
@@ -338,7 +338,7 @@ void Domain::LagrangeNodal()
     dash::tasks::in(&this->fx(0)),
     dash::tasks::out(&this->xdd(0))
   );
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [=](){
       EXTRAE_ENTER(CALCVELPOSFORNODES);
       const Real_t delt = deltatime();
@@ -353,7 +353,7 @@ void Domain::LagrangeNodal()
     dash::tasks::out(&this->x(0))
   );
   /*
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [=](){
       const Real_t delt = deltatime();
       CalcPositionForNodes(delt, numNode());
@@ -372,7 +372,7 @@ void Domain::LagrangeNodal()
 void Domain::LagrangeElements()
 {
   // new relative vol -- temp
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [&](){
       EXTRAE_ENTER(LAGRANGEELEMS);
       AllocateVnew(numElem());
@@ -389,7 +389,7 @@ void Domain::LagrangeElements()
   // Calculate Q.  (Monotonic q option requires communication)
   CalcQForElems(m_vnew);
 
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [&](){
       EXTRAE_ENTER(MATERIALPROPERTIES);
       ApplyMaterialPropertiesForElems(m_vnew.data());
@@ -413,7 +413,7 @@ void Domain::LagrangeElements()
 void Domain::CalcAccelerationForNodes(Index_t numNode)
 {
 //#pragma omp parallel for firstprivate(numNode)
-      dash::tasks::taskloop(0, numNode,
+      dash::tasks::TASKLOOP(0, numNode,
                             dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [&](Index_t from, Index_t to){
           for (Index_t i = from; i < to; ++i) {
@@ -438,7 +438,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
     if (!(domain.symmXempty() != 0) &&
         !(domain.symmYempty() != 0) &&
         !(domain.symmZempty() != 0))
-    dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
+    dash::tasks::TASKLOOP(Index_t{0}, numNodeBC, grainsize,
       [&](Index_t from, Index_t to){
         if (!domain.symmXempty() != 0)
           for(Index_t i=from; i<to; ++i)
@@ -455,7 +455,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 #if 0
     if (!domain.symmXempty() != 0) {
 //#pragma omp for nowait firstprivate(numNodeBC)
-      dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
+      dash::tasks::TASKLOOP(Index_t{0}, numNodeBC, grainsize,
         [&](Index_t from, Index_t to){
           for(Index_t i=from; i<to; ++i)
             domain.xdd(domain.symmX(i)) = Real_t(0.0) ;
@@ -464,7 +464,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 
     if (!domain.symmYempty() != 0) {
 //#pragma omp for nowait firstprivate(numNodeBC)
-      dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
+      dash::tasks::TASKLOOP(Index_t{0}, numNodeBC, grainsize,
         [&](Index_t from, Index_t to){
           for(Index_t i=from; i<to; ++i)
             domain.ydd(domain.symmY(i)) = Real_t(0.0) ;
@@ -473,7 +473,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
 
     if (!domain.symmZempty() != 0) {
 //#pragma omp for nowait firstprivate(numNodeBC)
-      dash::tasks::taskloop(Index_t{0}, numNodeBC, grainsize,
+      dash::tasks::TASKLOOP(Index_t{0}, numNodeBC, grainsize,
         [&](Index_t from, Index_t to){
           for(Index_t i=from; i<to; ++i)
             domain.zdd(domain.symmZ(i)) = Real_t(0.0) ;
@@ -489,7 +489,7 @@ void Domain::CalcVelocityForNodes(const Real_t dt,
 				  Index_t numNode)
 {
 //#pragma omp parallel for firstprivate(numNode)
-  dash::tasks::taskloop(Index_t{0}, numNode,
+  dash::tasks::TASKLOOP(Index_t{0}, numNode,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&, u_cut, dt](Index_t from, Index_t to){
       for ( Index_t i = from; i < to; ++i )
@@ -521,7 +521,7 @@ void Domain::CalcPositionForNodes(const Real_t dt,
 				  Index_t numNode)
 {
 //#pragma omp parallel for firstprivate(numNode)
-  dash::tasks::taskloop(Index_t{0}, numNode,
+  dash::tasks::TASKLOOP(Index_t{0}, numNode,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&, dt](Index_t from, Index_t to){
       for( Index_t i = from; i < to; ++i )
@@ -542,12 +542,12 @@ void Domain::CalcForceForNodes()
 {
 
 //#pragma omp parallel for firstprivate(numNode)
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [&](){
       EXTRAE_ENTER(CALCFORCEFORNODES);
       Domain& domain = (*this);
       Index_t numNode = domain.numNode() ;
-      dash::tasks::taskloop(Index_t{0}, numNode,
+      dash::tasks::TASKLOOP(Index_t{0}, numNode,
                             dash::tasks::num_chunks(dash::tasks::numthreads()),
         [&](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
@@ -972,7 +972,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
     // element loop to do some stuff not included in the elemlib function.
 //#pragma omp parallel for firstprivate(numElem)
 
-    dash::tasks::taskloop(Index_t{0}, numElem,
+    dash::tasks::TASKLOOP(Index_t{0}, numElem,
                           dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to){
       for ( Index_t k=from; k<to; ++k )
@@ -1021,7 +1021,7 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
       2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
       2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
 
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &vnew](){
         EXTRAE_ENTER(MONOQGRADIENTS);
         domain.AllocateGradients(numElem, allElem);
@@ -1037,7 +1037,7 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
     m_comm.Send_MonoQ();
     m_comm.Sync_MonoQ();
 
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &vnew](){
         EXTRAE_ENTER(MONOQELEMS);
         CalcMonotonicQForElems(domain, vnew.data()) ;
@@ -1086,7 +1086,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
     Real_t eosvmax = domain.eosvmax() ;
 
 //#pragma omp for firstprivate(numElem)
-    dash::tasks::taskloop(Index_t{0}, numElem,
+    dash::tasks::TASKLOOP(Index_t{0}, numElem,
                           dash::tasks::num_chunks(dash::tasks::numthreads()),
       [&, eosvmin](Index_t from, Index_t to){
         if (eosvmin != Real_t(0.))
@@ -1109,7 +1109,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
       // Bound the updated relative volumes with eosvmin/max
       if (eosvmin != Real_t(0.)) {
 //#pragma omp for firstprivate(numElem)
-        dash::tasks::taskloop(Index_t{0}, numElem,
+        dash::tasks::TASKLOOP(Index_t{0}, numElem,
           [&, eosvmin](Index_t from, Index_t to){
             for(Index_t i=from; i<to; ++i) {
               if (vnew[i] < eosvmin)
@@ -1125,7 +1125,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
 
       if (eosvmax != Real_t(0.)) {
 //#pragma omp for nowait firstprivate(numElem)
-        dash::tasks::taskloop(Index_t{0}, numElem,
+        dash::tasks::TASKLOOP(Index_t{0}, numElem,
                               numElem/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
           [&, eosvmax](Index_t from, Index_t to){
             for(Index_t i=from; i<to; ++i) {
@@ -1145,7 +1145,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
       // it's representative of something in the full code -
       // just leave it in, please
 //#pragma omp for nowait firstprivate(numElem)
-      dash::tasks::taskloop(Index_t{0}, numElem,
+      dash::tasks::TASKLOOP(Index_t{0}, numElem,
                             dash::tasks::num_chunks(dash::tasks::numthreads()),
         [&, eosvmin, eosvmax](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
@@ -1173,7 +1173,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
       dash::tasks::complete();
     }
 
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain](){
         for (Int_t r=0 ; r<domain.numReg() ; r++) {
           Index_t numElemReg = domain.regElemSize(r);
@@ -1204,7 +1204,7 @@ void Domain::UpdateVolumesForElems(Real_t *vnew,
 
   if (length != 0) {
 //#pragma omp parallel for firstprivate(length, v_cut)
-    dash::tasks::taskloop(Index_t{0}, length,
+    dash::tasks::TASKLOOP(Index_t{0}, length,
                           dash::tasks::num_chunks(dash::tasks::numthreads()),
       [&, v_cut, vnew](Index_t from, Index_t to){
         for(Index_t i=from; i<to; ++i) {

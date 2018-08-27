@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   }
 
   // exclude thread creation from timing loop
-  dash::tasks::async([&](){
+  dash::tasks::ASYNC([&](){
     if( (myRank == 0) && (!opts.quiet()) ) {
       opts.printBanner(std::cout);
     }
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     dom.TimeIncrement();
     dom.LagrangeLeapFrog();
 
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [&](){
         if( (opts.showProg()!=0) && (opts.quiet()==0) && (myRank==0) ) {
           std::cout << "cycle = " << dom.cycle() << ", ";

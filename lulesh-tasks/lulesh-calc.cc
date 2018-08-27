@@ -401,7 +401,7 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
 {
   // loop over all elements
 //#pragma omp parallel for firstprivate(numElem, deltaTime)
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to){
       for( Index_t k=from; k<to; ++k )
@@ -486,7 +486,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
 
 
 //#pragma omp parallel firstprivate(length, qqc)
-  dash::tasks::taskloop(Index_t{0}, length,
+  dash::tasks::TASKLOOP(Index_t{0}, length,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to){
       Real_t   qqc2 = Real_t(64.0) * qqc * qqc ;
@@ -549,7 +549,7 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
 
 //#pragma omp parallel firstprivate(length, dvovmax)
 
-  dash::tasks::taskloop(Index_t{0}, length,
+  dash::tasks::TASKLOOP(Index_t{0}, length,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to) {
 
@@ -591,13 +591,13 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
 
 void CalcTimeConstraintsForElems(Domain& domain)
 {
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [&domain](){
       EXTRAE_ENTER(COURANTCONSTRAINTS);
       // Initialize conditions to a very large value
       dash::tasks::Combinator<Real_t> dtcourant_c(1.0e+20);
       for (Index_t r=0 ; r < domain.numReg() ; ++r) {
-        dash::tasks::async(
+        dash::tasks::ASYNC(
           [&domain, &dtcourant_c, r](){
           /* evaluate time constraint */
           CalcCourantConstraintForElems(domain, domain.regElemSize(r),
@@ -618,13 +618,13 @@ void CalcTimeConstraintsForElems(Domain& domain)
     dash::tasks::out(&domain.dtcourant())
   );
 
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [&domain](){
       EXTRAE_ENTER(HYDROCONSTRAINTS);
       // Initialize conditions to a very large value
       dash::tasks::Combinator<Real_t> dthydro_c(1.0e+20);
       for (Index_t r=0 ; r < domain.numReg() ; ++r) {
-        dash::tasks::async(
+        dash::tasks::ASYNC(
           [&domain, &dthydro_c, r](){
             /* check hydro constraint */
             CalcHydroConstraintForElems(domain, domain.regElemSize(r),
@@ -968,7 +968,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
 
 //#pragma omp parallel for firstprivate(numElem, hourg)
 
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(FBHOURGLASSFORCEFORELEMS);
@@ -1167,9 +1167,9 @@ void CalcFBHourglassForceForElems(Domain &domain,
 
   if (numthreads > 1) {
     // Collect the data from the local arrays into the final force arrays
-    dash::tasks::async([](){}, dash::tasks::out(&domain.fx(0)));
+    dash::tasks::ASYNC([](){}, dash::tasks::out(&domain.fx(0)));
 //#pragma omp parallel for firstprivate(numNode)
-    dash::tasks::taskloop(Index_t{0}, numNode,
+    dash::tasks::TASKLOOP(Index_t{0}, numNode,
                           dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
       [fx_elem, fy_elem, fz_elem, &domain](Index_t from, Index_t to) {
         extrae_task_event ev(FBHOURGLASSFORCEFORELEMSREDUCTION);
@@ -1196,7 +1196,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
         *deps = dash::tasks::in(&fx_elem[0]);
         *deps = dash::tasks::in(&domain.fx(0));
       });
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=](){
         auto tmp = fx_elem;
         Release(&tmp) ;
@@ -1228,7 +1228,7 @@ void CalcHourglassControlForElems(Domain& domain,
 
    /* start loop over elements */
 //#pragma omp parallel for firstprivate(numElem)
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(HOURGLASSCONTROLFORELEM);
@@ -1277,7 +1277,7 @@ void CalcHourglassControlForElems(Domain& domain,
                                   hgcoef, numElem, domain.numNode()) ;
   }
 
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [=]() mutable {
       Release(&z8n) ;
       Release(&y8n) ;
@@ -1302,7 +1302,7 @@ void InitStressTermsForElems(Domain &domain,
   //
 
 //#pragma omp parallel for firstprivate(numElem)
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [sigxx, sigyy, sigzz, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(INITSTRESSTERMSFORELEMS);
@@ -1338,7 +1338,7 @@ void IntegrateStressForElems( Domain &domain,
   // loop over all elements
 
 //#pragma omp parallel for firstprivate(numElem)
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [sigxx, sigyy, sigzz, determ, numthreads, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(INTEGRATESTRESSFORELEMS);
@@ -1397,11 +1397,11 @@ void IntegrateStressForElems( Domain &domain,
 
   if (numthreads > 1) {
     // dummy task to mimic CONCURRENT dependency
-    dash::tasks::async([](){}, dash::tasks::out(&domain.fx(0)));
+    dash::tasks::ASYNC([](){}, dash::tasks::out(&domain.fx(0)));
     // If threaded, then we need to copy the data out of the temporary
     // arrays used above into the final forces field
 //#pragma omp parallel for firstprivate(numNode)
-    dash::tasks::taskloop(Index_t{0}, numNode,
+    dash::tasks::TASKLOOP(Index_t{0}, numNode,
                           dash::tasks::num_chunks(numthreads),
       [&domain](Index_t from, Index_t to) {
         extrae_task_event ev(INTEGRATESTRESSFORELEMSREDUCTION);
@@ -1432,8 +1432,8 @@ void IntegrateStressForElems( Domain &domain,
 
     // dummy task to mimic CONCURRENT dependency
 
-    dash::tasks::async([](){}, dash::tasks::out(&domain.fx(0)));
-    dash::tasks::async([]() mutable {
+    dash::tasks::ASYNC([](){}, dash::tasks::out(&domain.fx(0)));
+    dash::tasks::ASYNC([]() mutable {
         Release(&fz_elem) ;
         Release(&fy_elem) ;
         Release(&fx_elem) ;
@@ -1468,7 +1468,7 @@ void CalcVolumeForceForElems(Domain& domain)
 
     // check for negative element volume
 //#pragma omp parallel for firstprivate(numElem)
-    dash::tasks::taskloop(Index_t{0}, numElem,
+    dash::tasks::TASKLOOP(Index_t{0}, numElem,
                           dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
       [&](Index_t from, Index_t to) {
         extrae_task_event ev(CHECKDETERM);
@@ -1492,7 +1492,7 @@ void CalcVolumeForceForElems(Domain& domain)
 
     CalcHourglassControlForElems(domain, determ, hgcoef) ;
 
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [&]() mutable {
         Release(&sigzz) ;
         Release(&sigyy) ;
@@ -1522,7 +1522,7 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
    auto numElem = domain.regElemSize(r);
 
 //#pragma omp parallel for firstprivate(qlc_monoq, qqc_monoq, monoq_limiter_mult, monoq_max_slope, ptiny)
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&, r, ptiny](Index_t from, Index_t to) {
       Real_t monoq_limiter_mult = domain.monoq_limiter_mult();
@@ -1714,7 +1714,7 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
    Index_t numElem = domain.numElem();
 
 //#pragma omp parallel for firstprivate(numElem)
-  dash::tasks::taskloop(Index_t{0}, numElem,
+  dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i ) {
@@ -1909,7 +1909,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
                           Index_t length, Index_t *regElemList,
                           bool block = true)
 {
-  dash::tasks::taskloop(Index_t{0}, length,
+  dash::tasks::TASKLOOP(Index_t{0}, length,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
@@ -1941,7 +1941,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
 
 #if 0
 //#pragma omp parallel for firstprivate(length)
-  dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
         Real_t c1s = Real_t(2.0)/Real_t(3.0) ;
@@ -1956,7 +1956,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
     });
 
 //#pragma omp parallel for firstprivate(length, pmin, p_cut, eosvmax)
-  dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i){
         Index_t elem = regElemList[i];
@@ -2000,7 +2000,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
   Real_t *pHalfStep = Allocate<Real_t>(length) ;
 
 //#pragma omp parallel for firstprivate(length, emin)
-  dash::tasks::taskloop(Index_t{0}, length,
+  dash::tasks::TASKLOOP(Index_t{0}, length,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
@@ -2109,7 +2109,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
                       pmin, p_cut, eosvmax, length, regElemList, false);
 
 //#pragma omp parallel for firstprivate(length, rho0)
-  dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
         Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep[i]) ;
@@ -2156,7 +2156,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
 
 #if 0
 //#pragma omp parallel for firstprivate(length, emin, e_cut)
-  dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
 
@@ -2180,7 +2180,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
                        pmin, p_cut, eosvmax, length, regElemList, false);
 
 //#pragma omp parallel for firstprivate(length, rho0, emin, e_cut)
-  dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i){
         const Real_t sixth = Real_t(1.0) / Real_t(6.0) ;
@@ -2231,7 +2231,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
 
 
 //#pragma omp parallel for firstprivate(length, rho0, q_cut)
-  dash::tasks::taskloop(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i){
         Index_t elem = regElemList[i];
@@ -2278,7 +2278,7 @@ void CalcSoundSpeedForElems(Domain &domain,
                             Index_t len, Index_t *regElemList)
 {
 //#pragma omp parallel for firstprivate(rho0, ss4o3)
-  dash::tasks::taskloop(Index_t{0}, len,
+  dash::tasks::TASKLOOP(Index_t{0}, len,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=, &domain](Index_t from, Index_t to) {
       for (Index_t i = from; i < to; ++i) {
@@ -2345,7 +2345,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
   for(Int_t j = 0; j < rep; j++) {
     /* compress data, minimal set */
 
-    dash::tasks::taskloop(Index_t{0}, numElemReg,
+    dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
                           dash::tasks::num_chunks(dash::tasks::numthreads()),
       [=, &domain](Index_t from, Index_t to) {
         for (Index_t i=from; i<to; ++i) {
@@ -2384,7 +2384,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 //#pragma omp parallel
     {
 //#pragma omp for nowait firstprivate(numElemReg)
-      dash::tasks::taskloop(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [=, &domain](Index_t from, Index_t to) {
           for (Index_t i=from; i<to; ++i) {
             Index_t elem = regElemList[i];
@@ -2402,7 +2402,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
         });
 
 //#pragma omp for firstprivate(numElemReg)
-      dash::tasks::taskloop(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [=](Index_t from, Index_t to) {
           for (Index_t i = from; i < to; ++i) {
             Index_t elem = regElemList[i];
@@ -2421,7 +2421,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
     /* Check for v > eosvmax or v < eosvmin */
       if ( eosvmin != Real_t(0.) ) {
 //#pragma omp for nowait firstprivate(numElemReg, eosvmin)
-        dash::tasks::taskloop(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+        dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
           [=](Index_t from, Index_t to) {
             for(Index_t i=from; i<to; ++i) {
               Index_t elem = regElemList[i];
@@ -2437,7 +2437,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
       }
       if ( eosvmax != Real_t(0.) ) {
 //#pragma omp for nowait firstprivate(numElemReg, eosvmax)
-        dash::tasks::taskloop(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+        dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
           [=](Index_t from, Index_t to) {
             for(Index_t i=from; i<to; ++i) {
               Index_t elem = regElemList[i];
@@ -2456,7 +2456,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
 //#pragma omp for nowait firstprivate(numElemReg)
 
-      dash::tasks::taskloop(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+      dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
         [=](Index_t from, Index_t to) {
           for (Index_t i = from; i < to; ++i) {
             work[i] = Real_t(0.) ;
@@ -2482,7 +2482,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
     //dash::tasks::complete();
   }
 
-  dash::tasks::async(
+  dash::tasks::ASYNC(
     [=]() mutable {
       Release(&work) ;
       Release(&ql_old) ;
@@ -2500,7 +2500,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
   // we can overlap the following loop with the loop in CalcSoundSpeedForElems
 
 //#pragma omp parallel for firstprivate(numElemReg)
-  dash::tasks::taskloop(Index_t{0}, numElemReg,
+  dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=, &domain](Index_t from, Index_t to) {
       for (Index_t i=from; i<to; ++i) {

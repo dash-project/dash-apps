@@ -81,7 +81,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           int sendCount = dx * dy;
           Real_t *destAddr = dest;
@@ -107,7 +107,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (planeNotMax && doSend) {
       //auto dest = comm.dest(myRank + (domain.tp() * domain.tp()), Z0);
       auto dest = &comm.commDataSend()[comm.offset(Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           int sendCount = dx * dy;
           Real_t *destAddr = dest;
@@ -134,7 +134,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     // ASSUMING ONE DOMAIN PER RANK, CONSTANT BLOCK SIZE HERE
     if (rowNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(Y0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           int sendCount = dx * dz;
           Real_t *destAddr = dest;
@@ -160,7 +160,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(Y1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           int sendCount = dx * dz;
           Real_t *destAddr = dest;
@@ -192,7 +192,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           int sendCount = dy * dz;
           Real_t *destAddr = dest;
@@ -219,7 +219,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (colNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           int sendCount = dy * dz;
           Real_t *destAddr = dest;
@@ -249,7 +249,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
   if (!planeOnly) {
     if (rowNotMin && colNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(X0Y0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -273,7 +273,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMin && planeNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(Y0Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -297,7 +297,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMin && planeNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(X0Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -321,7 +321,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMax && colNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Y1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -344,7 +344,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMax && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(Y1Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -367,7 +367,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMax && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -390,7 +390,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMax && colNotMin && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X0Y1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -413,7 +413,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMin && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(Y0Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -436,7 +436,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMin && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X0Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -459,7 +459,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMin && colNotMax) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Y0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -482,7 +482,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMax && planeNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(Y1Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -506,7 +506,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (colNotMax && planeNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -530,7 +530,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
     if (rowNotMin && colNotMin && planeNotMin) {
       auto dest = &comm.commDataSend()[X0Y0Z0];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 0, 0)
           Real_t *comBuf = dest;
@@ -550,7 +550,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMin && colNotMin && planeNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X0Y0Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 0, 1)
           Real_t *comBuf = dest;
@@ -571,7 +571,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMin && colNotMax && planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X1Y0Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 0)
           Real_t *comBuf = dest;
@@ -592,7 +592,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMin && colNotMax && planeNotMax && doSend) {
       auto dest = &comm.commDataSend()[X1Y0Z1];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 1)
           Real_t *comBuf = dest;
@@ -613,7 +613,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && colNotMin && planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X0Y1Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           // corner at domain logical coord (0, 1, 0)
           Real_t *comBuf = dest;
@@ -634,7 +634,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && colNotMin && planeNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X0Y1Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           // corner at domain logical coord (0, 1, 1)
           Real_t *comBuf = dest;
@@ -655,7 +655,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && colNotMax && planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X1Y1Z0, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           // corner at domain logical coord (1, 1, 0)
           Real_t *comBuf = dest;
@@ -676,7 +676,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
     if (rowNotMax && colNotMax && planeNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X1Y1Z1, xferFields)];
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain](){
           // corner at domain logical coord (1, 1, 1)
           Real_t *comBuf = dest;
@@ -731,7 +731,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
 
     if (planeNotMin) {
       auto src = comm.src(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -763,7 +763,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     }
     if (planeNotMax) {
       auto src = comm.src(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -800,7 +800,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
 
     if (rowNotMin) {
       auto src = comm.src(myRank - domain.tp(), Y1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -833,7 +833,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     }
     if (rowNotMax) {
       auto src = comm.src(myRank + domain.tp(), Y0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -871,7 +871,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
 
     if (colNotMin) {
       auto src = comm.src( myRank - 1, X1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -904,7 +904,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     }
     if (colNotMax) {
       auto src = comm.src( myRank + 1, X0, xferFields );
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -940,7 +940,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & colNotMin) {
     int rank = myRank - domain.tp() - 1;
     auto src  = comm.src( rank, X1Y1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
@@ -972,7 +972,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() - domain.tp();
     auto src  = comm.src( rank, Y1Z1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
@@ -1004,7 +1004,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMin & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() - 1;
     auto src  = comm.src( rank, X1Z1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
@@ -1036,7 +1036,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & colNotMax) {
     int  rank = myRank + domain.tp() + 1;
     auto src  = comm.src( rank, X0Y0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
@@ -1068,7 +1068,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + domain.tp();
     auto src  = comm.src( rank, Y0Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
@@ -1100,7 +1100,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMax & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + 1;
     auto src  = comm.src( rank, X0Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
@@ -1132,7 +1132,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & colNotMin) {
     int  rank = myRank + domain.tp() - 1;
     auto src  = comm.src( rank, X1Y0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
@@ -1164,7 +1164,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - domain.tp();
     auto src  = comm.src( rank, Y1Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
@@ -1196,7 +1196,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMin & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - 1;
     auto src  = comm.src( rank, X1Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
@@ -1228,7 +1228,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & colNotMax) {
     int  rank = myRank - domain.tp() + 1;
     auto src  = comm.src( rank, X0Y1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
@@ -1260,7 +1260,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() + domain.tp();
     auto src  = comm.src( rank, Y0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
@@ -1292,7 +1292,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMax & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() + 1;
     auto src  = comm.src( rank, X0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
@@ -1324,7 +1324,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & colNotMin & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() - domain.tp() - 1;
     auto src  = comm.dest( rank, X1Y1Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
@@ -1351,7 +1351,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & colNotMin & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - domain.tp() - 1;
     auto src  = comm.src( rank, X1Y1Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
@@ -1379,7 +1379,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & colNotMax & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
     auto src  = comm.src( rank, X0Y1Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
@@ -1407,7 +1407,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin & colNotMax & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
     auto src  = comm.dest( rank, X0Y1Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
@@ -1435,7 +1435,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & colNotMin & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
     auto src  = comm.src( rank, X1Y0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
@@ -1463,7 +1463,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & colNotMin & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
     auto src  = comm.src( rank, X1Y0Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
@@ -1491,7 +1491,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & colNotMax & planeNotMin) {
     int  rank = myRank - domain.tp()*domain.tp() + domain.tp() + 1;
     auto src  = comm.src( rank, X0Y0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
@@ -1519,7 +1519,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax & colNotMax & planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + domain.tp() + 1;
     auto src  = comm.src( rank, X0Y0Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
@@ -1577,7 +1577,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
     if (planeNotMin && doRecv) {
       auto src = comm.src(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -1606,7 +1606,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     }
     if (planeNotMax) {
       auto src = comm.src(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           // contiguous memory
@@ -1640,7 +1640,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
     if (rowNotMin && doRecv) {
       auto src = comm.src(myRank - domain.tp(), Y1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -1671,7 +1671,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     }
     if (rowNotMax) {
       auto src = comm.src( myRank + domain.tp(), Y0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -1708,7 +1708,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
     if (colNotMin && doRecv) {
       auto src = comm.src( myRank - 1, X1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -1739,7 +1739,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     }
     if (colNotMax) {
       auto src = comm.src( myRank + 1, X0, xferFields );
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -1772,7 +1772,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && colNotMin && doRecv) {
       int  rank = myRank - domain.tp() - 1;
       auto src  = comm.src( rank, X1Y1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
@@ -1802,7 +1802,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() - domain.tp();
     auto src  = comm.src( rank, Y1Z1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
@@ -1832,7 +1832,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMin && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() - 1;
     auto src  = comm.src( rank, X1Z1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
@@ -1862,7 +1862,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && colNotMax) {
     int  rank = myRank + domain.tp() + 1;
     auto src  = comm.src( rank, X0Y0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
@@ -1892,7 +1892,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + domain.tp();
     auto src  = comm.src( rank, Y0Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
@@ -1922,7 +1922,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMax && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + 1;
     auto src  = comm.src( rank, X0Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
@@ -1952,7 +1952,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && colNotMin) {
     int  rank = myRank + domain.tp() - 1;
     auto src  = comm.src( rank, X1Y0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
@@ -1982,7 +1982,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - domain.tp();
     auto src  = comm.src( rank, Y1Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
@@ -2012,7 +2012,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMin && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - 1;
     auto src  = comm.dest( rank, X1Z0, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
@@ -2042,7 +2042,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && colNotMax && doRecv) {
     int  rank = myRank - domain.tp() + 1;
     auto src  = comm.src( rank, X0Y1, xferFields);
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
@@ -2072,7 +2072,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() + domain.tp();
     auto src  = comm.src( rank, Y0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
@@ -2102,7 +2102,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (colNotMax && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() + 1;
     auto src  = comm.dest( rank, X0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
@@ -2132,7 +2132,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && colNotMin && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() - domain.tp() - 1;
     auto src  = comm.src( rank, X1Y1Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
@@ -2157,7 +2157,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && colNotMin && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - domain.tp() - 1;
     auto src  = comm.src( rank, X1Y1Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
@@ -2183,7 +2183,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && colNotMax && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
     auto src  = comm.src( rank, X0Y1Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
@@ -2209,7 +2209,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMin && colNotMax && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
     auto src  = comm.src( rank, X0Y1Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
@@ -2235,7 +2235,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && colNotMin && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
     auto src  = comm.src( rank, X1Y0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
@@ -2261,7 +2261,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && colNotMin && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
     auto src  = comm.src( rank, X1Y0Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
@@ -2287,7 +2287,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && colNotMax && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() + domain.tp() + 1;
     auto src  = comm.src( rank, X0Y0Z1, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
@@ -2313,7 +2313,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   if (rowNotMax && colNotMax && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() + domain.tp() + 1;
     auto src  = comm.src( rank, X0Y0Z0, xferFields );
-    dash::tasks::async(
+    dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
@@ -2381,7 +2381,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
 
     if (planeNotMin) {
       auto src = comm.src(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -2412,7 +2412,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     }
     if (planeNotMax) {
       auto src = comm.src(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -2449,7 +2449,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
 
     if (rowNotMin) {
       auto src = comm.src(myRank - domain.tp(), Y1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -2480,7 +2480,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     }
     if (rowNotMax) {
       auto src = comm.src(myRank + domain.tp(), Y0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -2516,7 +2516,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
 
     if (colNotMin) {
       auto src = comm.src(myRank - 1, X1, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
@@ -2547,7 +2547,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     }
     if (colNotMax) {
       auto src = comm.src(myRank + 1, X0, xferFields);
-      dash::tasks::async(
+      dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
