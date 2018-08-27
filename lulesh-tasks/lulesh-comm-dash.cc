@@ -121,14 +121,7 @@ void DASHComm::Sync_PosVel()
     [](){
       // nothing to do
     },
-    [=, &dom](dash::tasks::DependencyVectorInserter deps){
-      for (Index_t fi=0; fi<3; ++fi) {
-        Domain_member dest = fieldData[fi];
-        // TODO: these are dummy OUT dependencies to enclose the IN dependencies
-        // in DASHCommSyncPosVel, replace them with CONCURRENT!!
-        *deps = dash::tasks::out(&(dom.*dest)(0));
-      }
-    }
+    dash::tasks::out(&dom.x(0))
   );
   dash::tasks::async_barrier();
 }

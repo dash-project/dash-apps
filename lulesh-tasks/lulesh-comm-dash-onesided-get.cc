@@ -82,7 +82,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(Z0, xferFields)];
       dash::tasks::async(
-        [=, &domain, &comm](){
+        [=, &domain](){
           int sendCount = dx * dy;
           Real_t *destAddr = dest;
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -93,13 +93,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -124,13 +119,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -158,13 +148,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -190,13 +175,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -226,13 +206,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -258,13 +233,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -290,13 +260,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dz;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -319,13 +284,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dx;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -348,13 +308,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dy;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -377,13 +332,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dz;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -405,13 +355,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dx;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -433,13 +378,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dy;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -461,13 +401,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dz;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -489,13 +424,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dx;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -517,13 +447,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dy;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -545,13 +470,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dz;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -573,13 +493,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dx;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -602,13 +517,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += dy;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -628,13 +538,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(0);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -654,13 +559,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -680,13 +580,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -706,13 +601,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -732,13 +622,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -758,13 +643,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -784,13 +664,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -810,13 +685,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -1730,14 +1600,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
     }
     if (planeNotMax) {
@@ -1765,14 +1629,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
     }
   }
@@ -1807,14 +1665,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
     }
     if (rowNotMax) {
@@ -1844,14 +1696,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
     }
   }
@@ -1887,14 +1733,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
     }
     if (colNotMax) {
@@ -1924,14 +1764,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
     }
   }
@@ -1960,14 +1794,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += dz;
           }
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(src);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in(src)
       );
   }
 
@@ -1996,14 +1824,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2032,14 +1854,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2068,14 +1884,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2104,14 +1914,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2140,14 +1944,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2176,14 +1974,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2212,14 +2004,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2248,14 +2034,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2284,14 +2064,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2320,14 +2094,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2356,14 +2124,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 
@@ -2388,14 +2150,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(0) = comBuf[fi];
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMin && colNotMin && planeNotMax) {
@@ -2420,14 +2176,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMin && colNotMax && planeNotMin && doRecv) {
@@ -2452,14 +2202,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMin && colNotMax && planeNotMax) {
@@ -2484,14 +2228,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMax && colNotMin && planeNotMin && doRecv) {
@@ -2516,14 +2254,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMax && colNotMin && planeNotMax) {
@@ -2548,14 +2280,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMax && colNotMax && planeNotMin && doRecv) {
@@ -2580,14 +2306,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
   if (rowNotMax && colNotMax && planeNotMax) {
@@ -2612,14 +2332,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(src);
-      }
+      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in(src)
     );
   }
 }
