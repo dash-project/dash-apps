@@ -41,6 +41,15 @@ char tagname[][8] =
     "X1Y1Z1 ",
   };
 
+static void
+dump_buffer(Real_t *buf, size_t nelem)
+{
+  for (size_t i = 0; i < nelem; ++i) {
+    std::cout << std::fixed << std::setprecision(5) << std::setw(3) << buf[i] << " ";
+  }
+  std::cout << std::endl;
+}
+
 
 static void
 get_yield(const dash::GlobIter<double, dash::BlockPattern<1> > src,
@@ -57,10 +66,7 @@ get_yield(const dash::GlobIter<double, dash::BlockPattern<1> > src,
   while(!fut.test()) dash::tasks::yield();
 
 #ifdef PRINT_VALUES
-  for (size_t i = 0; i < recvCount; ++i) {
-    std::cout << std::fixed << std::setprecision(5) << std::setw(3) << srcAddr[i] << " ";
-  }
-  std::cout << std::endl;
+  dump_buffer(srcAddr, recvCount);
 #endif // PRINT_VALUES
 
 }
@@ -118,6 +124,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
+          dump_buffer(dest, sendCount*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -147,6 +154,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
+          dump_buffer(dest, sendCount*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -179,6 +187,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
+          dump_buffer(dest, sendCount*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -209,6 +218,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
+          dump_buffer(dest, sendCount*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -243,6 +253,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
+          dump_buffer(dest, sendCount*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -273,6 +284,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += sendCount;
           }
+          dump_buffer(dest, sendCount*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -303,6 +315,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
+          dump_buffer(dest, dz*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -330,6 +343,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
+          dump_buffer(dest, dx*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -357,6 +371,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
+          dump_buffer(dest, dy*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -384,6 +399,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
+          dump_buffer(dest, dz*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -410,6 +426,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
+          dump_buffer(dest, dx*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -436,6 +453,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
+          dump_buffer(dest, dy*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -462,6 +480,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
+          dump_buffer(dest, dz*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -488,6 +507,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
+          dump_buffer(dest, dx*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -514,6 +534,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
+          dump_buffer(dest, dy*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -540,6 +561,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dz;
           }
+          dump_buffer(dest, dz*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -566,6 +588,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dx;
           }
+          dump_buffer(dest, dx*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -593,6 +616,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             }
             destAddr += dy;
           }
+          dump_buffer(dest, dy*xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -617,6 +641,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(0);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -641,6 +666,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -665,6 +691,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -689,6 +716,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -713,6 +741,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -737,6 +766,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -761,6 +791,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
@@ -785,6 +816,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
+          dump_buffer(dest, xferFields);
         },
         dash::tasks::in(&(domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
