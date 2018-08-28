@@ -11,6 +11,7 @@ file(GLOB SOURCES *.cc)
 #set(CXX_FLAGS "-O3 -Ofast -DUSE_DASH")
 set(CXX_FLAGS "-O0 -g -DUSE_DASH")
 set(CXX_FLAGS "-O3 -g -DUSE_DASH")
+#set(CXX_FLAGS "${CXX_FLAGS} -DDASH_USE_GET")
 set(CMAKE_CXX_STANDARD 11)
 
 ## Do not edit below this line unless you know what you are doing
@@ -52,6 +53,7 @@ foreach (MPI_INC_ ${MPI_INCLUDE_PATH})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${MPI_INC_}" )
 endforeach()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DASH_CXX_FLAGS} ${CXX_FLAGS}" )
+set(CXX_FLAGS ${CMAKE_CXX_FLAGS})
 
 string(TOLOWER ${DASH_DART_IMPL} DASH_DART_IMPL_LC)
 
@@ -60,11 +62,14 @@ add_executable(
   ${PROJECT_NAME}
   ${SOURCES})
 
-set(DASH_LIBRARIES "${DASH_LIBRARIES} -ldart-tasking")
+#set(DASH_LIBRARIES "${DASH_LIBRARIES} -ldart-tasking -L$ENV{HOME}/opt/extrae-3.5.4/lib -lptmpitrace")
+#set(DASH_LIBRARIES "${DASH_LIBRARIES} -ldart-tasking")
+set(DASH_LIBRARIES "${DASH_LIBRARIES}")
 
 target_link_libraries(
   ${PROJECT_NAME}
   ${DASH_LIBRARIES}
+  "${DASH_BASE_DIR}/lib/libdart-tasking.a"
   ${MPI_C_LIBRARIES})
 
 if(MPI_LINK_FLAGS)
@@ -72,6 +77,30 @@ if(MPI_LINK_FLAGS)
     ${PROJECT_NAME} PROPERTIES
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
+
+set_target_properties(
+  ${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS}")
+
+#set(CXX_FLAGS "${CXX_FLAGS} -DDASH_USE_GET")
+#set(CMAKE_CXX_FLAGS "${CXX_FLAGS}")
+add_executable(
+  ${PROJECT_NAME}_get
+  ${SOURCES})
+target_link_libraries(
+  ${PROJECT_NAME}_get
+  ${DASH_LIBRARIES}
+  "${DASH_BASE_DIR}/lib/libdart-tasking.a"
+  ${MPI_C_LIBRARIES})
+set_target_properties(
+  ${PROJECT_NAME}_get PROPERTIES COMPILE_FLAGS "-DDASH_USE_GET")
+if(MPI_LINK_FLAGS)
+  set_target_properties(
+    ${PROJECT_NAME}_get PROPERTIES
+    LINK_FLAGS "${MPI_LINK_FLAGS}")
+endif()
+
+
+
 
 ## Print summary
 message(STATUS "Sources:          ${SOURCES}")
