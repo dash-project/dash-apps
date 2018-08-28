@@ -1966,7 +1966,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
   if (colNotMin && planeNotMax) {
     int  rank = myRank + domain.tp()*domain.tp() - 1;
-    auto src  = comm.dest( rank, X1Z0, xferFields);
+    auto src  = comm.src( rank, X1Z0, xferFields);
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
@@ -2047,7 +2047,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
   if (colNotMax && planeNotMin && doRecv) {
     int  rank = myRank - domain.tp()*domain.tp() + 1;
-    auto src  = comm.dest( rank, X0Z1, xferFields );
+    auto src  = comm.src( rank, X0Z1, xferFields );
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         Real_t *srcAddr;
