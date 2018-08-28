@@ -281,7 +281,7 @@ DASHComm::dest(Int_t rank, Int_t desc, Int_t xferFields)
 dash::GlobIter<Real_t, dash::Pattern<1>>
 DASHComm::src(Int_t rank, Int_t desc, Int_t xferFields)
 {
-  auto& pat = m_commDataRecv->pattern();
+  auto& pat = m_commDataSend->pattern();
 
   auto offs = offset(desc, xferFields);
 

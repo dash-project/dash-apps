@@ -1552,8 +1552,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         [=, &domain, &comm](){
           Real_t *srcAddr;
           /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
 
+          DBGSYNC(xferFields, opCount, Z1);
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -1578,6 +1579,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           // contiguous memory
           srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
 
+          DBGSYNC(xferFields, opCount, Z0);
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -1607,6 +1609,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
 
+          DBGSYNC(xferFields, opCount, Y1);
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -1633,6 +1636,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
 
+          DBGSYNC(xferFields, opCount, Y0);
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -1665,6 +1669,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
 
+          DBGSYNC(xferFields, opCount, X1);
+
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -1690,6 +1696,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           Real_t *srcAddr;
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+
+          DBGSYNC(xferFields, opCount, X0);
 
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
@@ -1718,6 +1726,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           Real_t *srcAddr;
           srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
 
+          DBGSYNC(xferFields, dz, X1Y1);
+
           size_t recvCount = xferFields*dz;
           get_yield(src, srcAddr, recvCount);
 
@@ -1743,6 +1753,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
 
+        DBGSYNC(xferFields, dx, Y1Z1);
         size_t recvCount = xferFields*dx;
         get_yield(src, srcAddr, recvCount);
 
@@ -1767,6 +1778,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
+
+        DBGSYNC(xferFields, dy, X1Z1);
 
         size_t recvCount = xferFields*dy;
         get_yield(src, srcAddr, recvCount);
@@ -1793,6 +1806,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
 
+        DBGSYNC(xferFields, dz, X0Y0);
+
         size_t recvCount = xferFields*dz;
         get_yield(src, srcAddr, recvCount);
 
@@ -1817,6 +1832,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
+
+        DBGSYNC(xferFields, dx, Y0Z0);
 
         size_t recvCount = xferFields*dx;
         get_yield(src, srcAddr, recvCount);
@@ -1843,6 +1860,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
 
+        DBGSYNC(xferFields, dy, X0Z0);
+
         size_t recvCount = xferFields*dy;
         get_yield(src, srcAddr, recvCount);
 
@@ -1867,6 +1886,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
+
+        DBGSYNC(xferFields, dz, X1Y0);
 
         size_t recvCount = xferFields*dz;
         get_yield(src, srcAddr, recvCount);
@@ -1893,6 +1914,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
 
+        DBGSYNC(xferFields, dx, Y1Z0);
+
         size_t recvCount = xferFields*dx;
         get_yield(src, srcAddr, recvCount);
 
@@ -1917,6 +1940,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
+
+        DBGSYNC(xferFields, dy, X1Z0);
 
         size_t recvCount = xferFields*dy;
         get_yield(src, srcAddr, recvCount);
@@ -1943,6 +1968,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
 
+        DBGSYNC(xferFields, dz, X0Y1);
+
         size_t recvCount = xferFields*dz;
         get_yield(src, srcAddr, recvCount);
 
@@ -1967,6 +1994,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       [=, &domain, &comm](){
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
+
+        DBGSYNC(xferFields, dx, Y0Z1);
 
         size_t recvCount = xferFields*dx;
         get_yield(src, srcAddr, recvCount);
@@ -1993,6 +2022,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *srcAddr;
         srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
 
+        DBGSYNC(xferFields, dy, X0Z1);
+
         size_t recvCount = xferFields*dy;
         get_yield(src, srcAddr, recvCount);
 
@@ -2018,6 +2049,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         /* corner at domain logical coord (0, 0, 0) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
 
+        DBGSYNC(xferFields, 1, X1Y1Z1);
+
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
 
@@ -2038,6 +2071,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         /* corner at domain logical coord (0, 0, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
         Index_t idx = dx*dy*(dz - 1);
+
+        DBGSYNC(xferFields, 1, X1Y1Z0);
 
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
@@ -2060,6 +2095,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
         Index_t idx = dx - 1;
 
+        DBGSYNC(xferFields, 1, X0Y1Z1);
+
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
 
@@ -2080,6 +2117,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         /* corner at domain logical coord (1, 0, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
+
+        DBGSYNC(xferFields, 1, X0Y1Z0);
 
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
@@ -2102,6 +2141,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
         Index_t idx = dx*(dy - 1);
 
+        DBGSYNC(xferFields, 1, X1Y0Z1);
+
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
 
@@ -2122,6 +2163,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         /* corner at domain logical coord (0, 1, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
+
+        DBGSYNC(xferFields, 1, X1Y0Z0);
 
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
@@ -2144,6 +2187,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
         Index_t idx = dx*dy - 1;
 
+        DBGSYNC(xferFields, 1, X0Y0Z1);
+
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
 
@@ -2164,6 +2209,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         /* corner at domain logical coord (1, 1, 1) */
         Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
         Index_t idx = dx*dy*dz - 1;
+
+        DBGSYNC(xferFields, 1, X0Y0Z0);
 
         size_t recvCount = xferFields;
         get_yield(src, comBuf, recvCount);
@@ -2228,6 +2275,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
 
+          DBGSYNC(xferFields, opCount, Z1);
+
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -2253,6 +2302,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           Real_t *srcAddr;
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+
+          DBGSYNC(xferFields, opCount, Z0);
 
           size_t recvCount = xferFields*opCount;
           auto fut =
@@ -2291,6 +2342,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
 
+          DBGSYNC(xferFields, opCount, Y1);
+
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -2316,6 +2369,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           Real_t *srcAddr;
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+
+          DBGSYNC(xferFields, opCount, Y0);
 
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
@@ -2348,6 +2403,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
 
+          DBGSYNC(xferFields, opCount, X1);
+
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
 
@@ -2373,6 +2430,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           Real_t *srcAddr;
           /* contiguous memory */
           srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+
+          DBGSYNC(xferFields, opCount, X0);
 
           size_t recvCount = xferFields*opCount;
           get_yield(src, srcAddr, recvCount);
