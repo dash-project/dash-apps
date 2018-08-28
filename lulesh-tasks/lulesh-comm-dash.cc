@@ -22,17 +22,14 @@ DASHComm::DASHComm(Domain& dom) : m_dom(dom)
   // factor of 16 is so each buffer has its own cache line
   comBufSize +=  8 * CACHE_COHERENCE_PAD_REAL;
 
-  // adjust for the number of fields copied at once
-  comBufSize += 6;
-
   m_commDataSend = new dash::Array<Real_t>(dash::size()*comBufSize,
 					   dash::BLOCKED);
 
   m_commDataRecv = new dash::Array<Real_t>(dash::size()*comBufSize,
 					   dash::BLOCKED);
 
-  memset( m_commDataSend->lbegin(), 0, comBufSize*sizeof(Real_t) );
-  memset( m_commDataRecv->lbegin(), 0, comBufSize*sizeof(Real_t) );
+  memset( m_commDataSend->lbegin(), -1, comBufSize*sizeof(Real_t) );
+  memset( m_commDataRecv->lbegin(), -1, comBufSize*sizeof(Real_t) );
 }
 
 DASHComm::~DASHComm()

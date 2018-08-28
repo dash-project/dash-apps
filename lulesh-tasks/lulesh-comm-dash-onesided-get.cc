@@ -7,6 +7,8 @@
 
 #ifdef DASH_USE_GET
 
+#define PRINT_VALUES
+
 using namespace std;
 
 char tagname[][8] =
@@ -44,21 +46,32 @@ static void
 get_yield(const dash::GlobIter<double, dash::BlockPattern<1> > src,
           Real_t *srcAddr, size_t recvCount)
 {
+  std::cout << "[" << dash::tasks::threadnum() << "] GET " << recvCount << " elements from "
+            << src.dart_gptr() << " into "
+            << srcAddr << std::endl;
   auto fut =
     dash::copy_async(
       src,
       src + recvCount,
       srcAddr);
   while(!fut.test()) dash::tasks::yield();
+
+#ifdef PRINT_VALUES
+  for (size_t i = 0; i < recvCount; ++i) {
+    std::cout << std::fixed << std::setprecision(5) << std::setw(3) << srcAddr[i] << " ";
+  }
+  std::cout << std::endl;
+#endif // PRINT_VALUES
+
 }
 
 // debug output for syncs performed below
 void DBGSYNC(int fields, int elem, int tag)
 {
-  /*
-  cout << "DBGSYNC [" << dash::myid() << "] " << elem
-       << " " << tagname[tag] << endl;
-  */
+
+  std::cout << "[" << dash::tasks::threadnum() << "] DBGSYNC " << elem*fields
+       << " " << tagname[tag] << std::endl;
+
 }
 
 void DASHCommPut(Domain& domain, DASHComm& comm,
@@ -86,17 +99,18 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
   if( domain.planeLoc() == 0 )               { planeNotMin = false; }
   if( domain.planeLoc() == (domain.tp()-1) ) { planeNotMax = false; }
 
-  int myRank = dash::myid();
-
   if( planeNotMin | planeNotMax ) {
     // ASSUMING ONE DOMAIN PER RANK, CONSTANT BLOCK SIZE HERE
 
     if (planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           int sendCount = dx * dy;
           Real_t *destAddr = dest;
+          std::cout << "Writing " << sendCount*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Z0, xferFields) << " tag=" << tagname[Z0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<sendCount; ++i) {
@@ -120,9 +134,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       //auto dest = comm.dest(myRank + (domain.tp() * domain.tp()), Z0);
       auto dest = &comm.commDataSend()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           int sendCount = dx * dy;
           Real_t *destAddr = dest;
+          std::cout << "Writing " << sendCount*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Z1, xferFields) << " tag=" << tagname[Z1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<sendCount; ++i) {
@@ -147,9 +164,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           int sendCount = dx * dz;
           Real_t *destAddr = dest;
+          std::cout << "Writing " << sendCount*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Y0, xferFields) << " tag=" << tagname[Y0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -176,6 +196,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         [=, &domain, &comm](){
           int sendCount = dx * dz;
           Real_t *destAddr = dest;
+          std::cout << "Writing " << sendCount*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Y1, xferFields) << " tag=" << tagname[Y1] << std::endl;
           destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
@@ -205,9 +228,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (colNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           int sendCount = dy * dz;
           Real_t *destAddr = dest;
+          std::cout << "Writing " << sendCount*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X0, xferFields) << " tag=" << tagname[X0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -232,9 +258,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (colNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           int sendCount = dy * dz;
           Real_t *destAddr = dest;
+          std::cout << "Writing " << sendCount*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X1, xferFields) << " tag=" << tagname[X1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -264,6 +293,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dz*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X0Y0, xferFields) << " tag=" << tagname[X0Y0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -286,8 +318,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMin && planeNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(Y0Z0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dx*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Y0Z0, xferFields) << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -312,6 +347,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dy*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X0Z0, xferFields)  << " tag=" << tagname[X0Z0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -334,8 +372,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && colNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Y1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dz*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X1Y1, xferFields) << " tag=" << tagname[X1Y1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -359,6 +400,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dx*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Y1Z1, xferFields) << " tag=" << tagname[Y1Z1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -380,8 +424,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (colNotMax && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Z1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dy*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X1Z1, xferFields) << " tag=" << tagname[X1Z1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -403,8 +450,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && colNotMin && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X0Y1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dz*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X0Y1, xferFields) << " tag=" << tagname[X0Y1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -426,8 +476,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMin && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(Y0Z1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dx*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Y0Z1, xferFields) << " tag=" << tagname[Y0Z1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -449,8 +502,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (colNotMin && planeNotMax && doSend) {
       auto dest  = &comm.commDataSend()[comm.offset(X0Z1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dy*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X0Z1, xferFields) << " tag=" << tagname[X0Z1] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -472,8 +528,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMin && colNotMax) {
       auto dest  = &comm.commDataSend()[comm.offset(X1Y0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dz*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X1Y0, xferFields) << " tag=" << tagname[X1Y0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dz; ++i) {
@@ -495,8 +554,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && planeNotMin) {
       auto dest  = &comm.commDataSend()[comm.offset(Y1Z0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dx*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(Y1Z0, xferFields) << " tag=" << tagname[Y1Z0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dx; ++i) {
@@ -521,6 +583,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
           Real_t *destAddr = dest;
+          std::cout << "Writing " << dy*xferFields
+                    << " elements into local destAddr="
+                    << destAddr << " offset=" << comm.offset(X1Z0, xferFields) << " tag=" << tagname[X1Z0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member src = fieldData[fi];
             for (Index_t i=0; i<dy; ++i) {
@@ -541,11 +606,14 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     }
 
     if (rowNotMin && colNotMin && planeNotMin) {
-      auto dest = &comm.commDataSend()[X0Y0Z0];
+      auto dest = &comm.commDataSend()[comm.offset(X0Y0Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 0, 0)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X0Y0Z0, xferFields) << " tag=" << tagname[X0Y0Z0] << std::endl;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(0);
           }
@@ -566,6 +634,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         [=, &domain, &comm](){
           // corner at domain logical coord (0, 0, 1)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X0Y0Z1, xferFields) << " tag=" << tagname[X0Y0Z1] << std::endl;
           Index_t idx = dx*dy*(dz - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
@@ -587,6 +658,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 0)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X1Y0Z0, xferFields) << " tag=" << tagname[X1Y0Z0] << std::endl;
           Index_t idx = dx - 1;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
@@ -603,11 +677,14 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       ++cmsg;
     }
     if (rowNotMin && colNotMax && planeNotMax && doSend) {
-      auto dest = &comm.commDataSend()[X1Y0Z1];
+      auto dest = &comm.commDataSend()[comm.offset(X1Y0Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
           // corner at domain logical coord (1, 0, 1)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X1Y0Z1, xferFields) << " tag=" << tagname[X1Y0Z1] << std::endl;
           Index_t idx = dx*dy*(dz - 1) + (dx - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
@@ -626,9 +703,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && colNotMin && planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X0Y1Z0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           // corner at domain logical coord (0, 1, 0)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X0Y1Z0, xferFields) << " tag=" << tagname[X0Y1Z0] << std::endl;
           Index_t idx = dx*(dy - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
@@ -647,9 +727,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && colNotMin && planeNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X0Y1Z1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           // corner at domain logical coord (0, 1, 1)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X0Y1Z1, xferFields) << " tag=" << tagname[X0Y1Z1] << std::endl;
           Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
@@ -668,9 +751,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && colNotMax && planeNotMin) {
       auto dest = &comm.commDataSend()[comm.offset(X1Y1Z0, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           // corner at domain logical coord (1, 1, 0)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X1Y1Z0, xferFields) << " tag=" << tagname[X1Y1Z0] << std::endl;
           Index_t idx = dx*dy - 1;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);
@@ -689,9 +775,12 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     if (rowNotMax && colNotMax && planeNotMax && doSend) {
       auto dest = &comm.commDataSend()[comm.offset(X1Y1Z1, xferFields)];
       dash::tasks::ASYNC(
-        [=, &domain](){
+        [=, &domain, &comm](){
           // corner at domain logical coord (1, 1, 1)
           Real_t *comBuf = dest;
+          std::cout << "Writing " << xferFields
+                    << " elements into local destAddr="
+                    << comBuf << " offset=" << comm.offset(X1Y1Z1, xferFields) << " tag=" << tagname[X1Y1Z1] << std::endl;
           Index_t idx = dx*dy*dz - 1;
           for (Index_t fi=0; fi<xferFields; ++fi) {
             comBuf[fi] = (domain.*fieldData[fi])(idx);

@@ -7,6 +7,8 @@
 
 #ifndef DASH_USE_GET
 
+#define PRINT_VALUES
+
 using namespace std;
 
 char tagname[][8] =
@@ -40,13 +42,35 @@ char tagname[][8] =
   };
 
 
+static void
+put_yield(const dash::GlobIter<double, dash::BlockPattern<1> > dest,
+          Real_t *destAddr, size_t sendCount)
+{
+  std::cout << "[" << dash::tasks::threadnum() << "] PUT " << sendCount << " elements from "
+            << destAddr << " into "
+            << dest.dart_gptr()  << std::endl;
+  auto fut =
+    dash::copy_async(
+      destAddr,
+      destAddr + sendCount,
+      dest);
+  while(!fut.test()) dash::tasks::yield();
+
+#ifdef PRINT_VALUES
+  for (size_t i = 0; i < sendCount; ++i) {
+    std::cout << std::fixed << std::setprecision(5) << std::setw(3) << destAddr[i] << " ";
+  }
+  std::cout << std::endl;
+#endif // PRINT_VALUES
+
+}
+
+
 // debug output for syncs performed below
 void DBGSYNC(int fields, int elem, int tag)
 {
-  /*
-  cout << "DBGSYNC [" << dash::myid() << "] " << elem
-       << " " << tagname[tag] << endl;
-  */
+  std::cout << "[" << dash::tasks::threadnum() << "] DBGSYNC " << elem*fields
+       << " " << tagname[tag] << std::endl;
 }
 
 void DASHCommPut(Domain& domain, DASHComm& comm,
@@ -94,13 +118,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
           destAddr -= xferFields*sendCount;
-
-          auto fut =
-            dash::copy_async(
-              destAddr,
-              destAddr + (xferFields * sendCount),
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*sendCount);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -134,12 +152,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          auto fut =
-            dash::copy_async(
-              destAddr,
-              destAddr + (xferFields * sendCount),
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*sendCount);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -177,12 +190,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          auto fut =
-            dash::copy_async(
-              destAddr,
-              destAddr + xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*sendCount);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -204,7 +212,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       dash::tasks::async(
         [=, &domain, &comm](){
           int sendCount = dx * dz;
-          int myRank = dash::myid();
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -218,11 +225,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*sendCount);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -262,11 +265,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*sendCount);
         },
         [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -302,11 +301,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*sendCount,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*sendCount);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -344,11 +339,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dz);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -383,11 +374,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dx);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -422,11 +409,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dy);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -461,11 +444,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dz);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -499,11 +478,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dx);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -537,11 +512,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dy);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -575,11 +546,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dz);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -613,11 +580,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dx);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -651,11 +614,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dy);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -689,11 +648,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dz,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dz);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -727,11 +682,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dx,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dx);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -766,11 +717,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          auto fut =
-            dash::copy_async(
-              destAddr, destAddr+xferFields*dy,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, destAddr, xferFields*dy);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -801,11 +748,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(0);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -836,11 +779,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -871,11 +810,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -906,11 +841,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -941,11 +872,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -976,11 +903,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1011,11 +934,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1046,11 +965,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          auto fut =
-            dash::copy_async(
-              comBuf, comBuf+xferFields,
-              dest);
-          while(!fut.test()) dash::tasks::yield();
+          put_yield(dest, comBuf, xferFields);
         },
         [=, &domain](dash::tasks::DependencyVectorInserter deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
