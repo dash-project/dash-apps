@@ -53,11 +53,11 @@ dump_buffer(Real_t *buf, size_t nelem)
 
 static void
 get_yield(const dash::GlobIter<double, dash::BlockPattern<1> > src,
-          Real_t *srcAddr, size_t recvCount)
+          Real_t *srcAddr, size_t recvCount, int tag)
 {
   std::cout << "[" << dash::tasks::threadnum() << "] GET " << recvCount << " elements from "
             << src.dart_gptr() << " into "
-            << srcAddr << std::endl;
+            << srcAddr << " tag " << tagname[tag] << std::endl;
   auto fut =
     dash::copy_async(
       src,
@@ -872,7 +872,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, Z1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Z1);
 
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -899,7 +899,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, Z0);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Z0);
 
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
@@ -930,7 +930,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, Y1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Y1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -958,7 +958,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, Y0);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Y0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -991,7 +991,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, X1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1019,7 +1019,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, X0);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1049,7 +1049,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X1Y1);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Y1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1076,7 +1076,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y1Z1);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1103,7 +1103,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X1Z1);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1130,7 +1130,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X0Y0);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Y0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1157,7 +1157,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y0Z0);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1184,7 +1184,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X0Z0);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1211,7 +1211,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X1Y0);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Y0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1238,7 +1238,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y1Z0);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1265,7 +1265,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X1Z0);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1292,7 +1292,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X0Y1);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Y1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1319,7 +1319,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y0Z1);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1346,7 +1346,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X0Z1);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1373,7 +1373,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X1Y1Z1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1396,7 +1396,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx*dy*(dz - 1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1419,7 +1419,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx - 1;
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1442,7 +1442,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1465,7 +1465,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx*(dy - 1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1488,7 +1488,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1511,7 +1511,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx*dy - 1;
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1534,7 +1534,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         Index_t idx = dx*dy*dz - 1;
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1587,7 +1587,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
           DBGSYNC(xferFields, opCount, Z1);
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Z1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1612,7 +1612,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
           DBGSYNC(xferFields, opCount, Z0);
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Z0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1642,7 +1642,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
           DBGSYNC(xferFields, opCount, Y1);
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Y1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1669,7 +1669,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
           DBGSYNC(xferFields, opCount, Y0);
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Y0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1703,7 +1703,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, X1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1731,7 +1731,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, opCount, X0);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1760,7 +1760,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           DBGSYNC(xferFields, dz, X1Y1);
 
           size_t recvCount = xferFields*dz;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X1Y1);
 
           //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1786,7 +1786,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
 
         DBGSYNC(xferFields, dx, Y1Z1);
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1813,7 +1813,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X1Z1);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1840,7 +1840,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X0Y0);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Y0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1867,7 +1867,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y0Z0);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1894,7 +1894,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X0Z0);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1921,7 +1921,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X1Y0);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Y0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1948,7 +1948,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y1Z0);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -1975,7 +1975,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X1Z0);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2002,7 +2002,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dz, X0Y1);
 
         size_t recvCount = xferFields*dz;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Y1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2029,7 +2029,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dx, Y0Z1);
 
         size_t recvCount = xferFields*dx;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, Y0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2056,7 +2056,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, dy, X0Z1);
 
         size_t recvCount = xferFields*dy;
-        get_yield(src, srcAddr, recvCount);
+        get_yield(src, srcAddr, recvCount, X0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2083,7 +2083,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X1Y1Z1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2106,7 +2106,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X1Y1Z0);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2129,7 +2129,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X0Y1Z1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y1Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2152,7 +2152,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X0Y1Z0);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y1Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2175,7 +2175,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X1Y0Z1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2198,7 +2198,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X1Y0Z0);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X1Y0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2221,7 +2221,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X0Y0Z1);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y0Z1);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2244,7 +2244,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         DBGSYNC(xferFields, 1, X0Y0Z0);
 
         size_t recvCount = xferFields;
-        get_yield(src, comBuf, recvCount);
+        get_yield(src, comBuf, recvCount, X0Y0Z0);
 
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2309,7 +2309,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           DBGSYNC(xferFields, opCount, Z1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Z1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2337,12 +2337,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           DBGSYNC(xferFields, opCount, Z0);
 
           size_t recvCount = xferFields*opCount;
-          auto fut =
-            dash::copy_async(
-              src,
-              src + recvCount,
-              srcAddr);
-          while(!fut.test()) dash::tasks::yield();
+          get_yield(src, srcAddr, recvCount, Z0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2376,7 +2371,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           DBGSYNC(xferFields, opCount, Y1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Y1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2404,7 +2399,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           DBGSYNC(xferFields, opCount, Y0);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, Y0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2437,7 +2432,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           DBGSYNC(xferFields, opCount, X1);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X1);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -2465,7 +2460,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           DBGSYNC(xferFields, opCount, X0);
 
           size_t recvCount = xferFields*opCount;
-          get_yield(src, srcAddr, recvCount);
+          get_yield(src, srcAddr, recvCount, X0);
 
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           for (Index_t fi=0; fi<xferFields; ++fi) {

@@ -53,11 +53,11 @@ dump_buffer(Real_t *buf, size_t nelem)
 
 static void
 put_yield(const dash::GlobIter<double, dash::BlockPattern<1> > dest,
-          Real_t *destAddr, size_t sendCount)
+          Real_t *destAddr, size_t sendCount, int tag)
 {
   std::cout << "[" << dash::tasks::threadnum() << "] PUT " << sendCount << " elements from "
             << destAddr << " into "
-            << dest.dart_gptr()  << std::endl;
+            << dest.dart_gptr() << " tag " << tagname[tag] << std::endl;
   auto fut =
     dash::copy_async(
       destAddr,
@@ -124,15 +124,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             destAddr += sendCount;
           }
           destAddr -= xferFields*sendCount;
-          put_yield(dest, destAddr, xferFields*sendCount);
+          put_yield(dest, destAddr, xferFields*sendCount, Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -158,15 +153,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          put_yield(dest, destAddr, xferFields*sendCount);
+          put_yield(dest, destAddr, xferFields*sendCount, Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -196,15 +186,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          put_yield(dest, destAddr, xferFields*sendCount);
+          put_yield(dest, destAddr, xferFields*sendCount, Y1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -231,15 +216,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          put_yield(dest, destAddr, xferFields*sendCount);
+          put_yield(dest, destAddr, xferFields*sendCount, Y0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -271,15 +251,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          put_yield(dest, destAddr, xferFields*sendCount);
+          put_yield(dest, destAddr, xferFields*sendCount, X1);
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -307,15 +282,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*sendCount;
 
-          put_yield(dest, destAddr, xferFields*sendCount);
+          put_yield(dest, destAddr, xferFields*sendCount, X0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -344,15 +314,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          put_yield(dest, destAddr, xferFields*dz);
+          put_yield(dest, destAddr, xferFields*dz, X1Y1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -378,15 +343,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          put_yield(dest, destAddr, xferFields*dx);
+          put_yield(dest, destAddr, xferFields*dx, Y1Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -412,15 +372,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          put_yield(dest, destAddr, xferFields*dy);
+          put_yield(dest, destAddr, xferFields*dy, X1Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -446,15 +401,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          put_yield(dest, destAddr, xferFields*dz);
+          put_yield(dest, destAddr, xferFields*dz, X0Y0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -479,15 +429,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          put_yield(dest, destAddr, xferFields*dx);
+          put_yield(dest, destAddr, xferFields*dx, Y0Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -512,15 +457,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          put_yield(dest, destAddr, xferFields*dy);
+          put_yield(dest, destAddr, xferFields*dy, X0Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -545,15 +485,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          put_yield(dest, destAddr, xferFields*dz);
+          put_yield(dest, destAddr, xferFields*dz, X1Y0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -578,15 +513,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          put_yield(dest, destAddr, xferFields*dx);
+          put_yield(dest, destAddr, xferFields*dx, Y1Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -611,15 +541,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          put_yield(dest, destAddr, xferFields*dy);
+          put_yield(dest, destAddr, xferFields*dy, X1Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -644,15 +569,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dz;
 
-          put_yield(dest, destAddr, xferFields*dz);
+          put_yield(dest, destAddr, xferFields*dz, X0Y1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -677,15 +597,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dx;
 
-          put_yield(dest, destAddr, xferFields*dx);
+          put_yield(dest, destAddr, xferFields*dx, Y0Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -711,15 +626,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           destAddr -= xferFields*dy;
 
-          put_yield(dest, destAddr, xferFields*dy);
+          put_yield(dest, destAddr, xferFields*dy, X0Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -740,15 +650,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(0);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X1Y1Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -769,15 +674,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X1Y1Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -798,15 +698,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X0Y1Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -827,15 +722,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X0Y1Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -856,15 +746,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X1Y0Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -885,15 +770,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X1Y0Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -914,15 +794,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X0Y0Z1);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
@@ -943,15 +818,10 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
             comBuf[fi] = (domain.*fieldData[fi])(idx);
           }
 
-          put_yield(dest, comBuf, xferFields);
+          put_yield(dest, comBuf, xferFields, X0Y0Z0);
         },
-        [=, &domain](dash::tasks::DependencyVectorInserter deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member src = fieldData[fi];
-            *deps = dash::tasks::in(&(domain.*src)(0));
-          }
-          *deps = dash::tasks::out(dest);
-        }
+        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::out(dest)
       );
 
       /*
