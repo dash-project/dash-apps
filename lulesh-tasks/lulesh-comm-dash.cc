@@ -30,6 +30,8 @@ DASHComm::DASHComm(Domain& dom) : m_dom(dom)
 
   memset( m_commDataSend->lbegin(), -1, comBufSize*sizeof(Real_t) );
   memset( m_commDataRecv->lbegin(), -1, comBufSize*sizeof(Real_t) );
+
+  m_commDataRecv->barrier();
 }
 
 DASHComm::~DASHComm()
