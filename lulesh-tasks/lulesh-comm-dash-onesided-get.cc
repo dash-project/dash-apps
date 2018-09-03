@@ -75,8 +75,8 @@ get_yield(const dash::GlobIter<double, dash::BlockPattern<1> > src,
 void DBGSYNC(int fields, int elem, int tag)
 {
 
-  std::cout << "[" << dash::tasks::threadnum() << "] DBGSYNC " << elem*fields
-       << " " << tagname[tag] << std::endl;
+  std::cout << "[" << dash::tasks::threadnum() << "] DBGSYNC " << elem << "x" << fields
+       << " (" << elem*fields << ") " << tagname[tag] << std::endl;
 
 }
 
