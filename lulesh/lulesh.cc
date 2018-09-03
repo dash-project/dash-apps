@@ -56,9 +56,9 @@ int main(int argc, char *argv[])
       dom.LagrangeLeapFrog();
 
       if( (opts.showProg()!=0) && (opts.quiet()==0) && (myRank==0) ) {
-	std::cout << "cycle = " << dom.cycle() << ", ";
-	std::cout << "time = " << dom.time() << ", ";
-	std::cout << "dt = " << dom.deltatime() << std::endl;
+        std::cout << "cycle = " << dom.cycle() << ", ";
+        std::cout << "time = " << dom.time() << ", ";
+        std::cout << "dt = " << dom.deltatime() << std::endl;
       }
     }
   double end = dom.wtime()-start;

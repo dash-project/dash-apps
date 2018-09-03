@@ -136,7 +136,7 @@ Domain::Domain(const CmdLineOpts& opts) :
   SetupThreadSupportStructures();
 
   // Setup region index sets. For now, these are constant sized
-  // throughout the run, but could be changed every cycle to 
+  // throughout the run, but could be changed every cycle to
   // simulate effects of ALE on the lagrange solver
 
 
