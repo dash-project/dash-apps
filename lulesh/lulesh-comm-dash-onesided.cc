@@ -57,6 +57,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
   // assume communication to 6 neighbors by default
   rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
+  Index_t maxPlaneComm = xferFields * domain.maxPlaneSize();
+  Index_t maxEdgeComm = xferFields * domain.maxEdgeSize();
+
   Index_t pmsg = 0; // plane comm msg
   Index_t emsg = 0; // edge comm msg
   Index_t cmsg = 0; // corner comm msg
