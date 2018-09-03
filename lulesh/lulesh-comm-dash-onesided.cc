@@ -54,16 +54,13 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 {
   Real_t *destAddr;
   bool rowNotMin, rowNotMax, colNotMin, colNotMax, planeNotMin, planeNotMax;
-
-  Index_t maxPlaneComm = xferFields * domain.maxPlaneSize();
-  Index_t maxEdgeComm  = xferFields * domain.maxEdgeSize();
+  // assume communication to 6 neighbors by default
+  rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
   Index_t pmsg = 0; // plane comm msg
   Index_t emsg = 0; // edge comm msg
   Index_t cmsg = 0; // corner comm msg
 
-  // assume communication to 6 neighbors by default
-  rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
   if( domain.rowLoc()   == 0 )               { rowNotMin   = false; }
   if( domain.rowLoc()   == (domain.tp()-1) ) { rowNotMax   = false; }
@@ -1085,6 +1082,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm)
   //MPI_Status status;
   Real_t *srcAddr;
   bool rowNotMin, rowNotMax, colNotMin, colNotMax, planeNotMin, planeNotMax;
+  // assume communication to 6 neighbors by default
+  rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
   /* assume communication to 6 neighbors by default */
   if( domain.rowLoc()   == 0 )               { rowNotMin   = false; }
@@ -1431,6 +1430,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
   //MPI_Status status;
   Real_t *srcAddr;
   bool rowNotMin, rowNotMax, colNotMin, colNotMax, planeNotMin, planeNotMax;
+  // assume communication to 6 neighbors by default
+  rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
   /* assume communication to 6 neighbors by default */
   if( domain.rowLoc()   == 0 )               { rowNotMin   = false; }
