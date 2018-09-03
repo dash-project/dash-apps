@@ -558,7 +558,7 @@ void writeToCsv( const Level& level ) {
 
     grid.barrier();
     if ( 0 == dash::myid() ) {
-        csvfile << " z-index,y-index,x-index,z-coord,y-coord,x-coord,heat" << "\n";
+        //csvfile << " z-index,y-index,x-index,z-coord,y-coord,x-coord,heat" << "\n";
         filenumber->set( 1 + (uint32_t) filenumber->get()  );
     }
     grid.barrier();
