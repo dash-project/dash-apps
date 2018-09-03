@@ -1563,6 +1563,8 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
   Index_t dz = domain.sizeZ() + 1;
   //MPI_Status status;
   bool rowNotMin, rowNotMax, colNotMin, colNotMax, planeNotMin, planeNotMax;
+  // assume communication to 6 neighbors by default
+  rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
   /* assume communication to 6 neighbors by default */
   if( domain.rowLoc()   == 0 )               { rowNotMin   = false; }
@@ -2272,6 +2274,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
   Index_t dz = domain.sizeZ();
   //MPI_Status status;
   bool rowNotMin, rowNotMax, colNotMin, colNotMax, planeNotMin, planeNotMax;
+  // assume communication to 6 neighbors by default
+  rowNotMin = rowNotMax = colNotMin = colNotMax = planeNotMin = planeNotMax = true;
 
   /* assume communication to 6 neighbors by default */
   if( domain.rowLoc()   == 0 )               { rowNotMin   = false; }
