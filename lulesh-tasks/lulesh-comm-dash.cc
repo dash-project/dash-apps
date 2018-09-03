@@ -259,11 +259,11 @@ Int_t DASHComm::offset(Int_t desc, Int_t xferFields)
   assert(0 <= cmsg && cmsg <= 8);
 
   auto offs =
-    pmsg * maxPlaneSize +
-    emsg * maxEdgeSize +
+    (pmsg * maxPlaneSize +
+     emsg * maxEdgeSize) * MAX_FIELDS_PER_COMM +
     cmsg * CACHE_COHERENCE_PAD_REAL;
 
-  return offs*xferFields;
+  return offs;
 }
 
 dash::GlobIter<Real_t, dash::Pattern<1>>
