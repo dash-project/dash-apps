@@ -196,8 +196,8 @@ Int_t DASHComm::offset(Int_t desc)
   assert(0 <= cmsg && cmsg <= 8);
 
   auto offs =
-    pmsg * maxPlaneSize +
-    emsg * maxEdgeSize +
+    (pmsg * maxPlaneSize +
+     emsg * maxEdgeSize) * MAX_FIELDS_PER_COMM  +
     cmsg * CACHE_COHERENCE_PAD_REAL;
 
   return offs;

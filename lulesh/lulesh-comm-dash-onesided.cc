@@ -60,9 +60,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
   Index_t maxPlaneComm = xferFields * domain.maxPlaneSize();
   Index_t maxEdgeComm = xferFields * domain.maxEdgeSize();
 
-  Index_t pmsg = 0; // plane comm msg
-  Index_t emsg = 0; // edge comm msg
-  Index_t cmsg = 0; // corner comm msg
+  Index_t futcntr = 0;
 
 
   if( domain.rowLoc()   == 0 )               { rowNotMin   = false; }
@@ -79,7 +77,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     int sendCount = dx * dy;
 
     if (planeNotMin) {
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+      destAddr = &comm.commDataSend()[comm.offset(Z1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<sendCount; ++i) {
@@ -89,7 +87,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      comm.sendRequest[pmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr,
           destAddr + (xferFields * sendCount),
@@ -100,11 +98,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         myRank - domain.tp()*domain.tp(), msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg]);
       */
-
-      ++pmsg;
     }
     if (planeNotMax && doSend) {
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+      destAddr = &comm.commDataSend()[comm.offset(Z0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<sendCount; ++i) {
@@ -114,7 +110,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      comm.sendRequest[pmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr,
           destAddr + (xferFields * sendCount),
@@ -124,7 +120,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         myRank + domain.tp()*domain.tp(), msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg]);
       */
-      ++pmsg;
     }
   }
   if (rowNotMin | rowNotMax) {
@@ -132,7 +127,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     int sendCount = dx * dz;
 
     if (rowNotMin) {
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+      destAddr = &comm.commDataSend()[comm.offset(Y1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -144,7 +139,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      comm.sendRequest[pmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr,
           destAddr + xferFields*sendCount,
@@ -154,10 +149,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         myRank - domain.tp(), msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg]);
       */
-      ++pmsg;
     }
     if (rowNotMax && doSend) {
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+      destAddr = &comm.commDataSend()[comm.offset(Y0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -169,7 +163,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      comm.sendRequest[pmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*sendCount,
           comm.dest( myRank + domain.tp(), Y0 ));
@@ -179,7 +173,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         myRank + domain.tp(), msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg]);
       */
-      ++pmsg;
     }
   }
   if (colNotMin | colNotMax) {
@@ -187,7 +180,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
     int sendCount = dy * dz;
 
     if (colNotMin) {
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+      destAddr = &comm.commDataSend()[comm.offset(X1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -199,7 +192,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      comm.sendRequest[pmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*sendCount,
           comm.dest( myRank - 1, X1));
@@ -208,10 +201,9 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         myRank - 1, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg]);
       */
-      ++pmsg;
     }
     if (colNotMax && doSend) {
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm];
+      destAddr = &comm.commDataSend()[comm.offset(X0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -223,7 +215,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*sendCount;
 
-      comm.sendRequest[pmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*sendCount,
           comm.dest( myRank + 1, X0 ));
@@ -232,15 +224,13 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         myRank + 1, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg]);
       */
-      ++pmsg;
     }
   }
 
   if (!planeOnly) {
     if (rowNotMin && colNotMin) {
       int toRank = myRank - domain.tp() - 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X1Y1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -250,7 +240,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
           comm.dest( toRank, X1Y1) );
@@ -259,13 +249,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMin && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() - domain.tp();
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(Y1Z1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dx; ++i) {
@@ -275,7 +263,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
           comm.dest( toRank, Y1Z1) );
@@ -283,13 +271,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (colNotMin && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() - 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X1Z1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dy; ++i) {
@@ -299,7 +285,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
           comm.dest( toRank, X1Z1) );
@@ -307,13 +293,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMax && colNotMax && doSend) {
       int toRank = myRank + domain.tp() + 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X0Y0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -323,7 +307,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
           comm.dest( toRank, X0Y0) );
@@ -331,13 +315,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMax && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() + domain.tp();
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(Y0Z0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dx; ++i) {
@@ -347,7 +329,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
           comm.dest( toRank, Y0Z0) );
@@ -355,13 +337,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (colNotMax && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() + 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X0Z0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dy; ++i) {
@@ -371,7 +351,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
           comm.dest( toRank, X0Z0) );
@@ -379,13 +359,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMax && colNotMin && doSend) {
       int toRank = myRank + domain.tp() - 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X1Y0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -395,7 +373,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
           comm.dest( toRank, X1Y0) );
@@ -403,13 +381,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMin && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() - domain.tp();
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(Y1Z0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dx; ++i) {
@@ -419,7 +395,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
           comm.dest( toRank, Y1Z0) );
@@ -427,13 +403,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (colNotMin && planeNotMax && doSend) {
       int toRank = myRank + domain.tp()*domain.tp() - 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X1Z0)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dy; ++i) {
@@ -443,7 +417,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
           comm.dest( toRank, X1Z0) );
@@ -451,13 +425,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMin && colNotMax) {
       int toRank = myRank - domain.tp() + 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X0Y1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dz; ++i) {
@@ -467,7 +439,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dz;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dz,
           comm.dest( toRank, X0Y1) );
@@ -475,13 +447,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMax && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() + domain.tp();
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(Y0Z1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dx; ++i) {
@@ -491,7 +461,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dx;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dx,
           comm.dest( toRank, Y0Z1 ) );
@@ -500,13 +470,11 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (colNotMax && planeNotMin) {
       int toRank = myRank - domain.tp()*domain.tp() + 1;
-      destAddr = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                      emsg * maxEdgeComm];
+      destAddr = &comm.commDataSend()[comm.offset(X0Z1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         Domain_member src = fieldData[fi];
         for (Index_t i=0; i<dy; ++i) {
@@ -516,7 +484,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       }
       destAddr -= xferFields*dy;
 
-      comm.sendRequest[pmsg + emsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           destAddr, destAddr+xferFields*dy,
           comm.dest( toRank, X0Z1) );
@@ -525,20 +493,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]);
       */
-      ++emsg;
     }
 
     if (rowNotMin && colNotMin && planeNotMin) {
       // corner at domain logical coord (0, 0, 0)
       int toRank = myRank - domain.tp()*domain.tp() - domain.tp() - 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y1Z1)];
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(0);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X1Y1Z1) );
@@ -546,20 +511,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMin && colNotMin && planeNotMax && doSend) {
       // corner at domain logical coord (0, 0, 1)
       int toRank = myRank + domain.tp()*domain.tp() - domain.tp() - 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y1Z0)];
       Index_t idx = dx*dy*(dz - 1);
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X1Y1Z0 ) );
@@ -567,20 +529,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMin && colNotMax && planeNotMin) {
       // corner at domain logical coord (1, 0, 0)
       int toRank = myRank - domain.tp()*domain.tp() - domain.tp() + 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y1Z1)];
       Index_t idx = dx - 1;
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X0Y1Z1) );
@@ -588,20 +547,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMin && colNotMax && planeNotMax && doSend) {
       // corner at domain logical coord (1, 0, 1)
       int toRank = myRank + domain.tp()*domain.tp() - domain.tp() + 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y1Z0)];
       Index_t idx = dx*dy*(dz - 1) + (dx - 1);
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X0Y1Z0 ) );
@@ -609,20 +565,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMax && colNotMin && planeNotMin) {
       // corner at domain logical coord (0, 1, 0)
       int toRank = myRank - domain.tp()*domain.tp() + domain.tp() - 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y0Z1)];
       Index_t idx = dx*(dy - 1);
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X1Y0Z1) );
@@ -630,20 +583,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMax && colNotMin && planeNotMax && doSend) {
       // corner at domain logical coord (0, 1, 1)
       int toRank = myRank + domain.tp()*domain.tp() + domain.tp() - 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y0Z0)];
       Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X1Y0Z0 ) );
@@ -651,20 +601,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMax && colNotMax && planeNotMin) {
       // corner at domain logical coord (1, 1, 0)
       int toRank = myRank - domain.tp()*domain.tp() + domain.tp() + 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y0Z1)];
       Index_t idx = dx*dy - 1;
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X0Y0Z1 ) );
@@ -672,20 +619,17 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
     if (rowNotMax && colNotMax && planeNotMax && doSend) {
       // corner at domain logical coord (1, 1, 1)
       int toRank = myRank + domain.tp()*domain.tp() + domain.tp() + 1;
-      Real_t *comBuf = &comm.commDataSend()[pmsg * maxPlaneComm +
-                                            emsg * maxEdgeComm +
-                                            cmsg * CACHE_COHERENCE_PAD_REAL];
+      Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y0Z0)];
       Index_t idx = dx*dy*dz - 1;
       for (Index_t fi=0; fi<xferFields; ++fi) {
         comBuf[fi] = (domain.*fieldData[fi])(idx);
       }
 
-      comm.sendRequest[pmsg + emsg + cmsg] =
+      comm.sendRequest[futcntr++] =
         dash::copy_async(
           comBuf, comBuf+xferFields,
           comm.dest( toRank, X0Y0Z0 ) );
@@ -693,7 +637,6 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
         MPI_Isend(comBuf, xferFields, baseType, toRank, msgType,
         MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]);
       */
-      ++cmsg;
     }
   }
 }
@@ -1213,7 +1156,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm)
   }
 
   if (rowNotMin && planeNotMin && doRecv) {
-    srcAddr = &comm.commDataRecv()[comm.offset(X0Y0)];
+    srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0)];
     //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
     for (Index_t fi=0; fi<xferFields; ++fi) {
       Domain_member dest = fieldData[fi];
