@@ -61,6 +61,7 @@ void DASHComm::ExchangeNodalMass()
 
   dash::barrier();
   DASHCommSBN(dom, comm, 1, &fieldData);
+  dash::barrier();
 }
 
 void DASHComm::Recv_PosVel()
@@ -100,6 +101,7 @@ void DASHComm::Sync_PosVel()
 
   dash::barrier();
   DASHCommSyncPosVel(dom, comm);
+  dash::barrier();
 }
 
 
@@ -139,6 +141,7 @@ void DASHComm::Sync_Force()
 
   dash::barrier();
   DASHCommSBN(dom, comm, 3, fieldData);
+  dash::barrier();
 }
 
 void DASHComm::Recv_MonoQ()
@@ -176,6 +179,7 @@ void DASHComm::Sync_MonoQ()
 
   dash::barrier();
   DASHCommMonoQ(dom,comm);
+  dash::barrier();
 }
 
 Int_t DASHComm::offset(Int_t desc)
