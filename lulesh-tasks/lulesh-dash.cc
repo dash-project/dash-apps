@@ -17,7 +17,7 @@
 
 #include "extrae.h"
 
-#define DASH_TASKLOOP_FACTOR 2
+#define DASH_TASKLOOP_FACTOR 4
 
 using std::cout; using std::cerr; using std::endl;
 
@@ -431,7 +431,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
   Index_t size = domain.sizeX();
   Index_t numNodeBC = (size+1)*(size+1) ;
 
-  auto grainsize = dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR);
+  auto grainsize = dash::tasks::num_chunks(dash::tasks::numthreads());
 
 //#pragma omp parallel
   {

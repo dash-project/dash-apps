@@ -3,7 +3,7 @@
 #include "lulesh-calc.h"
 #include "extrae.h"
 
-#define DASH_TASKLOOP_FACTOR 2
+#define DASH_TASKLOOP_FACTOR 4
 
 template <typename T>
 static inline
@@ -1341,7 +1341,7 @@ void IntegrateStressForElems( Domain &domain,
 
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
     [sigxx, sigyy, sigzz, determ, numthreads, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(INTEGRATESTRESSFORELEMS);
       for( Index_t k=from; k<to; ++k )
@@ -1404,7 +1404,7 @@ void IntegrateStressForElems( Domain &domain,
     // arrays used above into the final forces field
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::TASKLOOP(Index_t{0}, numNode,
-                          dash::tasks::num_chunks(numthreads),
+                          dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
       [&domain](Index_t from, Index_t to) {
         extrae_task_event ev(INTEGRATESTRESSFORELEMSREDUCTION);
         for( Index_t gnode=from; gnode<to; ++gnode )
