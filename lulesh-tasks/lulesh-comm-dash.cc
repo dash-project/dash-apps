@@ -306,8 +306,15 @@ double DASHComm::allreduce_min<double>(double val)
 {
   double res;
   // FIXME
-  MPI_Allreduce(&val, &res, 1, MPI_DOUBLE, MPI_MIN,
-		MPI_COMM_WORLD);
+  MPI_Request request;
+  MPI_Iallreduce(&val, &res, 1, MPI_DOUBLE, MPI_MIN,
+		MPI_COMM_WORLD, &request);
+  do {
+    int flag;
+    MPI_Test(&request, &flag, MPI_STATUS_IGNORE);
+    if (flag) break;
+    dash::tasks::yield();
+  } while (1);
   return res;
 }
 
