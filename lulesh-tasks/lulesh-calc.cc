@@ -612,6 +612,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
       EXTRAE_EXIT(COURANTCONSTRAINTS);
     },
+    DART_PRIO_LOW,
     dash::tasks::in(&domain.arealg(0)),
     dash::tasks::in(&domain.vdov(0)),
     dash::tasks::in(&domain.ss(0)),
@@ -638,6 +639,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
       EXTRAE_EXIT(HYDROCONSTRAINTS);
     },
+    DART_PRIO_LOW,
     dash::tasks::in(&domain.arealg(0)),
     dash::tasks::in(&domain.vdov(0)),
     dash::tasks::out(&domain.dthydro())
