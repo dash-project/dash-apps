@@ -3109,6 +3109,9 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
     //v_cycle( levels.begin(), levels.end(), 20, eps, res );
     //recursive_cycle( levels.begin(), levels.end(), 20, 1 /* 1 for v cycle */, eps, res );
 
+    // algorithm
+    minimon.start();
+
     if ( 0 == dash::myid()  ) {
         cout << "start w-cycle with res " << eps << endl << endl;
     }
@@ -3122,6 +3125,8 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
     }
     smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
+
+    minimon.stop( "algorithm", dash::Team::All().size() );
 
     dash::Team::All().barrier();
 
@@ -3317,6 +3322,9 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     dash::Team::All().barrier();
 */
 
+    // algorithm
+    minimon.start();
+
     if ( 0 == dash::myid()  ) {
         cout << "start w-cycle with res " << eps << endl;
     }
@@ -3330,6 +3338,8 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     }
     smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
+
+    minimon.stop( "algorithm", dash::Team::All().size() );
 
     dash::Team::All().barrier();
 
@@ -3346,7 +3356,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
                     std::array< double, 3 >& dim ) {
 
-    // do_simulation
+    // setup
     minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -3390,11 +3400,12 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
     double dt= level->max_dt();
 
-    // do_simulation_loop
-    minimon.start();
-
     Allreduce res( dash::Team::All() );
 
+    minimon.stop( "setup", dash::Team::All().size() );
+
+    // algorithm
+    minimon.start();
 
     double time= 0.0;
     double timenext= time + timestep;
@@ -3445,9 +3456,7 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
 
 #endif /* 0 */
-    minimon.stop( "do_simulation_loop", dash::Team::All().size() );
-
-    minimon.stop( "do_simulation", dash::Team::All().size() );
+    minimon.stop( "algorithm", dash::Team::All().size() );
 
     delete level;
     level= NULL;
@@ -3456,6 +3465,8 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
 void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
 
+    // setup
+    minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -3495,11 +3506,12 @@ void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 
 
     dash::barrier();
 
-
-    // flat_iteration
-    minimon.start();
-
     Allreduce res( dash::Team::All() );
+
+    minimon.stop( "setup", dash::Team::All().size() );
+
+    // algorithm
+    minimon.start();
 
     uint32_t j= 0;
     while ( res.get() > eps && j < 100000 ) {
@@ -3518,7 +3530,7 @@ void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 
     }
     writeToCsv( *level );
 
-    minimon.stop( "flat_iteration", dash::Team::All().size() );
+    minimon.stop( "algorithm", dash::Team::All().size() );
 
     if ( 0 == dash::myid() ) {
 
