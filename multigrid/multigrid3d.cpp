@@ -2812,7 +2812,10 @@ void recursive_cycle( Iterator it, Iterator itend,
             j++;
         }
         if ( 0 == dash::myid()  ) {
-            cout << "smoothing coarsest " << j << " times with residual " << res.get() << endl;
+            cout << "smoothing " <<
+            (*it)->src_grid->extent(2) << "×" <<
+            (*it)->src_grid->extent(1) << "×" <<
+            (*it)->src_grid->extent(0) << " coarsest " << j << " times with residual " << res.get() << endl;
         }
         writeToCsv( **it );
 
@@ -2890,7 +2893,10 @@ void recursive_cycle( Iterator it, Iterator itend,
         j++;
     }
     if ( 0 == dash::myid()  ) {
-        cout << "smoothing on way down " << j << " times with residual " << res.get() << endl;
+        cout << "smoothing " <<
+            (*it)->src_grid->extent(2) << "×" <<
+            (*it)->src_grid->extent(1) << "×" <<
+            (*it)->src_grid->extent(0) << " on way down " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -2939,7 +2945,10 @@ void recursive_cycle( Iterator it, Iterator itend,
         j++;
     }
     if ( 0 == dash::myid() ) {
-        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
+        cout << "smoothing " <<
+            (*it)->src_grid->extent(2) << "×" <<
+            (*it)->src_grid->extent(1) << "×" <<
+            (*it)->src_grid->extent(0) << " on way up " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
