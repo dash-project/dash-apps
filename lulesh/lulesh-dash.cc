@@ -114,17 +114,14 @@ Domain::Domain(const CmdLineOpts& opts) :
 
   m_nodelist.allocate(m_ElemPat);
 
-  m_dxx.resize(numElem());
-  m_dyy.resize(numElem());
-  m_dzz.resize(numElem());
+  AllocateStrains(numElem());
 
-  m_delv_xi.resize(numElem());
-  m_delv_eta.resize(numElem());
-  m_delv_zeta.resize(numElem());
+  Int_t allElem = numElem() +           /* local elem */
+    2*sizeX()*sizeY() + /* plane ghosts */
+    2*sizeX()*sizeZ() + /* row ghosts */
+    2*sizeY()*sizeZ() ; /* col ghosts */
 
-  m_delx_xi.resize(numElem());
-  m_delx_eta.resize(numElem());
-  m_delx_zeta.resize(numElem());
+  AllocateGradients(numElem(), allElem);
 
   m_arealg.resize(numElem());
   m_ss.resize(numElem());
@@ -846,7 +843,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
   if (numElem > 0) {
     const Real_t deltatime = domain.deltatime() ;
 
-    domain.AllocateStrains(numElem);
+    //domain.AllocateStrains(numElem);
 
     CalcKinematicsForElems(domain, vnew, deltatime, numElem) ;
 
@@ -874,7 +871,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
 #endif
 	  }
       }
-    domain.DeallocateStrains();
+    //domain.DeallocateStrains();
   }
 }
 
@@ -888,12 +885,15 @@ void Domain::CalcQForElems(Real_t vnew[])
   Index_t numElem = domain.numElem() ;
 
   if (numElem != 0) {
+
+#if 0
     Int_t allElem = numElem +           /* local elem */
       2*domain.sizeX()*domain.sizeY() + /* plane ghosts */
       2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
       2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
 
-    domain.AllocateGradients(numElem, allElem);
+    AllocateGradients(domain.numElem(), allElem);
+#endif
 
     m_comm.Recv_MonoQ();
 
@@ -906,7 +906,7 @@ void Domain::CalcQForElems(Real_t vnew[])
     CalcMonotonicQForElems(domain, vnew) ;
 
     // Free up memory
-    domain.DeallocateGradients();
+    //domain.DeallocateGradients();
 
     /* Don't allow excessive artificial viscosity */
       Index_t idx = -1;
