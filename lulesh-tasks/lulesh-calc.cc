@@ -613,10 +613,10 @@ void CalcTimeConstraintsForElems(Domain& domain)
       EXTRAE_EXIT(COURANTCONSTRAINTS);
     },
     DART_PRIO_LOW,
-    dash::tasks::in(&domain.arealg(0)),
-    dash::tasks::in(&domain.vdov(0)),
-    dash::tasks::in(&domain.ss(0)),
-    dash::tasks::out(&domain.dtcourant())
+    dash::tasks::in(domain.arealg(0)),
+    dash::tasks::in(domain.vdov(0)),
+    dash::tasks::in(domain.ss(0)),
+    dash::tasks::out(domain.dtcourant())
   );
 
   dash::tasks::ASYNC(
@@ -640,9 +640,9 @@ void CalcTimeConstraintsForElems(Domain& domain)
       EXTRAE_EXIT(HYDROCONSTRAINTS);
     },
     DART_PRIO_LOW,
-    dash::tasks::in(&domain.arealg(0)),
-    dash::tasks::in(&domain.vdov(0)),
-    dash::tasks::out(&domain.dthydro())
+    dash::tasks::in(domain.arealg(0)),
+    dash::tasks::in(domain.vdov(0)),
+    dash::tasks::out(domain.dthydro())
   );
 }
 
@@ -1160,16 +1160,16 @@ void CalcFBHourglassForceForElems(Domain &domain,
     },
     [determ, x8n, fz_elem, &domain]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::in(&determ[from]);
-      *deps = dash::tasks::in(&determ[0]);
-      *deps = dash::tasks::in(&domain.fx(0));
-      *deps = dash::tasks::in(&x8n[0]);
+      *deps = dash::tasks::in(determ[from]);
+      *deps = dash::tasks::in(determ[0]);
+      *deps = dash::tasks::in(domain.fx(0));
+      *deps = dash::tasks::in(x8n[0]);
     });
   //dash::tasks::complete();
 
   if (numthreads > 1) {
     // Collect the data from the local arrays into the final force arrays
-    dash::tasks::ASYNC([](){}, dash::tasks::out(&domain.fx(0)));
+    dash::tasks::ASYNC([](){}, dash::tasks::out(domain.fx(0)));
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::TASKLOOP(Index_t{0}, numNode,
                           dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
@@ -1195,8 +1195,8 @@ void CalcFBHourglassForceForElems(Domain &domain,
       },
       [fz_elem, fx_elem, &domain]
       (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-        *deps = dash::tasks::in(&fx_elem[0]);
-        *deps = dash::tasks::in(&domain.fx(0));
+        *deps = dash::tasks::in(fx_elem[0]);
+        *deps = dash::tasks::in(domain.fx(0));
       });
     dash::tasks::ASYNC(
       [=](){
@@ -1208,7 +1208,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
         Release(&tmp) ;
       },
       //DART_PRIO_HIGH,
-      dash::tasks::out(&fx_elem[0])
+      dash::tasks::out(fx_elem[0])
     );
     //dash::tasks::complete();
   }
@@ -1266,8 +1266,8 @@ void CalcHourglassControlForElems(Domain& domain,
     },
     [determ, x8n]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::out(&determ[from]);
-      *deps = dash::tasks::in(&x8n[0]);
+      *deps = dash::tasks::out(determ[from]);
+      *deps = dash::tasks::in( x8n[0]);
     }
   );
   // tasks flow into CalcFBHourglassForceForElems
@@ -1289,7 +1289,7 @@ void CalcHourglassControlForElems(Domain& domain,
       Release(&dvdx) ;
     },
     //DART_PRIO_HIGH,
-    dash::tasks::out(&x8n[0])
+    dash::tasks::out(x8n[0])
   );
   //dash::tasks::complete();
 }
@@ -1314,7 +1314,7 @@ void InitStressTermsForElems(Domain &domain,
     },
     [sigxx]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::out(&sigxx[from]);
+      *deps = dash::tasks::out(sigxx[from]);
     });
   //dash::tasks::complete();
 }
@@ -1389,17 +1389,17 @@ void IntegrateStressForElems( Domain &domain,
     },
     [determ, sigxx, &domain]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::in(&domain.fx(0));
-      *deps = dash::tasks::in(&sigxx[from]);
-      *deps = dash::tasks::out(&determ[from]);
-      *deps = dash::tasks::in(&sigxx[0]);
+      *deps = dash::tasks::in(domain.fx(0));
+      *deps = dash::tasks::in(sigxx[from]);
+      *deps = dash::tasks::out(determ[from]);
+      *deps = dash::tasks::in(sigxx[0]);
     });
   //dash::tasks::complete();
 
 
   if (numthreads > 1) {
     // dummy task to mimic CONCURRENT dependency
-    dash::tasks::ASYNC([](){}, dash::tasks::out(&domain.fx(0)));
+    dash::tasks::ASYNC([](){}, dash::tasks::out(domain.fx(0)));
     // If threaded, then we need to copy the data out of the temporary
     // arrays used above into the final forces field
 //#pragma omp parallel for firstprivate(numNode)
@@ -1427,21 +1427,21 @@ void IntegrateStressForElems( Domain &domain,
       },
       [&domain]
       (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-        *deps = dash::tasks::in(&domain.fx(0));
-        *deps = dash::tasks::in(&fx_elem[0]);
+        *deps = dash::tasks::in(domain.fx(0));
+        *deps = dash::tasks::in(fx_elem[0]);
       });
     //dash::tasks::complete();
 
     // dummy task to mimic CONCURRENT dependency
 
-    dash::tasks::ASYNC([](){}, dash::tasks::out(&domain.fx(0)));
+    dash::tasks::ASYNC([](){}, dash::tasks::out(domain.fx(0)));
     dash::tasks::ASYNC([]() mutable {
         Release(&fz_elem) ;
         Release(&fy_elem) ;
         Release(&fx_elem) ;
       },
       //DART_PRIO_HIGH,
-      dash::tasks::out(&fx_elem[0])
+      dash::tasks::out(fx_elem[0])
     );
   }
 }
@@ -1487,7 +1487,7 @@ void CalcVolumeForceForElems(Domain& domain)
     },
     [determ]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::in(&determ[from]);
+      *deps = dash::tasks::in(determ[from]);
     });
 
     // dependencies flow into CalcHourglassControlForElems
@@ -1502,7 +1502,7 @@ void CalcVolumeForceForElems(Domain& domain)
         Release(&determ) ;
       },
       //DART_PRIO_HIGH,
-      dash::tasks::out(&determ[0])
+      dash::tasks::out(determ[0])
     );
 
     dash::tasks::complete();
@@ -1935,10 +1935,10 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
     },
     [bvc, compression, p_new, e_old]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::out(&bvc[from]);
-      *deps = dash::tasks::in(&compression[from]);
-      *deps = dash::tasks::out(&p_new[from]);
-      *deps = dash::tasks::in(&e_old[from]);
+      *deps = dash::tasks::out(bvc[from]);
+      *deps = dash::tasks::in( compression[from]);
+      *deps = dash::tasks::out(p_new[from]);
+      *deps = dash::tasks::in( e_old[from]);
     });
 
 #if 0
@@ -2102,7 +2102,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
     },
     [e_new]
     (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::out(&e_new[from]);
+      *deps = dash::tasks::out(e_new[from]);
     });
   //dash::tasks::complete();
 
@@ -2379,7 +2379,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
       },
       [e_new]
       (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-        *deps = dash::tasks::out(&e_new[from]);
+        *deps = dash::tasks::out(e_new[from]);
       });
 
 #if 0

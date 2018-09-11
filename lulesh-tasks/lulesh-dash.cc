@@ -306,9 +306,9 @@ void Domain::TimeIncrement()
       EXTRAE_EXIT(TIME_INCREMENT);
     },
     DART_PRIO_HIGH,
-    dash::tasks::in(&domain.dtcourant()),
-    dash::tasks::in(&domain.dthydro()),
-    dash::tasks::out(&domain.deltatime())
+    dash::tasks::in( domain.dtcourant()),
+    dash::tasks::in( domain.dthydro()),
+    dash::tasks::out(domain.deltatime())
   );
 }
 
@@ -335,8 +335,8 @@ void Domain::LagrangeNodal()
       ApplyAccelerationBoundaryConditionsForNodes();
       EXTRAE_EXIT(CALCACCELERATIONFORNODES);
     },
-    dash::tasks::in(&this->fx(0)),
-    dash::tasks::out(&this->xdd(0))
+    dash::tasks::in( this->fx(0)),
+    dash::tasks::out(this->xdd(0))
   );
   dash::tasks::ASYNC(
     [=](){
@@ -347,10 +347,10 @@ void Domain::LagrangeNodal()
       dash::tasks::complete();
       EXTRAE_EXIT(CALCVELPOSFORNODES);
     },
-    dash::tasks::in(&this->deltatime()),
-    dash::tasks::in(&this->xdd(0)),
-    dash::tasks::out(&this->xd(0)),
-    dash::tasks::out(&this->x(0))
+    dash::tasks::in( this->deltatime()),
+    dash::tasks::in( this->xdd(0)),
+    dash::tasks::out(this->xd(0)),
+    dash::tasks::out(this->x(0))
   );
   /*
   dash::tasks::ASYNC(
@@ -375,15 +375,14 @@ void Domain::LagrangeElements()
   dash::tasks::ASYNC(
     [&](){
       EXTRAE_ENTER(LAGRANGEELEMS);
-      AllocateVnew(numElem());
       CalcLagrangeElements(m_vnew.data());
       EXTRAE_EXIT(LAGRANGEELEMS);
     },
-    dash::tasks::in(&this->x(0)),
-    dash::tasks::out(&this->dxx(0)),
-    dash::tasks::out(&this->vdov(0)),
-    dash::tasks::out(&this->arealg(0)),
-    dash::tasks::out(&m_vnew)
+    dash::tasks::in(this->x(0)),
+    dash::tasks::out(this->dxx(0)),
+    dash::tasks::out(this->vdov(0)),
+    dash::tasks::out(this->arealg(0)),
+    dash::tasks::out(m_vnew)
   );
 
   // Calculate Q.  (Monotonic q option requires communication)
@@ -396,16 +395,15 @@ void Domain::LagrangeElements()
 
       UpdateVolumesForElems(m_vnew.data(), v_cut(), numElem());
 
-      DeallocateVnew();
       EXTRAE_EXIT(MATERIALPROPERTIES);
     },
-    dash::tasks::in(&this->x(0)),
-    dash::tasks::out(&this->v(0)),
-    dash::tasks::out(&this->p(0)),
-    dash::tasks::out(&this->e(0)),
-    dash::tasks::out(&this->q(0)),
-    dash::tasks::out(&this->ss(0)),
-    dash::tasks::out(&m_vnew)
+    dash::tasks::in(this->x(0)),
+    dash::tasks::out(this->v(0)),
+    dash::tasks::out(this->p(0)),
+    dash::tasks::out(this->e(0)),
+    dash::tasks::out(this->q(0)),
+    dash::tasks::out(this->ss(0)),
+    dash::tasks::out(m_vnew)
   );
 }
 
@@ -510,8 +508,8 @@ void Domain::CalcVelocityForNodes(const Real_t dt,
       }
     },
     [&](Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::out(&xd(from));
-      *deps = dash::tasks::in( &xdd(from));
+      *deps = dash::tasks::out(xd(from));
+      *deps = dash::tasks::in( xdd(from));
     });
   //dash::tasks::complete();
 }
@@ -532,8 +530,8 @@ void Domain::CalcPositionForNodes(const Real_t dt,
       }
     },
     [&](Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
-      *deps = dash::tasks::out(&x(from));
-      *deps = dash::tasks::in( &xd(from));
+      *deps = dash::tasks::out(x(from));
+      *deps = dash::tasks::in( xd(from));
     });
 }
 
@@ -1004,16 +1002,16 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
   //
 
   Domain& domain = (*this);
-  Index_t numElem = domain.numElem() ;
 
-  if (numElem != 0) {
-    Int_t allElem = numElem +           /* local elem */
-      2*domain.sizeX()*domain.sizeY() + /* plane ghosts */
-      2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
-      2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
-
+  if (domain.numElem() != 0) {
     dash::tasks::ASYNC(
       [=, &domain, &vnew](){
+        Index_t numElem = domain.numElem() ;
+        Int_t allElem = numElem +           /* local elem */
+          2*domain.sizeX()*domain.sizeY() + /* plane ghosts */
+          2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
+          2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
+
         EXTRAE_ENTER(MONOQGRADIENTS);
         domain.AllocateGradients(numElem, allElem);
 
@@ -1021,8 +1019,8 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         CalcMonotonicQGradientsForElems(domain, vnew.data());
         EXTRAE_EXIT(MONOQGRADIENTS);
       },
-      dash::tasks::in(&vnew),
-      dash::tasks::out(&this->delv_xi(0))
+      dash::tasks::in(vnew),
+      dash::tasks::out(this->delv_xi(0))
     );
 
     m_comm.Send_MonoQ();
@@ -1038,6 +1036,7 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
 
         /* Don't allow excessive artificial viscosity */
         Index_t idx = -1;
+        Index_t numElem = domain.numElem() ;
         for (Index_t i=0; i<numElem; ++i) {
           if ( domain.q(i) > domain.qstop() ) {
             idx = i ;
@@ -1058,10 +1057,10 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         }
         EXTRAE_EXIT(MONOQELEMS);
       },
-      dash::tasks::in(&this->delv_xi(0)),
-      dash::tasks::out(&vnew),
-      dash::tasks::out(&domain.qq(0)),
-      dash::tasks::out(&domain.ql(0))
+      dash::tasks::in(this->delv_xi(0)),
+      dash::tasks::out(vnew),
+      dash::tasks::out(domain.qq(0)),
+      dash::tasks::out(domain.ql(0))
     );
   }
 }

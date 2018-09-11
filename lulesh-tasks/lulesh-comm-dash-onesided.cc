@@ -118,7 +118,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           destAddr -= xferFields*sendCount;
           put_yield(dest, destAddr, xferFields*sendCount, Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -145,7 +145,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -177,7 +177,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, Y1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -206,7 +206,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, Y0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -240,7 +240,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, X1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -270,7 +270,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, X0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -301,7 +301,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X1Y1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -329,7 +329,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y1Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -357,7 +357,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X1Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -385,7 +385,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X0Y0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -412,7 +412,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y0Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -439,7 +439,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X0Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -466,7 +466,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X1Y0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -493,7 +493,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y1Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -520,7 +520,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X1Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -547,7 +547,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X0Y1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
       /*
@@ -574,7 +574,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y0Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -602,7 +602,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X0Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -625,7 +625,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y1Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -648,7 +648,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y1Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -671,7 +671,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y1Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -694,7 +694,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y1Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -717,7 +717,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y0Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -740,7 +740,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y0Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -763,7 +763,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y0Z1);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -786,7 +786,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y0Z0);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::out(dest)
       );
 
@@ -828,11 +828,10 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dy;
 
     if (planeNotMin) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+          Real_t *srcAddr = src;
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Z0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -844,17 +843,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]),
+        dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
     if (planeNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
+          Real_t *srcAddr = src;
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Z1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -866,9 +864,9 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z1, xferFields)]),
+        dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
   }
@@ -878,11 +876,10 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dz;
 
     if (rowNotMin) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -896,17 +893,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0, xferFields)]),
+        dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
     if (rowNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -920,9 +916,9 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1, xferFields)]),
+        dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
   }
@@ -931,11 +927,10 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dy * dz;
 
     if (colNotMin) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -949,17 +944,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X0, xferFields)]),
+        dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
     if (colNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -973,18 +967,18 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X1, xferFields)]),
+        dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
   }
 
   if (rowNotMin & colNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X0Y0);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -996,17 +990,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & planeNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z0);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1018,17 +1012,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z0, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMin & planeNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z0);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1040,17 +1034,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z0, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & colNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y1);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1062,17 +1056,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z1);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1084,17 +1078,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z1, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMax & planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X1Z1);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1106,17 +1100,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z1, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & colNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X0Y1);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1128,17 +1122,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z1);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1150,17 +1144,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z1, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMin & planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z1);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1172,17 +1166,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z1, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & colNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y0);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1194,17 +1188,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMax & planeNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z0);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1216,17 +1210,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z0, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (colNotMax & planeNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X1Z0);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1238,17 +1232,17 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z0, xferFields)]),
+      dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
   if (rowNotMin & colNotMin & planeNotMin) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
         DBGSYNC(xferFields, 1, X0Y0Z0);
         dump_buffer(comBuf, xferFields);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
@@ -1256,16 +1250,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(0) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMin & planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
         DBGSYNC(xferFields, 1, X0Y0Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*(dz - 1);
@@ -1274,16 +1268,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMax & planeNotMin) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
         DBGSYNC(xferFields, 1, X1Y0Z0);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx - 1;
@@ -1292,16 +1286,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMax & planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
         DBGSYNC(xferFields, 1, X1Y0Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
@@ -1310,16 +1304,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMin & planeNotMin) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
         DBGSYNC(xferFields, 1, X0Y1Z0);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*(dy - 1);
@@ -1328,16 +1322,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMin & planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
         DBGSYNC(xferFields, 1, X0Y1Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
@@ -1346,16 +1340,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMax & planeNotMin) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
         DBGSYNC(xferFields, 1, X1Y1Z0);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy - 1;
@@ -1364,16 +1358,16 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMax & planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
         DBGSYNC(xferFields, 1, X1Y1Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*dz - 1;
@@ -1382,9 +1376,9 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) += comBuf[fi];
         }
       },
-      dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)]),
+      dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 }
@@ -1421,11 +1415,10 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dy;
 
     if (planeNotMin && doRecv) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -1441,18 +1434,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
     }
     if (planeNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          // contiguous memory
-          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -1468,9 +1460,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Z1, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
     }
@@ -1480,11 +1472,10 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dx * dz;
 
     if (rowNotMin && doRecv) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -1502,18 +1493,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
     }
     if (rowNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+          Real_t *srcAddr = src;
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Y1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -1531,9 +1521,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
     }
@@ -1544,11 +1534,10 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Index_t opCount = dy * dz;
 
     if (colNotMin && doRecv) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -1566,18 +1555,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
     }
     if (colNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -1595,18 +1583,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
     }
   }
   if (rowNotMin && colNotMin && doRecv) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          srcAddr = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, dz, X0Y0);
           dump_buffer(srcAddr, xferFields*dz);
           //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1622,18 +1610,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in(&(domain.*dest)(0));
+            *deps = dash::tasks::in((domain.*dest)(0));
           }
-          *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0, xferFields)]);
+          *deps = dash::tasks::in(*src);
         }
       );
   }
 
   if (rowNotMin && planeNotMin && doRecv) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z0);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1649,18 +1637,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z0, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (colNotMin && planeNotMin && doRecv) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z0);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1676,18 +1664,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z0, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMax && colNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y1);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1703,18 +1691,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMax && planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z1);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1730,18 +1718,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z1, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (colNotMax && planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X1Z1);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1757,18 +1745,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Z1, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMax && colNotMin) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X0Y1);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1784,18 +1772,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMin && planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z1);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1811,18 +1799,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0Z1, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (colNotMin && planeNotMax) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z1);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1838,18 +1826,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Z1, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMin && colNotMax && doRecv) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y0);
         dump_buffer(srcAddr, xferFields*dz);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1865,18 +1853,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMax && planeNotMin && doRecv) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z0);
         dump_buffer(srcAddr, xferFields*dx);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1892,18 +1880,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (colNotMax && planeNotMin && doRecv) {
+    Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
-        Real_t *srcAddr;
-        srcAddr = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
+        Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, Y1Z0);
         dump_buffer(srcAddr, xferFields*dy);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg], &status);
@@ -1919,18 +1907,18 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(*src);
       }
     );
   }
 
   if (rowNotMin && colNotMin && planeNotMin && doRecv) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
         DBGSYNC(xferFields, 1, X0Y0Z0);
         dump_buffer(comBuf, xferFields);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
@@ -1942,17 +1930,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMin && colNotMin && planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
         DBGSYNC(xferFields, 1, X0Y0Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*(dz - 1);
@@ -1965,17 +1953,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMin && colNotMax && planeNotMin && doRecv) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
         DBGSYNC(xferFields, 1, X1Y0Z0);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx - 1;
@@ -1988,17 +1976,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMin && colNotMax && planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 0, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
         DBGSYNC(xferFields, 1, X1Y0Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
@@ -2011,17 +1999,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMax && colNotMin && planeNotMin && doRecv) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
         DBGSYNC(xferFields, 1, X0Y1Z0);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*(dy - 1);
@@ -2034,17 +2022,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMax && colNotMin && planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (0, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
         DBGSYNC(xferFields, 1, X0Y1Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
@@ -2057,17 +2045,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMax && colNotMax && planeNotMin && doRecv) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 0) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
         DBGSYNC(xferFields, 1, X1Y1Z0);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy - 1;
@@ -2080,17 +2068,17 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
   if (rowNotMax && colNotMax && planeNotMax) {
+    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         /* corner at domain logical coord (1, 1, 1) */
-        Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
         DBGSYNC(xferFields, 1, X1Y1Z1);
         dump_buffer(comBuf, xferFields);
         Index_t idx = dx*dy*dz - 1;
@@ -2103,9 +2091,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in(&(domain.*dest)(0));
+          *deps = dash::tasks::in((domain.*dest)(0));
         }
-        *deps = dash::tasks::in(&comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)]);
+        *deps = dash::tasks::in(*comBuf);
       }
     );
   }
@@ -2155,11 +2143,10 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     Index_t opCount = dx * dy;
 
     if (planeNotMin) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -2171,18 +2158,17 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z0, xferFields)]),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(*src),
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
     }
     if (planeNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -2194,8 +2180,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Z1, xferFields)]),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(*src),
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2207,11 +2193,10 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     Index_t opCount = dx * dz;
 
     if (rowNotMin) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -2223,18 +2208,17 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y0, xferFields)]),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(*src),
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
     }
     if (rowNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -2246,8 +2230,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(Y1, xferFields)]),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(*src),
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2258,11 +2242,10 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
     Index_t opCount = dy * dz;
 
     if (colNotMin) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X0, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X0);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -2274,18 +2257,17 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X0, xferFields)]),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(*src),
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
     }
     if (colNotMax) {
+      Real_t *src = &comm.commDataRecv()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
-          Real_t *srcAddr;
-          /* contiguous memory */
-          srcAddr = &comm.commDataRecv()[comm.offset(X1, xferFields)];
+          Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X1);
           dump_buffer(srcAddr, xferFields*opCount);
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
@@ -2297,8 +2279,8 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&comm.commDataRecv()[comm.offset(X1, xferFields)]),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(*src),
+        dash::tasks::in(domain.delv_xi(0))
       );
     }
   }

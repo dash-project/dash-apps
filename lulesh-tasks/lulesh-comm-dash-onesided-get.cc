@@ -118,8 +118,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, sendCount*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -146,8 +146,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, sendCount*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -178,8 +178,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, sendCount*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*sendCount, baseType,
@@ -207,8 +207,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, sendCount*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -241,8 +241,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, sendCount*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -271,8 +271,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, sendCount*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -301,8 +301,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dz*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -328,8 +328,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dx*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -355,8 +355,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dy*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -382,8 +382,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dz*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -408,8 +408,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dx*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -434,8 +434,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dy*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -460,8 +460,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dz*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -486,8 +486,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dx*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dx, baseType, toRank, msgType,
@@ -512,8 +512,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dy*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dy, baseType, toRank, msgType,
@@ -538,8 +538,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dz*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
       /*
         MPI_Isend(destAddr, xferFields*dz, baseType, toRank, msgType,
@@ -564,8 +564,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dx*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -591,8 +591,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, dy*xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -615,8 +615,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -639,8 +639,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -663,8 +663,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -687,8 +687,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -711,8 +711,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -735,8 +735,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -759,8 +759,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -783,8 +783,8 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           }
           dump_buffer(dest, xferFields);
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
-        dash::tasks::out(dest)
+        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::out(*dest)
       );
 
       /*
@@ -850,7 +850,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
     if (planeNotMax) {
@@ -876,7 +876,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
   }
@@ -910,7 +910,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
     if (rowNotMax) {
@@ -938,7 +938,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
   }
@@ -971,7 +971,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
     if (colNotMax) {
@@ -999,7 +999,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in(&(domain.*fieldData[0])(0))
+        dash::tasks::in((domain.*fieldData[0])(0))
       );
     }
   }
@@ -1027,7 +1027,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1054,7 +1054,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1081,7 +1081,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1108,7 +1108,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1135,7 +1135,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1162,7 +1162,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1189,7 +1189,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1216,7 +1216,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1243,7 +1243,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1270,7 +1270,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1297,7 +1297,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1324,7 +1324,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 
@@ -1347,7 +1347,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMin & planeNotMax) {
@@ -1370,7 +1370,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMax & planeNotMin) {
@@ -1393,7 +1393,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMin & colNotMax & planeNotMax) {
@@ -1416,7 +1416,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMin & planeNotMin) {
@@ -1439,7 +1439,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMin & planeNotMax) {
@@ -1462,7 +1462,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMax & planeNotMin) {
@@ -1485,7 +1485,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
   if (rowNotMax & colNotMax & planeNotMax) {
@@ -1508,7 +1508,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in(&(domain.*fieldData[0])(0))
+      dash::tasks::in((domain.*fieldData[0])(0))
     );
   }
 }
@@ -1563,7 +1563,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
     }
@@ -1588,7 +1588,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
     }
@@ -1620,7 +1620,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
     }
@@ -1647,7 +1647,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
     }
@@ -1681,7 +1681,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
     }
@@ -1709,7 +1709,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
     }
@@ -1736,7 +1736,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += dz;
           }
         },
-        dash::tasks::in(&(domain.*fieldData[0])(0)),
+        dash::tasks::in((domain.*fieldData[0])(0)),
         dash::tasks::in(src)
       );
   }
@@ -1762,7 +1762,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1789,7 +1789,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1816,7 +1816,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1843,7 +1843,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1870,7 +1870,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1897,7 +1897,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1924,7 +1924,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1951,7 +1951,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -1978,7 +1978,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2005,7 +2005,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2032,7 +2032,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2055,7 +2055,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(0) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2078,7 +2078,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2101,7 +2101,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2124,7 +2124,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2147,7 +2147,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2170,7 +2170,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2193,7 +2193,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2216,7 +2216,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      dash::tasks::in(&(domain.*fieldData[0])(0)),
+      dash::tasks::in((domain.*fieldData[0])(0)),
       dash::tasks::in(src)
     );
   }
@@ -2287,7 +2287,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(src),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2315,7 +2315,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(src),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2349,7 +2349,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(src),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2377,7 +2377,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(src),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2410,7 +2410,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(src),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(domain.delv_xi(0))
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2438,7 +2438,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(src),
-        dash::tasks::in(&domain.delv_xi(0))
+        dash::tasks::in(domain.delv_xi(0))
       );
     }
   }

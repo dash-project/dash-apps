@@ -113,7 +113,7 @@ void DASHComm::Sync_PosVel()
     [](){
       // nothing to do
     },
-    dash::tasks::out(&dom.x(0))
+    dash::tasks::out(dom.x(0))
   );
 
 
@@ -125,7 +125,7 @@ void DASHComm::Sync_PosVel()
     [](){
       // nothing to do
     },
-    dash::tasks::out(&dom.x(0))
+    dash::tasks::out(dom.x(0))
   );
   dash::tasks::async_barrier();
 }
@@ -176,7 +176,7 @@ void DASHComm::Sync_Force()
     [](){
       // nothing to do
     },
-    dash::tasks::out(&dom.fx(0))
+    dash::tasks::out(dom.fx(0))
   );
 
   DASHCommSBN(dom, comm, 3, fieldData);
@@ -187,7 +187,7 @@ void DASHComm::Sync_Force()
     [](){
       // nothing to do
     },
-    dash::tasks::out(&dom.fx(0))
+    dash::tasks::out(dom.fx(0))
   );
   dash::tasks::async_barrier();
 }
@@ -230,7 +230,7 @@ void DASHComm::Sync_MonoQ()
     [](){
       // nothing to do
     },
-    dash::tasks::out(&dom.delv_xi(0))
+    dash::tasks::out(dom.delv_xi(0))
   );
 
   DASHCommMonoQ(dom,comm);
@@ -241,7 +241,7 @@ void DASHComm::Sync_MonoQ()
     [](){
       // nothing to do
     },
-    dash::tasks::out(&dom.delv_xi(0))
+    dash::tasks::out(dom.delv_xi(0))
   );
 }
 

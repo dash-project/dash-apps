@@ -77,10 +77,10 @@ int main(int argc, char *argv[])
           std::cout << "dt = " << dom.deltatime() << std::endl;
         }
       },
-      dash::tasks::in(&dom.deltatime()),
+      dash::tasks::in(dom.deltatime()),
       // make sure this tasks runs when all previous tasks of this iteration
       // are done
-      dash::tasks::in(&dom.dthydro())
+      dash::tasks::in(dom.dthydro())
     );
 
     cycle++;
