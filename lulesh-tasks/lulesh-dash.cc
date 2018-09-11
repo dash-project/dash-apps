@@ -118,9 +118,7 @@ Domain::Domain(const CmdLineOpts& opts) :
 
   m_nodelist.allocate(m_ElemPat);
 
-  m_dxx.resize(numElem());
-  m_dyy.resize(numElem());
-  m_dzz.resize(numElem());
+  AllocateStrains(numElem());
 
   m_delv_xi.resize(numElem());
   m_delv_eta.resize(numElem());
@@ -132,6 +130,8 @@ Domain::Domain(const CmdLineOpts& opts) :
 
   m_arealg.resize(numElem());
   m_ss.resize(numElem());
+
+  m_vnew.resize(numElem());
 
   Index_t edgeElems = opts.nx();
   Index_t edgeNodes = edgeElems+1;
@@ -562,19 +562,19 @@ void Domain::CalcForceForNodes()
       CalcVolumeForceForElems(domain);
       EXTRAE_EXIT(CALCFORCEFORNODES);
     },
-    dash::tasks::in(&this->v(0)),
-    dash::tasks::in(&this->p(0)),
-    dash::tasks::in(&this->q(0)),
-    dash::tasks::out(&this->fx(0))
+    dash::tasks::in(this->v(0)),
+    dash::tasks::in(this->p(0)),
+    dash::tasks::in(this->q(0)),
+    dash::tasks::out(this->fx(0))
   );
 
   m_comm.Send_Force();
   m_comm.Sync_Force();
 }
 
-
 void Domain::AllocateStrains(Int_t numElem)
 {
+  extrae_task_event e(ALLOCATESTRAINS);
   m_dxx.resize(numElem);
   m_dyy.resize(numElem);
   m_dzz.resize(numElem);
@@ -587,20 +587,11 @@ void Domain::DeallocateStrains()
   m_dzz.clear();
 }
 
-void Domain::AllocateVnew(Int_t numElem)
-{
-  m_vnew.resize(numElem);
-}
-
-void Domain::DeallocateVnew()
-{
-  m_vnew.clear();
-}
-
 void Domain::AllocateGradients(Int_t numElem, Int_t allElem)
 {
+  extrae_task_event e(ALLOCATEGRADIENTS);
   // Position gradients
-  m_delx_xi.resize(numElem) ;
+  m_delx_xi.resize(numElem);
   m_delx_eta.resize(numElem) ;
   m_delx_zeta.resize(numElem) ;
 
