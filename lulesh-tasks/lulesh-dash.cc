@@ -120,13 +120,12 @@ Domain::Domain(const CmdLineOpts& opts) :
 
   AllocateStrains(numElem());
 
-  m_delv_xi.resize(numElem());
-  m_delv_eta.resize(numElem());
-  m_delv_zeta.resize(numElem());
+  Int_t allElem = numElem() +           /* local elem */
+    2*sizeX()*sizeY() + /* plane ghosts */
+    2*sizeX()*sizeZ() + /* row ghosts */
+    2*sizeY()*sizeZ() ; /* col ghosts */
 
-  m_delx_xi.resize(numElem());
-  m_delx_eta.resize(numElem());
-  m_delx_zeta.resize(numElem());
+  AllocateGradients(numElem(), allElem);
 
   m_arealg.resize(numElem());
   m_ss.resize(numElem());
@@ -954,7 +953,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
   if (numElem > 0) {
     const Real_t deltatime = domain.deltatime() ;
 
-    domain.AllocateStrains(numElem);
+    //domain.AllocateStrains(numElem);
 
     CalcKinematicsForElems(domain, vnew, deltatime, numElem) ;
 
@@ -991,7 +990,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
       }
       });
     dash::tasks::complete();
-    domain.DeallocateStrains();
+    //domain.DeallocateStrains();
   }
 }
 
@@ -1006,14 +1005,16 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
   if (domain.numElem() != 0) {
     dash::tasks::ASYNC(
       [=, &domain, &vnew](){
+        EXTRAE_ENTER(MONOQGRADIENTS);
+
+#if 0
         Index_t numElem = domain.numElem() ;
         Int_t allElem = numElem +           /* local elem */
           2*domain.sizeX()*domain.sizeY() + /* plane ghosts */
           2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
           2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
-
-        EXTRAE_ENTER(MONOQGRADIENTS);
         domain.AllocateGradients(numElem, allElem);
+#endif
 
         /* Calculate velocity gradients */
         CalcMonotonicQGradientsForElems(domain, vnew.data());
@@ -1032,7 +1033,7 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         CalcMonotonicQForElems(domain, vnew.data()) ;
 
         // Free up memory
-        domain.DeallocateGradients();
+        //domain.DeallocateGradients();
 
         /* Don't allow excessive artificial viscosity */
         Index_t idx = -1;
