@@ -1,6 +1,7 @@
 
 #include <iostream>
 
+#include "extrae.h"
 #include "lulesh-dash.h"
 #include "lulesh-comm-dash.h"
 #include "lulesh-comm-dash-onesided.h"
@@ -105,6 +106,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest(myRank - (domain.tp() * domain.tp()), Z1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           int sendCount = dx * dy;
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Z1, xferFields)];
@@ -131,6 +133,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest(myRank + (domain.tp() * domain.tp()), Z0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           int sendCount = dx * dy;
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Z0, xferFields)];
@@ -161,6 +164,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest(myRank - domain.tp(), Y1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           int sendCount = dx * dz;
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Y1, xferFields)];
@@ -190,6 +194,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( myRank + domain.tp(), Y0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           int sendCount = dx * dz;
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Y0, xferFields)];
@@ -224,6 +229,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( myRank - 1, X1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           int sendCount = dy * dz;
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X1, xferFields)];
@@ -254,6 +260,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( myRank + 1, X0, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           int sendCount = dy * dz;
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X0, xferFields)];
@@ -288,6 +295,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest  = comm.dest( toRank, X1Y1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X1Y1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -316,6 +324,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, Y1Z1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Y1Z1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -344,6 +353,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Z1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X1Z1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -372,6 +382,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Y0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X0Y0, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -399,6 +410,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, Y0Z0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Y0Z0, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -426,6 +438,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Z0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X0Z0, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -453,6 +466,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Y0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X1Y0, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -480,6 +494,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, Y1Z0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Y1Z0, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -507,6 +522,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Z0, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X1Z0, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -534,6 +550,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Y1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X0Y1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -561,6 +578,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, Y0Z1, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(Y0Z1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -589,6 +607,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Z1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           Real_t *destAddr;
           destAddr = &comm.commDataSend()[comm.offset(X0Z1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -617,6 +636,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Y1Z1, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (0, 0, 0)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y1Z1, xferFields)];
           for (Index_t fi=0; fi<xferFields; ++fi) {
@@ -639,6 +659,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Y1Z0, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (0, 0, 1)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y1Z0, xferFields)];
           Index_t idx = dx*dy*(dz - 1);
@@ -662,6 +683,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Y1Z1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (1, 0, 0)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y1Z1, xferFields)];
           Index_t idx = dx - 1;
@@ -685,6 +707,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Y1Z0, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (1, 0, 1)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y1Z0, xferFields)];
           Index_t idx = dx*dy*(dz - 1) + (dx - 1);
@@ -708,6 +731,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Y0Z1, xferFields);
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (0, 1, 0)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y0Z1, xferFields)];
           Index_t idx = dx*(dy - 1);
@@ -731,6 +755,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X1Y0Z0, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (0, 1, 1)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X1Y0Z0, xferFields)];
           Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
@@ -754,6 +779,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Y0Z1, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (1, 1, 0)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y0Z1, xferFields)];
           Index_t idx = dx*dy - 1;
@@ -777,6 +803,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
       auto dest = comm.dest( toRank, X0Y0Z0, xferFields );
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PUT);
           // corner at domain logical coord (1, 1, 1)
           Real_t *comBuf = &comm.commDataSend()[comm.offset(X0Y0Z0, xferFields)];
           Index_t idx = dx*dy*dz - 1;
@@ -831,6 +858,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Z0);
@@ -852,6 +880,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Z1);
@@ -879,6 +908,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -902,6 +932,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -930,6 +961,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -953,6 +985,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -978,6 +1011,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X0Y0);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1000,6 +1034,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z0);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1022,6 +1057,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z0);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1044,6 +1080,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y1);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1066,6 +1103,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z1);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1088,6 +1126,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X1Z1);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1110,6 +1149,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X0Y1);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1132,6 +1172,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z1);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1154,6 +1195,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z1);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1176,6 +1218,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y0);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1198,6 +1241,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z0);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1220,6 +1264,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X1Z0);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1242,6 +1287,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 0, 0) */
         DBGSYNC(xferFields, 1, X0Y0Z0);
         dump_buffer(comBuf, xferFields);
@@ -1259,6 +1305,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 0, 1) */
         DBGSYNC(xferFields, 1, X0Y0Z1);
         dump_buffer(comBuf, xferFields);
@@ -1277,6 +1324,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 0, 0) */
         DBGSYNC(xferFields, 1, X1Y0Z0);
         dump_buffer(comBuf, xferFields);
@@ -1295,6 +1343,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 0, 1) */
         DBGSYNC(xferFields, 1, X1Y0Z1);
         dump_buffer(comBuf, xferFields);
@@ -1313,6 +1362,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 1, 0) */
         DBGSYNC(xferFields, 1, X0Y1Z0);
         dump_buffer(comBuf, xferFields);
@@ -1331,6 +1381,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 1, 1) */
         DBGSYNC(xferFields, 1, X0Y1Z1);
         dump_buffer(comBuf, xferFields);
@@ -1349,6 +1400,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 1, 0) */
         DBGSYNC(xferFields, 1, X1Y1Z0);
         dump_buffer(comBuf, xferFields);
@@ -1367,6 +1419,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 1, 1) */
         DBGSYNC(xferFields, 1, X1Y1Z1);
         dump_buffer(comBuf, xferFields);
@@ -1418,6 +1471,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -1444,6 +1498,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -1475,6 +1530,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -1503,6 +1559,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           //MPI_Wait(&comm.recvRequest[pmsg], &status);
           DBGSYNC(xferFields, opCount, Y1);
@@ -1537,6 +1594,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -1565,6 +1623,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -1594,6 +1653,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
       Real_t *src = &comm.commDataRecv()[comm.offset(X0Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, dz, X0Y0);
           dump_buffer(srcAddr, xferFields*dz);
@@ -1621,6 +1681,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z0);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1648,6 +1709,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z0);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1675,6 +1737,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y1);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1702,6 +1765,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z1);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1729,6 +1793,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X1Z1);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1756,6 +1821,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Y1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X0Y1);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1783,6 +1849,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y0Z1);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1810,6 +1877,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, X0Z1);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1837,6 +1905,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(X1Y0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dz, X1Y0);
         dump_buffer(srcAddr, xferFields*dz);
@@ -1864,6 +1933,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dx, Y1Z0);
         dump_buffer(srcAddr, xferFields*dx);
@@ -1891,6 +1961,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *src = &comm.commDataRecv()[comm.offset(Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         Real_t *srcAddr = src;
         DBGSYNC(xferFields, dy, Y1Z0);
         dump_buffer(srcAddr, xferFields*dy);
@@ -1918,6 +1989,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 0, 0) */
         DBGSYNC(xferFields, 1, X0Y0Z0);
         dump_buffer(comBuf, xferFields);
@@ -1940,6 +2012,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 0, 1) */
         DBGSYNC(xferFields, 1, X0Y0Z1);
         dump_buffer(comBuf, xferFields);
@@ -1963,6 +2036,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 0, 0) */
         DBGSYNC(xferFields, 1, X1Y0Z0);
         dump_buffer(comBuf, xferFields);
@@ -1986,6 +2060,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 0, 1) */
         DBGSYNC(xferFields, 1, X1Y0Z1);
         dump_buffer(comBuf, xferFields);
@@ -2009,6 +2084,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 1, 0) */
         DBGSYNC(xferFields, 1, X0Y1Z0);
         dump_buffer(comBuf, xferFields);
@@ -2032,6 +2108,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 1, 1) */
         DBGSYNC(xferFields, 1, X0Y1Z1);
         dump_buffer(comBuf, xferFields);
@@ -2055,6 +2132,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 1, 0) */
         DBGSYNC(xferFields, 1, X1Y1Z0);
         dump_buffer(comBuf, xferFields);
@@ -2078,6 +2156,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
     Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
+        extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 1, 1) */
         DBGSYNC(xferFields, 1, X1Y1Z1);
         dump_buffer(comBuf, xferFields);
@@ -2146,6 +2225,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
       Real_t *src = &comm.commDataRecv()[comm.offset(Z0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -2168,6 +2248,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
       Real_t *src = &comm.commDataRecv()[comm.offset(Z1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Z1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -2196,6 +2277,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
       Real_t *src = &comm.commDataRecv()[comm.offset(Y0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -2218,6 +2300,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
       Real_t *src = &comm.commDataRecv()[comm.offset(Y1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, Y1);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -2245,6 +2328,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
       Real_t *src = &comm.commDataRecv()[comm.offset(X0, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X0);
           dump_buffer(srcAddr, xferFields*opCount);
@@ -2267,6 +2351,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
       Real_t *src = &comm.commDataRecv()[comm.offset(X1, xferFields)];
       dash::tasks::ASYNC(
         [=, &domain, &comm](){
+          extrae_event e(PROCESSCOMM);
           Real_t *srcAddr = src;
           DBGSYNC(xferFields, opCount, X1);
           dump_buffer(srcAddr, xferFields*opCount);
