@@ -7,6 +7,7 @@ DASHCXX=$(DASHROOT)/bin/dash-mpic++ -dash:verbose
 CXXFLAGS= -O3 -Wall
 
 DEBUG_RUN=1
+VERIFY_NBODIES=500
 
 .phony: all run
 all: $(TARGET)
@@ -27,6 +28,6 @@ clean:
 
 run:
 	$(eval $@_TMP := $(shell mktemp /tmp/nbody.XXXXXXXX))
-	mpirun -n 4 ./$(TARGET) 64 $(DEBUG_RUN) > $($@_TMP)
-	./verify/verify.sh $($@_TMP) verify/barnes.64.gold
+	mpirun -n 4 ./$(TARGET) $(VERIFY_NBODIES) $(DEBUG_RUN) > $($@_TMP)
+	./verify/verify.sh $($@_TMP) verify/barnes.$(VERIFY_NBODIES).gold
 
