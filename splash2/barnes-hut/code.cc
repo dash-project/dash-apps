@@ -1,4 +1,4 @@
-/*s***********************************************************************/ /*                                                                       */
+/*************************************************************************/
 /*  Copyright (c) 1994 Stanford University                               */
 /*                                                                       */
 /*  All rights reserved.                                                 */
@@ -14,7 +14,6 @@
 /*************************************************************************/
 /*
 Usage: BARNES <options> < inputfile
-
 Command line options:
 
     -h : Print out input file description
@@ -170,6 +169,8 @@ const char *defv[] = {
 
     "NPROC=1", /* number of processors                  */
 };
+
+static bool debugEnabled;
 
 /* The more complicated 3D case */
 #define NUM_DIRECTIONS 32
@@ -382,16 +383,7 @@ int main(int argc, char *argv[])
   }
   nbody = ::std::atoi(argv[1]);
 
-  if (argc > 2) {
-    int debug = ::std::atoi(argv[2]);
-
-    if (dash::myid() == 0 && debug) {
-      LOG("my pid: " << getpid());
-      int wait = 1;
-      while (wait)
-        ;
-    }
-  }
+  debugEnabled = argc > 2 ? (::std::atoi(argv[2]) > 0) : false;
 
   ANLinit();  // Prepare all global data structures
 
@@ -564,19 +556,21 @@ void tab_init()
  */
 void SlaveStart()
 {
-  long ProcessId = dash::myid();
+  auto const ProcessId = dash::myid();
 
-/* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
-   processors to avoid migration */
-#if 0
+  /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
+     processors to avoid migration */
+
   /* initialize mybodytabs */
-  Local.mybodytab = Local[0].mybodytab + (maxmybody * ProcessId);
+  // Local[ProcessId].mybodytab = Local[0].mybodytab + (maxmybody *
+  // ProcessId);
   /* note that every process has its own copy   */
   /* of mybodytab, which was initialized to the */
-  /* of mybodytab, which was initialized to the */
+  /* beginning of the whole array by proc. 0    */
   /* before create                              */
-  Local.mycelltab = Local[0].mycelltab + (maxmycell * ProcessId);
-  Local.myleaftab = Local[0].myleaftab + (maxmyleaf * ProcessId);
+  // Local[ProcessId].mycelltab = Local[0].mycelltab + (maxmycell *
+  // ProcessId); Local[ProcessId].myleaftab = Local[0].myleaftab + (maxmyleaf
+  // * ProcessId);
   /* POSSIBLE ENHANCEMENT:  Here is where one might distribute the
      data across physically distributed memories as desired.
 
@@ -602,14 +596,10 @@ void SlaveStart()
      }
 
      barrier(Global->Barstart,NPROC);
-
   */
 
-#endif
-  // Local.tout = globtout.get();
-  // Local.tnow  = globtnow.get();
-  // Local.nstep = globnstep.get();
-
+  // here we simply copy a list of global pointers spanning the local range
+  // into Local.mybodytab
   find_my_initial_bodies(bodytab, nbody, ProcessId);
 
   /* main loop */
@@ -617,7 +607,7 @@ void SlaveStart()
     stepsystem(ProcessId);
     // if (ProcessId == 0) printtree(G_root.get().get());
   }
-  //if (ProcessId == 0) printtree(G_root.get().get());
+  if (ProcessId == 0 && debugEnabled) printtree(G_root.get().get());
 }
 
 void startrun()
@@ -773,10 +763,10 @@ long intpow(long i, long j)
 void stepsystem(long ProcessId)
 {
   vector dvel, vel1, dpos;
-  long   trackstart, trackend;
-  long   partitionstart, partitionend;
-  long   treebuildstart, treebuildend;
-  long   forcecalcstart, forcecalcend;
+  long   trackstart = 0, trackend = 0;
+  long   partitionstart = 0, partitionend = 0;
+  long   treebuildstart = 0, treebuildend = 0;
+  long   forcecalcstart = 0, forcecalcend = 0;
 
   auto const nprocs = bodytab.team().size();
 
@@ -825,13 +815,9 @@ void stepsystem(long ProcessId)
     treebuildstart = Timer::Now();
   }
 
-  // std::cout << "BEFORE MAKETREE:" << std::endl;
-  // printtree(G_root.get().get());
   /* load bodies into tree   */
   maketree(ProcessId);
-  // std::cout << "AFTER MAKETREE:" << std::endl;
-  // printtree(G_root.get().get());
-  // std::cout << cell_ref.get();
+
   /*
   if ((ProcessId == 0) && (Local[ProcessId].nstep >= 2)) {
     {
@@ -967,7 +953,6 @@ void stepsystem(long ProcessId)
         std::begin(p_val.pos),
         std::begin(Local.max),
         [](const real &lhs, const real &rhs) { return std::max(lhs, rhs); });
-
   }
 
   /*
@@ -1086,20 +1071,17 @@ void ComputeForces(long ProcessId)
 void find_my_initial_bodies(
     dash::Array<body> &btab, long nbody, long ProcessId)
 {
-  long   offset;
-  size_t i;
-
   // global index of first local element
-  offset = btab.pattern().global(0);
+  auto const lbegin_goffset = btab.pattern().global(0);
 
   Local.mynbody = btab.lsize();
 
   using iter_t = decltype(btab.begin());
 
-  for (i = 0; i < Local.mynbody; i++) {
+  for (size_t i = 0; i < Local.mynbody; i++) {
     // copy local pointer
     Local.mybodytab[i] =
-        static_cast<typename iter_t::pointer>(btab.begin() + offset + i);
+        static_cast<typename iter_t::pointer>(btab.begin() + lbegin_goffset + i);
   }
 }
 
@@ -1199,7 +1181,6 @@ void setbound()
         std::begin(p.pos),
         std::begin(Local.max),
         [](const real &lhs, const real &rhs) { return std::max(lhs, rhs); });
-
   }
 
   dart_allreduce(

@@ -14,3 +14,4 @@ spat='s/ //g;s/Num=[0-9]\+,//g'
 diff -w \
   <(grep "$gpat" "$1" | sed "$spat" | sort) \
   <(grep "$gpat" "$2" | sed "$spat" | sort)
+
