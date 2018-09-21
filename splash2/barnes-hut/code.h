@@ -27,6 +27,7 @@
 #include <type_traits>
 #include "defs.h"
 #include "stdinc.h"
+#include <cassert>
 
 #define PAD_SIZE (PAGE_SIZE / (sizeof(long)))
 /* Workaround since dash::Shared does not support arrays as value types */
@@ -44,21 +45,21 @@ typedef struct {
 // string headline;   /* message describing calculation */
 // string infile;     /* file name for snapshot input */
 // string outfile;    /* file name for snapshot output */
-extern size_t             nbody;   /* number of bodies in system */
-extern dash::Shared<real> dtime;   /* timestep for leapfrog integrator */
-extern dash::Shared<real> dtout;   /* time between data outputs */
-extern dash::Shared<real> tstop;   /* time to stop calculation */
-extern dash::Shared<real> fcells;  /* ratio of cells/leaves allocated */
-extern dash::Shared<real> fleaves; /* ratio of leaves/bodies allocated */
-extern dash::Shared<real> tol;     /* accuracy parameter: 0.0 => exact */
-extern dash::Shared<real> tolsq;   /* square of previous */
-extern dash::Shared<real> eps;     /* potential softening parameter */
-extern dash::Shared<real> epssq;   /* square of previous */
-extern dash::Shared<real> dthf;    /* half time step */
+extern size_t nbody;   /* number of bodies in system */
+extern real   dtime;   /* timestep for leapfrog integrator */
+extern real   dtout;   /* time between data outputs */
+extern real   tstop;   /* time to stop calculation */
+extern real   fcells;  /* ratio of cells/leaves allocated */
+extern real   fleaves; /* ratio of leaves/bodies allocated */
+extern real   tol;     /* accuracy parameter: 0.0 => exact */
+extern real   tolsq;   /* square of previous */
+extern real   eps;     /* potential softening parameter */
+extern real   epssq;   /* square of previous */
+extern real   dthf;    /* half time step */
 // dash::Shared<long> NPROC;    /* Number of Processors */
 
-extern dash::Shared<long> maxcell; /* max number of cells allocated */
-extern dash::Shared<long> maxleaf; /* max number of leaves allocated */
+extern long   maxcell;   /* max number of cells allocated */
+extern long   maxleaf;   /* max number of leaves allocated */
 extern size_t maxmybody; /* max no. of bodies allocated per processor */
 extern size_t maxmycell; /* max num. of cells to be allocated */
 extern size_t maxmyleaf; /* max num. of leaves to be allocated */
@@ -68,26 +69,32 @@ extern dash::Array<cell> celltab;
 extern dash::Array<leaf> leaftab;
 
 extern std::vector<dash::Mutex> CellLock;
-extern dash::Mutex              CountLock;
 
 // struct GlobalMemory  {  /* all this info is for the whole system */
-extern dash::Shared<long>
-    n2bcalc; /* total number of body/cell interactions  */
-extern dash::Shared<long>
-                          nbccalc; /* total number of body/body interactions  */
-extern dash::Shared<long> selfint; /* number of self interactions */
+
+/* total number of body/cell interactions  */
+// extern dash::Shared<long> n2bcalc;
+/* total number of body/body interactions  */
+// extern dash::Shared<long> nbccalc;
+/* number of self interactions */
+// extern dash::Shared<long> selfint;
+
 extern dash::Shared<real> mtot; /* total mass of N-body system             */
 // dash::Shared<real> etot[3];      /* binding, kinetic, potential energy */
-extern dash::Shared<sh_mat> keten; /* kinetic energy tensor */
-extern dash::Shared<sh_mat> peten; /* potential energy tensor */
+// extern dash::Shared<sh_mat> keten; /* kinetic energy tensor */
+// extern dash::Shared<sh_mat> peten; /* potential energy tensor */
 // dash::Shared<vector> cmphase[2]; /* center of mass coordinates and velocity
 // */
-extern dash::Shared<sh_vec>  amvec; /* angular momentum vector */
+// extern dash::Shared<sh_vec>  amvec;  /* angular momentum vector */
 extern dash::Shared<cellptr> G_root; /* root of the whole tree */
-extern dash::Shared<sh_vec> rmin; /* lower-left corner of coordinate box */
-extern dash::Shared<sh_vec> min; /* temporary lower-left corner of the box  */
-extern dash::Shared<sh_vec> max; /* temporary upper right corner of the box */
-extern dash::Shared<real> rsize; /* side-length of integer coordinate box   */
+/* lower-left corner of coordinate box */
+extern vector g_rmin;
+/* temporary lower-left corner of the box  */
+extern vector g_min;
+/* temporary upper right corner of the box */
+extern vector g_max;
+/* side-length of integer coordinate box   */
+extern real g_rsize;
 
 extern struct local_memory Local;
 
@@ -127,14 +134,22 @@ struct local_memory {
 
   vector min = {0}, max = {0}; /* min and max of coordinates for each Proc. */
 
-  long     mynumcell; /* num. of cells used for this proc in ctab */
-  long     mynumleaf; /* num. of leaves used for this proc in ctab */
-  size_t   mynbody;   /* num bodies allocated to the processor */
-  bodyptr* mybodytab; /* array of bodies allocated / processor */
-  long     myncell;   /* num cells allocated to the processor */
-  cellptr* mycelltab; /* array of cellptrs allocated to the processor */
-  long     mynleaf;   /* number of leaves allocated to the processor */
-  leafptr* myleaftab; /* array of leafptrs allocated to the processor */
+  /* num. of cells used for this proc in ctab */
+  size_t mynumcell;
+  /* num. of leaves used for this proc in ctab */
+  size_t mynumleaf;
+  /* num bodies allocated to the processor */
+  size_t mynbody;
+  /* array of bodies allocated / processor */
+  std::vector<bodyptr> mybodytab;
+  /* num cells allocated to the processor */
+  long myncell;
+  /* array of cellptrs allocated to the processor */
+  std::vector<cellptr> mycelltab;
+  /* number of leaves allocated to the processor */
+  long mynleaf;
+  /* array of leafptrs allocated to the processor */
+  std::vector<leafptr> myleaftab;
 
   // decltype(celltab)::local_type ctab;  /* array of cells used for the tree.
   // */
@@ -167,7 +182,6 @@ struct local_memory {
   uint8_t pad[PAGE_SIZE];
 };
 
-
 void SlaveStart(void);
 void stepsystem(long ProcessId);
 void ComputeForces(long ProcessId);
@@ -187,19 +201,10 @@ void setbound(void);
 long Log_base_2(long number);
 long intpow(long i, long j);
 
-#ifdef ENABLE_ASSERTIONS
-#define ASSERT(expr)                                  \
-  do {                                                \
-    if (!(expr)) {                                    \
-      throw(                                     \
-          dash::exception::AssertionFailed,           \
-          "Assertion failed: "                        \
-              << " " << __FILE__ << ":" << __LINE__); \
-    }                                                 \
-  } while (0)
+#ifndef NDEBUG
+#define ASSERT(expr) (assert((expr)))
 #else
-#define ASSERT(expr) (void) (expr)
+#define ASSERT(expr) (void)(expr)
 #endif
-
 
 #endif

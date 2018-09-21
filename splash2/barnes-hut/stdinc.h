@@ -36,14 +36,6 @@
 
 typedef FILE *stream;
 
-
-#ifndef TRUE
-
-#define FALSE 0
-#define TRUE  1
-
-#endif
-
 /*
  * BYTE: a short name for a handy chunk of bits.
  */

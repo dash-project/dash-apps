@@ -100,13 +100,13 @@ bool getbparam(string name)
    for (val = ""; *val == '\0'; )
       val = getparam(name);
    if (strchr("tTyY1", *val) != NULL) {
-      return (TRUE);
+      return (true);
    }
    if (strchr("fFnN0", *val) != NULL) {
-      return (FALSE);
+      return (false);
    }
    error("getbparam: %s=%s not bool\n", name, val);
-   return FALSE;
+   return false;
 }
 
 double getdparam(string name)

@@ -1,28 +1,33 @@
-include make.defs
+TARGET=BARNES-dash.bin
 
-.phony: all
+DASHROOT?=$(HOME)/opt/dash-0.3.0
+DASHCXX=$(DASHROOT)/bin/dash-mpic++ -dash:verbose
+
+#CXXFLAGS= -ggdb3 -O0 -Wall -DENABLE_LOGGING -DENABLE_ASSERTIONS
+CXXFLAGS= -O3 -Wall
+
+DEBUG_RUN=1
+VERIFY_NBODIES=500
+
+.phony: all run
 all: $(TARGET)
 
 OBJS = code.o getparam.o load.o grav.o util.o
 
 .cc.o:
-	$(CXX) $(INC) $(CXXFLAGS) -c $*.cc
+	$(DASHCXX) $(CXXFLAGS) -c $*.cc
 
 .c.o:
-	$(CC) $(INC) -c $(CFLAGS) $*.c
+	$(CC) -c $(CFLAGS) $*.c
 
 $(TARGET): $(OBJS)
-	$(CXX) $(OBJS) $(CXXFLAGS) $(LDFLAGS) $(LIB) -o $(TARGET)
-
-.phony: printenv
-printenv :
-	@echo "CXX           = $(CXX)"
-	@echo "DART_IMPL     = $(DART_IMPL)"
-	@echo "DASH_ROOT     = $(DASH_ROOT)"
-	@echo "INC           = $(INC)"
-	@echo "LIB           = $(LIB)"
-
-.phony: clean
+	$(DASHCXX) $(OBJS) $(CXXFLAGS) -o $(TARGET)
 
 clean:
 	rm -f $(TARGET) *.o
+
+run:
+	$(eval $@_TMP := $(shell mktemp /tmp/nbody.XXXXXXXX))
+	mpirun -n 4 ./$(TARGET) $(VERIFY_NBODIES) $(DEBUG_RUN) > $($@_TMP)
+	./verify/verify.sh $($@_TMP) verify/barnes.$(VERIFY_NBODIES).gold
+
