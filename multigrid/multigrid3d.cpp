@@ -126,7 +126,8 @@ public:
         _stencil_op_2(_halo_grid_2.stencil_operator(stencil_spec)),
         src_grid(&_grid_1), dst_grid(&_grid_2), rhs_grid(&_rhs_grid),
         src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2),
-        src_op(&_stencil_op_1),dst_op(&_stencil_op_2) {
+        src_op(&_stencil_op_1),dst_op(&_stencil_op_2),
+        parent(NULL) {
 
         assert( 1 < nz );
         assert( 1 < ny );
@@ -178,7 +179,7 @@ public:
     grid distances hy, hy, hx.
     nz, ny, nx are th number of inner grid points per dimension, excluding the boundary regions
     */
-    Level( const Level& parent,
+    Level( Level& _parent,
            size_t nz, size_t ny, size_t nx,
            dash::Team& team, TeamSpecT teamspec ) :
             _grid_1( SizeSpecT( nz, ny, nx ), DistSpecT( dash::BLOCKED, dash::BLOCKED, dash::BLOCKED ), team, teamspec ),
@@ -190,23 +191,24 @@ public:
         _stencil_op_2(_halo_grid_2.stencil_operator(stencil_spec)),
         src_grid(&_grid_1), dst_grid(&_grid_2), rhs_grid(&_rhs_grid),
         src_halo(&_halo_grid_1), dst_halo(&_halo_grid_2),
-        src_op(&_stencil_op_1),dst_op(&_stencil_op_2) {
+        src_op(&_stencil_op_1),dst_op(&_stencil_op_2),
+        parent(&_parent) {
 
         assert( 1 < nz );
         assert( 1 < ny );
         assert( 1 < nx );
 
-        sz= parent.sz;
-        sy= parent.sy;
-        sx= parent.sx;
+        sz= _parent.sz;
+        sy= _parent.sy;
+        sx= _parent.sx;
 
-        ax= parent.ax;
-        ay= parent.ay;
-        az= parent.az;
-        acenter= parent.acenter;
-        ff= parent.ff;
-        m= parent.m;
-        dt= parent.dt;
+        ax= _parent.ax;
+        ay= _parent.ay;
+        az= _parent.az;
+        acenter= _parent.acenter;
+        ff= _parent.ff;
+        m= _parent.m;
+        dt= _parent.dt;
 
         for ( uint32_t a= 0; a < team.size(); a++ ) {
             if ( a == dash::myid() ) {
@@ -456,6 +458,10 @@ public:
         return dt;
     }
 
+    Level* get_parent() {
+
+        return parent;
+    }
 
 private:
     MatrixT _grid_1;
@@ -466,13 +472,14 @@ private:
     StencilOpT _stencil_op_1;
     StencilOpT _stencil_op_2;
 
+    Level* parent;
 };
 
 
 /* global resolution for cvs output, should be fixed such that
 paraview gets input of constant dimensions. Any size > 2 should be good
 but odd numbers are suggested. */
-std::array< long int, 3 > resolution= {33,33,33};
+std::array< long int, 3 > resolution= {65,65,65};
 
 /* helper function for the following write_to_cvs() function */
 inline double arbitrary_element( const MatrixT& grid, HaloT& halo,
@@ -2812,10 +2819,7 @@ void recursive_cycle( Iterator it, Iterator itend,
             j++;
         }
         if ( 0 == dash::myid()  ) {
-            cout << "smoothing " <<
-            (*it)->src_grid->extent(2) << "×" <<
-            (*it)->src_grid->extent(1) << "×" <<
-            (*it)->src_grid->extent(0) << " coarsest " << j << " times with residual " << res.get() << endl;
+            cout << "smoothing coarsest " << j << " times with residual " << res.get() << endl;
         }
         writeToCsv( **it );
 
@@ -2893,10 +2897,7 @@ void recursive_cycle( Iterator it, Iterator itend,
         j++;
     }
     if ( 0 == dash::myid()  ) {
-        cout << "smoothing " <<
-            (*it)->src_grid->extent(2) << "×" <<
-            (*it)->src_grid->extent(1) << "×" <<
-            (*it)->src_grid->extent(0) << " on way down " << j << " times with residual " << res.get() << endl;
+        cout << "smoothing on way down " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -2945,10 +2946,7 @@ void recursive_cycle( Iterator it, Iterator itend,
         j++;
     }
     if ( 0 == dash::myid() ) {
-        cout << "smoothing " <<
-            (*it)->src_grid->extent(2) << "×" <<
-            (*it)->src_grid->extent(1) << "×" <<
-            (*it)->src_grid->extent(0) << " on way up " << j << " times with residual " << res.get() << endl;
+        cout << "smoothing on way up " << j << " times with residual " << res.get() << endl;
     }
 
     writeToCsv( **it );
@@ -3118,9 +3116,6 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
     //v_cycle( levels.begin(), levels.end(), 20, eps, res );
     //recursive_cycle( levels.begin(), levels.end(), 20, 1 /* 1 for v cycle */, eps, res );
 
-    // algorithm
-    minimon.start();
-
     if ( 0 == dash::myid()  ) {
         cout << "start w-cycle with res " << eps << endl << endl;
     }
@@ -3134,8 +3129,6 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
     }
     smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
-
-    minimon.stop( "algorithm", dash::Team::All().size() );
 
     dash::Team::All().barrier();
 
@@ -3331,9 +3324,6 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     dash::Team::All().barrier();
 */
 
-    // algorithm
-    minimon.start();
-
     if ( 0 == dash::myid()  ) {
         cout << "start w-cycle with res " << eps << endl;
     }
@@ -3347,8 +3337,6 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
     }
     smoothen_final( *levels.front(), eps, res );
     writeToCsv( *levels.front() );
-
-    minimon.stop( "algorithm", dash::Team::All().size() );
 
     dash::Team::All().barrier();
 
@@ -3365,7 +3353,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
                     std::array< double, 3 >& dim ) {
 
-    // setup
+    // do_simulation
     minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
@@ -3409,12 +3397,11 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
     double dt= level->max_dt();
 
+    // do_simulation_loop
+    minimon.start();
+
     Allreduce res( dash::Team::All() );
 
-    minimon.stop( "setup", dash::Team::All().size() );
-
-    // algorithm
-    minimon.start();
 
     double time= 0.0;
     double timenext= time + timestep;
@@ -3465,7 +3452,9 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
 
 #endif /* 0 */
-    minimon.stop( "algorithm", dash::Team::All().size() );
+    minimon.stop( "do_simulation_loop", dash::Team::All().size() );
+
+    minimon.stop( "do_simulation", dash::Team::All().size() );
 
     delete level;
     level= NULL;
@@ -3474,8 +3463,6 @@ void do_simulation( uint32_t howmanylevels, double timerange, double timestep,
 
 void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 3 >& dim ) {
 
-    // setup
-    minimon.start();
 
     TeamSpecT teamspec( dash::Team::All().size(), 1, 1 );
     teamspec.balance_extents();
@@ -3515,12 +3502,11 @@ void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 
 
     dash::barrier();
 
-    Allreduce res( dash::Team::All() );
 
-    minimon.stop( "setup", dash::Team::All().size() );
-
-    // algorithm
+    // flat_iteration
     minimon.start();
+
+    Allreduce res( dash::Team::All() );
 
     uint32_t j= 0;
     while ( res.get() > eps && j < 100000 ) {
@@ -3539,7 +3525,7 @@ void do_flat_iteration( uint32_t howmanylevels, double eps, std::array< double, 
     }
     writeToCsv( *level );
 
-    minimon.stop( "algorithm", dash::Team::All().size() );
+    minimon.stop( "flat_iteration", dash::Team::All().size() );
 
     if ( 0 == dash::myid() ) {
 
