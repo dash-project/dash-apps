@@ -5,8 +5,6 @@ PROG=multigrid3d
 .phony: all
 all: ${PROG}
 
-.phony: ${PROG}_csv
-
 ${PROG}_csv: multigrid3d.cpp allreduce.h minimonitoring.h
 	$(CXX) -march=native -DWITHCSVOUTPUT -o $@.o -c $(INC) $<
 	$(CXX) -march=native -o $@ $@.o $(LIB)
