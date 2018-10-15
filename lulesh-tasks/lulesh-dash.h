@@ -29,14 +29,16 @@ private:
   using NodePatternT = dash::Pattern<3>;
 
   template<typename ElemType>
-  using NodeMatrixT = dash::Matrix<ElemType, 3,
-				   NodePatternT::index_type,
-				   NodePatternT>;
+  using NodeMatrixT = std::vector<ElemType>;
+  //using NodeMatrixT = dash::Matrix<ElemType, 3,
+  //          NodePatternT::index_type,
+  //          NodePatternT>;
 
   template<typename ElemType>
-  using ElemMatrixT = dash::Matrix<ElemType, 3,
-				   ElemPatternT::index_type,
-				   ElemPatternT>;
+  using ElemMatrixT = std::vector<ElemType>;
+  //using ElemMatrixT = dash::Matrix<ElemType, 3,
+  //          ElemPatternT::index_type,
+  //          ElemPatternT>;
 
   // all simulation constanst and parameters packed into a separate
   // struct for clarity
@@ -165,17 +167,17 @@ private:
 public:
   void PrintDomain(){
     std::cout << "DOMAIN: \n  m_x:\n";
-    for (auto ptr = m_x.lbegin(); ptr != m_x.lend(); ptr++) {
+    for (auto ptr = m_x.begin(); ptr != m_x.end(); ptr++) {
       std::cout << *ptr << " ";
     }
     std::cout << std::endl;
     std::cout << " m_y:";
-    for (auto ptr = m_y.lbegin(); ptr != m_y.lend(); ptr++) {
+    for (auto ptr = m_y.begin(); ptr != m_y.end(); ptr++) {
       std::cout << *ptr << " ";
     }
     std::cout << std::endl;
     std::cout << " m_z:";
-    for (auto ptr = m_z.lbegin(); ptr != m_z.lend(); ptr++) {
+    for (auto ptr = m_z.begin(); ptr != m_z.end(); ptr++) {
       std::cout << *ptr << " ";
     }
     std::cout << std::endl;
@@ -191,43 +193,43 @@ public:
   template<typename T> T reduce_max(T val);
 
   // nodal coordinates
-  Real_t& x(Index_t idx)     { return m_x.lbegin()[idx]; }
-  Real_t& y(Index_t idx)     { return m_y.lbegin()[idx]; }
-  Real_t& z(Index_t idx)     { return m_z.lbegin()[idx]; }
+  Real_t& x(Index_t idx)     { return m_x[idx]; }
+  Real_t& y(Index_t idx)     { return m_y[idx]; }
+  Real_t& z(Index_t idx)     { return m_z[idx]; }
 
   // nodal velocities
-  Real_t& xd(Index_t idx)    { return m_xd.lbegin()[idx]; }
-  Real_t& yd(Index_t idx)    { return m_yd.lbegin()[idx]; }
-  Real_t& zd(Index_t idx)    { return m_zd.lbegin()[idx]; }
+  Real_t& xd(Index_t idx)    { return m_xd[idx]; }
+  Real_t& yd(Index_t idx)    { return m_yd[idx]; }
+  Real_t& zd(Index_t idx)    { return m_zd[idx]; }
 
   // nodal accelerations
-  Real_t& xdd(Index_t idx)   { return m_xdd.lbegin()[idx]; }
-  Real_t& ydd(Index_t idx)   { return m_ydd.lbegin()[idx]; }
-  Real_t& zdd(Index_t idx)   { return m_zdd.lbegin()[idx]; }
+  Real_t& xdd(Index_t idx)   { return m_xdd[idx]; }
+  Real_t& ydd(Index_t idx)   { return m_ydd[idx]; }
+  Real_t& zdd(Index_t idx)   { return m_zdd[idx]; }
 
   // nodal forces
-  Real_t& fx(Index_t idx)    { return m_fx.lbegin()[idx]; }
-  Real_t& fy(Index_t idx)    { return m_fy.lbegin()[idx]; }
-  Real_t& fz(Index_t idx)    { return m_fz.lbegin()[idx]; }
+  Real_t& fx(Index_t idx)    { return m_fx[idx]; }
+  Real_t& fy(Index_t idx)    { return m_fy[idx]; }
+  Real_t& fz(Index_t idx)    { return m_fz[idx]; }
 
   // nodal mass
-  Real_t& nodalMass(Index_t idx)  { return m_nodalMass.lbegin()[idx]; }
+  Real_t& nodalMass(Index_t idx)  { return m_nodalMass[idx]; }
 
   // element mass
-  Real_t& elemMass(Index_t idx)   { return m_elemMass.lbegin()[idx]; }
+  Real_t& elemMass(Index_t idx)   { return m_elemMass[idx]; }
 
   // energy, pressure, viscosity
-  Real_t& e(Index_t idx)     { return m_e.lbegin()[idx]; }
-  Real_t& p(Index_t idx)     { return m_p.lbegin()[idx]; }
-  Real_t& q(Index_t idx)     { return m_q.lbegin()[idx]; }
-  Real_t& ql(Index_t idx)    { return m_ql.lbegin()[idx]; }
-  Real_t& qq(Index_t idx)    { return m_qq.lbegin()[idx]; }
+  Real_t& e(Index_t idx)     { return m_e[idx]; }
+  Real_t& p(Index_t idx)     { return m_p[idx]; }
+  Real_t& q(Index_t idx)     { return m_q[idx]; }
+  Real_t& ql(Index_t idx)    { return m_ql[idx]; }
+  Real_t& qq(Index_t idx)    { return m_qq[idx]; }
 
   // volume, ref. volume, rel. volume, vol. derivative
-  Real_t& v(Index_t idx)     { return m_v.lbegin()[idx]; }
-  Real_t& volo(Index_t idx)  { return m_volo.lbegin()[idx]; }
-  Real_t& delv(Index_t idx)  { return m_delv.lbegin()[idx]; }
-  Real_t& vdov(Index_t idx)  { return m_vdov.lbegin()[idx]; }
+  Real_t& v(Index_t idx)     { return m_v[idx]; }
+  Real_t& volo(Index_t idx)  { return m_volo[idx]; }
+  Real_t& delv(Index_t idx)  { return m_delv[idx]; }
+  Real_t& vdov(Index_t idx)  { return m_vdov[idx]; }
 
   // principal strains -- temporary
   Real_t& dxx(Index_t idx)  { return m_dxx[idx] ; }
@@ -245,7 +247,7 @@ public:
   Real_t& delx_zeta(Index_t idx)  { return m_delx_zeta[idx] ; }
 
   // elemToNode connectivity
-  Index_t* nodelist(Index_t idx)  { return &m_nodelist.lbegin()[idx][0]; }
+  Index_t* nodelist(Index_t idx)  { return &m_nodelist[idx][0]; }
 
   // elem connectivities through face
   Index_t& lxim(  Index_t idx) { return m_lxim[idx]; }

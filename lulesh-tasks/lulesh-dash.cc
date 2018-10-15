@@ -83,6 +83,7 @@ Domain::Domain(const CmdLineOpts& opts) :
   //
   // node - centered fields
   //
+#if 0
   m_x.allocate(m_NodePat);
   m_y.allocate(m_NodePat);
   m_z.allocate(m_NodePat);
@@ -100,23 +101,42 @@ Domain::Domain(const CmdLineOpts& opts) :
   m_fz.allocate(m_NodePat);
 
   m_nodalMass.allocate(m_NodePat);
+#endif
+
+  m_x.resize(numNode());
+  m_y.resize(numNode());
+  m_z.resize(numNode());
+
+  m_xd.resize(numNode());
+  m_yd.resize(numNode());
+  m_zd.resize(numNode());
+
+  m_xdd.resize(numNode());
+  m_ydd.resize(numNode());
+  m_zdd.resize(numNode());
+
+  m_fx.resize(numNode());
+  m_fy.resize(numNode());
+  m_fz.resize(numNode());
+
+  m_nodalMass.resize(numNode());
 
   //
   // element-centered fields
   //
-  m_e.allocate(m_ElemPat);
-  m_p.allocate(m_ElemPat);
-  m_q.allocate(m_ElemPat);
-  m_ql.allocate(m_ElemPat);
-  m_qq.allocate(m_ElemPat);
+  m_e.resize(numElem());
+  m_p.resize(numElem());
+  m_q.resize(numElem());
+  m_ql.resize(numElem());
+  m_qq.resize(numElem());
 
-  m_v.allocate(m_ElemPat);
-  m_volo.allocate(m_ElemPat);
-  m_delv.allocate(m_ElemPat);
-  m_vdov.allocate(m_ElemPat);
-  m_elemMass.allocate(m_ElemPat);
+  m_v.resize(numElem());
+  m_volo.resize(numElem());
+  m_delv.resize(numElem());
+  m_vdov.resize(numElem());
+  m_elemMass.resize(numElem());
 
-  m_nodelist.allocate(m_ElemPat);
+  m_nodelist.resize(numElem());
 
   AllocateStrains(numElem());
 
@@ -182,13 +202,13 @@ void Domain::BuildMesh()
   auto gc = m_ElemPat.global({0,0,0});
 
   Index_t nidx = 0;
-  for( Index_t plane=0; plane<m_x.local.extent(0); ++plane )
+  for( Index_t plane=0; plane<m_NodePat.local_extent(0); ++plane )
   {
     Real_t tz = Real_t(1.125)*Real_t(gc[0]+plane)/Real_t(elem0);
-    for( Index_t row=0; row<m_x.local.extent(1); ++row )
+    for( Index_t row=0; row<m_NodePat.local_extent(1); ++row )
     {
       Real_t ty = Real_t(1.125)*Real_t(gc[1]+row)/Real_t(elem1);
-      for( Index_t col=0; col<m_x.local.extent(2); ++col )
+      for( Index_t col=0; col<m_NodePat.local_extent(2); ++col )
       {
         Real_t tx = Real_t(1.125)*Real_t(gc[2]+col)/Real_t(elem2);
 
@@ -201,9 +221,9 @@ void Domain::BuildMesh()
     }
   }
 
-  auto nplanes = m_nodelist.local.extent(0);
-  auto nrows   = m_nodelist.local.extent(1);
-  auto ncols   = m_nodelist.local.extent(2);
+  auto nplanes = m_ElemPat.local_extent(0);
+  auto nrows   = m_ElemPat.local_extent(1);
+  auto ncols   = m_ElemPat.local_extent(2);
 
   Index_t zidx = 0; nidx=0;
   for( Index_t plane=0; plane < nplanes; ++plane ) {
