@@ -2,6 +2,8 @@
 #define CHOLESKY_TASKS_PREFETCH__H
 
 #include <libdash.h>
+#include <thread>
+#include <mutex>
 #include <memory>
 #include <mpi.h>
 #include "MatrixBlock.h"
@@ -9,12 +11,26 @@
 
 constexpr const char *CHOLESKY_IMPL = "CholeskyMPIDTasks";
 
+
+#if 0
+static std::mutex out_mutex;
+#define _DEBUG(__stream) do { \
+  std::stringstream ss; \
+  ss << __stream;       \
+  std::lock_guard<std::mutex> lock(out_mutex);\
+  fprintf(stderr, "[%d] %s", dash::myid().id, ss.str().c_str()); \
+  fprintf(stdout, "[%d] %s", dash::myid().id, ss.str().c_str()); \
+} while(0)
+
+#else
+#define _DEBUG(...) do{ } while(0)
+#endif
+
 inline static void wait(MPI_Request *comm_req)
 {
-    int flag = 0;
 
-    MPI_Test(comm_req, &flag, MPI_STATUS_IGNORE);
     while (1) {
+        int flag = 0;
         MPI_Test(comm_req, &flag, MPI_STATUS_IGNORE);
         if (flag) break;
         dash::tasks::yield(-1);
@@ -59,6 +75,8 @@ compute(TiledMatrix& matrix, size_t block_size){
 
   char recv_flag   = 0;
 
+  Timer t_c;
+
   double ***A = new double**[nt];
   int *block_rank = new int[nt*nt];
   double *B  = block_k_pre;
@@ -81,6 +99,8 @@ compute(TiledMatrix& matrix, size_t block_size){
   if (dash::myid() == 0)
     std::cout << "Starting to create tasks" << std::endl;
 
+  auto overhead = t_c.Elapsed();
+
   // used to make sure that all trsm tasks finished before the MPI task runs
   int trsm_sentinel;
   (void)trsm_sentinel;
@@ -89,12 +109,12 @@ compute(TiledMatrix& matrix, size_t block_size){
   int mpi_sentinel;
   (void)mpi_sentinel;
 
-  Timer t_c;
 
     for (int k = 0; k < nt; k++) {
         if (block_rank[k*nt+k] == mype) {
           dash::tasks::async(
-            [=](){potrf(A[k][k], ts, ts);},
+            [=](){_DEBUG("potrf(" << k << ")" << std::endl); potrf(A[k][k], ts, ts);},
+            //[=](){potrf(A[k][k], ts, ts);},
             dash::tasks::out(A[k][k])
           );
         }
@@ -108,8 +128,10 @@ compute(TiledMatrix& matrix, size_t block_size){
                   dash::tasks::async(
                     [=, &A](){
                       MPI_Request send_req;
+                      _DEBUG("isend potrf(" << dst << ", " << k << ", " << k << ", " << k*nt+k << ")" << std::endl);
                       MPI_Isend(A[k][k], ts*ts, MPI_DOUBLE, dst, k*nt+k, MPI_COMM_WORLD, &send_req);
                       wait(&send_req);
+                      _DEBUG("isend potrf(" << dst << ", " << k << ", " << k << ", " << k*nt+k << ")" << " completed" << std::endl);
                     },
                     dash::tasks::in(A[k][k])
                   );
@@ -126,8 +148,10 @@ compute(TiledMatrix& matrix, size_t block_size){
               dash::tasks::async(
                 [=](){
                   MPI_Request recv_req;
+                  _DEBUG("irecv potrf (" << block_rank[k*nt+k] << ", " << k << ", " << k << ", " << k*nt+k << ")" << std::endl);
                   MPI_Irecv(B, ts*ts, MPI_DOUBLE, block_rank[k*nt+k], k*nt+k, MPI_COMM_WORLD, &recv_req);
                   wait(&recv_req);
+                  _DEBUG("irecv potrf (" << block_rank[k*nt+k] << ", " << k << ", " << k << ", " << k*nt+k << ")" << " completed" << std::endl);
                 },
                 dash::tasks::out(B)
               );
@@ -162,11 +186,14 @@ compute(TiledMatrix& matrix, size_t block_size){
                 if (!send_flags[block_rank[i*nt+i]]) send_flags[block_rank[i*nt+i]] = 1;
                 for (int dst = 0; dst < np; dst++) {
                     if (send_flags[dst] && dst != mype) {
+                      _DEBUG("CREATE isend trsm (" << dst << ", " << k << ", " << i << ", " << k*nt+i << ")" << std::endl);
                       dash::tasks::async(
                         [=](){
                           MPI_Request send_req;
+                          _DEBUG("isend trsm (" << dst << ", " << k << ", " << i << ", " << k*nt+i << ")" << std::endl);
                           MPI_Isend(A[k][i], ts*ts, MPI_DOUBLE, dst, k*nt+i, MPI_COMM_WORLD, &send_req);
                           wait(&send_req);
+                          _DEBUG("isend trsm (" << dst << ", " << k << ", " << i << ", " << k*nt+i << ")" << " completed" << std::endl);
                         },
                         dash::tasks::in(A[k][i])
                       );
@@ -183,11 +210,15 @@ compute(TiledMatrix& matrix, size_t block_size){
                 }
                 if (block_rank[i*nt+i] == mype) recv_flag = 1;
                 if (recv_flag) {
+                  _DEBUG("CREATE irecv trsm (" << block_rank[k*nt+i] << ", " << k << ", " << i << ", " << k*nt+i << ")" << std::endl);
+                  
                   dash::tasks::async(
                     [=](){
                       MPI_Request recv_req;
+                      _DEBUG("irecv trsm (" << block_rank[k*nt+i] << ", " << k << ", " << i << ", " << k*nt+i << ")" << std::endl);
                       MPI_Irecv(C[i], ts*ts, MPI_DOUBLE, block_rank[k*nt+i], k*nt+i, MPI_COMM_WORLD, &recv_req);
                       wait(&recv_req);
+                      _DEBUG("irecv trsm (" << block_rank[k*nt+i] << ", " << k << ", " << i << ", " << k*nt+i << ")" << " completed" << std::endl);
                     },
                     dash::tasks::out(C[i])
                   );
@@ -254,10 +285,14 @@ compute(TiledMatrix& matrix, size_t block_size){
               << t_c.Elapsed() / 1E3 << "ms"
               << ", starting execution" << std::endl;
   dash::tasks::complete();
+
+  double tmp = t_c.Elapsed();
+
   if (dash::myid() == 0)
     std::cout << "Done executing tasks in "
               << t_c.Elapsed() / 1E3 << "ms"
               << std::endl;
+
   delete[] block_k_pre;
   delete[] blocks_ki_pre;
 
@@ -268,7 +303,7 @@ compute(TiledMatrix& matrix, size_t block_size){
   delete[] C;
   delete[] block_rank;
   std::free(send_flags);
-
+  std::cout << "[" << dash::myid() << "] Overhead: " << (overhead + t_c.Elapsed() - tmp) / 1E3 << "ms" << std::endl;
 }
 
 #endif //CHOLESKY_TASKS_PREFETCH__H

@@ -5,9 +5,10 @@
 #ifdef USE_EXTRAE
 #include "extrae_user_events.h"
 #include "extrae_types.h"
-//extern "C" void Extrae_init (void) __attribute__((weak));
-//extern "C" void Extrae_event (extrae_type_t type, extrae_value_t value) __attribute__((weak));
-//extern "C" void Extrae_fini (void) __attribute__((weak));
+extern "C" void Extrae_init (void) __attribute__((weak));
+extern "C" void Extrae_event (extrae_type_t type, extrae_value_t value) __attribute__((weak));
+extern "C" void Extrae_fini (void) __attribute__((weak));
+extern "C" void Extrae_define_event_type (extrae_type_t *type, char *type_description, unsigned *nvalues, extrae_value_t *values, char **values_description) __attribute__((weak));
 #endif
 
 #define EVENT_NONE  0

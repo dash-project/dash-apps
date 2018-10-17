@@ -164,8 +164,8 @@ void verify_matrix(MatrixT &result, MatrixT &expected)
         for (size_t k = 0; k < block_r.size(); ++k) {
           if (e[k] != r[k]) {
             std::cout << "Result diverges in block " << i << "x" << j << " by "
-                      << e[k] - r[k] << std::endl;
-            return;
+                      << e[k] - r[k] << "(" << e[k] << " vs " << r[k] << ")" << std::endl;
+            //return;
           }
         }
       }

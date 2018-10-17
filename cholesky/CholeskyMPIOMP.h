@@ -87,6 +87,7 @@ compute(TiledMatrix& matrix, size_t block_size){
   // used to ensure that MPI send/recv task finishes before dgemm/syrk runs
   int mpi_sentinel;
   (void)mpi_sentinel;
+  int comm_sentinel; // sentinel, never referenced!
 
   Timer t_c;
 
@@ -99,12 +100,17 @@ compute(TiledMatrix& matrix, size_t block_size){
     for (int k = 0; k < nt; k++) {
         if (block_rank[k*nt+k] == mype) {
 #pragma omp task depend(out:A[k][k]) firstprivate(k)
+          {
+            //std::cout << '[' << dash::myid() << "] potrf on " << k << std::endl;
             potrf(A[k][k], ts, ts);
+          }
         }
 
+
         if (block_rank[k*nt+k] == mype && np > 1) {
-#pragma omp task depend(in:A[k][k]) firstprivate(k) untied
+#pragma omp task depend(in:A[k][k], comm_sentinel) firstprivate(k) untied
 {
+          //std::cout << '[' << dash::myid() << "] SEND potrf on " << k << std::endl;
           char *send_flags = (char*)std::calloc(sizeof(char), dash::size());
           size_t count = 0;
           for (int kk = k+1; kk < nt; kk++) {
@@ -117,6 +123,7 @@ compute(TiledMatrix& matrix, size_t block_size){
           size_t ireq = 0;
           for (int dst = 0; dst < np; dst++) {
             if (send_flags[dst]) {
+              //std::cout << '[' << dash::myid() << "]   SEND potrf on " << k << " to " << dst << std::endl;
               MPI_Isend(A[k][k], ts*ts, MPI_DOUBLE, dst, k*nt+k, MPI_COMM_WORLD, &reqs[ireq++]);
             }
           }
@@ -131,6 +138,7 @@ compute(TiledMatrix& matrix, size_t block_size){
           };
           std::free(send_flags);
           std::free(reqs);
+            //std::cout << '[' << dash::myid() << "] SEND potrf on " << k << " done" << std::endl;
 }
         }
 
@@ -139,11 +147,13 @@ compute(TiledMatrix& matrix, size_t block_size){
             if (block_rank[k*nt+i] == mype) recv_flag = 1;
           }
           if (recv_flag) {
-#pragma omp task depend(out:B) firstprivate(k) untied
+#pragma omp task depend(out:B) depend(in:comm_sentinel) firstprivate(k) untied
 {
+            //std::cout << '[' << dash::myid() << "] RECEIVE potrf on " << k << " from " << block_rank[k*nt+k] << std::endl;
             MPI_Request recv_req;
             MPI_Irecv(B, ts*ts, MPI_DOUBLE, block_rank[k*nt+k], k*nt+k, MPI_COMM_WORLD, &recv_req);
             wait(&recv_req);
+            //std::cout << '[' << dash::myid() << "] RECEIVE potrf on " << k << " done" << std::endl;
 }
             recv_flag = 0;
           }
@@ -152,17 +162,18 @@ compute(TiledMatrix& matrix, size_t block_size){
         for (int i = k + 1; i < nt; i++) {
           if (block_rank[k*nt+i] == mype) {
             if (block_rank[k*nt+k] == mype) {
-#pragma omp task depend(in:A[k][k], trsm_sentinel) depend(out:A[k][i]) firstprivate(k, i)
+#pragma omp task depend(in:A[k][k], comm_sentinel) depend(out:A[k][i]) firstprivate(k, i)
               trsm(A[k][k], A[k][i], ts, ts);
             } else {
-#pragma omp task depend(in:B, trsm_sentinel) depend(out:A[k][i]) firstprivate(k, i)
+#pragma omp task depend(in:B, comm_sentinel) depend(out:A[k][i]) firstprivate(k, i)
               trsm(B, A[k][i], ts, ts);
             }
           }
         }
 
-#pragma omp task depend(out:mpi_sentinel, trsm_sentinel) untied
+#pragma omp task depend(inout:comm_sentinel) untied
 {
+        //std::cout << '[' << dash::myid() << "] COMM trsm on " << k << std::endl;
         std::vector<MPI_Request> reqs;
         char *send_flags = (char*)std::calloc(sizeof(char), dash::size());
         for (int i = k + 1; i < nt; i++) {
@@ -180,8 +191,9 @@ compute(TiledMatrix& matrix, size_t block_size){
             for (int dst = 0; dst < np; dst++) {
               if (send_flags[dst] && dst != mype) {
                 MPI_Request send_req;
+                //std::cout << '[' << dash::myid() << "]   SEND trsm on " << k << " to " << dst << std::endl;
                 MPI_Isend(A[k][i], ts*ts, MPI_DOUBLE, dst, k*nt+i, MPI_COMM_WORLD, &send_req);
-                //wait(&send_req);
+                wait(&send_req);
                 reqs.push_back(send_req);
               }
             }
@@ -198,8 +210,9 @@ compute(TiledMatrix& matrix, size_t block_size){
             if (block_rank[i*nt+i] == mype) recv_flag = true;
             if (recv_flag) {
               MPI_Request recv_req;
+              //std::cout << '[' << dash::myid() << "]   RECV trsm on " << k << " from " << block_rank[k*nt+i] << std::endl;
               MPI_Irecv(C[i], ts*ts, MPI_DOUBLE, block_rank[k*nt+i], k*nt+i, MPI_COMM_WORLD, &recv_req);
-              //wait(&recv_req);
+              wait(&recv_req);
               reqs.push_back(recv_req);
             }
           }
@@ -214,6 +227,7 @@ compute(TiledMatrix& matrix, size_t block_size){
             #pragma omp taskyield
           }
         }
+        //std::cout << '[' << dash::myid() << "] COMM trsm on " << k << " done" << std::endl;
 }
 
         for (int i = k + 1; i < nt; i++) {
@@ -224,13 +238,13 @@ compute(TiledMatrix& matrix, size_t block_size){
 #pragma omp task depend(in:A[k][i], A[k][j]) depend(out:A[j][i]) firstprivate(k, j, i) shared(A)
                         gemm(A[k][i], A[k][j], A[j][i], ts, ts);
                     } else if (block_rank[k*nt+i] != mype && block_rank[k*nt+j] == mype) {
-#pragma omp task depend(in:mpi_sentinel, A[k][j]) depend(out:A[j][i]) firstprivate(k, j, i) shared(C, A)
+#pragma omp task depend(in:comm_sentinel, A[k][j]) depend(out:A[j][i]) firstprivate(k, j, i) shared(C, A)
                         gemm(C[i], A[k][j], A[j][i], ts, ts);
                     } else if (block_rank[k*nt+i] == mype && block_rank[k*nt+j] != mype) {
-#pragma omp task depend(in:A[k][i], mpi_sentinel) depend(out:A[j][i]) firstprivate(k, j, i) shared(C, A)
+#pragma omp task depend(in:A[k][i], comm_sentinel) depend(out:A[j][i]) firstprivate(k, j, i) shared(C, A)
                         gemm(A[k][i], C[j], A[j][i], ts, ts);
                     } else {
-#pragma omp task depend(in:mpi_sentinel) depend(out:A[j][i]) firstprivate(k, j, i) shared(C, A)
+#pragma omp task depend(in:comm_sentinel) depend(out:A[j][i]) firstprivate(k, j, i) shared(C, A)
                         gemm(C[i], C[j], A[j][i], ts, ts);
                     }
                 }
@@ -241,7 +255,7 @@ compute(TiledMatrix& matrix, size_t block_size){
 #pragma omp task depend(in:A[k][i]) depend(out:A[i][i]) firstprivate(k, i) shared(A)
                     syrk(A[k][i], A[i][i], ts, ts);
                 } else {
-#pragma omp task depend(in:mpi_sentinel) depend(out:A[i][i]) firstprivate(k, i) shared(C, A)
+#pragma omp task depend(in:comm_sentinel) depend(out:A[i][i]) firstprivate(k, i) shared(C, A)
                     syrk(C[i], A[i][i], ts, ts);
                 }
             }
