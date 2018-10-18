@@ -17,7 +17,7 @@
 
 #include "extrae.h"
 
-#define DASH_TASKLOOP_FACTOR 4
+#define DASH_TASKLOOP_FACTOR 6
 
 using std::cout; using std::cerr; using std::endl;
 
@@ -671,7 +671,6 @@ void Domain::SetupSymmetryPlanes(Int_t edgeNodes)
 void Domain::SetupThreadSupportStructures()
 {
   Index_t numthreads = dash::tasks::numthreads();
-  std::cout << "NumThreads: " << numthreads << std::endl;
 
   if (numthreads > 1) {
     // set up node-centered indexing of elements
