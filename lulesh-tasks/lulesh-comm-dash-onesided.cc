@@ -8,7 +8,7 @@
 
 #ifndef DASH_USE_GET
 
-#define PRINT_VALUES
+//#define PRINT_VALUES
 
 using namespace std;
 
@@ -42,13 +42,19 @@ char tagname[][8] =
     "X1Y1Z1 ",
   };
 
+static std::mutex mtx;
 static void
 dump_buffer(Real_t *buf, size_t nelem)
 {
+#ifdef PRINT_VALUES
+  mtx.lock();
+  std::cout << "[" << dash::tasks::threadnum() << "] ";
   for (size_t i = 0; i < nelem; ++i) {
-    std::cout << std::fixed << std::setprecision(5) << std::setw(3) << buf[i] << " ";
+    std::cout << std::fixed << std::setprecision(7) << std::setw(3) << buf[i] << " ";
   }
   std::cout << std::endl;
+  mtx.unlock();
+#endif
 }
 
 
@@ -56,9 +62,13 @@ static void
 put_yield(const dash::GlobIter<double, dash::BlockPattern<1> > dest,
           Real_t *destAddr, size_t sendCount, int tag)
 {
+#ifdef PRINT_VALUES
+  mtx.lock();
   std::cout << "[" << dash::tasks::threadnum() << "] PUT " << sendCount << " elements from "
             << destAddr << " into "
             << dest.dart_gptr() << " tag " << tagname[tag] << std::endl;
+  mtx.unlock();
+#endif
   auto fut =
     dash::copy_async(
       destAddr,
@@ -74,11 +84,19 @@ put_yield(const dash::GlobIter<double, dash::BlockPattern<1> > dest,
 
 
 // debug output for syncs performed below
-void DBGSYNC(int fields, int elem, int tag)
+
+void __DBGSYNC(const char *file, int line, int fields, int elem, int tag)
 {
+#ifdef PRINT_VALUES
+  mtx.lock();
   std::cout << "[" << dash::tasks::threadnum() << "] DBGSYNC " << elem << "x" << fields
-       << " (" << elem*fields << ") " << tagname[tag] << std::endl;
+       << " (" << elem*fields << ") " << tagname[tag] << " in " << file << ":" << line << std::endl;
+  mtx.unlock();
+#endif
 }
+
+#define DBGSYNC(__fields, __elem, __tag) __DBGSYNC(__FILE__, __LINE__,  __fields, __elem, __tag)
+
 
 void DASHCommPut(Domain& domain, DASHComm& comm,
                  Index_t xferFields, Domain_member *fieldData,
