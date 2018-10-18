@@ -3,27 +3,41 @@
 #include "lulesh-calc.h"
 #include "extrae.h"
 
-#define DASH_TASKLOOP_FACTOR 4
+//#include <map>
+//static std::map<void*, size_t> allocations;
+
+#define DASH_TASKLOOP_FACTOR 6
 
 template <typename T>
 static inline
 T *Allocate(size_t size)
 {
-  return static_cast<T *>(malloc(sizeof(T)*size)) ;
+  T* ptr = static_cast<T *>(malloc(sizeof(T)*size)) ;
+  //T* ptr = new T[size];
+  //allocations[ptr] = size*sizeof(T);
+  return ptr;
 }
 
 template <typename T>
 static inline
 void Release(T **ptr)
 {
-  static std::mutex mtx;
+  //static std::mutex mtx;
   if (*ptr != NULL) {
     // memory management is serialized so avoid waiting in free()
-    while (!mtx.try_lock()) { dash::tasks::yield(); }
+    //while (!mtx.try_lock()) { dash::tasks::yield(); }
     extrae_task_event ev(RELEASE);
+    Timer t;
     free(*ptr) ;
+    auto elapsed = t.Elapsed();
+    if (elapsed > 10000) {
+      std::cout << dash::myid() << ": Expensive Release: " << *ptr << " " << t.Elapsed() << "us" << std::endl;
+    }
+    //delete[] *ptr ;
+    //std::cout << dash::myid() << ": Release: " << *ptr << " (" << allocations[*ptr] << ") " << t.Elapsed() << "us" << std::endl;
+    //allocations.erase(*ptr);
     *ptr = NULL ;
-    mtx.unlock();
+    //mtx.unlock();
   }
 }
 
@@ -612,7 +626,7 @@ void CalcTimeConstraintsForElems(Domain& domain)
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
       EXTRAE_EXIT(COURANTCONSTRAINTS);
     },
-    DART_PRIO_LOW,
+    DART_PRIO_HIGH,
     dash::tasks::in(domain.arealg(0)),
     dash::tasks::in(domain.vdov(0)),
     dash::tasks::in(domain.ss(0)),
@@ -639,9 +653,12 @@ void CalcTimeConstraintsForElems(Domain& domain)
         [](Real_t a, Real_t b){ return std::min<Real_t>(a, b); });
       EXTRAE_EXIT(HYDROCONSTRAINTS);
     },
+    //DART_PRIO_HIGH,
     DART_PRIO_LOW,
     dash::tasks::in(domain.arealg(0)),
     dash::tasks::in(domain.vdov(0)),
+    // prevent these tasks to interfer with the force computation
+    //dash::tasks::in(domain.ss(0)),
     dash::tasks::out(domain.dthydro())
   );
 }

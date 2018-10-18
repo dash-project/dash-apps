@@ -1,12 +1,17 @@
 
 #include "lulesh.h"
 #include "lulesh-calc.h"
+#include <map>
+
+//static std::map<void*, size_t> allocations;
 
 template <typename T>
 static inline
 T *Allocate(size_t size)
 {
-  return static_cast<T *>(malloc(sizeof(T)*size)) ;
+  T* ptr = static_cast<T *>(malloc(sizeof(T)*size)) ;
+  //allocations[ptr] = size*sizeof(T);
+  return ptr;
 }
 
 template <typename T>
@@ -14,11 +19,19 @@ static inline
 void Release(T **ptr)
 {
   if (*ptr != NULL) {
+    // memory management is serialized so avoid waiting in free()
+    //while (!mtx.try_lock()) { dash::tasks::yield(); }
+    Timer t;
     free(*ptr) ;
+    auto elapsed = t.Elapsed();
+    if (elapsed > 1000) {
+	  std::cout << dash::myid() << ": Expensive Release: " << *ptr << t.Elapsed() << "us" << std::endl;
+    }
+//    std::cout << dash::myid() << ": Release: " << *ptr << " (" << allocations[*ptr] << ") " << t.Elapsed() << "us" << std::endl;
+//    allocations.erase(*ptr);
     *ptr = NULL ;
   }
 }
-
 
 /* ================================================================
    Caller/callee relationship for CalcKinematicsForElems()
