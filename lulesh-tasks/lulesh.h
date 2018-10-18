@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <omp.h>
+#include <libdash.h>
 
 //
 //   define one of these three symbols:
@@ -38,6 +39,9 @@ inline real4  FABS(real4  arg) { return fabsf(arg) ; }
 inline real8  FABS(real8  arg) { return fabs(arg) ; }
 inline real10 FABS(real10 arg) { return fabsl(arg) ; }
 
+typedef dash::util::Timer<
+  dash::util::TimeMeasure::Clock
+  > Timer;
 
 // Stuff needed for boundary conditions
 // 2 BCs on each of 6 hexahedral faces (12 bits)

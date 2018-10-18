@@ -1,6 +1,8 @@
 #include <iostream>
 #include <libdash.h>
 
+#include <mpi.h>
+
 #include "lulesh.h"
 #include "lulesh-opts.h"
 #include "lulesh-dash.h"
@@ -14,6 +16,8 @@ int main(int argc, char *argv[])
   auto myRank   = dash::myid();
   auto numRanks = dash::size();
 
+  Timer::Calibrate();
+
   CmdLineOpts opts(numRanks, myRank);
   opts.parseCommandLineOptions(argc, argv);
 
@@ -25,6 +29,8 @@ int main(int argc, char *argv[])
     return 0;
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
+
   // exclude thread creation from timing loop
   dash::tasks::ASYNC([&](){
     if( (myRank == 0) && (!opts.quiet()) ) {
@@ -32,8 +38,6 @@ int main(int argc, char *argv[])
     }
   });
   dash::tasks::complete();
-
-  std::cout << "Rank " << dash::myid() << std::endl;
 
   Domain dom(opts);
 

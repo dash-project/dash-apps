@@ -13,6 +13,8 @@ int main(int argc, char *argv[])
   auto myRank   = dash::myid();
   auto numRanks = dash::size();
 
+  Timer::Calibrate();
+
   CmdLineOpts opts(numRanks, myRank);
   opts.parseCommandLineOptions(argc, argv);
 
