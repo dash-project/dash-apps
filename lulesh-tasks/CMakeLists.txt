@@ -11,6 +11,7 @@ file(GLOB SOURCES *.cc)
 #set(CXX_FLAGS "-O3 -Ofast -DUSE_DASH")
 set(CXX_FLAGS "-O0 -g -DUSE_DASH")
 set(CXX_FLAGS "-O3 -g -DUSE_DASH")
+#set(CXX_FLAGS "-O3 -g -DUSE_DASH -p")
 #set(CXX_FLAGS "${CXX_FLAGS} -DDASH_USE_GET")
 set(CMAKE_CXX_STANDARD 11)
 
@@ -62,14 +63,29 @@ add_executable(
   ${PROJECT_NAME}
   ${SOURCES})
 
-#set(DASH_LIBRARIES "${DASH_LIBRARIES} -ldart-tasking -L$ENV{HOME}/opt/extrae-3.5.4/lib -lptmpitrace")
+#set(DASH_LIBRARIES "${DASH_LIBRARIES} -ldart-tasking -L$ENV{HOME}/opt/extrae-3.5.4-gnu7.3.0-shared/lib -lptmpitrace")
 #set(DASH_LIBRARIES "${DASH_LIBRARIES} -ldart-tasking")
-set(DASH_LIBRARIES "${DASH_LIBRARIES}")
+#set(DASH_LIBRARIES "${DASH_LIBRARIES}")
+
+#set(EXTRAE_LIBRARIES "-L$ENV{HOME}/opt-cray/extrae-3.5.4-gnu7.3.0-shared/lib -lptmpitrace")
+
+if("$ENV{TCMALLOC_ROOT}" STREQUAL "")
+  set(TCMALLOC_LIBRARIES "")
+else()
+  set(TCMALLOC_LIBRARIES "-L$ENV{TCMALLOC_ROOT}/lib/ -ltcmalloc_minimal")
+  message(STATUS "Using TCMalloc libraries: ${TCMALLOC_LIBRARIES}")
+endif()
+
+set (DMAPP_LIBRARIES "lulesh-tasks/CMakeLists.txt")
 
 target_link_libraries(
   ${PROJECT_NAME}
+  ${EXTRAE_LIBRARIES}
+  ${TCMALLOC_LIBRARIES}
   ${DASH_LIBRARIES}
   "${DASH_BASE_DIR}/lib/libdart-tasking.a"
+#  "$ENV{HOME}/opt-cray/extrae-3.5.4-gnu7.3.0/lib/libptmpitrace.a"
+  ${DMAPP_LIBRARIES}
   ${MPI_C_LIBRARIES})
 
 if(MPI_LINK_FLAGS)
@@ -88,8 +104,12 @@ add_executable(
   ${SOURCES})
 target_link_libraries(
   ${PROJECT_NAME}_get
+  ${TCMALLOC_LIBRARIES}
+  ${EXTRAE_LIBRARIES}
   ${DASH_LIBRARIES}
   "${DASH_BASE_DIR}/lib/libdart-tasking.a"
+#  "$ENV{HOME}/opt-cray/extrae-3.5.4-gnu7.3.0/lib/libptmpitrace.so"
+  ${DMAPP_LIBRARIES}
   ${MPI_C_LIBRARIES})
 set_target_properties(
   ${PROJECT_NAME}_get PROPERTIES COMPILE_FLAGS "-DDASH_USE_GET")

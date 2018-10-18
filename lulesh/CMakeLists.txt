@@ -9,6 +9,7 @@ set(DASH_DART_IMPL "MPI")
 file(GLOB SOURCES *.cc)
 
 set(CXX_FLAGS "-O3 -Ofast -DUSE_DASH")
+#set(CXX_FLAGS "-O3 -Ofast -DUSE_MPI")
 set(CMAKE_CXX_STANDARD 11)
 
 ## Do not edit below this line unless you know what you are doing
@@ -45,6 +46,14 @@ foreach (MPI_LINK_FLAG ${MPI_LINK_FLAGS})
   message(STATUS "   " ${MPI_LINK_FLAG})
 endforeach()
 
+#set(EXTRAE_LIBRARIES "-L$ENV{HOME}/opt-cray/extrae-3.5.4-gnu7.3.0-shared/lib -lompitrace")
+
+if("$ENV{TCMALLOC_ROOT}" STREQUAL "")
+  set(TCMALLOC_LIBRARIES "")
+else()
+  set(TCMALLOC_LIBRARIES "-L$ENV{TCMALLOC_ROOT}/lib/ -ltcmalloc_minimal")
+  message(STATUS "Using TCMalloc libraries: ${TCMALLOC_LIBRARIES}")
+endif()
 
 foreach (MPI_INC_ ${MPI_INCLUDE_PATH})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${MPI_INC_}" )
@@ -60,6 +69,8 @@ add_executable(
 
 target_link_libraries(
   ${PROJECT_NAME}
+  ${TCMALLOC_LIBRARIES}
+  ${EXTRAE_LIBRARIES}
   ${DASH_LIBRARIES}
   ${MPI_C_LIBRARIES})
 
