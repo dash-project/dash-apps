@@ -88,6 +88,11 @@ public:
     return _matrix->begin() + _glob_idx + _size;
   }
 
+  dart_gptr_t
+  dart_gptr() const {
+    return this->begin().dart_gptr();
+  }
+
   value_t *lbegin() {
     if (!this->_is_local) {
       fetch_data();
