@@ -197,16 +197,15 @@ Int_t DASHComm::offset(Int_t desc)
   return offs;
 }
 
-dash::GlobIter<Real_t, dash::Pattern<1>>
+DASHComm::global_iterator
 DASHComm::dest(Int_t rank, Int_t desc)
 {
   auto& pat = m_commDataRecv->pattern();
 
   auto offs = offset(desc);
 
-  dash::GlobIter<Real_t, dash::Pattern<1> > it
-    = m_commDataRecv->begin() + pat.global_index(dash::team_unit_t(rank),
-                                                 {offs});
+  auto it = m_commDataRecv->begin()
+              + pat.global_index( dash::team_unit_t{rank}, {offs} );
 
   return it;
 }
