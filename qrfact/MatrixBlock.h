@@ -190,6 +190,10 @@ public:
     return this->_matrix->pattern().unit_at(_glob_idx);
   }
 
+  dart_handle_t dart_handle() {
+    return this->_handle;
+  }
+
 private:
 
   void fetch_data() {

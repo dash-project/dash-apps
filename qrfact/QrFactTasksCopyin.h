@@ -137,8 +137,10 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
 
             if (!a_block_k.is_local()) {
               a_block_k.store_async(a_k_pre);
+              //while (!a_block_k.test()) dash::tasks::yield(-1);
+              dart_handle_t handle = a_block_k.dart_handle();
+              dart_task_detach_handle(&handle, 1);
             }
-            while (!a_block_k.test()) dash::tasks::yield(-1);
           },
           //(dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k)) /*priority*/,
           dash::tasks::copyin_r(a_block_k, block_size*block_size, a_k_pre),
@@ -194,8 +196,10 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
               // store the block that might not be local
               if (!a_block_kn.is_local()) {
                 a_block_kn.store_async(a_block_kn_pre);
+                //while (!a_block_kn.test()) dash::tasks::yield(-1);
+                dart_handle_t handle = a_block_k.dart_handle();
+                dart_task_detach_handle(&handle, 1);
               }
-              while (!a_block_kn.test()) dash::tasks::yield(-1);
             },
             //(dart_task_prio_t)((num_blocks-k)*(num_blocks-n)*(num_blocks-n)),
             dash::tasks::copyin_r(a_block_kn, block_size*block_size, a_block_kn_pre),
