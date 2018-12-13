@@ -3,6 +3,7 @@
 
 #include <libdash.h>
 #include <memory>
+#include <thread>
 #include "MatrixBlock.h"
 #include "common.h"
 
@@ -13,6 +14,9 @@ constexpr const char *QRFACT_IMPL = "QRFactTasksCopyin";
  *       is a very simple wrapper. Fix this as soon as DASH matrix blocks
  *       are actually usable.
  */
+
+thread_local double *scratch_tau  = nullptr;
+thread_local double *scratch_work = nullptr;
 
 template<typename TiledMatrix>
 void
@@ -58,16 +62,14 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     if (a_block_k.is_local()) {
       dash::tasks::async("GEQRT",
         [=]() mutable {
-          double *work = new double[block_size*block_size];
-          double *tau = new double[block_size];
-          geqrt(a_block_k.lbegin(), t_block_k.lbegin(), tau, work, block_size);
+          if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
+          if (scratch_tau  == nullptr) scratch_tau  = new double[block_size];
+          geqrt(a_block_k.lbegin(), t_block_k.lbegin(), scratch_tau, scratch_work, block_size);
 #ifdef DEBUG_OUTPUT
           printf("\n\nPOST geqrt(k=%d)\n", k);
           print_matrix(a_block_k.lbegin(), block_size);
           print_matrix(t_block_k.lbegin(), block_size);
 #endif
-          delete[] work;
-          delete[] tau;
         },
         //(dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k))/*priority*/,
         dash::tasks::out(a_block_k),
@@ -88,20 +90,19 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       if (a_block_kn.is_local()) {
         dash::tasks::async("ORMQR",
           [=]() mutable {
-            double *work = new double[block_size*block_size];
+            if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
 #ifdef DEBUG_OUTPUT
             printf("\n\nPRE ormqr(k=%d, n=%d)\n", k, n);
             print_matrix(a_k_pre, block_size);
             print_matrix(t_k_pre, block_size);
             print_matrix(a_block_kn.lbegin(), block_size);
 #endif
-            ormqr(a_k_pre, t_k_pre, a_block_kn.lbegin(), work, block_size);
+            ormqr(a_k_pre, t_k_pre, a_block_kn.lbegin(), scratch_work, block_size);
 
 #ifdef DEBUG_OUTPUT
             printf("\n\nPOST ormqr(k=%d, n=%d)\n", k, n);
             print_matrix(a_block_kn.lbegin(), block_size);
 #endif
-            delete[] work;
           },
           DART_PRIO_LOW,
           dash::tasks::copyin_r(a_block_k, block_size*block_size, a_k_pre),
@@ -121,12 +122,12 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       if (a_block_mk.is_local()) {
         dash::tasks::async("TSQRT",
           [=]() mutable {
-            double *work = new double[block_size*block_size];
-            double *tau = new double[block_size];
+            if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
+            if (scratch_tau  == nullptr) scratch_tau  = new double[block_size];
             tsqrt(a_k_pre,
                   a_block_mk.lbegin(),
                   t_block_mk.lbegin(),
-                  tau, work, block_size);
+                  scratch_tau, scratch_work, block_size);
 #ifdef DEBUG_OUTPUT
             printf("\n\ntsqrt(k=%d, m=%d)\n", k, m);
             print_matrix(a_k_pre, block_size);
@@ -137,8 +138,6 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
             if (!a_block_k.is_local()) {
               a_block_k.store_async(a_k_pre);
             }
-            delete[] work;
-            delete[] tau;
             while (!a_block_k.test()) dash::tasks::yield(-1);
           },
           //(dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k)) /*priority*/,
@@ -176,13 +175,13 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
         if (a_block_mn.is_local()) {
           dash::tasks::async("TSMQR",
             [=]() mutable {
-              double *work = new double[block_size*block_size];
+              if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
 
               tsmqr(a_block_kn_pre,
                     a_block_mn.lbegin(),
                     a_block_mk_pre,
                     t_block_mk_pre,
-                    work, block_size);
+                    scratch_work, block_size);
 
 #ifdef DEBUG_OUTPUT
               printf("\n\ntsmqr(k=%d, m=%d)\n", k, m);
@@ -196,7 +195,6 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
               if (!a_block_kn.is_local()) {
                 a_block_kn.store_async(a_block_kn_pre);
               }
-              delete[] work;
               while (!a_block_kn.test()) dash::tasks::yield(-1);
             },
             //(dart_task_prio_t)((num_blocks-k)*(num_blocks-n)*(num_blocks-n)),
