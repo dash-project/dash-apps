@@ -177,6 +177,12 @@ public:
     }
   }
 
+  void store(value_t *source) {
+    auto begin = this->_matrix->begin() + _glob_idx;
+    dash::dart_storage<value_t> ds(_size);
+    dart_put_blocking(begin.dart_gptr(), source, ds.nelem, ds.dtype, ds.dtype);
+  }
+
   void store_async(value_t *source) {
     if (!_is_local) {
       auto begin = this->_matrix->begin() + _glob_idx;

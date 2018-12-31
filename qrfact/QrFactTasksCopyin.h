@@ -4,6 +4,7 @@
 #include <libdash.h>
 #include <memory>
 #include <thread>
+#include <vector>
 #include "MatrixBlock.h"
 #include "common.h"
 
@@ -33,7 +34,8 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   value_t *t_block_k_pre   = new value_t[block_size*block_size];
   value_t *a_blocks_mk_pre = new value_t[block_size*block_size*num_blocks];
   value_t *t_blocks_mk_pre = new value_t[block_size*block_size*num_blocks];
-  value_t *a_blocks_kn_pre = new value_t[block_size*block_size*num_blocks];
+
+  dash::Matrix<value_t, 3> scratch_blocks_kn(dash::size(), dash::BLOCKED, block_size*block_size, dash::NONE, num_blocks, dash::NONE);
 
   auto next_buf_pos = [=](){
     static size_t buffer_pos = 0;
@@ -89,7 +91,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       Block a_block_kn(A, k, n);
       if (a_block_kn.is_local()) {
         dash::tasks::async("ORMQR",
-          [=]() mutable {
+          [=, &scratch_blocks_kn]() mutable {
             if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
 #ifdef DEBUG_OUTPUT
             printf("\n\nPRE ormqr(k=%d, n=%d)\n", k, n);
@@ -97,8 +99,12 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
             print_matrix(t_k_pre, block_size);
             print_matrix(a_block_kn.lbegin(), block_size);
 #endif
+            // Block(k, n) is both input and output, use the original block as
+            // input and copy it to the scratch space afterwards
             ormqr(a_k_pre, t_k_pre, a_block_kn.lbegin(), scratch_work, block_size);
-
+            // copy the block to the scratch space for subsequent accesses
+            std::copy(a_block_kn.lbegin(), a_block_kn.lend(),
+                      &scratch_blocks_kn.local(0, n, 0));
 #ifdef DEBUG_OUTPUT
             printf("\n\nPOST ormqr(k=%d, n=%d)\n", k, n);
             print_matrix(a_block_kn.lbegin(), block_size);
@@ -107,7 +113,8 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
           DART_PRIO_LOW,
           dash::tasks::copyin_r(a_block_k, block_size*block_size, a_k_pre),
           dash::tasks::copyin_r(t_block_k, block_size*block_size, t_k_pre),
-          dash::tasks::out(a_block_kn)
+          dash::tasks::out(a_block_kn),
+          dash::tasks::out(scratch_blocks_kn.local(0, n, 0))
         );
         ++num_tasks;
       }
@@ -166,15 +173,11 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       for (int n = k+1; n < num_blocks; ++n) {
 
         Block a_block_mn(A, m, n);
-        Block a_block_kn(A, k, n);
-        value_t *a_block_kn_pre;
-        if (a_block_kn.is_local()) {
-          a_block_kn_pre = a_block_kn.lbegin();
-        } else {
-          a_block_kn_pre = &a_blocks_kn_pre[block_size*block_size*m];
-        }
-
         if (a_block_mn.is_local()) {
+          value_t *a_block_kn_pre;
+          // there was a previous owner, get it directly from his scratch space
+          a_block_kn_pre = &scratch_blocks_kn.local(0, n, 0);
+          int prev_owner = Block{A, m-1, n}.unit();
           dash::tasks::async("TSMQR",
             [=]() mutable {
               if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
@@ -192,27 +195,38 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
               print_matrix(a_block_mk_pre, block_size);
               print_matrix(t_block_mk_pre, block_size);
 #endif
-
-              // store the block that might not be local
-              if (!a_block_kn.is_local()) {
-                a_block_kn.store_async(a_block_kn_pre);
-                //while (!a_block_kn.test()) dash::tasks::yield(-1);
-                dart_handle_t handle = a_block_k.dart_handle();
-                dart_task_detach_handle(&handle, 1);
-              }
             },
             //(dart_task_prio_t)((num_blocks-k)*(num_blocks-n)*(num_blocks-n)),
-            dash::tasks::copyin_r(a_block_kn, block_size*block_size, a_block_kn_pre),
+            dash::tasks::copyin_r(scratch_blocks_kn(prev_owner, n, 0), block_size*block_size, a_block_kn_pre),
             dash::tasks::copyin_r(a_block_mk, block_size*block_size, a_block_mk_pre),
             dash::tasks::copyin_r(t_block_mk, block_size*block_size, t_block_mk_pre),
-            dash::tasks::out(a_block_mn),
-            dash::tasks::out(a_block_kn)
+            dash::tasks::out(a_block_mn)
           );
           ++num_tasks;
         }
       }
     }
     dash::tasks::async_barrier();
+
+    for (int n = k+1; n < num_blocks; ++n) {
+      int prev_owner = Block{A, num_blocks-1, n}.unit();
+      auto scratch_block_kn = scratch_blocks_kn(prev_owner, n, 0);
+      if (scratch_block_kn.is_local()) {
+        dash::tasks::async("WRITEBACK_KN",
+          [=, &scratch_blocks_kn, &A]() mutable {
+            Block a_block_kn(A, k, n);
+            // write the block back
+            a_block_kn.store_async(&scratch_blocks_kn.local(0, n, 0));
+            // detach the task but release the dependencies only when the transfer completed
+            dart_handle_t handle = a_block_k.dart_handle();
+            dart_task_detach_handle(&handle, 1);
+          },
+          dash::tasks::in(scratch_block_kn)
+          // NOTE: we don't need an output dependency because block(k, n)'is never again read
+        );
+        ++num_tasks;
+      }
+    }
   }
 
   if (dash::myid() == 0)
@@ -229,7 +243,6 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   delete[] t_block_k_pre;
   delete[] a_blocks_mk_pre;
   delete[] t_blocks_mk_pre;
-  delete[] a_blocks_kn_pre;
 
 }
 
