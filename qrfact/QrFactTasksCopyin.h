@@ -36,6 +36,8 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   value_t *t_blocks_mk_pre = new value_t[block_size*block_size*num_blocks];
 
   dash::Matrix<value_t, 3> scratch_blocks_kn(dash::size(), dash::BLOCKED, num_blocks, dash::NONE, block_size*block_size, dash::NONE);
+  constexpr const int num_kk_scratch = 2;
+  dash::Matrix<value_t, 3> scratch_blocks_kk(dash::size(), dash::BLOCKED, num_kk_scratch, dash::NONE, block_size*block_size, dash::NONE);
 
   auto next_buf_pos = [=](){
     static size_t buffer_pos = 0;
@@ -57,25 +59,30 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     Block t_block_k(T, k, k);
     value_t *a_k_pre;
     value_t *t_k_pre;
+    int k_scratch_entry = k%num_kk_scratch;
 
     /**
      * Compute cholesky factorization of block on diagonal
      */
     if (a_block_k.is_local()) {
       dash::tasks::async("GEQRT",
-        [=]() mutable {
+        [=, &scratch_blocks_kk]() mutable {
           if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
           if (scratch_tau  == nullptr) scratch_tau  = new double[block_size];
           geqrt(a_block_k.lbegin(), t_block_k.lbegin(), scratch_tau, scratch_work, block_size);
+
+          std::copy(a_block_k.lbegin(), a_block_k.lend(),
+                    &scratch_blocks_kk.local(0, k_scratch_entry, 0));
 #ifdef DEBUG_OUTPUT
           printf("\n\nPOST geqrt(k=%d)\n", k);
           print_matrix(a_block_k.lbegin(), block_size);
           print_matrix(t_block_k.lbegin(), block_size);
 #endif
         },
-        //(dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k))/*priority*/,
+        (dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k))/*priority*/,
         dash::tasks::out(a_block_k),
-        dash::tasks::out(t_block_k)
+        dash::tasks::out(t_block_k),
+        dash::tasks::out(scratch_blocks_kk.local(0, k_scratch_entry, 0))
       );
       ++num_tasks;
 
@@ -127,33 +134,31 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       Block a_block_mk(A, m, k);
       Block t_block_mk(T, m, k);
       if (a_block_mk.is_local()) {
+        value_t *a_block_kk_pre;
+        // there was a previous owner, get it directly from his scratch space
+        a_block_kk_pre = &scratch_blocks_kk.local(0, k_scratch_entry, 0);
+        int prev_k_owner = Block{A, m-1, k}.unit();
         dash::tasks::async("TSQRT",
           [=]() mutable {
             if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
             if (scratch_tau  == nullptr) scratch_tau  = new double[block_size];
-            tsqrt(a_k_pre,
+            tsqrt(a_block_kk_pre,
                   a_block_mk.lbegin(),
                   t_block_mk.lbegin(),
                   scratch_tau, scratch_work, block_size);
 #ifdef DEBUG_OUTPUT
             printf("\n\ntsqrt(k=%d, m=%d)\n", k, m);
-            print_matrix(a_k_pre, block_size);
+            print_matrix(a_block_kk_pre, block_size);
             print_matrix(a_block_mk.lbegin(), block_size);
             print_matrix(t_block_mk.lbegin(), block_size);
 #endif
 
-            if (!a_block_k.is_local()) {
-              a_block_k.store_async(a_k_pre);
-              //while (!a_block_k.test()) dash::tasks::yield(-1);
-              dart_handle_t handle = a_block_k.dart_handle();
-              dart_task_detach_handle(&handle, 1);
-            }
           },
-          //(dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k)) /*priority*/,
-          dash::tasks::copyin_r(a_block_k, block_size*block_size, a_k_pre),
+          (dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k)) /*priority*/,
+          dash::tasks::copyin_r(scratch_blocks_kk(prev_k_owner, k_scratch_entry, 0), block_size*block_size, a_block_kk_pre),
           dash::tasks::out(a_block_mk),
           dash::tasks::out(t_block_mk),
-          dash::tasks::out(a_block_k)
+          dash::tasks::out(scratch_blocks_kk.local(0, k_scratch_entry, 0))
         );
         ++num_tasks;
       }
@@ -196,7 +201,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
               print_matrix(t_block_mk_pre, block_size);
 #endif
             },
-            //(dart_task_prio_t)((num_blocks-k)*(num_blocks-n)*(num_blocks-n)),
+            (dart_task_prio_t)((num_blocks-k)*(num_blocks-n)*(num_blocks-n)),
             dash::tasks::copyin_r(scratch_blocks_kn(prev_owner, n, 0), block_size*block_size, a_block_kn_pre),
             dash::tasks::copyin_r(a_block_mk, block_size*block_size, a_block_mk_pre),
             dash::tasks::copyin_r(t_block_mk, block_size*block_size, t_block_mk_pre),
@@ -207,6 +212,25 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       }
     }
     dash::tasks::async_barrier();
+
+    // write back block (k,k)
+    int prev_k_owner = Block{A, num_blocks-1, k}.unit();
+    if (scratch_blocks_kk(prev_k_owner, k_scratch_entry, 0).is_local()) {
+      // write back Block (k, k)
+      dash::tasks::async("WRITEBACK_KK",
+        [=, &scratch_blocks_kk]() mutable {
+            // write the block back
+            a_block_k.store_async(&scratch_blocks_kk.local(0, k_scratch_entry, 0));
+            // detach the task but release the dependencies only when the transfer completed
+            dart_handle_t handle = a_block_k.dart_handle();
+            dart_task_detach_handle(&handle, 1);
+        },
+        (dart_task_prio_t)((num_blocks-k)*(num_blocks-k)*(num_blocks-k)) /*priority*/,
+        dash::tasks::in(scratch_blocks_kk.local(0, k_scratch_entry, 0))
+        // NOTE: we don't need an output dependency here as block (k, k) will never be touched again'
+        //dash::tasks::out(a_block_k)
+      );
+    }
 
     // write back blocks (k, n)
     for (size_t n = k+1; n < num_blocks; ++n) {
@@ -219,9 +243,10 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
             // write the block back
             a_block_kn.store_async(&scratch_blocks_kn.local(0, n, 0));
             // detach the task but release the dependencies only when the transfer completed
-            dart_handle_t handle = a_block_k.dart_handle();
+            dart_handle_t handle = a_block_kn.dart_handle();
             dart_task_detach_handle(&handle, 1);
           },
+          (dart_task_prio_t)((num_blocks-k)*(num_blocks-n)*(num_blocks-n)),
           dash::tasks::in(scratch_block_kn)
           // NOTE: we don't need an output dependency because block(k, n)'is never again read
         );
