@@ -35,7 +35,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   value_t *a_blocks_mk_pre = new value_t[block_size*block_size*num_blocks];
   value_t *t_blocks_mk_pre = new value_t[block_size*block_size*num_blocks];
 
-  dash::Matrix<value_t, 3> scratch_blocks_kn(dash::size(), dash::BLOCKED, block_size*block_size, dash::NONE, num_blocks, dash::NONE);
+  dash::Matrix<value_t, 3> scratch_blocks_kn(dash::size(), dash::BLOCKED, num_blocks, dash::NONE, block_size*block_size, dash::NONE);
 
   auto next_buf_pos = [=](){
     static size_t buffer_pos = 0;
