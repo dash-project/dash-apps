@@ -51,7 +51,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   Timer t_c;
 
   // iterate over column of blocks
-  for (int k = 0; k < num_blocks; ++k) {
+  for (size_t k = 0; k < num_blocks; ++k) {
 
     Block a_block_k(A, k, k);
     Block t_block_k(T, k, k);
@@ -87,7 +87,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     }
     dash::tasks::async_barrier();
 
-    for (int n = k+1; n < num_blocks; ++n) {
+    for (size_t n = k+1; n < num_blocks; ++n) {
       Block a_block_kn(A, k, n);
       if (a_block_kn.is_local()) {
         dash::tasks::async("ORMQR",
@@ -122,7 +122,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
 
     //dash::tasks::async_barrier();
 
-    for (int m = k+1; m < num_blocks; ++m) {
+    for (size_t m = k+1; m < num_blocks; ++m) {
 
       Block a_block_mk(A, m, k);
       Block t_block_mk(T, m, k);
@@ -170,7 +170,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
         t_block_mk_pre = &t_blocks_mk_pre[block_size*block_size*m];
       }
 
-      for (int n = k+1; n < num_blocks; ++n) {
+      for (size_t n = k+1; n < num_blocks; ++n) {
 
         Block a_block_mn(A, m, n);
         if (a_block_mn.is_local()) {
@@ -208,7 +208,8 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     }
     dash::tasks::async_barrier();
 
-    for (int n = k+1; n < num_blocks; ++n) {
+    // write back blocks (k, n)
+    for (size_t n = k+1; n < num_blocks; ++n) {
       int prev_owner = Block{A, num_blocks-1, n}.unit();
       auto scratch_block_kn = scratch_blocks_kn(prev_owner, n, 0);
       if (scratch_block_kn.is_local()) {
