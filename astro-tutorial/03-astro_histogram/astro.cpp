@@ -147,7 +147,7 @@ int main( int argc, char* argv[] ) {
 
         if ( 0 != myid ) {
 
-            dash::transform<uint32_t>(
+            dash::transform(
                 histogram.lbegin(), histogram.lend(), // first source
                 histogram.begin(), // second source
                 histogram.begin(), // destination

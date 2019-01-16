@@ -151,7 +151,7 @@ int main( int argc, char* argv[] ) {
 
         if ( 0 != myid ) {
 
-            dash::transform<uint32_t>(
+            dash::transform(
                 histogram.lbegin(), histogram.lend(), // first source
                 histogram.begin(), // second source
                 histogram.begin(), // destination
@@ -177,7 +177,7 @@ int main( int argc, char* argv[] ) {
     /* *** part 6: create a matching index array and do object coundting there *** */
 
     {
-        dash::NArray<uint32_t,2> ids( 
+        dash::NArray<uint32_t,2> ids(
             dash::SizeSpec<2>( imagesize.height, imagesize.width ),
             distspec, dash::Team::All(), teamspec );
         dash::fill( ids.begin(), ids.end(), 0 );
@@ -192,8 +192,8 @@ int main( int argc, char* argv[] ) {
 
         if ( 0 == myid ) {
             uint32_t sum_objects= std::accumulate(sums.begin(), sums.end(), 0);
-            cout << "found " << sum_objects << " objects in total in " << 
-            std::chrono::duration_cast<std::chrono::seconds> (end-start).count()<< " seconds" << endl;
+            cout << "found " << sum_objects << " objects in total in " <<
+            std::chrono::duration_cast<std::chrono::milliseconds> (end-start).count()<< " milliseconds" << endl;
         }
     }
 
@@ -202,16 +202,20 @@ int main( int argc, char* argv[] ) {
 }
 
 
-constexpr dash::StencilSpec<2,4> stencil_spec({
-    dash::Stencil<2>(-1, 0), dash::Stencil<2>( 1, 0),
-    dash::Stencil<2>( 0,-1), dash::Stencil<2>( 0, 1)});
+using StencilP_t      = dash::halo::StencilPoint<2>;
+using StencilSpec_t   = dash::halo::StencilSpec<StencilP_t,4>;
+using GlobBoundSpec_t = dash::halo::GlobalBoundarySpec<2>;
 
-constexpr dash::CycleSpec<2> cycle_spec(
-    dash::Cycle::NONE,
-    dash::Cycle::NONE );
+constexpr StencilSpec_t stencil_spec(
+    StencilP_t(-1, 0), StencilP_t( 1, 0),
+    StencilP_t( 0,-1), StencilP_t( 0, 1));
 
+GlobBoundSpec_t bound_spec(
+    dash::halo::BoundaryProp::CUSTOM,
+    dash::halo::BoundaryProp::CUSTOM
+);
 
-/* counts the objects in the local part of the image, it doesn't use a marker color but a separate array 
+/* counts the objects in the local part of the image, it doesn't use a marker color but a separate array
 'ids' where a object index per object is set. object index 0 means it is not part of an object. */
 uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& ids, uint32_t startindex, uint32_t limit ) {
 
@@ -222,6 +226,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
 
     uint32_t lw= matrix.local.extent(1);
     uint32_t lh= matrix.local.extent(0);
+
     for ( uint32_t y= 0; y < lh ; y++ ){
         for ( uint32_t x= 0; x < lw ; x++ ){
 
@@ -261,17 +266,45 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
     }
 
     /* step 2: create halo for helper array 'ids', then do halo exchange */
-    dash::HaloMatrixWrapper< dash::NArray<uint32_t,2>, dash::StencilSpec<2,4> > halo( ids, stencil_spec, cycle_spec );
+    dash::halo::HaloMatrixWrapper< dash::NArray<uint32_t,2> > halo( ids, bound_spec, stencil_spec );
+    halo.set_custom_halos([](const auto& coords) {
+      return 0;
+    });
+
     halo.update();
 
     /* step 3: go along the local borders, if there is a local object (ids[y][x] != 0) and the
-    halo also has an object there ... if so, add the two object ids in a map (actually only keep 
+    halo also has an object there ... if so, add the two object ids in a map (actually only keep
     those with local object id < remote object id, otherwise one would count it twice). */
 
+    std::set<std::pair<uint32_t,uint32_t>> touchset;
+    auto stencil_op = halo.stencil_operator(stencil_spec);
+#if 1
+    // lamda function to compare boundary object ids with the object ids stored in the halos per
+    // direction
+    auto obj_id_comp = [&touchset](auto it_begin, auto it_end, auto stencil_index){
+      for(;it_begin != it_end; ++it_begin) {
+        auto id_local = *it_begin;
+        auto id_remote = it_begin.value_at(stencil_index);
+        if (  0 != id_local &&  0 != id_remote &&  id_local < id_remote ) {
+          touchset.insert( {id_local, id_remote} );
+        }
+      }
+    };
+
+    // calls obj_id_comp for all boundary areas with the stencil point pointing to the halo element
+    for(auto dim = 0; dim < 2; ++dim) {
+      // halo area before center for the given dimension
+      auto it_pre = stencil_op.boundary.iterator_at(dim, dash::halo::RegionPos::PRE);
+      obj_id_comp(it_pre.first, it_pre.second, dim * 2);
+      // halo area after center for the given dimension
+      auto it_post = stencil_op.boundary.iterator_at(dim, dash::halo::RegionPos::POST);
+      obj_id_comp(it_post.first, it_post.second, dim * 2 + 1);
+    }
+#else
+    // alternative approach, but needs more source code
     std::array<long int,2> upperleft= ids.pattern().global( {0,0} );
     std::array<long int,2> bottomright= ids.pattern().global( {lh-1,lw-1} );
-
-    std::set<std::pair<uint32_t,uint32_t>> touchset;
 
     if ( upperleft[0] > 0 ) {
 
@@ -279,7 +312,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         for ( uint32_t x= 0; x < lw ; x++ ) {
 
             uint32_t localid= ids.local[0][x];
-            uint32_t remoteid= *halo.halo_element_at( {upperleft[0]-1,x+upperleft[1]} );
+            uint32_t remoteid= *halo.halo_element_at_global( {upperleft[0]-1,x+upperleft[1]} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
@@ -294,7 +327,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         for ( uint32_t y= 0; y < lh ; y++ ) {
 
             uint32_t localid= ids.local[y][lw-1];
-            uint32_t remoteid= *halo.halo_element_at( {y+upperleft[0],upperleft[1]-1} );
+            uint32_t remoteid= *halo.halo_element_at_global( {y+upperleft[0],upperleft[1]-1} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
@@ -309,7 +342,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         for ( uint32_t x= 0; x < lw ; x++ ) {
 
             uint32_t localid= ids.local[lh-1][x];
-            uint32_t remoteid= *halo.halo_element_at( {bottomright[0]+1,x+upperleft[1]} );
+            uint32_t remoteid= *halo.halo_element_at_global( {bottomright[0]+1,x+upperleft[1]} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
@@ -324,7 +357,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         for ( uint32_t y= 0; y < lh ; y++ ) {
 
             uint32_t localid= ids.local[y][lw-1];
-            uint32_t remoteid= *halo.halo_element_at( {y+upperleft[0],bottomright[1]+1} );
+            uint32_t remoteid= *halo.halo_element_at_global( {y+upperleft[0],bottomright[1]+1} );
 
             if ( ( 0 != localid ) && ( 0 != remoteid ) && ( localid < remoteid ) ) {
 
@@ -333,6 +366,7 @@ uint32_t countobjects( dash::NArray<RGB, 2>& matrix, dash::NArray<uint32_t,2>& i
         }
 
     }
+#endif
 
     /* step 4: subtract the number of entries in the map from the number of found objects */
 

@@ -147,7 +147,7 @@ int main( int argc, char* argv[] ) {
 
         if ( 0 != myid ) {
 
-            dash::transform<uint32_t>(
+            dash::transform(
                 histogram.lbegin(), histogram.lend(), // first source
                 histogram.begin(), // second source
                 histogram.begin(), // destination
@@ -179,7 +179,7 @@ int main( int argc, char* argv[] ) {
         size_t count = 0;
         for ( auto it= matrix.lbegin(); it != matrix.lend(); ++it ) {
 
-            if ( marker == *it ) count++;
+            if ( marker == (RGB)*it ) count++;
         }
 
         end = std::chrono::system_clock::now();
