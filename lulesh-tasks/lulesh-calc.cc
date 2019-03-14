@@ -1496,6 +1496,8 @@ void CalcVolumeForceForElems(Domain& domain)
             std::cerr << dash::myid() << " determ[" << k << "] "<< determ[k] << std::endl;
 #if USE_MPI
             MPI_Abort(MPI_COMM_WORLD, VolumeError);
+#elif USE_DASH
+            dart_abort(VolumeError);
 #else
             exit(VolumeError);
 #endif
