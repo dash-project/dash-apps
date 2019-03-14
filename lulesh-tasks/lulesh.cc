@@ -111,5 +111,7 @@ int main(int argc, char *argv[])
     dom.VerifyAndWriteFinalOutput(elapsed, opts.nx(), numRanks);
   }
   dash::finalize();
+
+  return 0;
 }
 
