@@ -305,16 +305,23 @@ template<>
 double DASHComm::allreduce_min<double>(double val)
 {
   double res;
+  dart_handle_t handle;
+  dart_allreduce_handle(&val, &res, 1, DART_TYPE_DOUBLE, DART_OP_MIN,
+                        DART_TEAM_ALL, &handle);
+  dart_task_wait_handle(&handle, 1);
+
+#if 0
   // FIXME
   MPI_Request request;
   MPI_Iallreduce(&val, &res, 1, MPI_DOUBLE, MPI_MIN,
-		MPI_COMM_WORLD, &request);
+                 MPI_COMM_WORLD, &request);
   do {
     int flag;
     MPI_Test(&request, &flag, MPI_STATUS_IGNORE);
     if (flag) break;
     dash::tasks::yield();
   } while (1);
+#endif
   return res;
 }
 
