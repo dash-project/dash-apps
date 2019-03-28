@@ -607,7 +607,10 @@ void SlaveStart()
     stepsystem(ProcessId);
     // if (ProcessId == 0) printtree(G_root.get().get());
   }
-  if (ProcessId == 0 && debugEnabled) printtree(G_root.get().get());
+  if (ProcessId == 0 && debugEnabled) {
+    //auto ref = static_cast<dash::GlobRef<nodeptr>>(G_root.get());
+    printtree(G_root.get().get());
+  }
 }
 
 void startrun()

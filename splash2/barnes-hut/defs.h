@@ -17,8 +17,10 @@
 #ifndef _DEFS_H_
 #define _DEFS_H_
 
+#include <dash/Array.h>
 #include <dash/Atomic.h>
 #include <dash/GlobRef.h>
+#include <dash/memory/MemorySpace.h>
 #include "stdinc.h"
 #include "vectmath.h"
 
@@ -56,8 +58,15 @@
  * NODE: data common to BODY and CELL structures.
  */
 
-typedef dash::GlobPtr<struct _node> nodeptr;
-typedef struct _node *nodelptr;
+struct _node;
+
+namespace detail {
+
+  using array_t = dash::Array<char>;
+  using gptr_t = typename array_t::pointer;
+}
+
+using nodeptr = detail::gptr_t::template rebind<struct _node>;
 
 typedef struct _node {
   // 8
@@ -97,10 +106,11 @@ typedef struct _node {
  * BODY: data structure used to represent particles.
  */
 
-typedef dash::GlobPtr<struct _body> bodyptr;
+using bodyptr = typename nodeptr::template rebind<struct _body>;
+using leafptr = typename nodeptr::template rebind<struct _leaf>;
+using cellptr = typename nodeptr::template rebind<struct _cell>;
+
 typedef struct _body *bodylptr;
-typedef dash::GlobPtr<struct _leaf> leafptr;
-typedef dash::GlobPtr<struct _cell> cellptr;
 
 static_assert(sizeof(nodeptr) == sizeof(cellptr),
               "GlobPtr of two types do not equal in sizeof");
@@ -262,7 +272,7 @@ class is_standard_layout<body> : public integral_constant<bool, true> {
 #define Quad(x) (((cellptr)(x))->quad)
 #endif
 #define Done(x) ((x).member<long>(&cell::done))
-#define AtomicDone(x) dash::GlobRef<dash::Atomic<long>>(Done(x).dart_gptr())
+#define AtomicDone(x) dash::GlobRef<dash::Atomic<long>>(Done(x))
 
 /*
 typedef dash::GlobRef<dash::Atomic<long>> atomic_flag_t;

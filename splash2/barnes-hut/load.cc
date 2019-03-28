@@ -244,10 +244,10 @@ static void _printtree(nodeptr n, std::ostringstream &ss)
         // with invalid addresses on a different unit. For this reason we
         // construct a new global pointer with the proper members based on a
         // DART pointer
-        auto const p_tmp = bodyptr{bodytab.globmem(), p.dart_gptr()};
-        auto const p_val = (*p_tmp).get();
+        //auto const p_tmp = bodyptr{bodytab.globmem(), p.dart_gptr()};
 
-        ss << "Body #" << p_tmp - static_cast<bodyptr>(bodytab.begin())
+        auto const p_val = (*p).get();
+        ss << "Body #" << p - static_cast<bodyptr>(bodytab.begin())
            << ": Num = " << k << ", Level = " << p_val.level << ", ";
         PRTV(ss, "Pos", p_val.pos);
         ss << "\n";
