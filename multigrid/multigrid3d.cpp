@@ -46,7 +46,8 @@ using StencilT = dash::halo::StencilPoint<3>;
 using StencilSpecT = dash::halo::StencilSpec<StencilT,26>;
 using CycleSpecT = dash::halo::GlobalBoundarySpec<3>;
 using HaloT = dash::halo::HaloMatrixWrapper<MatrixT>;
-using StencilOpT = dash::halo::StencilOperator<double,PatternT,StencilSpecT>;
+using GlobMemT = typename MatrixT::GlobMem_t;
+using StencilOpT = dash::halo::StencilOperator<double,PatternT, GlobMemT,StencilSpecT>;
 
 /* for the smoothing operation, only the 6-point stencil is needed.
 However, the prolongation operation also needs the */
@@ -1344,12 +1345,12 @@ void scaleup( Level& coarse, Level& fine ) {
       }
     }
 
-    /* how to calculate the number of flops here: for every element there are 2 flop (one add, one mul), 
-    then calculate the number of finegrid points that receive a contribution from a coarse grid point with 
+    /* how to calculate the number of flops here: for every element there are 2 flop (one add, one mul),
+    then calculate the number of finegrid points that receive a contribution from a coarse grid point with
     coefficient 1.0, 0.5, 0.25, an 0.125 separately. Consider the case where a unit is last in the distributions
     in any dimension, which is marked with 'sub[.]==1'. In those cases change '(extentc[.]-1)' --> '(extentc[.]-1+sub[.])'
     Then sum them up and simplify. */
-    minimon.stop( "scaleup", coarsegrid.team().size() /* param */, coarsegrid.local_size() /* elem */, 
+    minimon.stop( "scaleup", coarsegrid.team().size() /* param */, coarsegrid.local_size() /* elem */,
         (2*extentc[0]-1+sub[0])*(2*extentc[1]-1+sub[1])*(2*extentc[2]-1+sub[2])*2 /* flops */ );
 }
 
