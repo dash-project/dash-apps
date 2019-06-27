@@ -883,9 +883,9 @@ bool check_symmetry( MatrixT& grid, double eps ) {
 
 void scaledownboundary( Level& fine, Level& coarse ) {
 
-    assert( coarse.src_grid->extent(2)*2 == fine.src_grid->extent(2) );
-    assert( coarse.src_grid->extent(1)*2 == fine.src_grid->extent(1) );
-    assert( coarse.src_grid->extent(0)*2 == fine.src_grid->extent(0) );
+    assert( coarse.src_grid->extent(2)*2+1 == fine.src_grid->extent(2) );
+    assert( coarse.src_grid->extent(1)*2+1 == fine.src_grid->extent(1) );
+    assert( coarse.src_grid->extent(0)*2+1 == fine.src_grid->extent(0) );
 
     size_t dmax= coarse.src_grid->extent(0);
     size_t hmax= coarse.src_grid->extent(1);
@@ -2516,6 +2516,26 @@ void scaleup_loop_fine( Level& coarse, Level& fine ) {
 }
 
 
+void transfertofewerboundary( Level& source, Level& dest ) {
+
+    using index_t = dash::default_index_t;
+
+    assert( dest.src_grid->extent(2) == source.src_grid->extent(2) );
+    assert( dest.src_grid->extent(1) == source.src_grid->extent(1) );
+    assert( dest.src_grid->extent(0) == source.src_grid->extent(0) );
+
+    auto sourcehalo= source.src_halo;
+
+    auto lambda= [&sourcehalo]( const std::array<index_t, 3>& coord ) {
+        return *sourcehalo->halo_element_at_global( { coord[0], coord[1], coord[2] } );
+    };
+
+    dest.src_halo->set_custom_halos( lambda );
+    dest.dst_halo->set_custom_halos( lambda );
+
+    dest.src_grid->team().barrier();
+}
+
 void transfertofewer( Level& source /* with larger team*/, Level& dest /* with smaller team */ ) {
 
     /* should only be called by the smaller team */
@@ -3089,9 +3109,9 @@ void do_multigrid_iteration( uint32_t howmanylevels, double eps, std::array< dou
         /* scaledown boundary instead of initializing it from the same
         procedure, because this is very prone to subtle mistakes which
         makes the entire multigrid algorithm misbehave. */
-        //scaledownboundary( previouslevel, *levels.back() );
+        scaledownboundary( previouslevel, *levels.back() );
 
-        initboundary_zero( *levels.back() );
+        //initboundary_zero( *levels.back() );
 
         dash::barrier();
         --howmanylevels;
@@ -3219,6 +3239,8 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
 
         if ( 0 == currentteam.position() ) {
 
+            Level& previouslevel= *levels.back();
+
             if ( previousteam.size() != currentteam.size() ) {
 
                 /* the team working on the following grid layers has just
@@ -3246,7 +3268,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
                                ((1<<(howmanylevels+1))-1)*factor_y,
                                ((1<<(howmanylevels+1))-1)*factor_x,
                                currentteam, localteamspec ) );
-                initboundary_zero( *levels.back() );
+                transfertofewerboundary( previouslevel, *levels.back() );
             }
 
             //cout << "working unit " << dash::myid() << " / " << currentteam.myid() << " in subteam at position " << currentteam.position() << endl;
@@ -3277,7 +3299,7 @@ void do_multigrid_elastic( uint32_t howmanylevels, double eps, std::array< doubl
                            ((1<<(howmanylevels))-1)*factor_x ,
                            currentteam, localteamspec ) );
 
-            initboundary_zero( *levels.back() );
+            scaledownboundary( previouslevel, *levels.back() );
 
         } else {
 
