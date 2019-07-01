@@ -92,7 +92,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       a_k_pre = a_block_k_pre;
       t_k_pre = t_block_k_pre;
     }
-    dash::tasks::async_barrier();
+    dash::tasks::async_fence();
 
     for (size_t n = k+1; n < num_blocks; ++n) {
       Block a_block_kn(A, k, n);
@@ -127,7 +127,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
       }
     }
 
-    //dash::tasks::async_barrier();
+    //dash::tasks::async_fence();
 
     for (size_t m = k+1; m < num_blocks; ++m) {
 
@@ -163,7 +163,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
         ++num_tasks;
       }
 
-      dash::tasks::async_barrier();
+      dash::tasks::async_fence();
 
       value_t *a_block_mk_pre;
       value_t *t_block_mk_pre;
@@ -211,7 +211,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
         }
       }
     }
-    dash::tasks::async_barrier();
+    dash::tasks::async_fence();
 
     // write back block (k,k)
     int prev_k_owner = Block{A, num_blocks-1, k}.unit();

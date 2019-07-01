@@ -72,7 +72,7 @@ compute(TiledMatrix& matrix, size_t block_size){
       );
       ++num_tasks;
     }
-    dash::tasks::async_barrier();
+    dash::tasks::async_fence();
 
     /**
      * Solve the triangular equation system in the block
@@ -96,7 +96,7 @@ compute(TiledMatrix& matrix, size_t block_size){
         ++num_tasks;
       }
     }
-    dash::tasks::async_barrier();
+    dash::tasks::async_fence();
 
     // walk to the right
     for (size_t i = k+1; i < num_blocks; ++i) {
@@ -142,7 +142,7 @@ compute(TiledMatrix& matrix, size_t block_size){
         ++num_tasks;
       }
     }
-    dash::tasks::async_barrier();
+    dash::tasks::async_fence();
   }
 
   if (dash::myid() == 0)
