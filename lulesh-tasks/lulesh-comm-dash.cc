@@ -53,7 +53,7 @@ void DASHComm::ExchangeNodalMass()
 	  dom.sizeX() + 1, dom.sizeY() + 1, dom.sizeZ() +  1,
 	  true, false);
 
-  dash::tasks::async_barrier();
+  dash::tasks::async_fence();
 
   //dash::barrier();
   DASHCommSBN(dom, comm, 1, &fieldData);
@@ -105,7 +105,7 @@ void DASHComm::Sync_PosVel()
     fieldData[5] = &Domain::zd;
   }
 //
-  dash::tasks::async_barrier();
+  dash::tasks::async_fence();
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
@@ -127,7 +127,7 @@ void DASHComm::Sync_PosVel()
     },
     dash::tasks::out(dom.x(0))
   );
-  dash::tasks::async_barrier();
+  dash::tasks::async_fence();
 }
 
 
@@ -168,7 +168,7 @@ void DASHComm::Sync_Force()
   DASHComm& comm = *this;
   Domain&  dom  = m_dom;
 
-  dash::tasks::async_barrier();
+  dash::tasks::async_fence();
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
@@ -189,7 +189,7 @@ void DASHComm::Sync_Force()
     },
     dash::tasks::out(dom.fx(0))
   );
-  dash::tasks::async_barrier();
+  dash::tasks::async_fence();
 }
 
 void DASHComm::Recv_MonoQ()
@@ -222,7 +222,7 @@ void DASHComm::Sync_MonoQ()
   DASHComm& comm = *this;
   Domain&  dom  = m_dom;
 
-  dash::tasks::async_barrier();
+  dash::tasks::async_fence();
 
   // dummy task to emulate CONCURRENT dependency
   dash::tasks::async(
