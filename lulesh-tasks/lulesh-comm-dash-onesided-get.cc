@@ -55,7 +55,7 @@ dump_buffer(Real_t *buf, size_t nelem)
 
 
 static void
-get_yield(const dash::GlobIter<double, dash::BlockPattern<1> > src,
+get_yield(const DASHComm::array_type::iterator src,
           Real_t *srcAddr, size_t recvCount, int tag)
 {
 #ifdef PRINT_VALUES

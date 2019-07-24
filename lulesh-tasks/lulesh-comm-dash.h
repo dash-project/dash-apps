@@ -94,10 +94,12 @@ public:
 
   // determine global destination pointer for a target unit rank and
   // location descriptor
-  dash::GlobIter<Real_t, dash::Pattern<1>>
+  //dash::GlobIter<Real_t, dash::Pattern<1>>
+  array_type::iterator
     dest( Int_t rank, Int_t desc, Int_t xferFields );
 
-  dash::GlobIter<Real_t, dash::Pattern<1>>
+  //dash::GlobIter<Real_t, dash::Pattern<1>>
+  array_type::iterator
     src( Int_t rank, Int_t desc, Int_t xferFields );
 
   // 26 = 6 faces + 12 edges + 8 corners

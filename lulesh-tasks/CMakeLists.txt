@@ -9,11 +9,11 @@ set(DASH_DART_IMPL "MPI")
 file(GLOB SOURCES *.cc)
 
 #set(CXX_FLAGS "-O3 -Ofast -DUSE_DASH")
-set(CXX_FLAGS "-O0 -g -DUSE_DASH")
+#set(CXX_FLAGS "-O0 -g -DUSE_DASH")
 set(CXX_FLAGS "-O3 -g -DUSE_DASH")
 #set(CXX_FLAGS "-O3 -g -DUSE_DASH -p")
 #set(CXX_FLAGS "${CXX_FLAGS} -DDASH_USE_GET")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 ## Do not edit below this line unless you know what you are doing
 
@@ -76,7 +76,7 @@ else()
   message(STATUS "Using TCMalloc libraries: ${TCMALLOC_LIBRARIES}")
 endif()
 
-set (DMAPP_LIBRARIES "lulesh-tasks/CMakeLists.txt")
+#set (DMAPP_LIBRARIES "lulesh-tasks/CMakeLists.txt")
 
 target_link_libraries(
   ${PROJECT_NAME}

@@ -59,7 +59,7 @@ dump_buffer(Real_t *buf, size_t nelem)
 
 
 static void
-put_yield(const dash::GlobIter<double, dash::BlockPattern<1> > dest,
+put_yield(const DASHComm::array_type::iterator dest,
           Real_t *destAddr, size_t sendCount, int tag)
 {
 #ifdef PRINT_VALUES

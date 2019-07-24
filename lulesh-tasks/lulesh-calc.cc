@@ -564,7 +564,7 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
 //#pragma omp parallel firstprivate(length, dvovmax)
 
   dash::tasks::TASKLOOP(Index_t{0}, length,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()),
     [&](Index_t from, Index_t to) {
 
       Real_t&  dthydro_tmp = reduction.local().dthydro;

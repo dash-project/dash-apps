@@ -243,6 +243,7 @@ void DASHComm::Sync_MonoQ()
     },
     dash::tasks::out(dom.delv_xi(0))
   );
+  dash::tasks::async_fence();
 }
 
 Int_t DASHComm::offset(Int_t desc, Int_t xferFields)
@@ -266,28 +267,30 @@ Int_t DASHComm::offset(Int_t desc, Int_t xferFields)
   return offs;
 }
 
-dash::GlobIter<Real_t, dash::Pattern<1>>
+//dash::GlobIter<Real_t, dash::Pattern<1>>
+DASHComm::array_type::iterator
 DASHComm::dest(Int_t rank, Int_t desc, Int_t xferFields)
 {
   auto& pat = m_commDataRecv->pattern();
 
   auto offs = offset(desc, xferFields);
 
-  dash::GlobIter<Real_t, dash::Pattern<1> > it
+  auto it
     = m_commDataRecv->begin() + pat.global_index(dash::team_unit_t(rank),
                                                  {offs});
 
   return it;
 }
 
-dash::GlobIter<Real_t, dash::Pattern<1>>
+//dash::GlobIter<Real_t, dash::Pattern<1>>
+DASHComm::array_type::iterator
 DASHComm::src(Int_t rank, Int_t desc, Int_t xferFields)
 {
   auto& pat = m_commDataSend->pattern();
 
   auto offs = offset(desc, xferFields);
 
-  dash::GlobIter<Real_t, dash::Pattern<1> > it
+  auto it
     = m_commDataSend->begin() + pat.global_index(dash::team_unit_t(rank),
                                                  {offs});
 
