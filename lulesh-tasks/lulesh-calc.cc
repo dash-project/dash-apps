@@ -1176,7 +1176,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
       }
     },
     [determ, x8n, fz_elem, &domain]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::in(determ[from]);
       *deps = dash::tasks::in(determ[0]);
       *deps = dash::tasks::in(domain.fx(0));
@@ -1211,7 +1211,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
         }
       },
       [fz_elem, fx_elem, &domain]
-      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      (auto from, auto to, auto deps){
         *deps = dash::tasks::in(fx_elem[0]);
         *deps = dash::tasks::in(domain.fx(0));
       });
@@ -1282,7 +1282,7 @@ void CalcHourglassControlForElems(Domain& domain,
       }
     },
     [determ, x8n]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(determ[from]);
       *deps = dash::tasks::in( x8n[0]);
     }
@@ -1330,7 +1330,7 @@ void InitStressTermsForElems(Domain &domain,
       }
     },
     [sigxx]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(sigxx[from]);
     });
   //dash::tasks::complete();
@@ -1405,7 +1405,7 @@ void IntegrateStressForElems( Domain &domain,
       }
     },
     [determ, sigxx, &domain]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::in(domain.fx(0));
       *deps = dash::tasks::in(sigxx[from]);
       *deps = dash::tasks::out(determ[from]);
@@ -1443,7 +1443,7 @@ void IntegrateStressForElems( Domain &domain,
         }
       },
       [&domain]
-      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      (auto from, auto to, auto deps){
         *deps = dash::tasks::in(domain.fx(0));
         *deps = dash::tasks::in(fx_elem[0]);
       });
@@ -1505,7 +1505,7 @@ void CalcVolumeForceForElems(Domain& domain)
         }
     },
     [determ]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::in(determ[from]);
     });
 
@@ -1953,7 +1953,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
       }
     },
     [bvc, compression, p_new, e_old]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(bvc[from]);
       *deps = dash::tasks::in( compression[from]);
       *deps = dash::tasks::out(p_new[from]);
@@ -1971,7 +1971,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
       }
     },
     [bvc, compression]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(&bvc[from]);
       *deps = dash::tasks::in(&compression[from]);
     });
@@ -1994,7 +1994,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
           p_new[i]   = pmin ;
       }
     },
-    [bvc, p_new, e_old](Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    [bvc, p_new, e_old](auto from, auto to, auto deps){
       *deps = dash::tasks::in(&bvc[from]);
       *deps = dash::tasks::in(&e_old[from]);
       *deps = dash::tasks::out(&p_new[from]);
@@ -2120,7 +2120,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       }
     },
     [e_new]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(e_new[from]);
     });
   //dash::tasks::complete();
@@ -2166,7 +2166,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       }
     },
     [e_new, q_new, compHalfStep, bvc, pHalfStep]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::in(&compHalfStep[from]);
       *deps = dash::tasks::in(&bvc[from]);
       *deps = dash::tasks::in(&pHalfStep[from]);
@@ -2192,7 +2192,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       }
     },
     [e_new]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(&e_new[from]);
     });
   //dash::tasks::complete();
@@ -2237,7 +2237,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       }
     },
     [e_new, bvc, pbvc, p_new, q_new, pHalfStep]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(&e_new[from]);
       *deps = dash::tasks::in(&bvc[from]);
       *deps = dash::tasks::in(&pbvc[from]);
@@ -2274,7 +2274,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       }
     },
     [e_new, bvc, pbvc, p_new, q_new]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::out(&e_new[from]);
       *deps = dash::tasks::in(&bvc[from]);
       *deps = dash::tasks::in(&pbvc[from]);
@@ -2318,7 +2318,7 @@ void CalcSoundSpeedForElems(Domain &domain,
     // The dependencies are not needed atm
     /*,
     [bvc, pbvc, vnewc, enewc, &domain]
-    (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    (auto from, auto to, auto deps){
       *deps = dash::tasks::in(&bvc[from]);
       *deps = dash::tasks::in(&pbvc[from]);
       *deps = dash::tasks::in(&enewc[from]);
@@ -2397,7 +2397,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
         }
       },
       [e_new]
-      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      (auto from, auto to, auto deps){
         *deps = dash::tasks::out(e_new[from]);
       });
 
@@ -2418,7 +2418,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
           }
         },
         [delvc]
-        (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+        (auto from, auto to, auto deps){
           *deps = dash::tasks::out(&delvc[from]);
         });
 
@@ -2434,7 +2434,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
           }
         },
         [delvc, compHalfStep]
-        (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+        (auto from, auto to, auto deps){
           *deps = dash::tasks::in(&delvc[from]);
           *deps = dash::tasks::out(&compHalfStep[from]);
         });
@@ -2452,7 +2452,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
             }
           },
           [compHalfStep]
-          (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+          (auto from, auto to, auto deps){
             *deps = dash::tasks::out(&compHalfStep[from]);
           });
       }
@@ -2470,7 +2470,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
             }
           },
           [compHalfStep]
-          (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+          (auto from, auto to, auto deps){
             *deps = dash::tasks::out(&compHalfStep[from]);
           });
       }
@@ -2484,7 +2484,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
           }
       },
       [work]
-      (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+      (auto from, auto to, auto deps){
         *deps = dash::tasks::out(&work[from]);
       });
       dash::tasks::complete();

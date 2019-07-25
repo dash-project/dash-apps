@@ -526,7 +526,7 @@ void Domain::CalcVelocityForNodes(const Real_t dt,
         zd(i) = zdtmp ;
       }
     },
-    [&](Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    [&](auto from, auto to, auto deps){
       *deps = dash::tasks::out(xd(from));
       *deps = dash::tasks::in( xdd(from));
     });
@@ -548,7 +548,7 @@ void Domain::CalcPositionForNodes(const Real_t dt,
         z(i) += zd(i) * dt;
       }
     },
-    [&](Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+    [&](auto from, auto to, auto deps){
       *deps = dash::tasks::out(x(from));
       *deps = dash::tasks::in( xd(from));
     });
@@ -1127,7 +1127,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
             }
           },
           [vnew]
-          (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+          (auto from, auto to, auto deps){
             *deps = dash::tasks::out(&vnew[from]);
           });
         //dash::tasks::complete();
@@ -1144,7 +1144,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
             }
           },
           [vnew]
-          (Index_t from, Index_t to, dash::tasks::DependencyVectorInserter deps){
+          (auto from, auto to, auto deps){
             *deps = dash::tasks::out(&vnew[from]);
           });
         //dash::tasks::complete();

@@ -1502,7 +1502,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1529,7 +1529,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1563,7 +1563,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1592,7 +1592,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1627,7 +1627,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1656,7 +1656,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1684,7 +1684,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += dz;
           }
         },
-        [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+        [=, &domain, &comm](auto deps){
           for (Index_t fi=0; fi<xferFields; ++fi) {
             Domain_member dest = fieldData[fi];
             // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1712,7 +1712,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1740,7 +1740,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1768,7 +1768,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1796,7 +1796,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1824,7 +1824,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1852,7 +1852,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1880,7 +1880,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1908,7 +1908,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1936,7 +1936,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1964,7 +1964,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -1992,7 +1992,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2016,7 +2016,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(0) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2040,7 +2040,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2064,7 +2064,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2088,7 +2088,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2112,7 +2112,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2136,7 +2136,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2160,7 +2160,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
@@ -2184,7 +2184,7 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           (domain.*fieldData[fi])(idx) = comBuf[fi];
         }
       },
-      [=, &domain, &comm](dash::tasks::DependencyVectorInserter deps){
+      [=, &domain, &comm](auto deps){
         for (Index_t fi=0; fi<xferFields; ++fi) {
           Domain_member dest = fieldData[fi];
           // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
