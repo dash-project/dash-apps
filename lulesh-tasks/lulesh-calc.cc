@@ -418,6 +418,7 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to){
+      Real_t *vnew_ = vnew;
       for( Index_t k=from; k<to; ++k )
         {
           Real_t B[3][8] ; /** shape function derivatives */
@@ -440,7 +441,7 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
           // volume calculations
           volume = CalcElemVolume(x_local, y_local, z_local);
           relativeVolume = volume / domain.volo(k) ;
-          vnew[k] = relativeVolume ;
+          vnew_[k] = relativeVolume ;
           domain.delv(k) = relativeVolume - domain.v(k) ;
 
           // set characteristic length
@@ -947,6 +948,16 @@ void CalcFBHourglassForceForElems(Domain &domain,
     fz_elem = Allocate<Real_t>(numElem8) ;
   }
 
+
+  constexpr const Real_t gamma[4][8] =
+  {
+  {Real_t( 1.), Real_t( 1.), Real_t(-1.), Real_t(-1.), Real_t(-1.), Real_t(-1.), Real_t( 1.), Real_t( 1.)},
+  {Real_t( 1.), Real_t(-1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t( 1.), Real_t(-1.)},
+  {Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.)},
+  {Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.)}
+  };
+
+#if 0
   Real_t  gamma[4][8];
 
   gamma[0][0] = Real_t( 1.);
@@ -981,6 +992,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
   gamma[3][5] = Real_t(-1.);
   gamma[3][6] = Real_t( 1.);
   gamma[3][7] = Real_t(-1.);
+#endif // 0
 
   /*************************************************/
   /*    compute the hourglass modes */
@@ -991,6 +1003,13 @@ void CalcFBHourglassForceForElems(Domain &domain,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(FBHOURGLASSFORCEFORELEMS);
+      Real_t *determ_ = determ;
+      Real_t *x8n_    = x8n;
+      Real_t *y8n_    = y8n;
+      Real_t *z8n_    = z8n;
+      Real_t *dvdx_   = dvdx;
+      Real_t *dvdy_   = dvdy;
+      Real_t *dvdz_   = dvdz;
       for(Index_t i2=from;i2<to;++i2){
         Real_t *fx_local, *fy_local, *fz_local ;
         Real_t hgfx[8], hgfy[8], hgfz[8] ;
@@ -1002,59 +1021,59 @@ void CalcFBHourglassForceForElems(Domain &domain,
 
         const Index_t *elemToNode = domain.nodelist(i2);
         Index_t i3=8*i2;
-        Real_t volinv=Real_t(1.0)/determ[i2];
+        Real_t volinv=Real_t(1.0)/determ_[i2];
         Real_t ss1, mass1, volume13 ;
         for(Index_t i1=0;i1<4;++i1){
 
           Real_t hourmodx =
-            x8n[i3] * gamma[i1][0] + x8n[i3+1] * gamma[i1][1] +
-            x8n[i3+2] * gamma[i1][2] + x8n[i3+3] * gamma[i1][3] +
-            x8n[i3+4] * gamma[i1][4] + x8n[i3+5] * gamma[i1][5] +
-            x8n[i3+6] * gamma[i1][6] + x8n[i3+7] * gamma[i1][7];
+            x8n_[i3] * gamma[i1][0] + x8n_[i3+1] * gamma[i1][1] +
+            x8n_[i3+2] * gamma[i1][2] + x8n_[i3+3] * gamma[i1][3] +
+            x8n_[i3+4] * gamma[i1][4] + x8n_[i3+5] * gamma[i1][5] +
+            x8n_[i3+6] * gamma[i1][6] + x8n_[i3+7] * gamma[i1][7];
 
           Real_t hourmody =
-            y8n[i3] * gamma[i1][0] + y8n[i3+1] * gamma[i1][1] +
-            y8n[i3+2] * gamma[i1][2] + y8n[i3+3] * gamma[i1][3] +
-            y8n[i3+4] * gamma[i1][4] + y8n[i3+5] * gamma[i1][5] +
-            y8n[i3+6] * gamma[i1][6] + y8n[i3+7] * gamma[i1][7];
+            y8n_[i3] * gamma[i1][0] + y8n_[i3+1] * gamma[i1][1] +
+            y8n_[i3+2] * gamma[i1][2] + y8n_[i3+3] * gamma[i1][3] +
+            y8n_[i3+4] * gamma[i1][4] + y8n_[i3+5] * gamma[i1][5] +
+            y8n_[i3+6] * gamma[i1][6] + y8n_[i3+7] * gamma[i1][7];
 
           Real_t hourmodz =
-            z8n[i3] * gamma[i1][0] + z8n[i3+1] * gamma[i1][1] +
-            z8n[i3+2] * gamma[i1][2] + z8n[i3+3] * gamma[i1][3] +
-            z8n[i3+4] * gamma[i1][4] + z8n[i3+5] * gamma[i1][5] +
-            z8n[i3+6] * gamma[i1][6] + z8n[i3+7] * gamma[i1][7];
+            z8n_[i3] * gamma[i1][0] + z8n_[i3+1] * gamma[i1][1] +
+            z8n_[i3+2] * gamma[i1][2] + z8n_[i3+3] * gamma[i1][3] +
+            z8n_[i3+4] * gamma[i1][4] + z8n_[i3+5] * gamma[i1][5] +
+            z8n_[i3+6] * gamma[i1][6] + z8n_[i3+7] * gamma[i1][7];
 
-          hourgam[0][i1] = gamma[i1][0] -  volinv*(dvdx[i3  ] * hourmodx +
-                    dvdy[i3  ] * hourmody +
-                    dvdz[i3  ] * hourmodz );
+          hourgam[0][i1] = gamma[i1][0] -  volinv*(dvdx_[i3  ] * hourmodx +
+                    dvdy_[i3  ] * hourmody +
+                    dvdz_[i3  ] * hourmodz );
 
-          hourgam[1][i1] = gamma[i1][1] -  volinv*(dvdx[i3+1] * hourmodx +
-                    dvdy[i3+1] * hourmody +
-                    dvdz[i3+1] * hourmodz );
+          hourgam[1][i1] = gamma[i1][1] -  volinv*(dvdx_[i3+1] * hourmodx +
+                    dvdy_[i3+1] * hourmody +
+                    dvdz_[i3+1] * hourmodz );
 
-          hourgam[2][i1] = gamma[i1][2] -  volinv*(dvdx[i3+2] * hourmodx +
-                    dvdy[i3+2] * hourmody +
-                    dvdz[i3+2] * hourmodz );
+          hourgam[2][i1] = gamma[i1][2] -  volinv*(dvdx_[i3+2] * hourmodx +
+                    dvdy_[i3+2] * hourmody +
+                    dvdz_[i3+2] * hourmodz );
 
-          hourgam[3][i1] = gamma[i1][3] -  volinv*(dvdx[i3+3] * hourmodx +
-                    dvdy[i3+3] * hourmody +
-                    dvdz[i3+3] * hourmodz );
+          hourgam[3][i1] = gamma[i1][3] -  volinv*(dvdx_[i3+3] * hourmodx +
+                    dvdy_[i3+3] * hourmody +
+                    dvdz_[i3+3] * hourmodz );
 
-          hourgam[4][i1] = gamma[i1][4] -  volinv*(dvdx[i3+4] * hourmodx +
-                    dvdy[i3+4] * hourmody +
-                    dvdz[i3+4] * hourmodz );
+          hourgam[4][i1] = gamma[i1][4] -  volinv*(dvdx_[i3+4] * hourmodx +
+                    dvdy_[i3+4] * hourmody +
+                    dvdz_[i3+4] * hourmodz );
 
-          hourgam[5][i1] = gamma[i1][5] -  volinv*(dvdx[i3+5] * hourmodx +
-                    dvdy[i3+5] * hourmody +
-                    dvdz[i3+5] * hourmodz );
+          hourgam[5][i1] = gamma[i1][5] -  volinv*(dvdx_[i3+5] * hourmodx +
+                    dvdy_[i3+5] * hourmody +
+                    dvdz_[i3+5] * hourmodz );
 
-          hourgam[6][i1] = gamma[i1][6] -  volinv*(dvdx[i3+6] * hourmodx +
-                    dvdy[i3+6] * hourmody +
-                    dvdz[i3+6] * hourmodz );
+          hourgam[6][i1] = gamma[i1][6] -  volinv*(dvdx_[i3+6] * hourmodx +
+                    dvdy_[i3+6] * hourmody +
+                    dvdz_[i3+6] * hourmodz );
 
-          hourgam[7][i1] = gamma[i1][7] -  volinv*(dvdx[i3+7] * hourmodx +
-                    dvdy[i3+7] * hourmody +
-                    dvdz[i3+7] * hourmodz );
+          hourgam[7][i1] = gamma[i1][7] -  volinv*(dvdx_[i3+7] * hourmodx +
+                    dvdy_[i3+7] * hourmody +
+                    dvdz_[i3+7] * hourmodz );
 
         }
 
@@ -1063,7 +1082,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
 
         ss1=domain.ss(i2);
         mass1=domain.elemMass(i2);
-        volume13=CBRT(determ[i2]);
+        volume13=CBRT(determ_[i2]);
 
         Index_t n0si2 = elemToNode[0];
         Index_t n1si2 = elemToNode[1];
@@ -1251,6 +1270,13 @@ void CalcHourglassControlForElems(Domain& domain,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(HOURGLASSCONTROLFORELEM);
+      Real_t *dvdx_ = dvdx;
+      Real_t *dvdy_ = dvdy;
+      Real_t *dvdz_ = dvdz;
+      Real_t *x8n_  = x8n;
+      Real_t *y8n_  = y8n;
+      Real_t *z8n_  = z8n;
+
       for (Index_t i=from; i<to; ++i){
           Real_t  x1[8],  y1[8],  z1[8] ;
           Real_t pfx[8], pfy[8], pfz[8] ;
@@ -1264,12 +1290,12 @@ void CalcHourglassControlForElems(Domain& domain,
           for(Index_t ii=0;ii<8;++ii){
             Index_t jj=8*i+ii;
 
-            dvdx[jj] = pfx[ii];
-            dvdy[jj] = pfy[ii];
-            dvdz[jj] = pfz[ii];
-            x8n[jj]  = x1[ii];
-            y8n[jj]  = y1[ii];
-            z8n[jj]  = z1[ii];
+            dvdx_[jj] = pfx[ii];
+            dvdy_[jj] = pfy[ii];
+            dvdz_[jj] = pfz[ii];
+            x8n_[jj]  = x1[ii];
+            y8n_[jj]  = y1[ii];
+            z8n_[jj]  = z1[ii];
           }
 
           determ[i] = domain.volo(i) * domain.v(i);
@@ -1325,8 +1351,11 @@ void InitStressTermsForElems(Domain &domain,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [sigxx, sigyy, sigzz, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(INITSTRESSTERMSFORELEMS);
+      Real_t *sigxx_ = sigxx;
+      Real_t *sigyy_ = sigyy;
+      Real_t *sigzz_ = sigzz;
       for (Index_t i = from; i < to; ++i){
-        sigxx[i] = sigyy[i] = sigzz[i] =  - domain.p(i) - domain.q(i) ;
+        sigxx_[i] = sigyy_[i] = sigzz_[i] =  - domain.p(i) - domain.q(i) ;
       }
     },
     [sigxx]
@@ -1550,6 +1579,7 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
       Real_t monoq_max_slope = domain.monoq_max_slope();
       Real_t qlc_monoq = domain.qlc_monoq();
       Real_t qqc_monoq = domain.qqc_monoq();
+      Real_t *vnew_ = vnew;
 
       for ( Index_t ielem = from; ielem < to; ++ielem ) {
         Index_t i = domain.regElemlist(r,ielem);
@@ -1685,7 +1715,7 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
           if ( delvxeta  > Real_t(0.) ) delvxeta  = Real_t(0.) ;
           if ( delvxzeta > Real_t(0.) ) delvxzeta = Real_t(0.) ;
 
-          Real_t rho = domain.elemMass(i) / (domain.volo(i) * vnew[i]) ;
+          Real_t rho = domain.elemMass(i) / (domain.volo(i) * vnew_[i]) ;
 
           qlin = -qlc_monoq * rho *
               (  delvxxi   * (Real_t(1.) - phixi) +
@@ -1738,6 +1768,7 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [&](Index_t from, Index_t to) {
+      Real_t *vnew_ = vnew;
       for (Index_t i = from; i < to; ++i ) {
         const Real_t ptiny = Real_t(1.e-36) ;
         Real_t ax,ay,az ;
@@ -1807,7 +1838,7 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
         Real_t zv6 = domain.zd(n6) ;
         Real_t zv7 = domain.zd(n7) ;
 
-        Real_t vol = domain.volo(i)*vnew[i] ;
+        Real_t vol = domain.volo(i)*vnew_[i] ;
         Real_t norm = Real_t(1.0) / ( vol + ptiny ) ;
 
         Real_t dxj = Real_t(-0.25)*((x0+x1+x5+x4) - (x3+x2+x6+x7)) ;
@@ -2024,25 +2055,50 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
   dash::tasks::TASKLOOP(Index_t{0}, length,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=](Index_t from, Index_t to) {
+      /**
+       * Use local variables here to allow older compiler (ICC < 2020, GCC < 10)
+       * to properly vectorize and prevent alias assumption of pointers captured
+       * in lambda object.
+       */
+      Real_t* p_new_ = p_new;
+      Real_t* e_new_ = e_new;
+      Real_t* q_new_ = q_new;
+      Real_t* p_old_ = p_old;
+      Real_t* e_old_ = e_old;
+      Real_t* q_old_ = q_old;
+      Real_t  p_cut_ = p_cut;
+      Real_t  e_cut_ = e_cut;
+      Real_t  q_cut_ = q_cut;
+      Real_t* bvc_   = bvc;
+      Real_t* pbvc_  = pbvc;
+      Real_t* vnewc_ = vnewc;
+      Real_t* qq_old_ = qq_old;
+      Real_t* ql_old_ = ql_old;
+      Real_t* compHalfStep_ = compHalfStep;
+      Real_t* compression_  = compression;
+      Index_t* regElemList_ = regElemList;
+      Real_t* pHalfStep_ = pHalfStep;
+      Real_t* delvc_ = delvc;
+
       for (Index_t i = from; i < to; ++i) {
-        e_new[i] = e_old[i] - Real_t(0.5) * delvc[i] * (p_old[i] + q_old[i])
+        e_new_[i] = e_old_[i] - Real_t(0.5) * delvc_[i] * (p_old_[i] + q_old_[i])
             + Real_t(0.5) * work[i];
 
-        if (e_new[i]  < emin ) {
-          e_new[i] = emin ;
+        if (e_new_[i]  < emin ) {
+          e_new_[i] = emin ;
         }
 
-        CalcPressureForElem(pHalfStep[i], bvc[i], pbvc[i], e_new[i], compHalfStep[i], vnewc[i],
-                            pmin, p_cut, eosvmax);
+        CalcPressureForElem(pHalfStep_[i], bvc_[i], pbvc_[i], e_new_[i], compHalfStep_[i], vnewc_[i],
+                            pmin, p_cut_, eosvmax);
 
-        Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep[i]) ;
+        Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep_[i]) ;
 
-        if ( delvc[i] > Real_t(0.) ) {
-          q_new[i] /* = qq_old[i] = ql_old[i] */ = Real_t(0.) ;
+        if ( delvc_[i] > Real_t(0.) ) {
+          q_new_[i] /* = qq_old_[i] = ql_old_[i] */ = Real_t(0.) ;
         }
         else {
-          Real_t ssc = ( pbvc[i] * e_new[i]
-                  + vhalf * vhalf * bvc[i] * pHalfStep[i] ) / rho0 ;
+          Real_t ssc = ( pbvc_[i] * e_new_[i]
+                  + vhalf * vhalf * bvc_[i] * pHalfStep_[i] ) / rho0 ;
 
           if ( ssc <= Real_t(.1111111e-36) ) {
             ssc = Real_t(.3333333e-18) ;
@@ -2050,35 +2106,35 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
             ssc = SQRT(ssc) ;
           }
 
-          q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
+          q_new_[i] = (ssc*ql_old_[i] + qq_old_[i]) ;
         }
 
-        e_new[i] = e_new[i] + Real_t(0.5) * delvc[i]
-            * (  Real_t(3.0)*(p_old[i]     + q_old[i])
-                - Real_t(4.0)*(pHalfStep[i] + q_new[i])) ;
+        e_new_[i] = e_new_[i] + Real_t(0.5) * delvc_[i]
+            * (  Real_t(3.0)*(p_old_[i]     + q_old_[i])
+                - Real_t(4.0)*(pHalfStep_[i] + q_new_[i])) ;
 
-        e_new[i] += Real_t(0.5) * work[i];
+        e_new_[i] += Real_t(0.5) * work[i];
 
-        if (FABS(e_new[i]) < e_cut) {
-          e_new[i] = Real_t(0.)  ;
+        if (FABS(e_new_[i]) < e_cut_) {
+          e_new_[i] = Real_t(0.)  ;
         }
-        if (     e_new[i]  < emin ) {
-          e_new[i] = emin ;
+        if (     e_new_[i]  < emin ) {
+          e_new_[i] = emin ;
         }
 
-        CalcPressureForElem(p_new[i], bvc[i], pbvc[i], e_new[i], compression[i], vnewc[i],
-                            pmin, p_cut, eosvmax);
+        CalcPressureForElem(p_new_[i], bvc_[i], pbvc_[i], e_new_[i], compression_[i], vnewc_[i],
+                            pmin, p_cut_, eosvmax);
 
         const Real_t sixth = Real_t(1.0) / Real_t(6.0) ;
-        Index_t elem = regElemList[i];
+        Index_t elem = regElemList_[i];
         Real_t q_tilde ;
 
-        if (delvc[i] > Real_t(0.)) {
+        if (delvc_[i] > Real_t(0.)) {
           q_tilde = Real_t(0.) ;
         }
         else {
-          Real_t ssc = ( pbvc[i] * e_new[i]
-                  + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
+          Real_t ssc = ( pbvc_[i] * e_new_[i]
+                  + vnewc_[elem] * vnewc_[elem] * bvc_[i] * p_new_[i] ) / rho0 ;
 
           if ( ssc <= Real_t(.1111111e-36) ) {
             ssc = Real_t(.3333333e-18) ;
@@ -2086,26 +2142,26 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
             ssc = SQRT(ssc) ;
           }
 
-          q_tilde = (ssc*ql_old[i] + qq_old[i]) ;
+          q_tilde = (ssc*ql_old_[i] + qq_old_[i]) ;
         }
 
-        e_new[i] = e_new[i] - (  Real_t(7.0)*(p_old[i]     + q_old[i])
-                                  - Real_t(8.0)*(pHalfStep[i] + q_new[i])
-                                  + (p_new[i] + q_tilde)) * delvc[i]*sixth ;
+        e_new_[i] = e_new_[i] - (  Real_t(7.0)*(p_old_[i]     + q_old_[i])
+                                  - Real_t(8.0)*(pHalfStep_[i] + q_new_[i])
+                                  + (p_new_[i] + q_tilde)) * delvc_[i]*sixth ;
 
-        if (FABS(e_new[i]) < e_cut) {
-            e_new[i] = Real_t(0.)  ;
+        if (FABS(e_new_[i]) < e_cut_) {
+            e_new_[i] = Real_t(0.)  ;
         }
-        if (     e_new[i]  < emin ) {
-            e_new[i] = emin ;
+        if (     e_new_[i]  < emin ) {
+            e_new_[i] = emin ;
         }
 
-        CalcPressureForElem(p_new[i], bvc[i], pbvc[i], e_new[i], compression[i], vnewc[i],
-                            pmin, p_cut, eosvmax);
+        CalcPressureForElem(p_new_[i], bvc_[i], pbvc_[i], e_new_[i], compression_[i], vnewc_[i],
+                            pmin, p_cut_, eosvmax);
 
-        if ( delvc[i] <= Real_t(0.) ) {
-          Real_t ssc = ( pbvc[i] * e_new[i]
-                  + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
+        if ( delvc_[i] <= Real_t(0.) ) {
+          Real_t ssc = ( pbvc_[i] * e_new_[i]
+                  + vnewc_[elem] * vnewc_[elem] * bvc_[i] * p_new_[i] ) / rho0 ;
 
           if ( ssc <= Real_t(.1111111e-36) ) {
             ssc = Real_t(.3333333e-18) ;
@@ -2113,9 +2169,9 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
             ssc = SQRT(ssc) ;
           }
 
-          q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
+          q_new_[i] = (ssc*ql_old_[i] + qq_old_[i]) ;
 
-          if (FABS(q_new[i]) < q_cut) q_new[i] = Real_t(0.) ;
+          if (FABS(q_new_[i]) < q_cut_) q_new_[i] = Real_t(0.) ;
         }
       }
     },
@@ -2302,10 +2358,17 @@ void CalcSoundSpeedForElems(Domain &domain,
   dash::tasks::TASKLOOP(Index_t{0}, len,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=, &domain](Index_t from, Index_t to) {
+      Real_t* bvc_   = bvc;
+      Real_t* pbvc_  = pbvc;
+      Real_t* vnewc_ = vnewc;
+      Real_t* pnewc_ = pnewc;
+      Real_t* enewc_ = enewc;
+      Index_t* regElemList_ = regElemList;
+
       for (Index_t i = from; i < to; ++i) {
-        Index_t elem = regElemList[i];
-        Real_t ssTmp = (pbvc[i] * enewc[i] + vnewc[elem] * vnewc[elem] *
-                  bvc[i] * pnewc[i]) / rho0;
+        Index_t elem = regElemList_[i];
+        Real_t ssTmp = (pbvc_[i] * enewc_[i] + vnewc_[elem] * vnewc_[elem] *
+                  bvc_[i] * pnewc_[i]) / rho0;
         if (ssTmp <= Real_t(.1111111e-36)) {
           ssTmp = Real_t(.3333333e-18);
         }
@@ -2369,31 +2432,41 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
     dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
                           dash::tasks::num_chunks(dash::tasks::numthreads()),
       [=, &domain](Index_t from, Index_t to) {
+        Real_t *e_old_ = e_old;
+        Real_t *p_old_ = p_old;
+        Real_t *q_old_ = q_old;
+        Real_t *qq_old_ = qq_old;
+        Real_t *ql_old_ = ql_old;
+        Real_t *delvc_ = delvc;
+        Real_t *compression_ = compression;
+        Real_t *compHalfStep_ = compHalfStep;
+        Real_t *vnewc_ = vnewc;
+        Real_t *work_ = work;
         for (Index_t i=from; i<to; ++i) {
           Index_t elem = regElemList[i];
-          e_old[i] = domain.e(elem) ;
-          delvc[i] = domain.delv(elem) ;
-          p_old[i] = domain.p(elem) ;
-          q_old[i] = domain.q(elem) ;
-          qq_old[i] = domain.qq(elem) ;
-          ql_old[i] = domain.ql(elem) ;
+          e_old_[i] = domain.e(elem) ;
+          delvc_[i] = domain.delv(elem) ;
+          p_old_[i] = domain.p(elem) ;
+          q_old_[i] = domain.q(elem) ;
+          qq_old_[i] = domain.qq(elem) ;
+          ql_old_[i] = domain.ql(elem) ;
 
           Real_t vchalf ;
-          compression[i] = Real_t(1.) / vnewc[elem] - Real_t(1.);
-          vchalf = vnewc[elem] - delvc[i] * Real_t(.5);
-          compHalfStep[i] = Real_t(1.) / vchalf - Real_t(1.);
+          compression_[i] = Real_t(1.) / vnewc_[elem] - Real_t(1.);
+          vchalf = vnewc_[elem] - delvc_[i] * Real_t(.5);
+          compHalfStep_[i] = Real_t(1.) / vchalf - Real_t(1.);
 
-          if (vnewc[elem] <= eosvmin) { /* impossible due to calling func? */
-            compHalfStep[i] = compression[i] ;
+          if (vnewc_[elem] <= eosvmin) { /* impossible due to calling func? */
+            compHalfStep_[i] = compression_[i] ;
           }
 
-          if (vnewc[elem] >= eosvmax) { /* impossible due to calling func? */
+          if (vnewc_[elem] >= eosvmax) { /* impossible due to calling func? */
             p_old[i]        = Real_t(0.) ;
-            compression[i]  = Real_t(0.) ;
-            compHalfStep[i] = Real_t(0.) ;
+            compression_[i]  = Real_t(0.) ;
+            compHalfStep_[i] = Real_t(0.) ;
           }
 
-          work[i] = Real_t(0.) ;
+          work_[i] = Real_t(0.) ;
         }
       },
       [e_new]
