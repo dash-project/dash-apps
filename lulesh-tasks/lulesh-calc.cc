@@ -948,15 +948,6 @@ void CalcFBHourglassForceForElems(Domain &domain,
     fz_elem = Allocate<Real_t>(numElem8) ;
   }
 
-
-  constexpr const Real_t gamma[4][8] =
-  {
-  {Real_t( 1.), Real_t( 1.), Real_t(-1.), Real_t(-1.), Real_t(-1.), Real_t(-1.), Real_t( 1.), Real_t( 1.)},
-  {Real_t( 1.), Real_t(-1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t( 1.), Real_t(-1.)},
-  {Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.)},
-  {Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.)}
-  };
-
 #if 0
   Real_t  gamma[4][8];
 
@@ -1003,6 +994,14 @@ void CalcFBHourglassForceForElems(Domain &domain,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(FBHOURGLASSFORCEFORELEMS);
+
+      constexpr const Real_t gamma[4][8] =
+      {
+      {Real_t( 1.), Real_t( 1.), Real_t(-1.), Real_t(-1.), Real_t(-1.), Real_t(-1.), Real_t( 1.), Real_t( 1.)},
+      {Real_t( 1.), Real_t(-1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t( 1.), Real_t(-1.)},
+      {Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.)},
+      {Real_t(-1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t( 1.), Real_t(-1.), Real_t( 1.), Real_t(-1.)}
+      };
       Real_t *determ_ = determ;
       Real_t *x8n_    = x8n;
       Real_t *y8n_    = y8n;
@@ -1010,6 +1009,13 @@ void CalcFBHourglassForceForElems(Domain &domain,
       Real_t *dvdx_   = dvdx;
       Real_t *dvdy_   = dvdy;
       Real_t *dvdz_   = dvdz;
+      Real_t *ss = &domain.ss(0);
+      Real_t *xd = &domain.xd(0);
+      Real_t *yd = &domain.yd(0);
+      Real_t *zd = &domain.zd(0);
+      Real_t *fx = &domain.fx(0);
+      Real_t *fy = &domain.fy(0);
+      Real_t *fz = &domain.fz(0);
       for(Index_t i2=from;i2<to;++i2){
         Real_t *fx_local, *fy_local, *fz_local ;
         Real_t hgfx[8], hgfy[8], hgfz[8] ;
@@ -1080,7 +1086,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
         /* compute forces */
         /* store forces into h arrays (force arrays) */
 
-        ss1=domain.ss(i2);
+        ss1=ss[i2];
         mass1=domain.elemMass(i2);
         volume13=CBRT(determ_[i2]);
 
@@ -1093,32 +1099,32 @@ void CalcFBHourglassForceForElems(Domain &domain,
         Index_t n6si2 = elemToNode[6];
         Index_t n7si2 = elemToNode[7];
 
-        xd1[0] = domain.xd(n0si2);
-        xd1[1] = domain.xd(n1si2);
-        xd1[2] = domain.xd(n2si2);
-        xd1[3] = domain.xd(n3si2);
-        xd1[4] = domain.xd(n4si2);
-        xd1[5] = domain.xd(n5si2);
-        xd1[6] = domain.xd(n6si2);
-        xd1[7] = domain.xd(n7si2);
+        xd1[0] = xd[n0si2];
+        xd1[1] = xd[n1si2];
+        xd1[2] = xd[n2si2];
+        xd1[3] = xd[n3si2];
+        xd1[4] = xd[n4si2];
+        xd1[5] = xd[n5si2];
+        xd1[6] = xd[n6si2];
+        xd1[7] = xd[n7si2];
 
-        yd1[0] = domain.yd(n0si2);
-        yd1[1] = domain.yd(n1si2);
-        yd1[2] = domain.yd(n2si2);
-        yd1[3] = domain.yd(n3si2);
-        yd1[4] = domain.yd(n4si2);
-        yd1[5] = domain.yd(n5si2);
-        yd1[6] = domain.yd(n6si2);
-        yd1[7] = domain.yd(n7si2);
+        yd1[0] = yd[n0si2];
+        yd1[1] = yd[n1si2];
+        yd1[2] = yd[n2si2];
+        yd1[3] = yd[n3si2];
+        yd1[4] = yd[n4si2];
+        yd1[5] = yd[n5si2];
+        yd1[6] = yd[n6si2];
+        yd1[7] = yd[n7si2];
 
-        zd1[0] = domain.zd(n0si2);
-        zd1[1] = domain.zd(n1si2);
-        zd1[2] = domain.zd(n2si2);
-        zd1[3] = domain.zd(n3si2);
-        zd1[4] = domain.zd(n4si2);
-        zd1[5] = domain.zd(n5si2);
-        zd1[6] = domain.zd(n6si2);
-        zd1[7] = domain.zd(n7si2);
+        zd1[0] = zd[n0si2];
+        zd1[1] = zd[n1si2];
+        zd1[2] = zd[n2si2];
+        zd1[3] = zd[n3si2];
+        zd1[4] = zd[n4si2];
+        zd1[5] = zd[n5si2];
+        zd1[6] = zd[n6si2];
+        zd1[7] = zd[n7si2];
 
         coefficient = - hourg * Real_t(0.01) * ss1 * mass1 / volume13;
 
@@ -1160,37 +1166,37 @@ void CalcFBHourglassForceForElems(Domain &domain,
           fz_local[7] = hgfz[7];
         }
         else {
-          domain.fx(n0si2) += hgfx[0];
-          domain.fy(n0si2) += hgfy[0];
-          domain.fz(n0si2) += hgfz[0];
+          fx[n0si2] += hgfx[0];
+          fy[n0si2] += hgfy[0];
+          fz[n0si2] += hgfz[0];
 
-          domain.fx(n1si2) += hgfx[1];
-          domain.fy(n1si2) += hgfy[1];
-          domain.fz(n1si2) += hgfz[1];
+          fx[n1si2] += hgfx[1];
+          fy[n1si2] += hgfy[1];
+          fz[n1si2] += hgfz[1];
 
-          domain.fx(n2si2) += hgfx[2];
-          domain.fy(n2si2) += hgfy[2];
-          domain.fz(n2si2) += hgfz[2];
+          fx[n2si2] += hgfx[2];
+          fy[n2si2] += hgfy[2];
+          fz[n2si2] += hgfz[2];
 
-          domain.fx(n3si2) += hgfx[3];
-          domain.fy(n3si2) += hgfy[3];
-          domain.fz(n3si2) += hgfz[3];
+          fx[n3si2] += hgfx[3];
+          fy[n3si2] += hgfy[3];
+          fz[n3si2] += hgfz[3];
 
-          domain.fx(n4si2) += hgfx[4];
-          domain.fy(n4si2) += hgfy[4];
-          domain.fz(n4si2) += hgfz[4];
+          fx[n4si2] += hgfx[4];
+          fy[n4si2] += hgfy[4];
+          fz[n4si2] += hgfz[4];
 
-          domain.fx(n5si2) += hgfx[5];
-          domain.fy(n5si2) += hgfy[5];
-          domain.fz(n5si2) += hgfz[5];
+          fx[n5si2] += hgfx[5];
+          fy[n5si2] += hgfy[5];
+          fz[n5si2] += hgfz[5];
 
-          domain.fx(n6si2) += hgfx[6];
-          domain.fy(n6si2) += hgfy[6];
-          domain.fz(n6si2) += hgfz[6];
+          fx[n6si2] += hgfx[6];
+          fy[n6si2] += hgfy[6];
+          fz[n6si2] += hgfz[6];
 
-          domain.fx(n7si2) += hgfx[7];
-          domain.fy(n7si2) += hgfy[7];
-          domain.fz(n7si2) += hgfz[7];
+          fx[n7si2] += hgfx[7];
+          fy[n7si2] += hgfy[7];
+          fz[n7si2] += hgfz[7];
         }
       }
     },
@@ -1211,6 +1217,12 @@ void CalcFBHourglassForceForElems(Domain &domain,
                           dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
       [fx_elem, fy_elem, fz_elem, &domain](Index_t from, Index_t to) {
         extrae_task_event ev(FBHOURGLASSFORCEFORELEMSREDUCTION);
+        Real_t *fx_elem_ = fx_elem;
+        Real_t *fy_elem_ = fy_elem;
+        Real_t *fz_elem_ = fz_elem;
+        Real_t *fx = &domain.fx(0);
+        Real_t *fy = &domain.fy(0);
+        Real_t *fz = &domain.fz(0);
         for( Index_t gnode=from; gnode<to; ++gnode )
         {
           Index_t count = domain.nodeElemCount(gnode) ;
@@ -1220,13 +1232,13 @@ void CalcFBHourglassForceForElems(Domain &domain,
           Real_t fz_tmp = Real_t(0.0) ;
           for (Index_t i=0 ; i < count ; ++i) {
             Index_t elem = cornerList[i] ;
-            fx_tmp += fx_elem[elem] ;
-            fy_tmp += fy_elem[elem] ;
-            fz_tmp += fz_elem[elem] ;
+            fx_tmp += fx_elem_[elem] ;
+            fy_tmp += fy_elem_[elem] ;
+            fz_tmp += fz_elem_[elem] ;
           }
-          domain.fx(gnode) += fx_tmp ;
-          domain.fy(gnode) += fy_tmp ;
-          domain.fz(gnode) += fz_tmp ;
+          fx[gnode] += fx_tmp ;
+          fy[gnode] += fy_tmp ;
+          fz[gnode] += fz_tmp ;
         }
       },
       [fz_elem, fx_elem, &domain]
@@ -1276,6 +1288,8 @@ void CalcHourglassControlForElems(Domain& domain,
       Real_t *x8n_  = x8n;
       Real_t *y8n_  = y8n;
       Real_t *z8n_  = z8n;
+      Real_t *volo  = &domain.volo(0);
+      Real_t *v     = &domain.v(0);
 
       for (Index_t i=from; i<to; ++i){
           Real_t  x1[8],  y1[8],  z1[8] ;
@@ -1298,7 +1312,7 @@ void CalcHourglassControlForElems(Domain& domain,
             z8n_[jj]  = z1[ii];
           }
 
-          determ[i] = domain.volo(i) * domain.v(i);
+          determ[i] = volo[i] * v[i];
 
           /* Do a check for negative volumes */
           if ( domain.v(i) <= Real_t(0.0) ) {
@@ -2432,8 +2446,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
     dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
                           dash::tasks::num_chunks(dash::tasks::numthreads()),
-      [=, e  = &domain.e(0), p   = &domain.p(0), q = &domain.q(0),
-          qq = &domain.qq(0), ql = &domain.ql(0), delv = &domain.delv(0)](Index_t from, Index_t to) {
+      [=, &domain](Index_t from, Index_t to) {
         Real_t *e_old_ = e_old;
         Real_t *p_old_ = p_old;
         Real_t *q_old_ = q_old;
@@ -2444,6 +2457,12 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
         Real_t *compHalfStep_ = compHalfStep;
         Real_t *vnewc_ = vnewc;
         Real_t *work_ = work;
+        Real_t *e  = &domain.e(0);
+        Real_t *p  = &domain.p(0);
+        Real_t *q  = &domain.q(0);
+        Real_t *qq = &domain.qq(0);
+        Real_t *ql = &domain.ql(0);
+        Real_t *delv = &domain.delv(0);
         for (Index_t i=from; i<to; ++i) {
           Index_t elem = regElemList[i];
           e_old_[i] = e[elem];
@@ -2599,11 +2618,18 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
   dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
     [=, &domain](Index_t from, Index_t to) {
+      Real_t *e  = &domain.e(0);
+      Real_t *p  = &domain.p(0);
+      Real_t *q  = &domain.q(0);
+      Real_t* p_new_ = p_new;
+      Real_t* e_new_ = e_new;
+      Real_t* q_new_ = q_new;
+      Index_t* regElemList_ = regElemList;
       for (Index_t i=from; i<to; ++i) {
-        Index_t elem = regElemList[i];
-        domain.p(elem) = p_new[i] ;
-        domain.e(elem) = e_new[i] ;
-        domain.q(elem) = q_new[i] ;
+        Index_t elem = regElemList_[i];
+        p[elem] = p_new_[i] ;
+        e[elem] = e_new_[i] ;
+        q[elem] = q_new_[i] ;
       }
     });
 
