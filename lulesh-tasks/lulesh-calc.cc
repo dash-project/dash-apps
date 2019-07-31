@@ -2442,14 +2442,15 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
         Real_t *compHalfStep_ = compHalfStep;
         Real_t *vnewc_ = vnewc;
         Real_t *work_ = work;
+        auto& domain_ = domain;
         for (Index_t i=from; i<to; ++i) {
           Index_t elem = regElemList[i];
-          e_old_[i] = domain.e(elem) ;
-          delvc_[i] = domain.delv(elem) ;
-          p_old_[i] = domain.p(elem) ;
-          q_old_[i] = domain.q(elem) ;
-          qq_old_[i] = domain.qq(elem) ;
-          ql_old_[i] = domain.ql(elem) ;
+          e_old_[i] = domain_.e(elem) ;
+          delvc_[i] = domain_.delv(elem) ;
+          p_old_[i] = domain_.p(elem) ;
+          q_old_[i] = domain_.q(elem) ;
+          qq_old_[i] = domain_.qq(elem) ;
+          ql_old_[i] = domain_.ql(elem) ;
 
           Real_t vchalf ;
           compression_[i] = Real_t(1.) / vnewc_[elem] - Real_t(1.);
@@ -2461,7 +2462,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
           }
 
           if (vnewc_[elem] >= eosvmax) { /* impossible due to calling func? */
-            p_old[i]        = Real_t(0.) ;
+            p_old_[i]        = Real_t(0.) ;
             compression_[i]  = Real_t(0.) ;
             compHalfStep_[i] = Real_t(0.) ;
           }
