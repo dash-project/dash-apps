@@ -2079,10 +2079,11 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
       Index_t* regElemList_ = regElemList;
       Real_t* pHalfStep_ = pHalfStep;
       Real_t* delvc_ = delvc;
+      Real_t* work_  = work;
 
       for (Index_t i = from; i < to; ++i) {
         e_new_[i] = e_old_[i] - Real_t(0.5) * delvc_[i] * (p_old_[i] + q_old_[i])
-            + Real_t(0.5) * work[i];
+            + Real_t(0.5) * work_[i];
 
         if (e_new_[i]  < emin ) {
           e_new_[i] = emin ;
@@ -2113,7 +2114,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
             * (  Real_t(3.0)*(p_old_[i]     + q_old_[i])
                 - Real_t(4.0)*(pHalfStep_[i] + q_new_[i])) ;
 
-        e_new_[i] += Real_t(0.5) * work[i];
+        e_new_[i] += Real_t(0.5) * work_[i];
 
         if (FABS(e_new_[i]) < e_cut_) {
           e_new_[i] = Real_t(0.)  ;
