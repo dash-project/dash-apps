@@ -2358,7 +2358,7 @@ void CalcSoundSpeedForElems(Domain &domain,
 //#pragma omp parallel for firstprivate(rho0, ss4o3)
   dash::tasks::TASKLOOP(Index_t{0}, len,
                         dash::tasks::num_chunks(dash::tasks::numthreads()),
-    [=, &domain](Index_t from, Index_t to) {
+    [=, ss = &domain.ss(0)](Index_t from, Index_t to) {
       Real_t* bvc_   = bvc;
       Real_t* pbvc_  = pbvc;
       Real_t* vnewc_ = vnewc;
@@ -2376,7 +2376,7 @@ void CalcSoundSpeedForElems(Domain &domain,
         else {
           ssTmp = SQRT(ssTmp);
         }
-        domain.ss(elem) = ssTmp ;
+        ss[elem] = ssTmp ;
       }
     }
     // The dependencies are not needed atm
@@ -2432,7 +2432,8 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
     dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
                           dash::tasks::num_chunks(dash::tasks::numthreads()),
-      [=, &domain](Index_t from, Index_t to) {
+      [=, e  = &domain.e(0), p   = &domain.p(0), q = &domain.q(0),
+          qq = &domain.qq(0), ql = &domain.ql(0), delv = &domain.delv(0)](Index_t from, Index_t to) {
         Real_t *e_old_ = e_old;
         Real_t *p_old_ = p_old;
         Real_t *q_old_ = q_old;
@@ -2443,15 +2444,14 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
         Real_t *compHalfStep_ = compHalfStep;
         Real_t *vnewc_ = vnewc;
         Real_t *work_ = work;
-        auto& domain_ = domain;
         for (Index_t i=from; i<to; ++i) {
           Index_t elem = regElemList[i];
-          e_old_[i] = domain_.e(elem) ;
-          delvc_[i] = domain_.delv(elem) ;
-          p_old_[i] = domain_.p(elem) ;
-          q_old_[i] = domain_.q(elem) ;
-          qq_old_[i] = domain_.qq(elem) ;
-          ql_old_[i] = domain_.ql(elem) ;
+          e_old_[i] = e[elem];
+          delvc_[i] = delv[elem] ;
+          p_old_[i] = p[elem];
+          q_old_[i] = q[elem] ;
+          qq_old_[i] = qq[elem] ;
+          ql_old_[i] = ql[elem] ;
 
           Real_t vchalf ;
           compression_[i] = Real_t(1.) / vnewc_[elem] - Real_t(1.);
