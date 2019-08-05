@@ -416,7 +416,7 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
   // loop over all elements
 //#pragma omp parallel for firstprivate(numElem, deltaTime)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [&](Index_t from, Index_t to){
       Real_t *vnew_ = vnew;
       for( Index_t k=from; k<to; ++k )
@@ -502,7 +502,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
 
 //#pragma omp parallel firstprivate(length, qqc)
   dash::tasks::TASKLOOP(Index_t{0}, length,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()),
     [&](Index_t from, Index_t to){
       Real_t   qqc2 = Real_t(64.0) * qqc * qqc ;
       Real_t&   dtcourant_tmp = reduction.local().dtcourant;
@@ -565,7 +565,7 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
 //#pragma omp parallel firstprivate(length, dvovmax)
 
   dash::tasks::TASKLOOP(Index_t{0}, length,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [&](Index_t from, Index_t to) {
 
       Real_t&  dthydro_tmp = reduction.local().dthydro;
@@ -991,7 +991,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
 //#pragma omp parallel for firstprivate(numElem, hourg)
 
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(FBHOURGLASSFORCEFORELEMS);
 
@@ -1214,7 +1214,7 @@ void CalcFBHourglassForceForElems(Domain &domain,
     dash::tasks::ASYNC([](){}, dash::tasks::out(domain.fx(0)));
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::TASKLOOP(Index_t{0}, numNode,
-                          dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(numthreads*domain.chunksize()),
       [fx_elem, fy_elem, fz_elem, &domain](Index_t from, Index_t to) {
         extrae_task_event ev(FBHOURGLASSFORCEFORELEMSREDUCTION);
         Real_t *fx_elem_ = fx_elem;
@@ -1279,7 +1279,7 @@ void CalcHourglassControlForElems(Domain& domain,
    /* start loop over elements */
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [=, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(HOURGLASSCONTROLFORELEM);
       Real_t *dvdx_ = dvdx;
@@ -1362,7 +1362,7 @@ void InitStressTermsForElems(Domain &domain,
 
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [sigxx, sigyy, sigzz, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(INITSTRESSTERMSFORELEMS);
       Real_t *sigxx_ = sigxx;
@@ -1401,7 +1401,7 @@ void IntegrateStressForElems( Domain &domain,
 
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(numthreads*domain.chunksize()),
     [sigxx, sigyy, sigzz, determ, numthreads, &domain](Index_t from, Index_t to) {
       extrae_task_event ev(INTEGRATESTRESSFORELEMS);
       for( Index_t k=from; k<to; ++k )
@@ -1464,7 +1464,7 @@ void IntegrateStressForElems( Domain &domain,
     // arrays used above into the final forces field
 //#pragma omp parallel for firstprivate(numNode)
     dash::tasks::TASKLOOP(Index_t{0}, numNode,
-                          dash::tasks::num_chunks(numthreads*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(numthreads*domain.chunksize()),
       [&domain](Index_t from, Index_t to) {
         extrae_task_event ev(INTEGRATESTRESSFORELEMSREDUCTION);
         for( Index_t gnode=from; gnode<to; ++gnode )
@@ -1531,7 +1531,7 @@ void CalcVolumeForceForElems(Domain& domain)
     // check for negative element volume
 //#pragma omp parallel for firstprivate(numElem)
     dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
       [&](Index_t from, Index_t to) {
         extrae_task_event ev(CHECKDETERM);
         for ( Index_t k=from; k<to; ++k ) {
@@ -1587,7 +1587,7 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
 
 //#pragma omp parallel for firstprivate(qlc_monoq, qqc_monoq, monoq_limiter_mult, monoq_max_slope, ptiny)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [&, r, ptiny](Index_t from, Index_t to) {
       Real_t monoq_limiter_mult = domain.monoq_limiter_mult();
       Real_t monoq_max_slope = domain.monoq_max_slope();
@@ -1780,7 +1780,7 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
 
 //#pragma omp parallel for firstprivate(numElem)
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [&](Index_t from, Index_t to) {
       Real_t *vnew_ = vnew;
       for (Index_t i = from; i < to; ++i ) {
@@ -1966,92 +1966,9 @@ void CalcPressureForElem(Real_t& p_new, Real_t& bvc,
     p_new   = pmin ;
 }
 
-static inline
-void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
-                          Real_t* pbvc, Real_t* e_old,
-                          Real_t* compression, Real_t *vnewc,
-                          Real_t pmin,
-                          Real_t p_cut, Real_t eosvmax,
-                          Index_t length, Index_t *regElemList,
-                          bool block = true)
-{
-  dash::tasks::TASKLOOP(Index_t{0}, length,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i) {
-        Real_t c1s = Real_t(2.0)/Real_t(3.0) ;
-        bvc[i] = c1s * (compression[i] + Real_t(1.));
-        pbvc[i] = c1s;
-
-        Index_t elem = regElemList[i];
-
-        p_new[i] = bvc[i] * e_old[i] ;
-
-        if    (FABS(p_new[i]) <  p_cut   )
-          p_new[i] = Real_t(0.0) ;
-
-        if    ( vnewc[elem] >= eosvmax ) /* impossible condition here? */
-          p_new[i] = Real_t(0.0) ;
-
-        if    (p_new[i]       <  pmin)
-          p_new[i]   = pmin ;
-      }
-    },
-    [bvc, compression, p_new, e_old]
-    (auto from, auto to, auto deps){
-      *deps = dash::tasks::out(bvc[from]);
-      *deps = dash::tasks::in( compression[from]);
-      *deps = dash::tasks::out(p_new[from]);
-      *deps = dash::tasks::in( e_old[from]);
-    });
-
-#if 0
-//#pragma omp parallel for firstprivate(length)
-  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i) {
-        Real_t c1s = Real_t(2.0)/Real_t(3.0) ;
-        bvc[i] = c1s * (compression[i] + Real_t(1.));
-        pbvc[i] = c1s;
-      }
-    },
-    [bvc, compression]
-    (auto from, auto to, auto deps){
-      *deps = dash::tasks::out(&bvc[from]);
-      *deps = dash::tasks::in(&compression[from]);
-    });
-
-//#pragma omp parallel for firstprivate(length, pmin, p_cut, eosvmax)
-  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i){
-        Index_t elem = regElemList[i];
-
-        p_new[i] = bvc[i] * e_old[i] ;
-
-        if    (FABS(p_new[i]) <  p_cut   )
-          p_new[i] = Real_t(0.0) ;
-
-        if    ( vnewc[elem] >= eosvmax ) /* impossible condition here? */
-          p_new[i] = Real_t(0.0) ;
-
-        if    (p_new[i]       <  pmin)
-          p_new[i]   = pmin ;
-      }
-    },
-    [bvc, p_new, e_old](auto from, auto to, auto deps){
-      *deps = dash::tasks::in(&bvc[from]);
-      *deps = dash::tasks::in(&e_old[from]);
-      *deps = dash::tasks::out(&p_new[from]);
-    });
-#endif
-  if (block)
-    dash::tasks::complete();
-}
-
 
 static inline
-void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
+void CalcEnergyForElems(Domain& domain, Real_t* p_new, Real_t* e_new, Real_t* q_new,
                         Real_t* bvc, Real_t* pbvc,
                         Real_t* p_old, Real_t* e_old, Real_t* q_old,
                         Real_t* compression, Real_t* compHalfStep,
@@ -2067,7 +1984,7 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
 
 //#pragma omp parallel for firstprivate(length, emin)
   dash::tasks::TASKLOOP(Index_t{0}, length,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [=](Index_t from, Index_t to) {
       /**
        * Use local variables here to allow older compiler (ICC < 2020, GCC < 10)
@@ -2371,7 +2288,7 @@ void CalcSoundSpeedForElems(Domain &domain,
 {
 //#pragma omp parallel for firstprivate(rho0, ss4o3)
   dash::tasks::TASKLOOP(Index_t{0}, len,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [=, ss = &domain.ss(0)](Index_t from, Index_t to) {
       Real_t* bvc_   = bvc;
       Real_t* pbvc_  = pbvc;
@@ -2445,7 +2362,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
     /* compress data, minimal set */
 
     dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
       [=, &domain](Index_t from, Index_t to) {
         Real_t *e_old_ = e_old;
         Real_t *p_old_ = p_old;
@@ -2495,99 +2412,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
         *deps = dash::tasks::out(e_new[from]);
       });
 
-#if 0
-//#pragma omp parallel
-    {
-//#pragma omp for nowait firstprivate(numElemReg)
-      dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-        [=, &domain](Index_t from, Index_t to) {
-          for (Index_t i=from; i<to; ++i) {
-            Index_t elem = regElemList[i];
-            e_old[i] = domain.e(elem) ;
-            delvc[i] = domain.delv(elem) ;
-            p_old[i] = domain.p(elem) ;
-            q_old[i] = domain.q(elem) ;
-            qq_old[i] = domain.qq(elem) ;
-            ql_old[i] = domain.ql(elem) ;
-          }
-        },
-        [delvc]
-        (auto from, auto to, auto deps){
-          *deps = dash::tasks::out(&delvc[from]);
-        });
-
-//#pragma omp for firstprivate(numElemReg)
-      dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-        [=](Index_t from, Index_t to) {
-          for (Index_t i = from; i < to; ++i) {
-            Index_t elem = regElemList[i];
-            Real_t vchalf ;
-            compression[i] = Real_t(1.) / vnewc[elem] - Real_t(1.);
-            vchalf = vnewc[elem] - delvc[i] * Real_t(.5);
-            compHalfStep[i] = Real_t(1.) / vchalf - Real_t(1.);
-          }
-        },
-        [delvc, compHalfStep]
-        (auto from, auto to, auto deps){
-          *deps = dash::tasks::in(&delvc[from]);
-          *deps = dash::tasks::out(&compHalfStep[from]);
-        });
-
-    /* Check for v > eosvmax or v < eosvmin */
-      if ( eosvmin != Real_t(0.) ) {
-//#pragma omp for nowait firstprivate(numElemReg, eosvmin)
-        dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-          [=](Index_t from, Index_t to) {
-            for(Index_t i=from; i<to; ++i) {
-              Index_t elem = regElemList[i];
-              if (vnewc[elem] <= eosvmin) { /* impossible due to calling func? */
-                compHalfStep[i] = compression[i] ;
-              }
-            }
-          },
-          [compHalfStep]
-          (auto from, auto to, auto deps){
-            *deps = dash::tasks::out(&compHalfStep[from]);
-          });
-      }
-      if ( eosvmax != Real_t(0.) ) {
-//#pragma omp for nowait firstprivate(numElemReg, eosvmax)
-        dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-          [=](Index_t from, Index_t to) {
-            for(Index_t i=from; i<to; ++i) {
-              Index_t elem = regElemList[i];
-              if (vnewc[elem] >= eosvmax) { /* impossible due to calling func? */
-                p_old[i]        = Real_t(0.) ;
-                compression[i]  = Real_t(0.) ;
-                compHalfStep[i] = Real_t(0.) ;
-              }
-            }
-          },
-          [compHalfStep]
-          (auto from, auto to, auto deps){
-            *deps = dash::tasks::out(&compHalfStep[from]);
-          });
-      }
-
-//#pragma omp for nowait firstprivate(numElemReg)
-
-      dash::tasks::TASKLOOP(Index_t{0}, numElemReg, numElemReg/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-        [=](Index_t from, Index_t to) {
-          for (Index_t i = from; i < to; ++i) {
-            work[i] = Real_t(0.) ;
-          }
-      },
-      [work]
-      (auto from, auto to, auto deps){
-        *deps = dash::tasks::out(&work[from]);
-      });
-      dash::tasks::complete();
-    }
-#endif
-
-    // TODO integrate with computation above
-
-    CalcEnergyForElems(p_new, e_new, q_new, bvc, pbvc,
+    CalcEnergyForElems(domain, p_new, e_new, q_new, bvc, pbvc,
                       p_old, e_old,  q_old, compression, compHalfStep,
                       vnewc, work,  delvc, pmin,
                       p_cut, e_cut, q_cut, emin,
@@ -2616,7 +2441,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
 //#pragma omp parallel for firstprivate(numElemReg)
   dash::tasks::TASKLOOP(Index_t{0}, numElemReg,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [=, &domain](Index_t from, Index_t to) {
       Real_t *e  = &domain.e(0);
       Real_t *p  = &domain.p(0);

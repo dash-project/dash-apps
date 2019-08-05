@@ -61,6 +61,9 @@ Domain::Domain(const CmdLineOpts& opts) :
   // arrangements of processes in 3D grid
   m_ts(opts.px(), opts.py(), opts.pz()),
 
+  // taskloop chunk size
+  m_chunksize(opts.chunksize()),
+
   // pattern for element matrix
   m_ElemPat(m_nElem[0]*opts.px(),
 	    m_nElem[1]*opts.py(),
@@ -431,7 +434,7 @@ void Domain::CalcAccelerationForNodes(Index_t numNode)
 {
 //#pragma omp parallel for firstprivate(numNode)
       dash::tasks::TASKLOOP(0, numNode,
-                            dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                            dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
         [&](Index_t from, Index_t to){
           for (Index_t i = from; i < to; ++i) {
             xdd(i) = fx(i) / nodalMass(i);
@@ -448,7 +451,7 @@ void Domain::ApplyAccelerationBoundaryConditionsForNodes()
   Index_t size = domain.sizeX();
   Index_t numNodeBC = (size+1)*(size+1) ;
 
-  auto grainsize = dash::tasks::num_chunks(dash::tasks::numthreads());
+  auto grainsize = dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize());
 
 //#pragma omp parallel
   {
@@ -507,7 +510,7 @@ void Domain::CalcVelocityForNodes(const Real_t dt,
 {
 //#pragma omp parallel for firstprivate(numNode)
   dash::tasks::TASKLOOP(Index_t{0}, numNode,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
     [&, u_cut, dt](Index_t from, Index_t to){
       for ( Index_t i = from; i < to; ++i )
       {
@@ -539,7 +542,7 @@ void Domain::CalcPositionForNodes(const Real_t dt,
 {
 //#pragma omp parallel for firstprivate(numNode)
   dash::tasks::TASKLOOP(Index_t{0}, numNode,
-                        dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                        dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
     [&, dt](Index_t from, Index_t to){
       for( Index_t i = from; i < to; ++i )
       {
@@ -980,7 +983,7 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
 //#pragma omp parallel for firstprivate(numElem)
 
     dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
     [&](Index_t from, Index_t to){
       for ( Index_t k=from; k<to; ++k )
       {
@@ -1097,7 +1100,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
 
 //#pragma omp for firstprivate(numElem)
     dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
       [&, eosvmin](Index_t from, Index_t to){
         if (eosvmin != Real_t(0.))
           for(Index_t i=from; i<to; ++i) {
@@ -1156,7 +1159,7 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
       // just leave it in, please
 //#pragma omp for nowait firstprivate(numElem)
       dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                            dash::tasks::num_chunks(dash::tasks::numthreads()),
+                            dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
         [&, eosvmin, eosvmax](Index_t from, Index_t to){
           for (Index_t i=from; i<to; ++i) {
             Real_t vc = domain.v(i) ;
@@ -1215,7 +1218,7 @@ void Domain::UpdateVolumesForElems(Real_t *vnew,
   if (length != 0) {
 //#pragma omp parallel for firstprivate(length, v_cut)
     dash::tasks::TASKLOOP(Index_t{0}, length,
-                          dash::tasks::num_chunks(dash::tasks::numthreads()),
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
       [&, v_cut, vnew](Index_t from, Index_t to){
         for(Index_t i=from; i<to; ++i) {
           Real_t tmpV = vnew[i] ;

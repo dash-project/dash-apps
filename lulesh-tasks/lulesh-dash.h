@@ -144,6 +144,8 @@ private:
   DASHComm m_comm;
 #endif
 
+  Int_t m_chunksize;
+
 private:
   // helper routines used in constructor
   void BuildMesh();
@@ -334,6 +336,8 @@ public:
   Real_t& dtmax()                    { return m_param.m_dtmax; }
   Real_t& dtfixed()                  { return m_param.m_dtfixed; }
   Int_t&  cycle()                    { return m_param.m_cycle; }
+
+  Int_t&  chunksize()                { return m_chunksize; }
 
 
   Index_t&  numReg()                 { return m_region.numReg(); }

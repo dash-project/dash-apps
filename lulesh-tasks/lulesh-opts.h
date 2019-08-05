@@ -27,6 +27,8 @@ private:
 
   bool m_valid;
 
+  Int_t m_chunksize;
+
 public:
   CmdLineOpts(Int_t numRanks, Int_t myRank)
   {
@@ -47,6 +49,8 @@ public:
     m_py       = 0;
     m_pz       = 0;
     m_valid    = true;
+
+    m_chunksize = 6;
   }
 
   void parseCommandLineOptions(int argc, char *argv[]);
@@ -64,6 +68,8 @@ public:
   Int_t numReg()   const { return m_numReg; }
   Int_t balance()  const { return m_balance; }
   Int_t cost()     const { return m_cost; }
+
+  Int_t chunksize() const { return m_chunksize; }
 
   Int_t its()      const { return m_its; }
   bool valid()     const { return m_valid; }

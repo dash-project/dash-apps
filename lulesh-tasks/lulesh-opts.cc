@@ -76,6 +76,7 @@ void CmdLineOpts::printHelp(std::ostream& os)
   os << " [-r  <int> ] Number of distinct regions\n";
   os << " [-b  <int> ] Load balance between regions of a domain\n";
   os << " [-c  <int> ] Extra cost of more expensive regions\n";
+  os << " [-z  <int> ] Chunk size multiplier (x number of threads)\n";
   os << " [-p ]        Print out progress\n";
   os << " [-v ]        Write an output file for VisIt\n";
   os << " [-h ]        Print help message\n\n";
@@ -222,6 +223,20 @@ void CmdLineOpts::parseCommandLineOptions(int argc, char *argv[])
 	ok = StrToInt(argv[i+1], &m_cost);
 	if (!ok) {
 	  ParseError("Parse Error on option -c integer value required after argument\n", m_myRank);
+	  m_valid=false;
+	}
+	i+=2;
+      }
+
+      /* -c */
+      else if (strcmp(argv[i], "-z") == 0) {
+	if (i+1 >= argc) {
+	  ParseError("Missing integer argument to -z\n", m_myRank);
+	  m_valid=false;
+	}
+	ok = StrToInt(argv[i+1], &m_chunksize);
+	if (!ok) {
+	  ParseError("Parse Error on option -z integer value required after argument\n", m_myRank);
 	  m_valid=false;
 	}
 	i+=2;
