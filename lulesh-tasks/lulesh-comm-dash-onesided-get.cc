@@ -68,7 +68,9 @@ get_yield(const DASHComm::array_type::iterator src,
       src,
       src + recvCount,
       srcAddr);
-  while(!fut.test()) dash::tasks::yield();
+  //while(!fut.test()) dash::tasks::yield();
+  // wait() will block the task until completion
+  fut.wait();
 
 #ifdef PRINT_VALUES
   dump_buffer(srcAddr, recvCount);
