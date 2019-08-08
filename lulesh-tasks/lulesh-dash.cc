@@ -17,7 +17,7 @@
 
 #include "extrae.h"
 
-#define DASH_TASKLOOP_FACTOR 6
+#define DASH_TASKLOOP_FACTOR 12
 
 using std::cout; using std::cerr; using std::endl;
 
@@ -372,7 +372,9 @@ void Domain::LagrangeNodal()
     dash::tasks::in( this->deltatime()),
     dash::tasks::in( this->xdd(0)),
     dash::tasks::out(this->xd(0)),
-    dash::tasks::out(this->x(0))
+    dash::tasks::out(this->x(0)),
+    // Dependency to sync with send/sync tasks
+    dash::tasks::out(*this)
   );
   /*
   dash::tasks::ASYNC(
@@ -585,7 +587,9 @@ void Domain::CalcForceForNodes()
     dash::tasks::in(this->v(0)),
     dash::tasks::in(this->p(0)),
     dash::tasks::in(this->q(0)),
-    dash::tasks::out(this->fx(0))
+    dash::tasks::out(this->fx(0)),
+    // Dependency to synchronize with send/sync tasks
+    dash::tasks::out(*this)
   );
 
   m_comm.Send_Force();
@@ -1043,7 +1047,8 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         EXTRAE_EXIT(MONOQGRADIENTS);
       },
       dash::tasks::in(vnew),
-      dash::tasks::out(this->delv_xi(0))
+      // Dependency to synchronize with send/sync tasks
+      dash::tasks::out(domain)
     );
 
     m_comm.Send_MonoQ();
@@ -1080,10 +1085,11 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         }
         EXTRAE_EXIT(MONOQELEMS);
       },
-      dash::tasks::in(this->delv_xi(0)),
       dash::tasks::out(vnew),
       dash::tasks::out(domain.qq(0)),
-      dash::tasks::out(domain.ql(0))
+      dash::tasks::out(domain.ql(0)),
+      // Dependency to synchronize with send/sync tasks
+      dash::tasks::in(domain)
     );
   }
 }

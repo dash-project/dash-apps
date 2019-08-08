@@ -138,7 +138,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
           destAddr -= xferFields*sendCount;
           put_yield(dest, destAddr, xferFields*sendCount, Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -166,7 +166,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -199,7 +199,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, Y1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -229,7 +229,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, Y0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -264,7 +264,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, X1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -295,7 +295,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*sendCount, X0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -327,7 +327,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X1Y1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -356,7 +356,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y1Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -385,7 +385,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X1Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -414,7 +414,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X0Y0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -442,7 +442,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y0Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -470,7 +470,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X0Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -498,7 +498,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X1Y0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -526,7 +526,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y1Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -554,7 +554,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X1Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -582,7 +582,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dz, X0Y1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
       /*
@@ -610,7 +610,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dx, Y0Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -639,7 +639,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, destAddr, xferFields*dy, X0Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -663,7 +663,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y1Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -687,7 +687,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y1Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -711,7 +711,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y1Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -735,7 +735,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y1Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -759,7 +759,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y0Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -783,7 +783,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X1Y0Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -807,7 +807,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y0Z1);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -831,7 +831,7 @@ void DASHCommPut(Domain& domain, DASHComm& comm,
 
           put_yield(dest, comBuf, xferFields, X0Y0Z0);
         },
-        dash::tasks::in((domain.*fieldData[0])(0)),
+        dash::tasks::in(domain),
         dash::tasks::out(dest)
       );
 
@@ -891,7 +891,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in((domain.*fieldData[0])(0))
+        dash::tasks::in(domain)
       );
     }
     if (planeNotMax) {
@@ -913,7 +913,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in((domain.*fieldData[0])(0))
+        dash::tasks::in(domain)
       );
     }
   }
@@ -943,7 +943,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in((domain.*fieldData[0])(0))
+        dash::tasks::in(domain)
       );
     }
     if (rowNotMax) {
@@ -967,7 +967,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in((domain.*fieldData[0])(0))
+        dash::tasks::in(domain)
       );
     }
   }
@@ -996,7 +996,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in((domain.*fieldData[0])(0))
+        dash::tasks::in(domain)
       );
     }
     if (colNotMax) {
@@ -1020,7 +1020,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
         },
         dash::tasks::in(*src),
         // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-        dash::tasks::in((domain.*fieldData[0])(0))
+        dash::tasks::in(domain)
       );
     }
   }
@@ -1044,7 +1044,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1067,7 +1067,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1090,7 +1090,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1113,7 +1113,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1136,7 +1136,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1159,7 +1159,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1182,7 +1182,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1205,7 +1205,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1228,7 +1228,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1251,7 +1251,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1274,7 +1274,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1297,7 +1297,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*src),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 
@@ -1316,7 +1316,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMin & colNotMin & planeNotMax) {
@@ -1335,7 +1335,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMin & colNotMax & planeNotMin) {
@@ -1354,7 +1354,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMin & colNotMax & planeNotMax) {
@@ -1373,7 +1373,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMax & colNotMin & planeNotMin) {
@@ -1392,7 +1392,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMax & colNotMin & planeNotMax) {
@@ -1411,7 +1411,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMax & colNotMax & planeNotMin) {
@@ -1430,7 +1430,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
   if (rowNotMax & colNotMax & planeNotMax) {
@@ -1449,7 +1449,7 @@ void DASHCommSBN(Domain& domain, DASHComm& comm, int xferFields,
       },
       dash::tasks::in(*comBuf),
       // TODO: dummy IN dependencies, replace them with CONCURRENT!!
-      dash::tasks::in((domain.*fieldData[0])(0))
+      dash::tasks::in(domain)
     );
   }
 }
@@ -1502,14 +1502,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
     }
     if (planeNotMax) {
@@ -1529,14 +1524,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
     }
   }
@@ -1563,14 +1553,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
     }
     if (rowNotMax) {
@@ -1592,14 +1577,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
     }
   }
@@ -1627,14 +1607,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
     }
     if (colNotMax) {
@@ -1656,14 +1631,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += opCount;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
     }
   }
@@ -1684,14 +1654,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
             srcAddr += dz;
           }
         },
-        [=, &domain, &comm](auto deps){
-          for (Index_t fi=0; fi<xferFields; ++fi) {
-            Domain_member dest = fieldData[fi];
-            // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-            *deps = dash::tasks::in((domain.*dest)(0));
-          }
-          *deps = dash::tasks::in(*src);
-        }
+        // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+        dash::tasks::in(domain),
+        dash::tasks::in(*src)
       );
   }
 
@@ -1712,14 +1677,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1740,14 +1700,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1768,14 +1723,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1796,14 +1746,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1824,14 +1769,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1852,14 +1792,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1880,14 +1815,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1908,14 +1838,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1936,14 +1861,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dz;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1964,14 +1884,9 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dx;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
@@ -1992,206 +1907,161 @@ void DASHCommSyncPosVel(Domain& domain, DASHComm& comm, int xferFields,
           srcAddr += dy;
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*src);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 
   if (rowNotMin && colNotMin && planeNotMin && doRecv) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 0, 0) */
         DBGSYNC(xferFields, 1, X0Y0Z0);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(0) = comBuf[fi];
+          (domain.*fieldData[fi])(0) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMin && colNotMin && planeNotMax) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 0, 1) */
         DBGSYNC(xferFields, 1, X0Y0Z1);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx*dy*(dz - 1);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMin && colNotMax && planeNotMin && doRecv) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y0Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 0, 0) */
         DBGSYNC(xferFields, 1, X1Y0Z0);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx - 1;
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMin && colNotMax && planeNotMax) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y0Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 0, 1) */
         DBGSYNC(xferFields, 1, X1Y0Z1);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx*dy*(dz - 1) + (dx - 1);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMax && colNotMin && planeNotMin && doRecv) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 1, 0) */
         DBGSYNC(xferFields, 1, X0Y1Z0);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx*(dy - 1);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMax && colNotMin && planeNotMax) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X0Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (0, 1, 1) */
         DBGSYNC(xferFields, 1, X0Y1Z1);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx*dy*(dz - 1) + dx*(dy - 1);
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMax && colNotMax && planeNotMin && doRecv) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y1Z0, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 1, 0) */
         DBGSYNC(xferFields, 1, X1Y1Z0);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx*dy - 1;
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
   if (rowNotMax && colNotMax && planeNotMax) {
-    Real_t *comBuf = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
+    Real_t *src = &comm.commDataRecv()[comm.offset(X1Y1Z1, xferFields)];
     dash::tasks::ASYNC(
       [=, &domain, &comm](){
         extrae_event e(PROCESSCOMM);
         /* corner at domain logical coord (1, 1, 1) */
         DBGSYNC(xferFields, 1, X1Y1Z1);
-        dump_buffer(comBuf, xferFields);
+        dump_buffer(src, xferFields);
         Index_t idx = dx*dy*dz - 1;
         //MPI_Wait(&comm.recvRequest[pmsg+emsg+cmsg], &status);
         for (Index_t fi=0; fi<xferFields; ++fi) {
-          (domain.*fieldData[fi])(idx) = comBuf[fi];
+          (domain.*fieldData[fi])(idx) = src[fi];
         }
       },
-      [=, &domain, &comm](auto deps){
-        for (Index_t fi=0; fi<xferFields; ++fi) {
-          Domain_member dest = fieldData[fi];
-          // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
-          *deps = dash::tasks::in((domain.*dest)(0));
-        }
-        *deps = dash::tasks::in(*comBuf);
-      }
+      // TODO: these are dummy IN dependencies, replace them with CONCURRENT!!
+      dash::tasks::in(domain),
+      dash::tasks::in(*src)
     );
   }
 }
@@ -2257,7 +2127,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(*src),
-        dash::tasks::in(domain.delv_xi(0))
+        dash::tasks::in(domain)
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2280,7 +2150,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(*src),
-        dash::tasks::in(domain.delv_xi(0))
+        dash::tasks::in(domain)
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2309,7 +2179,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(*src),
-        dash::tasks::in(domain.delv_xi(0))
+        dash::tasks::in(domain)
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2332,7 +2202,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(*src),
-        dash::tasks::in(domain.delv_xi(0))
+        dash::tasks::in(domain)
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2360,7 +2230,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(*src),
-        dash::tasks::in(domain.delv_xi(0))
+        dash::tasks::in(domain)
       );
       for (Index_t fi=0; fi<xferFields; ++fi)
         fieldOffset[fi] += opCount;
@@ -2383,7 +2253,7 @@ void DASHCommMonoQ(Domain& domain, DASHComm& comm)
           }
         },
         dash::tasks::in(*src),
-        dash::tasks::in(domain.delv_xi(0))
+        dash::tasks::in(domain)
       );
     }
   }
