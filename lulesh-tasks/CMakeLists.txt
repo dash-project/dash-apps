@@ -119,6 +119,26 @@ if(MPI_LINK_FLAGS)
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
+add_executable(
+  ${PROJECT_NAME}_copyin
+  ${SOURCES})
+target_link_libraries(
+  ${PROJECT_NAME}_copyin
+  ${TCMALLOC_LIBRARIES}
+  ${EXTRAE_LIBRARIES}
+  ${DASH_LIBRARIES}
+  "${DASH_BASE_DIR}/lib/libdart-tasking.a"
+#  "$ENV{HOME}/opt-cray/extrae-3.5.4-gnu7.3.0/lib/libptmpitrace.so"
+  ${DMAPP_LIBRARIES}
+  ${MPI_C_LIBRARIES})
+set_target_properties(
+  ${PROJECT_NAME}_copyin PROPERTIES COMPILE_FLAGS "-DDASH_USE_COPYIN")
+if(MPI_LINK_FLAGS)
+  set_target_properties(
+    ${PROJECT_NAME}_copyin PROPERTIES
+    LINK_FLAGS "${MPI_LINK_FLAGS}")
+endif()
+
 
 
 
