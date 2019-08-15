@@ -410,7 +410,11 @@ void CalcElemVelocityGradient(const Real_t* const xvel,
 }
 
 
-void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
+/**
+ * IN : volo, v, xd, yd, zd
+ * OUT: vnew, delv, arealg, dxx, dyy, dzz
+ */
+void CalcKinematicsForElems(Domain &domain,
 			    Real_t deltaTime, Index_t numElem )
 {
   // loop over all elements
@@ -418,7 +422,6 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [&](Index_t from, Index_t to){
-      Real_t *vnew_ = vnew;
       for( Index_t k=from; k<to; ++k )
         {
           Real_t B[3][8] ; /** shape function derivatives */
@@ -441,7 +444,7 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
           // volume calculations
           volume = CalcElemVolume(x_local, y_local, z_local);
           relativeVolume = volume / domain.volo(k) ;
-          vnew_[k] = relativeVolume ;
+          domain.vnew(k) = relativeVolume ;
           domain.delv(k) = relativeVolume - domain.v(k) ;
 
           // set characteristic length
@@ -476,8 +479,10 @@ void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
           domain.dyy(k) = D[1];
           domain.dzz(k) = D[2];
         }
-    });
-  dash::tasks::complete();
+  },
+  [&domain](auto from, auto to, auto deps){
+    deps = dash::tasks::out(domain.dxx(from));
+  });
 }
 
 /* ================================================================
@@ -1580,8 +1585,7 @@ void CalcVolumeForceForElems(Domain& domain)
   ================================================================= */
 
 static inline
-void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
-                                  Real_t vnew[], Real_t ptiny)
+void CalcMonotonicQRegionForElems(Domain &domain, Int_t r, Real_t ptiny)
 {
    auto numElem = domain.regElemSize(r);
 
@@ -1593,7 +1597,7 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
       Real_t monoq_max_slope = domain.monoq_max_slope();
       Real_t qlc_monoq = domain.qlc_monoq();
       Real_t qqc_monoq = domain.qqc_monoq();
-      Real_t *vnew_ = vnew;
+      Real_t *vnew_ = &domain.vnew(0);
 
       for ( Index_t ielem = from; ielem < to; ++ielem ) {
         Index_t i = domain.regElemlist(r,ielem);
@@ -1746,11 +1750,10 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
         domain.ql(i) = qlin  ;
       }
     });
-  dash::tasks::complete();
 }
 
 
-void CalcMonotonicQForElems(Domain& domain, Real_t vnew[])
+void CalcMonotonicQForElems(Domain& domain)
 {
    //
    // initialize parameters
@@ -1761,20 +1764,21 @@ void CalcMonotonicQForElems(Domain& domain, Real_t vnew[])
    // calculate the monotonic q for all regions
    //
    for (Index_t r=0 ; r<domain.numReg() ; ++r) {
-
-      if (domain.regElemSize(r) > 0) {
-         CalcMonotonicQRegionForElems(domain, r, vnew, ptiny) ;
-      }
+    if (domain.regElemSize(r) > 0) {
+      CalcMonotonicQRegionForElems(domain, r, ptiny) ;
+    }
    }
+  // TODO: can we overlap the different regions??
+  dash::tasks::complete();
 }
 
 
-/* ================================================================
-   Caller/callee relationship for CalcMonotonicQGradientsForElems()
-   ================================================================
- */
 
-void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
+/**
+ * IN : x, y, z, xd, yd, zd, volo, vnew
+ * OUT: delx_zeta, delv_zeta, delx_xi, delx_eta, delv_eta
+ */
+void CalcMonotonicQGradientsForElems(Domain& domain)
 {
    Index_t numElem = domain.numElem();
 
@@ -1782,7 +1786,6 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
   dash::tasks::TASKLOOP(Index_t{0}, numElem,
                         dash::tasks::num_chunks(dash::tasks::numthreads()*domain.chunksize()),
     [&](Index_t from, Index_t to) {
-      Real_t *vnew_ = vnew;
       for (Index_t i = from; i < to; ++i ) {
         const Real_t ptiny = Real_t(1.e-36) ;
         Real_t ax,ay,az ;
@@ -1852,7 +1855,7 @@ void CalcMonotonicQGradientsForElems(Domain& domain, Real_t vnew[])
         Real_t zv6 = domain.zd(n6) ;
         Real_t zv7 = domain.zd(n7) ;
 
-        Real_t vol = domain.volo(i)*vnew_[i] ;
+        Real_t vol = domain.volo(i)*domain.vnew(i) ;
         Real_t norm = Real_t(1.0) / ( vol + ptiny ) ;
 
         Real_t dxj = Real_t(-0.25)*((x0+x1+x5+x4) - (x3+x2+x6+x7)) ;
@@ -2111,165 +2114,6 @@ void CalcEnergyForElems(Domain& domain, Real_t* p_new, Real_t* e_new, Real_t* q_
     (auto from, auto to, auto deps){
       *deps = dash::tasks::out(e_new[from]);
     });
-  //dash::tasks::complete();
-
-#if 0
-  CalcPressureForElems(pHalfStep, bvc, pbvc, e_new, compHalfStep, vnewc,
-                      pmin, p_cut, eosvmax, length, regElemList, false);
-
-//#pragma omp parallel for firstprivate(length, rho0)
-  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i) {
-        Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep[i]) ;
-
-        if ( delvc[i] > Real_t(0.) ) {
-          q_new[i] /* = qq_old[i] = ql_old[i] */ = Real_t(0.) ;
-        }
-        else {
-          Real_t ssc = ( pbvc[i] * e_new[i]
-                  + vhalf * vhalf * bvc[i] * pHalfStep[i] ) / rho0 ;
-
-          if ( ssc <= Real_t(.1111111e-36) ) {
-            ssc = Real_t(.3333333e-18) ;
-          } else {
-            ssc = SQRT(ssc) ;
-          }
-
-          q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
-        }
-
-        e_new[i] = e_new[i] + Real_t(0.5) * delvc[i]
-            * (  Real_t(3.0)*(p_old[i]     + q_old[i])
-                - Real_t(4.0)*(pHalfStep[i] + q_new[i])) ;
-
-        e_new[i] += Real_t(0.5) * work[i];
-
-        if (FABS(e_new[i]) < e_cut) {
-          e_new[i] = Real_t(0.)  ;
-        }
-        if (     e_new[i]  < emin ) {
-          e_new[i] = emin ;
-        }
-      }
-    },
-    [e_new, q_new, compHalfStep, bvc, pHalfStep]
-    (auto from, auto to, auto deps){
-      *deps = dash::tasks::in(&compHalfStep[from]);
-      *deps = dash::tasks::in(&bvc[from]);
-      *deps = dash::tasks::in(&pHalfStep[from]);
-      *deps = dash::tasks::out(&e_new[from]);
-      *deps = dash::tasks::out(&q_new[from]);
-    });
-  //dash::tasks::complete();
-
-#if 0
-//#pragma omp parallel for firstprivate(length, emin, e_cut)
-  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i) {
-
-        e_new[i] += Real_t(0.5) * work[i];
-
-        if (FABS(e_new[i]) < e_cut) {
-          e_new[i] = Real_t(0.)  ;
-        }
-        if (     e_new[i]  < emin ) {
-          e_new[i] = emin ;
-        }
-      }
-    },
-    [e_new]
-    (auto from, auto to, auto deps){
-      *deps = dash::tasks::out(&e_new[from]);
-    });
-  //dash::tasks::complete();
-#endif
-  CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
-                       pmin, p_cut, eosvmax, length, regElemList, false);
-
-//#pragma omp parallel for firstprivate(length, rho0, emin, e_cut)
-  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i){
-        const Real_t sixth = Real_t(1.0) / Real_t(6.0) ;
-        Index_t elem = regElemList[i];
-        Real_t q_tilde ;
-
-        if (delvc[i] > Real_t(0.)) {
-          q_tilde = Real_t(0.) ;
-        }
-        else {
-          Real_t ssc = ( pbvc[i] * e_new[i]
-                  + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
-
-          if ( ssc <= Real_t(.1111111e-36) ) {
-            ssc = Real_t(.3333333e-18) ;
-          } else {
-            ssc = SQRT(ssc) ;
-          }
-
-          q_tilde = (ssc*ql_old[i] + qq_old[i]) ;
-        }
-
-        e_new[i] = e_new[i] - (  Real_t(7.0)*(p_old[i]     + q_old[i])
-                                  - Real_t(8.0)*(pHalfStep[i] + q_new[i])
-                                  + (p_new[i] + q_tilde)) * delvc[i]*sixth ;
-
-        if (FABS(e_new[i]) < e_cut) {
-            e_new[i] = Real_t(0.)  ;
-        }
-        if (     e_new[i]  < emin ) {
-            e_new[i] = emin ;
-        }
-      }
-    },
-    [e_new, bvc, pbvc, p_new, q_new, pHalfStep]
-    (auto from, auto to, auto deps){
-      *deps = dash::tasks::out(&e_new[from]);
-      *deps = dash::tasks::in(&bvc[from]);
-      *deps = dash::tasks::in(&pbvc[from]);
-      *deps = dash::tasks::in(&p_new[from]);
-      *deps = dash::tasks::in(&q_new[from]);
-      *deps = dash::tasks::in(&pHalfStep[from]);
-    });
-  //dash::tasks::complete();
-
-  CalcPressureForElems(p_new, bvc, pbvc, e_new, compression, vnewc,
-                      pmin, p_cut, eosvmax, length, regElemList, false);
-
-
-//#pragma omp parallel for firstprivate(length, rho0, q_cut)
-  dash::tasks::TASKLOOP(Index_t{0}, length, length/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-    [=](Index_t from, Index_t to) {
-      for (Index_t i = from; i < to; ++i){
-        Index_t elem = regElemList[i];
-
-        if ( delvc[i] <= Real_t(0.) ) {
-          Real_t ssc = ( pbvc[i] * e_new[i]
-                  + vnewc[elem] * vnewc[elem] * bvc[i] * p_new[i] ) / rho0 ;
-
-          if ( ssc <= Real_t(.1111111e-36) ) {
-            ssc = Real_t(.3333333e-18) ;
-          } else {
-            ssc = SQRT(ssc) ;
-          }
-
-          q_new[i] = (ssc*ql_old[i] + qq_old[i]) ;
-
-          if (FABS(q_new[i]) < q_cut) q_new[i] = Real_t(0.) ;
-        }
-      }
-    },
-    [e_new, bvc, pbvc, p_new, q_new]
-    (auto from, auto to, auto deps){
-      *deps = dash::tasks::out(&e_new[from]);
-      *deps = dash::tasks::in(&bvc[from]);
-      *deps = dash::tasks::in(&pbvc[from]);
-      *deps = dash::tasks::in(&p_new[from]);
-      *deps = dash::tasks::out(&q_new[from]);
-    });
-#endif
 
   dash::tasks::complete();
 
@@ -2422,21 +2266,6 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
     //dash::tasks::complete();
   }
 
-  dash::tasks::ASYNC(
-    [=]() mutable {
-      Release(&work) ;
-      Release(&ql_old) ;
-      Release(&qq_old) ;
-      Release(&compHalfStep) ;
-      Release(&compression) ;
-      Release(&q_old) ;
-      Release(&p_old) ;
-      Release(&delvc) ;
-      Release(&e_old) ;
-    },
-    DART_PRIO_HIGH
-  );
-
   // we can overlap the following loop with the loop in CalcSoundSpeedForElems
 
 //#pragma omp parallel for firstprivate(numElemReg)
@@ -2462,6 +2291,17 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
                         vnewc, rho0, e_new, p_new,
                         pbvc, bvc, ss4o3,
                         numElemReg, regElemList) ;
+
+  // some of the memory can be released already
+  Release(&work) ;
+  Release(&ql_old) ;
+  Release(&qq_old) ;
+  Release(&compHalfStep) ;
+  Release(&compression) ;
+  Release(&q_old) ;
+  Release(&p_old) ;
+  Release(&delvc) ;
+  Release(&e_old) ;
 
   dash::tasks::complete();
 

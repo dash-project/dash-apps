@@ -85,6 +85,8 @@ private:
 
   ElemMatrixT<Real_t> m_v;         // relative volume
   ElemMatrixT<Real_t> m_volo;      // reference volume
+  std::vector<Real_t> m_vnew ;     /* new relative volume -- temporary */
+
   ElemMatrixT<Real_t> m_delv;      // vnew - m_v (vnew is temp. allocated)
   ElemMatrixT<Real_t> m_vdov;      // volume derivative over volume
   ElemMatrixT<Real_t> m_elemMass;  // mass
@@ -104,20 +106,18 @@ private:
   // symmetry/free-surface flags for each elem face
   std::vector<Int_t>    m_elemBC;
 
-  //
-  // XXX Switch these to a dash::Matrix?
-  //
-  std::vector<Real_t> m_dxx;       // principal strains -- temporary
-  std::vector<Real_t> m_dyy;
-  std::vector<Real_t> m_dzz;
+  Real_t               *m_dxx ;  /* principal strains -- temporary */
+  Real_t               *m_dyy ;
+  Real_t               *m_dzz ;
 
-  std::vector<Real_t> m_delv_xi;   // velocity gradient -- temporary
-  std::vector<Real_t> m_delv_eta;
-  std::vector<Real_t> m_delv_zeta;
+  Real_t               *m_delv_xi ;    /* velocity gradient -- temporary */
+  Real_t               *m_delv_eta ;
+  Real_t               *m_delv_zeta ;
 
-  std::vector<Real_t> m_delx_xi;   // coordinate gradient -- temporary
-  std::vector<Real_t> m_delx_eta;
-  std::vector<Real_t> m_delx_zeta;
+  Real_t               *m_delx_xi ;    /* coordinate gradient -- temporary */
+  Real_t               *m_delx_eta ;
+  Real_t               *m_delx_zeta ;
+
 
   //
   // XXX - not really necessary for DASH
@@ -134,8 +134,6 @@ private:
   // OMP hack
   Index_t *m_nodeElemStart ;
   Index_t *m_nodeElemCornerList ;
-
-  std::vector<Real_t> m_vnew;
 
 #ifdef USE_MPI
   Comm m_comm;
@@ -237,6 +235,10 @@ public:
   Real_t& dxx(Index_t idx)  { return m_dxx[idx] ; }
   Real_t& dyy(Index_t idx)  { return m_dyy[idx] ; }
   Real_t& dzz(Index_t idx)  { return m_dzz[idx] ; }
+
+  // New relative volume - temporary
+  Real_t& vnew(Index_t idx)  { return m_vnew[idx] ; }
+
 
   // velocity gradient -- temporary
   Real_t& delv_xi(Index_t idx)    { return m_delv_xi[idx] ; }
@@ -363,11 +365,10 @@ public:
 			    const Real_t u_cut, Index_t numNode);
   void CalcPositionForNodes(const Real_t dt, Index_t numNode);
 
-  void CalcLagrangeElements(Real_t* vnew);
-  void CalcQForElems(std::vector<Real_t>& vnew);
-  void ApplyMaterialPropertiesForElems(Real_t vnew[]);
-  void UpdateVolumesForElems(Real_t *vnew,
-			     Real_t v_cut, Index_t length);
+  void CalcLagrangeElements();
+  void CalcQForElems();
+  void ApplyMaterialPropertiesForElems();
+  void UpdateVolumesForElems(Real_t v_cut, Index_t length);
 
   void VerifyAndWriteFinalOutput(Real_t elapsed,
 				 Int_t  nx,

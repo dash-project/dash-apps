@@ -141,15 +141,6 @@ Domain::Domain(const CmdLineOpts& opts) :
 
   m_nodelist.resize(numElem());
 
-  AllocateStrains(numElem());
-
-  Int_t allElem = numElem() +           /* local elem */
-    2*sizeX()*sizeY() + /* plane ghosts */
-    2*sizeX()*sizeZ() + /* row ghosts */
-    2*sizeY()*sizeZ() ; /* col ghosts */
-
-  AllocateGradients(numElem(), allElem);
-
   m_arealg.resize(numElem());
   m_ss.resize(numElem());
 
@@ -348,7 +339,38 @@ void Domain::LagrangeNodal()
 {
   Real_t ucut = u_cut();
 
-  CalcForceForNodes();
+  //CalcForceForNodes();
+
+  dash::tasks::ASYNC(
+    [&](){
+      EXTRAE_ENTER(CALCFORCEFORNODES);
+      Domain& domain = (*this);
+      Index_t numNode = domain.numNode() ;
+      dash::tasks::TASKLOOP(Index_t{0}, numNode,
+                            dash::tasks::num_chunks(dash::tasks::numthreads()),
+        [&](Index_t from, Index_t to){
+          for (Index_t i=from; i<to; ++i) {
+            domain.fx(i) = Real_t(0.0) ;
+            domain.fy(i) = Real_t(0.0) ;
+            domain.fz(i) = Real_t(0.0) ;
+          }
+        });
+      dash::tasks::complete();
+
+      // Calcforce calls partial, force, hourq
+      CalcVolumeForceForElems(domain);
+      EXTRAE_EXIT(CALCFORCEFORNODES);
+    },
+    dash::tasks::in(this->v(0)),
+    dash::tasks::in(this->p(0)),
+    dash::tasks::in(this->q(0)),
+    dash::tasks::out(this->fx(0)),
+    // Dependency to synchronize with send/sync tasks
+    dash::tasks::out(*this)
+  );
+
+  m_comm.Send_Force();
+  m_comm.Sync_Force();
 
   dash::tasks::ASYNC(
     [=](){
@@ -358,8 +380,11 @@ void Domain::LagrangeNodal()
       EXTRAE_EXIT(CALCACCELERATIONFORNODES);
     },
     dash::tasks::in( this->fx(0)),
-    dash::tasks::out(this->xdd(0))
+    dash::tasks::out(this->xdd(0)),
+    // Dependency to synchronize with send/sync tasks
+    dash::tasks::out(*this)
   );
+
   dash::tasks::ASYNC(
     [=](){
       EXTRAE_ENTER(CALCVELPOSFORNODES);
@@ -376,17 +401,7 @@ void Domain::LagrangeNodal()
     // Dependency to sync with send/sync tasks
     dash::tasks::out(*this)
   );
-  /*
-  dash::tasks::ASYNC(
-    [=](){
-      const Real_t delt = deltatime();
-      CalcPositionForNodes(delt, numNode());
-    },
-    dash::tasks::in(&this->deltatime()),
-    dash::tasks::in(&this->xd(0)),
-    dash::tasks::out(&this->x(0))
-  );
-  */
+
 
   // create communication tasks
   m_comm.Send_PosVel();
@@ -399,35 +414,45 @@ void Domain::LagrangeElements()
   dash::tasks::ASYNC(
     [&](){
       EXTRAE_ENTER(LAGRANGEELEMS);
-      CalcLagrangeElements(m_vnew.data());
+
+      /**
+      * IN : volo, v,
+      * OUT: vnew, delv, arealg, dxx, dyy, dzz, vdov
+      *
+      * Calls: CalcKinematicsForElems
+      */
+      CalcLagrangeElements();
       EXTRAE_EXIT(LAGRANGEELEMS);
     },
-    dash::tasks::in(this->x(0)),
-    dash::tasks::out(this->dxx(0)),
+    dash::tasks::in(this->xd(0)),
+    dash::tasks::in(*this), // <- synchronize with Sync_PosVel in LagrangeNodal
+    //dash::tasks::out(this->dxx(0)),
+    //dash::tasks::out(this->dyy(0)),
+    //dash::tasks::out(this->dzz(0)),
+    //dash::tasks::out(this->delv(0)),
     dash::tasks::out(this->vdov(0)),
-    dash::tasks::out(this->arealg(0)),
-    dash::tasks::out(m_vnew)
+    dash::tasks::out(this->vnew(0)),
+    dash::tasks::out(this->arealg(0))
   );
 
   // Calculate Q.  (Monotonic q option requires communication)
-  CalcQForElems(m_vnew);
+  CalcQForElems();
 
   dash::tasks::ASYNC(
     [&](){
       EXTRAE_ENTER(MATERIALPROPERTIES);
-      ApplyMaterialPropertiesForElems(m_vnew.data());
+      ApplyMaterialPropertiesForElems();
 
-      UpdateVolumesForElems(m_vnew.data(), v_cut(), numElem());
+      UpdateVolumesForElems(v_cut(), numElem());
 
       EXTRAE_EXIT(MATERIALPROPERTIES);
     },
-    dash::tasks::in(this->x(0)),
+    dash::tasks::in(this->qq(0)), // <- comes out of CalcQForElems
     dash::tasks::out(this->v(0)),
     dash::tasks::out(this->p(0)),
     dash::tasks::out(this->e(0)),
     dash::tasks::out(this->q(0)),
-    dash::tasks::out(this->ss(0)),
-    dash::tasks::out(m_vnew)
+    dash::tasks::out(this->ss(0))
   );
 }
 
@@ -559,7 +584,7 @@ void Domain::CalcPositionForNodes(const Real_t dt,
     });
 }
 
-
+/*
 void Domain::CalcForceForNodes()
 {
 
@@ -595,45 +620,43 @@ void Domain::CalcForceForNodes()
   m_comm.Send_Force();
   m_comm.Sync_Force();
 }
-
-void Domain::AllocateStrains(Int_t numElem)
-{
-  extrae_task_event e(ALLOCATESTRAINS);
-  m_dxx.resize(numElem);
-  m_dyy.resize(numElem);
-  m_dzz.resize(numElem);
-}
-
-void Domain::DeallocateStrains()
-{
-  m_dxx.clear();
-  m_dyy.clear();
-  m_dzz.clear();
-}
-
+*/
 void Domain::AllocateGradients(Int_t numElem, Int_t allElem)
 {
-  extrae_task_event e(ALLOCATEGRADIENTS);
   // Position gradients
-  m_delx_xi.resize(numElem);
-  m_delx_eta.resize(numElem) ;
-  m_delx_zeta.resize(numElem) ;
+  m_delx_xi   = Allocate<Real_t>(numElem) ;
+  m_delx_eta  = Allocate<Real_t>(numElem) ;
+  m_delx_zeta = Allocate<Real_t>(numElem) ;
 
   // Velocity gradients
-  m_delv_xi.resize(allElem) ;
-  m_delv_eta.resize(allElem);
-  m_delv_zeta.resize(allElem) ;
+  m_delv_xi   = Allocate<Real_t>(allElem) ;
+  m_delv_eta  = Allocate<Real_t>(allElem);
+  m_delv_zeta = Allocate<Real_t>(allElem) ;
 }
 
 void Domain::DeallocateGradients()
 {
-  m_delx_zeta.clear();
-  m_delx_eta.clear();
-  m_delx_xi.clear();
+  Release(&m_delx_zeta);
+  Release(&m_delx_eta) ;
+  Release(&m_delx_xi)  ;
 
-  m_delv_zeta.clear();
-  m_delv_eta.clear();
-  m_delv_xi.clear();
+  Release(&m_delv_zeta);
+  Release(&m_delv_eta) ;
+  Release(&m_delv_xi)  ;
+}
+
+void Domain::AllocateStrains(Int_t numElem)
+{
+  m_dxx = Allocate<Real_t>(numElem) ;
+  m_dyy = Allocate<Real_t>(numElem) ;
+  m_dzz = Allocate<Real_t>(numElem) ;
+}
+
+void Domain::DeallocateStrains()
+{
+  Release(&m_dzz) ;
+  Release(&m_dyy) ;
+  Release(&m_dxx) ;
 }
 
 
@@ -971,7 +994,13 @@ void Domain::DepositInitialEnergy(Int_t nx)
 }
 
 
-void Domain::CalcLagrangeElements(Real_t* vnew)
+/**
+* IN : volo, v, xd, yd, zd
+* OUT: vnew, delv, arealg, dxx, dyy, dzz, vdov
+*
+* Calls: CalcKinematicsForElems
+*/
+void Domain::CalcLagrangeElements()
 {
   Domain& domain = (*this);
 
@@ -979,9 +1008,13 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
   if (numElem > 0) {
     const Real_t deltatime = domain.deltatime() ;
 
-    //domain.AllocateStrains(numElem);
+    domain.AllocateStrains(numElem);
 
-    CalcKinematicsForElems(domain, vnew, deltatime, numElem) ;
+    /**
+    * IN : volo, v, xd, yd, zd
+    * OUT: vnew, delv, arealg, dxx, dyy, dzz
+    */
+    CalcKinematicsForElems(domain, deltatime, numElem) ;
 
     // element loop to do some stuff not included in the elemlib function.
 //#pragma omp parallel for firstprivate(numElem)
@@ -1002,9 +1035,9 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
         domain.dzz(k) -= vdovthird ;
 
         // See if any volumes are negative, and take appropriate action.
-        if (vnew[k] <= Real_t(0.0))
+        if (domain.vnew(k) <= Real_t(0.0))
         {
-          std::cerr << "VOLUME ERROR: vnew[k]=" << vnew[k] << std::endl;
+          std::cerr << "VOLUME ERROR: vnew[k]=" << domain.vnew(k) << std::endl;
 #if USE_MPI
           MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #elif USE_DASH
@@ -1014,13 +1047,16 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
 #endif
         }
       }
-      });
+    },
+    [&](auto from, auto to, auto deps) {
+      deps = dash::tasks::out(domain.dxx(from));
+    });
     dash::tasks::complete();
-    //domain.DeallocateStrains();
+    domain.DeallocateStrains();
   }
 }
 
-void Domain::CalcQForElems(std::vector<Real_t>& vnew)
+void Domain::CalcQForElems()
 {
   //
   // MONOTONIC Q option
@@ -1030,37 +1066,40 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
 
   if (domain.numElem() != 0) {
     dash::tasks::ASYNC(
-      [=, &domain, &vnew](){
+      [=, &domain](){
         EXTRAE_ENTER(MONOQGRADIENTS);
 
-#if 0
         Index_t numElem = domain.numElem() ;
         Int_t allElem = numElem +           /* local elem */
           2*domain.sizeX()*domain.sizeY() + /* plane ghosts */
           2*domain.sizeX()*domain.sizeZ() + /* row ghosts */
           2*domain.sizeY()*domain.sizeZ() ; /* col ghosts */
         domain.AllocateGradients(numElem, allElem);
-#endif
 
         /* Calculate velocity gradients */
-        CalcMonotonicQGradientsForElems(domain, vnew.data());
+        /**
+        * IN : x, y, z, xd, yd, zd, volo, vnew
+        * OUT: delx_zeta, delv_zeta, delx_xi, delx_eta, delv_eta
+        */
+        CalcMonotonicQGradientsForElems(domain);
         EXTRAE_EXIT(MONOQGRADIENTS);
       },
-      dash::tasks::in(vnew),
-      // Dependency to synchronize with send/sync tasks
+      dash::tasks::in(domain.vnew(0)),
+      // Dependency to synchronize with send/sync tasks, needed for delv_xi etc
       dash::tasks::out(domain)
     );
 
+    // exchanges delv_xi, delv_eta, delv_zeta
     m_comm.Send_MonoQ();
     m_comm.Sync_MonoQ();
 
     dash::tasks::ASYNC(
-      [=, &domain, &vnew](){
+      [=, &domain](){
         EXTRAE_ENTER(MONOQELEMS);
-        CalcMonotonicQForElems(domain, vnew.data()) ;
+        CalcMonotonicQForElems(domain) ;
 
         // Free up memory
-        //domain.DeallocateGradients();
+        domain.DeallocateGradients();
 
         /* Don't allow excessive artificial viscosity */
         Index_t idx = -1;
@@ -1085,16 +1124,15 @@ void Domain::CalcQForElems(std::vector<Real_t>& vnew)
         }
         EXTRAE_EXIT(MONOQELEMS);
       },
-      dash::tasks::out(vnew),
       dash::tasks::out(domain.qq(0)),
-      dash::tasks::out(domain.ql(0)),
-      // Dependency to synchronize with send/sync tasks
-      dash::tasks::in(domain)
+      //dash::tasks::out(domain.ql(0)),
+      // Dependency to synchronize with send/sync tasks, needed for delv_xi etc
+      dash::tasks::out(domain)
     );
   }
 }
 
-void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
+void Domain::ApplyMaterialPropertiesForElems()
 {
   Domain& domain = (*this);
   Index_t numElem = domain.numElem() ;
@@ -1103,120 +1141,81 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
     /* Expose all of the variables needed for material evaluation */
     Real_t eosvmin = domain.eosvmin() ;
     Real_t eosvmax = domain.eosvmax() ;
+    Real_t *vnewc = Allocate<Real_t>(numElem) ;
 
 //#pragma omp for firstprivate(numElem)
     dash::tasks::TASKLOOP(Index_t{0}, numElem,
                           dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
-      [&, eosvmin](Index_t from, Index_t to){
+      [&, eosvmin, vnewc](Index_t from, Index_t to){
+        Real_t *vnewc_ = vnewc;
+        for(Index_t i=from; i<to; ++i) {
+          vnewc_[i] = domain.vnew(i);
+        }
         if (eosvmin != Real_t(0.))
           for(Index_t i=from; i<to; ++i) {
-            if (vnew[i] < eosvmin)
-              vnew[i] = eosvmin ;
+            if (vnewc_[i] < eosvmin)
+              vnewc_[i] = eosvmin ;
           }
 
         if (eosvmax != Real_t(0.))
           for(Index_t i=from; i<to; ++i) {
-            if (vnew[i] > eosvmax)
-              vnew[i] = eosvmax ;
+            if (vnewc_[i] > eosvmax)
+              vnewc_[i] = eosvmax ;
           }
       });
-    //dash::tasks::complete();
 
-//#pragma omp parallel
-    {
-#if 0
-      // Bound the updated relative volumes with eosvmin/max
-      if (eosvmin != Real_t(0.)) {
-//#pragma omp for firstprivate(numElem)
-        dash::tasks::TASKLOOP(Index_t{0}, numElem,
-          [&, eosvmin](Index_t from, Index_t to){
-            for(Index_t i=from; i<to; ++i) {
-              if (vnew[i] < eosvmin)
-                vnew[i] = eosvmin ;
-            }
-          },
-          [vnew]
-          (auto from, auto to, auto deps){
-            *deps = dash::tasks::out(&vnew[from]);
-          });
-        //dash::tasks::complete();
-      }
-
-      if (eosvmax != Real_t(0.)) {
-//#pragma omp for nowait firstprivate(numElem)
-        dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                              numElem/(dash::tasks::numthreads()*DASH_TASKLOOP_FACTOR),
-          [&, eosvmax](Index_t from, Index_t to){
-            for(Index_t i=from; i<to; ++i) {
-              if (vnew[i] > eosvmax)
-                vnew[i] = eosvmax ;
-            }
-          },
-          [vnew]
-          (auto from, auto to, auto deps){
-            *deps = dash::tasks::out(&vnew[from]);
-          });
-        //dash::tasks::complete();
-      }
-#endif
-
-      // This check may not make perfect sense in LULESH, but
-      // it's representative of something in the full code -
-      // just leave it in, please
-//#pragma omp for nowait firstprivate(numElem)
-      dash::tasks::TASKLOOP(Index_t{0}, numElem,
-                            dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
-        [&, eosvmin, eosvmax](Index_t from, Index_t to){
-          for (Index_t i=from; i<to; ++i) {
-            Real_t vc = domain.v(i) ;
-            if (eosvmin != Real_t(0.)) {
-              if (vc < eosvmin)
-                vc = eosvmin ;
-            }
-            if (eosvmax != Real_t(0.)) {
-              if (vc > eosvmax)
-                vc = eosvmax ;
-            }
-            if (vc <= 0.) {
-              std::cerr << "VOLUME ERROR: vc=" << vc << std::endl;
-#if USE_MPI
-              MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
-#elif USE_DASH
-              dart_abort(VolumeError);
-#else
-              exit(VolumeError);
-#endif
-            }
+    // This check may not make perfect sense in LULESH, but
+    // it's representative of something in the full code -
+    // just leave it in, please
+    dash::tasks::TASKLOOP(Index_t{0}, numElem,
+                          dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
+      [&, eosvmin, eosvmax](Index_t from, Index_t to){
+        for (Index_t i=from; i<to; ++i) {
+          Real_t vc = domain.v(i) ;
+          if (eosvmin != Real_t(0.)) {
+            if (vc < eosvmin)
+              vc = eosvmin ;
           }
-        });
-      dash::tasks::complete();
-    }
-
-    dash::tasks::ASYNC(
-      [=, &domain](){
-        for (Int_t r=0 ; r<domain.numReg() ; r++) {
-          Index_t numElemReg = domain.regElemSize(r);
-          Index_t *regElemList = domain.regElemlist(r);
-          Int_t rep;
-          //Determine load imbalance for this region
-          //round down the number with lowest cost
-          if(r < domain.numReg()/2)
-            rep = 1;
-          //you don't get an expensive region unless you at least have 5 regions
-          else if(r < (domain.numReg() - (domain.numReg()+15)/20))
-            rep = 1 + domain.cost();
-          //very expensive regions
-          else
-            rep = 10 * (1+ domain.cost());
-          EvalEOSForElems(domain, vnew, numElemReg, regElemList, rep);
+          if (eosvmax != Real_t(0.)) {
+            if (vc > eosvmax)
+              vc = eosvmax ;
+          }
+          if (vc <= 0.) {
+            std::cerr << "VOLUME ERROR: vc=" << vc << std::endl;
+#if USE_MPI
+            MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#elif USE_DASH
+            dart_abort(VolumeError);
+#else
+            exit(VolumeError);
+#endif
+          }
         }
-      }
-    );
+      });
     dash::tasks::complete();
+
+    for (Int_t r=0 ; r<domain.numReg() ; r++) {
+      Index_t numElemReg = domain.regElemSize(r);
+      Index_t *regElemList = domain.regElemlist(r);
+      Int_t rep;
+      //Determine load imbalance for this region
+      //round down the number with lowest cost
+      if(r < domain.numReg()/2)
+        rep = 1;
+      //you don't get an expensive region unless you at least have 5 regions
+      else if(r < (domain.numReg() - (domain.numReg()+15)/20))
+        rep = 1 + domain.cost();
+      //very expensive regions
+      else
+        rep = 10 * (1+ domain.cost());
+      EvalEOSForElems(domain, vnewc, numElemReg, regElemList, rep);
+    }
+    //dash::tasks::complete();
+    Release(&vnewc);
   }
 }
 
-void Domain::UpdateVolumesForElems(Real_t *vnew,
+void Domain::UpdateVolumesForElems(
 			   Real_t v_cut, Index_t length)
 {
   Domain& domain = (*this);
@@ -1225,9 +1224,9 @@ void Domain::UpdateVolumesForElems(Real_t *vnew,
 //#pragma omp parallel for firstprivate(length, v_cut)
     dash::tasks::TASKLOOP(Index_t{0}, length,
                           dash::tasks::num_chunks(dash::tasks::numthreads()*this->chunksize()),
-      [&, v_cut, vnew](Index_t from, Index_t to){
+      [&, v_cut](Index_t from, Index_t to){
         for(Index_t i=from; i<to; ++i) {
-          Real_t tmpV = vnew[i] ;
+          Real_t tmpV = domain.vnew(i) ;
 
           if ( FABS(tmpV - Real_t(1.0)) < v_cut )
             tmpV = Real_t(1.0) ;

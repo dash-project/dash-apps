@@ -11,7 +11,7 @@
 void CalcTimeConstraintsForElems(Domain& domain);
 
 
-void CalcKinematicsForElems(Domain &domain, Real_t *vnew,
+void CalcKinematicsForElems(Domain &domain,
 			    Real_t deltaTime, Index_t numElem);
 
 Real_t CalcElemVolume(const Real_t x[8],
@@ -20,11 +20,9 @@ Real_t CalcElemVolume(const Real_t x[8],
 
 void CalcVolumeForceForElems(Domain& domain);
 
-void CalcMonotonicQForElems(Domain& domain,
-			    Real_t vnew[]);
+void CalcMonotonicQForElems(Domain& domain);
 
-void CalcMonotonicQGradientsForElems(Domain& domain,
-				     Real_t vnew[]);
+void CalcMonotonicQGradientsForElems(Domain& domain);
 
 void EvalEOSForElems(Domain& domain, Real_t *vnewc,
                      Int_t numElemReg,
