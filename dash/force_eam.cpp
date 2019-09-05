@@ -50,9 +50,6 @@ ForceEAM::ForceEAM(int ntypes_)
 {
   ntypes = ntypes_;
   cutforce = 0.0;
-  cutforcesq = new MMD_float[ntypes*ntypes];
-  for( int i = 0; i<ntypes*ntypes; i++)
-    cutforcesq[i] = 0.0;
   use_oldcompute = 0;
 
   nmax = 0;
@@ -148,7 +145,7 @@ void ForceEAM::compute_halfneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         MMD_float p = sqrt(rsq) * rdr + 1.0;
         MMD_int m = static_cast<int>(p);
         m = m < nr - 1 ? m : nr - 1;
@@ -213,7 +210,7 @@ void ForceEAM::compute_halfneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         MMD_float r = sqrt(rsq);
         MMD_float p = r * rdr + 1.0;
         MMD_int m = static_cast<int>(p);
@@ -323,7 +320,7 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         MMD_float p = sqrt(rsq) * rdr + 1.0;
         MMD_int m = static_cast<int>(p);
         m = m < nr - 1 ? m : nr - 1;
@@ -390,7 +387,7 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         MMD_float r = sqrt(rsq);
         MMD_float p = r * rdr + 1.0;
         MMD_int m = static_cast<int>(p);
@@ -476,8 +473,7 @@ void ForceEAM::coeff(const char* arg)
   //atom->mass = funcfl.mass;
   cutmax = funcfl.cut;
 
-  for(int i=0; i<ntypes*ntypes; i++)
-    cutforcesq[i] = cutmax * cutmax;
+  cutforcesq = cutmax * cutmax;
 }
 
 /* ----------------------------------------------------------------------

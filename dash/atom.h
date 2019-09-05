@@ -34,6 +34,8 @@
 
 #include "threadData.h"
 #include "types.h"
+#include <cstddef>
+#include <libdash.h>
 
 
 class Neighbor;
@@ -55,6 +57,13 @@ class Atom
     MMD_float* v;
     MMD_float* f;
 
+    using DashArray = dash::Array<MMD_float>;
+
+    DashArray x_arr;
+    DashArray v_arr;
+    DashArray f_arr;
+    dash::Array<int> type_arr;
+
     int ntypes;
     int* type;
 
@@ -67,7 +76,7 @@ class Atom
 
     struct Box box;
 
-    Atom(int ntypes_);
+    Atom(int ntypes_, std::size_t nreserved);
     ~Atom();
     void addatom(MMD_float, MMD_float, MMD_float, MMD_float, MMD_float, MMD_float);
     void pbc();

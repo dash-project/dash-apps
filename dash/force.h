@@ -41,7 +41,7 @@ class Force
 {
   public:
     MMD_float cutforce;
-    MMD_float* cutforcesq;
+    MMD_float cutforcesq;
     MMD_float eng_vdwl;
     MMD_float mass;
     MMD_int evflag;
@@ -60,7 +60,9 @@ class Force
     MMD_int reneigh;
     Timer* timer;
 
-    MMD_float *epsilon, *sigma6, *sigma; //Parameters for LJ only
+    constexpr static MMD_float epsilon = 1.0;
+    constexpr static MMD_float sigma6 = 1.0;
+    constexpr static MMD_float sigma = 1.0;
 
     ForceStyle style;
   protected:

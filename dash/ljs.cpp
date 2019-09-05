@@ -263,7 +263,7 @@ int main(int argc, char** argv)
   }
 
 
-  Atom atom(ntypes);
+  Atom atom(ntypes, std::pow(8, 6));
   Neighbor neighbor(ntypes);
   Integrate integrate;
   Thermo thermo;
@@ -298,13 +298,6 @@ int main(int argc, char** argv)
   neighbor.threads = &threads;
   thermo.threads = &threads;
 
-  if(in.forcetype == FORCELJ) {
-    for(int i=0; i<ntypes*ntypes; i++) {
-      force->epsilon[i] = in.epsilon;
-      force->sigma[i] = in.sigma;
-      force->sigma6[i] = in.sigma*in.sigma*in.sigma*in.sigma*in.sigma*in.sigma;
-    }
-  }
 
   neighbor.ghost_newton = ghost_newton;
 
@@ -340,6 +333,7 @@ int main(int argc, char** argv)
   if(nx > 0) {
     in.nx = nx;
     if(ny > 0)
+
       in.ny = ny;
     else if(system_size < 0)
       in.ny = nx;
@@ -501,7 +495,6 @@ int main(int argc, char** argv)
 
   delete force;
   MPI_Barrier(MPI_COMM_WORLD);
-  MPI_Finalize();
   dash::finalize();
   return 0;
 }

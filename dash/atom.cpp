@@ -36,14 +36,16 @@
 #include "atom.h"
 #include "neighbor.h"
 
+#include <libdash.h>
+#include <cstddef>
+
 #define DELTA 20000
 
-Atom::Atom(int ntypes_)
+Atom::Atom(int ntypes_, size_t nreserved = 0)
 {
   natoms = 0;
   nlocal = 0;
   nghost = 0;
-  nmax = 0;
   copy_size = 0;
 
   x = v = f = xold = x_copy = v_copy = NULL;
@@ -51,6 +53,18 @@ Atom::Atom(int ntypes_)
   comm_size = 3;
   reverse_size = 3;
   border_size = 4;
+
+  x_arr.allocate(nreserved * PAD);
+  v_arr.allocate(nreserved * PAD);
+  f_arr.allocate(nreserved * PAD);
+
+  nmax = x_arr.pattern().local_size();
+  type_arr.allocate(nmax);
+
+  x = x_arr.lbegin();
+  v = v_arr.lbegin();
+  f = f_arr.lbegin();
+  type = type_arr.lbegin();
 
   mass = 1;
 
@@ -60,16 +74,13 @@ Atom::Atom(int ntypes_)
 Atom::~Atom()
 {
   if(nmax) {
-    destroy_2d_MMD_float_array(x);
-    destroy_2d_MMD_float_array(v);
-    destroy_2d_MMD_float_array(f);
     destroy_2d_MMD_float_array(xold);
-    destroy_1d_int_array(type);
   }
 }
 
 void Atom::growarray()
 {
+  std::cout << "Attempting to grow array." << std::endl;
   int nold = nmax;
   nmax += DELTA;
   x = (MMD_float*) realloc_2d_MMD_float_array(x, nmax, PAD, PAD * nold);

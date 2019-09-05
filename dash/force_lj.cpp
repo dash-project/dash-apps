@@ -45,27 +45,12 @@ ForceLJ::ForceLJ(int ntypes_)
   reneigh = 1;
   style = FORCELJ;
   ntypes = ntypes_;
-
-  cutforcesq = new MMD_float[ntypes*ntypes];
-  epsilon = new MMD_float[ntypes*ntypes];
-  sigma6 = new MMD_float[ntypes*ntypes];
-  sigma = new MMD_float[ntypes*ntypes];
-
-  for(int i = 0; i<ntypes*ntypes; i++) {
-    cutforcesq[i] = 0.0;
-    epsilon[i] = 1.0;
-    sigma6[i] = 1.0;
-    sigma[i] = 1.0;
-  }
-
-
 }
 ForceLJ::~ForceLJ() {}
 
 void ForceLJ::setup()
 {
-  for(int i = 0; i<ntypes*ntypes; i++)
-    cutforcesq[i] = cutforce * cutforce;
+  cutforcesq = cutforce * cutforce;
 }
 
 
@@ -155,10 +140,10 @@ void ForceLJ::compute_original(Atom &atom, Neighbor &neighbor, int me)
 
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         const MMD_float sr2 = 1.0 / rsq;
-        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6[type_ij];
-        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon[type_ij];
+        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6;
+        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon;
         f[i * PAD + 0] += delx * force;
         f[i * PAD + 1] += dely * force;
         f[i * PAD + 2] += delz * force;
@@ -167,7 +152,7 @@ void ForceLJ::compute_original(Atom &atom, Neighbor &neighbor, int me)
         f[j * PAD + 2] -= delz * force;
 
         if(EVFLAG) {
-          eng_vdwl += (4.0 * sr6 * (sr6 - 1.0)) * epsilon[type_ij];
+          eng_vdwl += (4.0 * sr6 * (sr6 - 1.0)) * epsilon;
           virial += (delx * delx + dely * dely + delz * delz) * force;
         }
       }
@@ -227,10 +212,10 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
       const MMD_float rsq = delx * delx + dely * dely + delz * delz;
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         const MMD_float sr2 = 1.0 / rsq;
-        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6[type_ij];
-        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon[type_ij];
+        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6;
+        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon;
 
         fix += delx * force;
         fiy += dely * force;
@@ -244,7 +229,7 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
 
         if(EVFLAG) {
           const MMD_float scale = (GHOST_NEWTON || j < nlocal) ? 1.0 : 0.5;
-          t_energy += scale * (4.0 * sr6 * (sr6 - 1.0)) * epsilon[type_ij];
+          t_energy += scale * (4.0 * sr6 * (sr6 - 1.0)) * epsilon;
           t_virial += scale * (delx * delx + dely * dely + delz * delz) * force;
         }
 
@@ -314,10 +299,10 @@ void ForceLJ::compute_halfneigh_threaded(Atom &atom, Neighbor &neighbor, int me)
       const MMD_float rsq = delx * delx + dely * dely + delz * delz;
       const int type_ij = type_i*ntypes+type_j;
 
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         const MMD_float sr2 = 1.0 / rsq;
-        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6[type_ij];
-        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon[type_ij];
+        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6;
+        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon;
 
         fix += delx * force;
         fiy += dely * force;
@@ -334,7 +319,7 @@ void ForceLJ::compute_halfneigh_threaded(Atom &atom, Neighbor &neighbor, int me)
 
         if(EVFLAG) {
           const MMD_float scale = (GHOST_NEWTON || j < nlocal) ? 1.0 : 0.5;
-          t_eng_vdwl += scale * (4.0 * sr6 * (sr6 - 1.0)) * epsilon[type_ij];
+          t_eng_vdwl += scale * (4.0 * sr6 * (sr6 - 1.0)) * epsilon;
           t_virial += scale * (delx * delx + dely * dely + delz * delz) * force;
         }
       }
@@ -416,16 +401,16 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
       const MMD_float rsq = delx * delx + dely * dely + delz * delz;
 
       int type_ij = type_i*ntypes+type_j;
-      if(rsq < cutforcesq[type_ij]) {
+      if(rsq < cutforcesq) {
         const MMD_float sr2 = 1.0 / rsq;
-        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6[type_ij];
-        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon[type_ij];
+        const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6;
+        const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon;
         fix += delx * force;
         fiy += dely * force;
         fiz += delz * force;
 
         if(EVFLAG) {
-          t_eng_vdwl += sr6 * (sr6 - 1.0) * epsilon[type_ij];
+          t_eng_vdwl += sr6 * (sr6 - 1.0) * epsilon;
           t_virial += (delx * delx + dely * dely + delz * delz) * force;
         }
       }
