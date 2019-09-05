@@ -36,6 +36,8 @@
 #include "threadData.h"
 #include "timer.h"
 
+#include <libdash.h>
+
 class Neighbor
 {
   public:
@@ -48,6 +50,8 @@ class Neighbor
 
     int* numneigh;                   // # of neighbors for each atom
     int* neighbors;                  // array of neighbors of each atom
+    dash::Array<int> numneigh_arr;
+    dash::Array<int> neighbors_arr;
     int maxneighs;				   // max number of neighbors per atom
     int halfneigh;
 

@@ -363,7 +363,6 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
   #pragma omp barrier
   // clear force on own and ghost atoms
 
-  OMPFORSCHEDULE
   for(int i = 0; i < nlocal; i++) {
     f[i * PAD + 0] = 0.0;
     f[i * PAD + 1] = 0.0;
@@ -372,6 +371,53 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
 
   // loop over all neighbors of my atoms
   // store force on atom i
+  //
+  dash::for_each_with_index(
+      neighbor.numneigh_arr.lbegin(),
+      neighbor.numneigh_arr.lend(),
+      [&, maxneighs = neighbor.maxneighs, neighbors = &neighbor.neighbors](
+          const int numneighs, int i) {
+        const int* const neighs = neighbors[i * maxneighs];
+        const MMD_float  xtmp   = x[i * PAD + 0];
+        const MMD_float  ytmp   = x[i * PAD + 1];
+        const MMD_float  ztmp   = x[i * PAD + 2];
+        MMD_float        fix    = 0;
+        MMD_float        fiy    = 0;
+        MMD_float        fiz    = 0;
+
+    //pragma simd forces vectorization (ignoring the performance objections of the compiler)
+    //also give hint to use certain vectorlength for MIC, Sandy Bridge and WESTMERE this should be be 8 here
+    //give hint to compiler that fix, fiy and fiz are used for reduction only
+
+#ifdef USE_SIMD
+    #pragma simd reduction (+: fix,fiy,fiz,t_eng_vdwl,t_virial)
+#endif
+        for (int k = 0; k < numneighs; k++) {
+          const int       j      = neighs[k];
+          const MMD_float delx   = xtmp - x[j * PAD + 0];
+          const MMD_float dely   = ytmp - x[j * PAD + 1];
+          const MMD_float delz   = ztmp - x[j * PAD + 2];
+          const MMD_float rsq    = delx * delx + dely * dely + delz * delz;
+
+          if (rsq < cutforcesq) {
+            const MMD_float sr2   = 1.0 / rsq;
+            const MMD_float sr6   = sr2 * sr2 * sr2 * sigma6;
+            const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon;
+            fix += delx * force;
+            fiy += dely * force;
+            fiz += delz * force;
+
+            if (EVFLAG) {
+              t_eng_vdwl += sr6 * (sr6 - 1.0) * epsilon;
+              t_virial += (delx * delx + dely * dely + delz * delz) * force;
+            }
+          }
+        }
+
+        f[i * PAD + 0] += fix;
+        f[i * PAD + 1] += fiy;
+        f[i * PAD + 2] += fiz;
+      });
 
   OMPFORSCHEDULE
   for(int i = 0; i < nlocal; i++) {
@@ -388,6 +434,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
     //pragma simd forces vectorization (ignoring the performance objections of the compiler)
     //also give hint to use certain vectorlength for MIC, Sandy Bridge and WESTMERE this should be be 8 here
     //give hint to compiler that fix, fiy and fiz are used for reduction only
+    //
 
 #ifdef USE_SIMD
     #pragma simd reduction (+: fix,fiy,fiz,t_eng_vdwl,t_virial)
