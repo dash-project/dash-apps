@@ -175,7 +175,6 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
   const MMD_float* const x = atom.x;
   MMD_float* const f = atom.f;
   const int* const type = atom.type;
-
   // clear force on own and ghost atoms
   for(int i = 0; i < nall; i++) {
     f[i * PAD + 0] = 0.0;
@@ -188,9 +187,12 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
   MMD_float t_energy = 0;
   MMD_float t_virial = 0;
 
-  for(int i = 0; i < nlocal; i++) {
-    const int* const neighs = &neighbor.neighbors[i * neighbor.maxneighs];
-    const int numneighs = neighbor.numneigh[i];
+  size_t i = 0;
+  dash::for_each(
+      neighbor.numneigh_arr.begin(),
+      neighbor.numneigh_arr.end(),
+      [&, maxneighs = neighbor.maxneighs, neighbors = neighbor.neighbors](const int numneighs) {
+    const int* const neighs = &neighbors[i * maxneighs];
     const MMD_float xtmp = x[i * PAD + 0];
     const MMD_float ytmp = x[i * PAD + 1];
     const MMD_float ztmp = x[i * PAD + 2];
@@ -235,16 +237,14 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
 
       }
     }
-
     f[i * PAD + 0] += fix;
     f[i * PAD + 1] += fiy;
     f[i * PAD + 2] += fiz;
-
-  }
+    i++;
+  });
 
   eng_vdwl += t_energy;
   virial += t_virial;
-
 }
 
 //optimised version of compute
@@ -373,8 +373,8 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
   // store force on atom i
   //
   dash::for_each_with_index(
-      neighbor.numneigh_arr.lbegin(),
-      neighbor.numneigh_arr.lend(),
+      neighbor.numneigh_arr.begin(),
+      neighbor.numneigh_arr.end(),
       [&, maxneighs = neighbor.maxneighs, neighbors = &neighbor.neighbors](
           const int numneighs, int i) {
         const int* const neighs = neighbors[i * maxneighs];
@@ -413,6 +413,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
             }
           }
         }
+
 
         f[i * PAD + 0] += fix;
         f[i * PAD + 1] += fiy;

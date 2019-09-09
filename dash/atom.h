@@ -57,7 +57,10 @@ class Atom
     MMD_float* v;
     MMD_float* f;
 
-    using DashArray = dash::Array<MMD_float>;
+    using Pattern =
+        dash::BlockPattern<1, dash::ROW_MAJOR, dash::default_index_t>;
+    using DashArray = dash::
+        Array<MMD_float, dash::default_index_t, Pattern, dash::HostSpace>;
 
     DashArray x_arr;
     DashArray v_arr;

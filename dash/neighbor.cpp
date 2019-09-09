@@ -63,8 +63,8 @@ Neighbor::~Neighbor()
   if(numneigh) _mm_free(numneigh);
   if(neighbors) _mm_free(neighbors);
 #else 
-  if(numneigh) free(numneigh);
-  if(neighbors) free(neighbors);
+  /* if(numneigh) free(numneigh); */
+  /* if(neighbors) free(neighbors); */
 #endif
   
   if(bincount) free(bincount);
@@ -83,6 +83,7 @@ void Neighbor::build(Atom &atom)
   const int nall = atom.nlocal + atom.nghost;
   /* extend atom arrays if necessary */
 
+  std::cout << "build: " << nall << std::endl;
   #pragma omp master
 
   if(nall > nmax) {
@@ -98,8 +99,10 @@ void Neighbor::build(Atom &atom)
 
     if(neighbors) free(neighbors);
 
-    numneigh = (int*) malloc(nmax * sizeof(int));
-    neighbors = (int*) malloc(nmax * maxneighs * sizeof(int));
+    numneigh_arr.allocate(nmax * dash::size());
+    neighbors_arr.allocate(nmax * maxneighs * dash::size());
+    numneigh = numneigh_arr.lbegin();
+    neighbors = neighbors_arr.lbegin();
 #endif
   }
 
@@ -185,8 +188,7 @@ void Neighbor::build(Atom &atom)
 
       if(n >= maxneighs) {
         resize = 1;
-
-        if(n >= new_maxneighs) new_maxneighs = n;
+        new_maxneighs = n;
       }
     }
 

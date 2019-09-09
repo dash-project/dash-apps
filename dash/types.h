@@ -35,16 +35,16 @@
 enum ForceStyle {FORCELJ, FORCEEAM};
 
 
-struct double2 {
+struct md_double2 {
   double x, y;
 };
-struct float2 {
+struct md_float2 {
   float x, y;
 };
-struct double4 {
+struct md_double4 {
   double x, y, z, w;
 };
-struct float4 {
+struct md_float4 {
   float x, y, z, w;
 };
 
@@ -63,12 +63,12 @@ struct float4 {
 #endif
 #if PRECISION==1
 typedef float MMD_float;
-typedef float2 MMD_float2;
+typedef md_float2 MMD_float2;
 typedef float4 MMD_float4;
 #else
 typedef double MMD_float;
-typedef double2 MMD_float2;
-typedef double4 MMD_float4;
+typedef md_double2 MMD_float2;
+typedef md_double4 MMD_float4;
 #endif
 typedef int MMD_int;
 typedef int MMD_bigint;
