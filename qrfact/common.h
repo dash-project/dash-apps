@@ -19,7 +19,7 @@ void print_matrix(ValueT *matrix, size_t num_elem)
 
   std::cout << std::setw(8);
 
-  std::cout << "###### Matrix(" << num_elem << "," << num_elem << " ######" << std::endl;
+  std::cout << "###### Matrix(" << num_elem << "," << num_elem << ") ######" << std::endl;
 
   if (dash::myid() == 0) {
     for (size_t i = 0; i < num_elem; ++i) {
@@ -33,6 +33,59 @@ void print_matrix(ValueT *matrix, size_t num_elem)
   std::cout << "###############" << std::endl;
 }
 
+template<typename PatternT, typename ValueT>
+static
+void print_matrix(dash::Matrix<ValueT, 4, dash::default_index_t, PatternT>& matrix)
+{
+  using value_t = ValueT;
+
+  std::cout << std::setw(8);
+
+  std::cout << "!###### Matrix(" << matrix.pattern().extent(0) << ") ######" << std::endl;
+
+  if (dash::myid() == 0) {
+    for (size_t i = 0; i < matrix.pattern().extent(0); ++i) {
+      for (size_t k = 0; k < matrix.pattern().extent(2); ++k) {
+        for (size_t j = 0; j < matrix.pattern().extent(1); ++j) {
+          for (size_t l = 0; l < matrix.pattern().extent(3); ++l) {
+            std::cout << std::setw(8) << std::setprecision(4) << std::fixed
+                << static_cast<ValueT>(matrix(i, j, k, l)) << " ";
+          }
+        }
+        std::cout << std::endl;
+      }
+    }
+  }
+
+  std::cout << "###############" << std::endl;
+}
+
+
+
+template<typename ValueT>
+static
+void print_block(ValueT *block, size_t num_elem)
+{
+  if (num_elem > 100) return;
+
+  using value_t = ValueT;
+
+  std::cout << std::setw(8);
+
+  std::cout << "###### Matrix(" << num_elem << "," << num_elem << ") " << block << " ######" << std::endl;
+
+  for (size_t i = 0; i < num_elem; ++i) {
+    for (size_t j = 0; j < num_elem; ++j) {
+      std::cout << std::setw(8) << std::setprecision(4) << std::fixed
+                << static_cast<value_t>(block[i*num_elem + j]) << " ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "###############" << std::endl;
+}
+
+#if 0
+
 template<typename MatrixT>
 static
 void print_matrix(MatrixT &matrix)
@@ -44,15 +97,18 @@ void print_matrix(MatrixT &matrix)
   std::cout << std::setw(8);
 
   if (dash::myid() == 0) {
-    for (size_t i = 0; i < matrix.extent(0); ++i) {
-      for (size_t j = 0; j < matrix.extent(1); ++j) {
-        std::cout << std::setw(8) << std::setprecision(4) << std::fixed
-                  << static_cast<value_t>(matrix(i, j)) << " ";
-      }
-      std::cout << std::endl;
+    // 4-dimensional matrix modeling a two-dimensional matrix with super-blocks
+    size_t n_row = matrix.extent(0) * matrix.extent(2);
+    size_t c = 0;
+    for (auto it = matrix.begin(); it != matrix.end(); ++it) {
+      std::cout << std::setw(8) << std::setprecision(4) << std::fixed
+                << static_cast<value_t>(*it) << " ";
+      if (++c % n_row == 0) std::cout << std::endl;
     }
   }
 }
+
+#endif
 
 template<typename MatrixT>
 static
@@ -84,8 +140,16 @@ void verify_matrix(MatrixT &result, MatrixT &expected)
 static
 void geqrt(double *A, double *T, double *TAU, double *WORK, int ts)
 {
+  //std::cout << "BEFORE dgeqrt: A:\n";
+  //print_block(A, ts);
+  //std::cout << "BEFORE dgeqrt: T:\n";
+  //print_block(T, ts);
   int ret = CORE_dgeqrt(ts, ts, ts, A, ts, T, ts, TAU, WORK);
   assert(ret == 0);
+  //std::cout << "dgeqrt: A:\n";
+  //print_block(A, ts);
+  //std::cout << "dgeqrt: T:\n";
+  //print_block(T, ts);
 }
 
 static
@@ -94,17 +158,39 @@ void ormqr(double *A, double *T, double *C, double *WORK, int ts)
   int side = PlasmaLeft;
   int trans = PlasmaTrans;
 
+  //std::cout << "BEFORE dormqr: A:\n";
+  //print_block(A, ts);
+  //std::cout << "BEFORE dormqr: T:\n";
+  //print_block(T, ts);
+  //std::cout << "BEFORE dormqr: C:\n";
+  //print_block(C, ts);
   int ret = CORE_dormqr(side, trans, ts, ts, ts, ts,
                   A, ts, T, ts, C, ts, WORK, ts);
   assert(ret == 0);
+  //std::cout << "dormqr: A:\n";
+  //print_block(A, ts);
+  //std::cout << "dormqr: T:\n";
+  //print_block(T, ts);
+  //std::cout << "dormqr: C:\n";
+  //print_block(C, ts);
 }
 
 static
 void tsqrt(double *A, double *B, double *T, double *TAU, double *WORK, int ts)
 {
+  //std::cout << "BEFORE dtsqrt: A:\n";
+  //print_block(A, ts);
+
+  //std::cout << "BEFORE dtsqrt: B:\n";
+  //print_block(B, ts);
+
+  //std::cout << "BEFORE dtsqrt: T:\n";
+  //print_block(T, ts);
 
   int ret = CORE_dtsqrt(ts, ts, ts, A, ts, B, ts, T, ts, TAU, WORK);
   assert(ret == 0);
+  //std::cout << "dtsqrt: A:\n";
+  //print_block(A, ts);
 
 }
 
@@ -114,12 +200,15 @@ void tsmqr(double *A, double *B, double *V, double *T, double* WORK, int ts)
   int side = PlasmaLeft;
   int trans = PlasmaTrans;
 
+  //std::cout << "BEFORE dtsmqr: A:\n";
+  //print_block(A, ts);
   int ret = CORE_dtsmqr(side, trans, ts, ts, ts, ts, ts, ts,
             A, ts, B, ts, V, ts, T, ts, WORK, ts);
   assert(ret == 0);
+  //std::cout << "dtsmqr: A:\n";
+  //print_block(A, ts);
 
 }
-
 
 template<typename MatrixT>
 static

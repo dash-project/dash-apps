@@ -16,9 +16,6 @@ constexpr const char *QRFACT_IMPL = "QRFactTasksCopyin";
  *       are actually usable.
  */
 
-thread_local double *scratch_tau  = nullptr;
-thread_local double *scratch_work = nullptr;
-
 template<typename TiledMatrix>
 void
 compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
@@ -27,7 +24,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   using Block         = MatrixBlock<TiledMatrix>;
   using BlockCache    = typename std::vector<value_t>;
   using BlockCachePtr = typename std::shared_ptr<BlockCache>;
-  const size_t num_blocks = A.pattern().extent(0) / block_size;
+  const size_t num_blocks = A.pattern().extent(0);
 
   // allocate a vector to pre-fetch the result of trsm() into
   value_t *a_block_k_pre   = new value_t[block_size*block_size];
@@ -39,12 +36,10 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
   constexpr const int num_kk_scratch = 2;
   dash::Matrix<value_t, 3> scratch_blocks_kk(dash::size(), dash::BLOCKED, num_kk_scratch, dash::NONE, block_size*block_size, dash::NONE);
 
-  auto next_buf_pos = [=](){
-    static size_t buffer_pos = 0;
-    size_t res = buffer_pos;
-    buffer_pos = (buffer_pos + 1) % num_blocks;
-    return res*block_size*block_size;
-  };
+  double **scratch_tau  = new double*[dash::tasks::numthreads()];
+  std::fill(scratch_tau, scratch_tau+dash::tasks::numthreads(), nullptr);
+  double **scratch_work = new double*[dash::tasks::numthreads()];
+  std::fill(scratch_work, scratch_work+dash::tasks::numthreads(), nullptr);
 
   size_t num_tasks = 0;
   if (dash::myid() == 0)
@@ -52,8 +47,19 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
 
   Timer t_c;
 
+  std::cout << "A: " << A.lbegin() << " - " << A.lend() << std::endl;
+
+#if 0
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = 0; j < num_blocks; j++) {
+      std::cout << "Block {" << i << ", " << j << "}" << std::endl;
+      print_block(Block{A, i, j}.lbegin(), block_size);
+    }
+  }
+#endif
+
   // iterate over column of blocks
-  for (size_t k = 0; k < num_blocks; ++k) {
+  for (int k = 0; k < num_blocks; ++k) {
 
     Block a_block_k(A, k, k);
     Block t_block_k(T, k, k);
@@ -66,10 +72,14 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
      */
     if (a_block_k.is_local()) {
       dash::tasks::async("GEQRT",
-        [=, &scratch_blocks_kk]() mutable {
-          if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
-          if (scratch_tau  == nullptr) scratch_tau  = new double[block_size];
-          geqrt(a_block_k.lbegin(), t_block_k.lbegin(), scratch_tau, scratch_work, block_size);
+        [=, &scratch_blocks_kk, &A, &T, &scratch_work, &scratch_tau]() mutable {
+          int threadnum = dash::tasks::threadnum();
+          if (scratch_work[threadnum] == nullptr) scratch_work[threadnum] = new double[block_size*block_size];
+          if (scratch_tau[threadnum]  == nullptr) scratch_tau[threadnum]  = new double[block_size];
+          Block a_block_k(A, k, k);
+          Block t_block_k(T, k, k);
+          std::cout << "geqrt " << k << ", " << k << std::endl;
+          geqrt(a_block_k.lbegin(), t_block_k.lbegin(), scratch_tau[threadnum], scratch_work[threadnum], block_size);
 
           std::copy(a_block_k.lbegin(), a_block_k.lend(),
                     &scratch_blocks_kk.local(0, k_scratch_entry, 0));
@@ -94,21 +104,25 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     }
     dash::tasks::async_fence();
 
-    for (size_t n = k+1; n < num_blocks; ++n) {
+    for (int n = k+1; n < num_blocks; ++n) {
       Block a_block_kn(A, k, n);
       if (a_block_kn.is_local()) {
         dash::tasks::async("ORMQR",
-          [=, &scratch_blocks_kn]() mutable {
-            if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
+          [=, &scratch_blocks_kn, &A, &scratch_work]() mutable {
+            int threadnum = dash::tasks::threadnum();
+            if (scratch_work[threadnum] == nullptr) scratch_work[threadnum] = new double[block_size*block_size];
 #ifdef DEBUG_OUTPUT
             printf("\n\nPRE ormqr(k=%d, n=%d)\n", k, n);
             print_matrix(a_k_pre, block_size);
             print_matrix(t_k_pre, block_size);
             print_matrix(a_block_kn.lbegin(), block_size);
+            std::cout << "ormqr " << k << ", " << n << std::endl;
+            std::cout << a_block_kn.lbegin() << std::endl;
 #endif
+            Block a_block_kn(A, k, n);
             // Block(k, n) is both input and output, use the original block as
             // input and copy it to the scratch space afterwards
-            ormqr(a_k_pre, t_k_pre, a_block_kn.lbegin(), scratch_work, block_size);
+            ormqr(a_k_pre, t_k_pre, a_block_kn.lbegin(), scratch_work[threadnum], block_size);
             // copy the block to the scratch space for subsequent accesses
             std::copy(a_block_kn.lbegin(), a_block_kn.lend(),
                       &scratch_blocks_kn.local(0, n, 0));
@@ -129,7 +143,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
 
     //dash::tasks::async_fence();
 
-    for (size_t m = k+1; m < num_blocks; ++m) {
+    for (int m = k+1; m < num_blocks; ++m) {
 
       Block a_block_mk(A, m, k);
       Block t_block_mk(T, m, k);
@@ -139,15 +153,25 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
         a_block_kk_pre = &scratch_blocks_kk.local(0, k_scratch_entry, 0);
         int prev_k_owner = Block{A, m-1, k}.unit();
         dash::tasks::async("TSQRT",
-          [=]() mutable {
-            if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
-            if (scratch_tau  == nullptr) scratch_tau  = new double[block_size];
+          [=, &A, &T, &scratch_work, &scratch_tau]() mutable {
+            int threadnum = dash::tasks::threadnum();
+            if (scratch_work[threadnum] == nullptr) scratch_work[threadnum] = new double[block_size*block_size];
+            if (scratch_tau[threadnum]  == nullptr) scratch_tau[threadnum]  = new double[block_size];
+#ifdef DEBUG_OUTPUT
+            printf("\n\nPRE tsqrt(k=%d, n=%d)\n", k, n);
+            print_matrix(a_k_pre, block_size);
+            print_matrix(t_k_pre, block_size);
+            print_matrix(a_block_kn.lbegin(), block_size);
+            std::cout << "tsqrt " << k << ", " << m << std::endl;
+#endif
+            Block a_block_mk(A, m, k);
+            Block t_block_mk(T, m, k);
             tsqrt(a_block_kk_pre,
                   a_block_mk.lbegin(),
                   t_block_mk.lbegin(),
-                  scratch_tau, scratch_work, block_size);
+                  scratch_tau[threadnum], scratch_work[threadnum], block_size);
 #ifdef DEBUG_OUTPUT
-            printf("\n\ntsqrt(k=%d, m=%d)\n", k, m);
+            printf("\n\nPOST tsqrt(k=%d, m=%d)\n", k, m);
             print_matrix(a_block_kk_pre, block_size);
             print_matrix(a_block_mk.lbegin(), block_size);
             print_matrix(t_block_mk.lbegin(), block_size);
@@ -175,7 +199,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
         t_block_mk_pre = &t_blocks_mk_pre[block_size*block_size*m];
       }
 
-      for (size_t n = k+1; n < num_blocks; ++n) {
+      for (int n = k+1; n < num_blocks; ++n) {
 
         Block a_block_mn(A, m, n);
         if (a_block_mn.is_local()) {
@@ -184,14 +208,18 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
           a_block_kn_pre = &scratch_blocks_kn.local(0, n, 0);
           int prev_owner = Block{A, m-1, n}.unit();
           dash::tasks::async("TSMQR",
-            [=]() mutable {
-              if (scratch_work == nullptr) scratch_work = new double[block_size*block_size];
-
+            [=, &A, &scratch_work]() mutable {
+              int threadnum = dash::tasks::threadnum();
+              if (scratch_work[threadnum] == nullptr) scratch_work[threadnum] = new double[block_size*block_size];
+#ifdef DEBUG_OUTPUT
+              std::cout << "tsmqr " << k << ", " << m << ", " << n << std::endl;
+#endif
+              Block a_block_mn(A, m, n);
               tsmqr(a_block_kn_pre,
                     a_block_mn.lbegin(),
                     a_block_mk_pre,
                     t_block_mk_pre,
-                    scratch_work, block_size);
+                    scratch_work[threadnum], block_size);
 
 #ifdef DEBUG_OUTPUT
               printf("\n\ntsmqr(k=%d, m=%d)\n", k, m);
@@ -218,8 +246,9 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     if (scratch_blocks_kk(prev_k_owner, k_scratch_entry, 0).is_local()) {
       // write back Block (k, k)
       dash::tasks::async("WRITEBACK_KK",
-        [=, &scratch_blocks_kk]() mutable {
+        [=, &scratch_blocks_kk, &A]() mutable {
             // write the block back
+            Block a_block_k(A, k, k);
             a_block_k.store_async(&scratch_blocks_kk.local(0, k_scratch_entry, 0));
             // detach the task but release the dependencies only when the transfer completed
             dart_handle_t handle = a_block_k.dart_handle();
@@ -233,7 +262,7 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
     }
 
     // write back blocks (k, n)
-    for (size_t n = k+1; n < num_blocks; ++n) {
+    for (int n = k+1; n < num_blocks; ++n) {
       int prev_owner = Block{A, num_blocks-1, n}.unit();
       auto scratch_block_kn = scratch_blocks_kn(prev_owner, n, 0);
       if (scratch_block_kn.is_local()) {
@@ -260,16 +289,34 @@ compute(TiledMatrix& A, TiledMatrix& T, size_t block_size){
               << t_c.Elapsed() / 1E3 << "ms"
               << ", starting execution" << std::endl;
   dash::tasks::complete();
+
+  auto elapsed = t_c.Elapsed();
+  size_t num_elem = A.extent(0);
+  double flops = (4.0 / 3.0) * num_elem * num_elem * num_elem;
   if (dash::myid() == 0)
     std::cout << "Done executing " << num_tasks << " tasks after "
               << t_c.Elapsed() / 1E3 << "ms"
               << std::endl;
+
+/*
+  if (dash::myid() == 0) {
+    std::cout << "QR factorization of " << num_elem << "x" << num_elem
+              << " done after " << elapsed/1E3 << "ms ("
+              << flops/elapsed/1E3 << " GF/s)" << std::endl;
+  }
+*/
 
   delete[] a_block_k_pre;
   delete[] t_block_k_pre;
   delete[] a_blocks_mk_pre;
   delete[] t_blocks_mk_pre;
 
+  for (int i = 0; i < dash::tasks::numthreads(); ++i) {
+    if (scratch_tau[i]  != nullptr) delete[] scratch_tau[i];
+    if (scratch_work[i] != nullptr) delete[] scratch_work[i];
+  }
+  delete[] scratch_tau;
+  delete[] scratch_work;
 }
 
 #endif //CHOLESKY_TASKS_PREFETCH__H

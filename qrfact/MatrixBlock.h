@@ -5,6 +5,13 @@
 
 //#define DEBUG
 
+/**
+ * Implementation of a matrix block. The block lies in a two-dimensional matrix
+ * represented by a 4-dimensional DASH matrix where the first two dimensions
+ * represent superblocks while the last two dimensions are the blocks inside the super block.
+ * The MatrixBlock abstracts away the two superblock dimensions.
+ */
+
 template<typename MatrixT>
 class MatrixBlock {
 public:
@@ -13,33 +20,33 @@ public:
 
   MatrixBlock(
     MatrixT &matrix,
-    size_t block_row_idx,
-    size_t block_col_idx)
+    int block_row_idx,
+    int block_col_idx)
   : _matrix(&matrix) {
     auto& pattern       = matrix.pattern();
-    // figure out the block-size (one dimension might be 'NONE')
-    auto blocksize = std::min(pattern.blocksize(0), pattern.blocksize(1));
-    auto  glob_index    = block_row_idx*blocksize*pattern.extent(1) + block_col_idx*blocksize;
-    this->_glob_idx     = glob_index;
-    this->_is_local = pattern.is_local(glob_index);
-    if (_is_local) {
-      _local_ptr = matrix.lbegin() +
-                    pattern.local_index(
-                      {static_cast<typename MatrixT::index_type>(
-                        block_row_idx*blocksize),
-                       static_cast<typename MatrixT::index_type>(
-                         block_col_idx*blocksize)}
-                    ).index;
+    int block_size   = pattern.extent(2); // blocks are in dim 2 and 3
+    std::array<typename MatrixT::pattern_type::index_type, 4> gcoords = {block_row_idx, block_col_idx, 0, 0};
+    this->_glob_idx = pattern.global_at(gcoords);
+    typename MatrixT::pattern_type::local_index_t local_idx = pattern.local_index(gcoords);
+#ifdef DEBUG_OUTPUT
+    std::cout << "gcoords: {" << block_row_idx << "," << block_col_idx << "}, glob_idx: "<< _glob_idx << ", local_idx: {u:" << local_idx.unit.id << ", off: " << local_idx.index << "}" << std::endl;
+#endif // DEBUG_OUTPUT
+    this->_is_local = (local_idx.unit.id == dash::myid());
+    this->_size = block_size*block_size;
+    this->_gptr = matrix.begin().dart_gptr();
+    this->_gptr.unitid = local_idx.unit.id;
+    this->_gptr.addr_or_offs.offset = local_idx.index*sizeof(value_t);
+#if 0
+    if (!(local_idx.unit.id == (matrix.begin()+_glob_idx).dart_gptr().unitid)) {
+      std::cout << "ERROR: block {" << block_row_idx << ","
+                << block_col_idx << "} has two units: " << local_idx.unit.id
+                << " vs " << (matrix.begin()+_glob_idx).dart_gptr().unitid << "!\n";
+      std::cout << "gptr: " << (matrix.begin()+_glob_idx) << "\n";
+      std::cout << "gptr: " << (matrix.begin()+_glob_idx).dart_gptr() << "\n";
+      std::cout << "glob_idx: " << (_glob_idx) << "\n";
     }
-    this->_size = blocksize*blocksize;
-#ifdef DEBUG
-    std::cout << "BlockCache: " << block_row_idx << "x" << block_col_idx << " "
-              << blocksize << "x" << blocksize
-              << " (size=" << _size << ", is_local=" << _is_local
-              << ", local_ptr=" << _local_ptr
-              << ", glob_idx=" << glob_index << ", gptr=" << begin().dart_gptr()
-              << std::endl;
 #endif
+    //assert(local_idx.unit.id == (matrix.begin()+_glob_idx).dart_gptr().unitid);
   }
 
   ~MatrixBlock() {
@@ -52,32 +59,19 @@ public:
     }
   }
 
-  MatrixBlock(const MatrixBlock& other)
-  : _matrix(other._matrix),
-    _local_ptr(other._is_local ? other._local_ptr : nullptr),
-    _size(other._size),
-    _glob_idx(other._glob_idx),
-    _is_local(other._is_local)
-  { }
+  MatrixBlock(const MatrixBlock& other) = default;
 
   MatrixBlock(MatrixBlock&& other) = delete;
 
   MatrixBlock&
-  operator=(const MatrixBlock& other)
-  {
-    if (this == &other) return *this;
-
-    _matrix = other._matrix;
-    _local_ptr = other._is_local ? other._local_ptr : nullptr;
-    _size      = other._size;
-    _glob_idx  = other._glob_idx;
-    _is_local  = other._is_local;
-  }
+  operator=(const MatrixBlock& other) = default;
 
   MatrixBlock&
   operator=(MatrixBlock&& other) = delete;
 
 
+#if 0
+  // TODO: this is currently not supported as `matrix->begin() + X` is broken...
   typename MatrixT::iterator
   begin() const {
     return _matrix->begin() + _glob_idx;
@@ -87,18 +81,19 @@ public:
   end() const {
     return _matrix->begin() + _glob_idx + _size;
   }
+#endif
 
   dart_gptr_t
   dart_gptr() const {
-    return this->begin().dart_gptr();
+    return this->_gptr;
   }
 
   value_t *lbegin() {
-    return this->_local_ptr;
+    return this->local_ptr();
   }
 
   value_t *lend() {
-    return this->_local_ptr + this->_size;
+    return this->local_ptr() + this->_size;
   }
 
   void fetch() {
@@ -117,29 +112,25 @@ public:
   fetch_async() {
     if (this->_local_ptr == nullptr) {
       this->_local_ptr = static_cast<value_t*>(malloc(this->_size * sizeof(value_t)));
-      auto begin = this->_matrix->begin() + _glob_idx;
-#ifdef DEBUG
+#ifdef DEBUG_OUTPUT
       std::cout << "Fetching async " << _size << " elements into "
                 << _local_ptr << std::endl;
-#endif
+#endif // DEBUG_OUTPUT
       dash::dart_storage<value_t> ds(_size);
       dart_get_handle(
-        this->_local_ptr, begin.dart_gptr(), ds.nelem, ds.dtype, &_handle);
-      //dash::copy(begin, end, this->_local_ptr);
+        this->_local_ptr, this->_gptr, ds.nelem, ds.dtype, &_handle);
     }
   }
 
   void
   fetch_async(value_t *target) {
-    auto begin = this->_matrix->begin() + _glob_idx;
 #ifdef DEBUG
     std::cout << "Fetching async " << _size << " elements into "
               << target << std::endl;
 #endif
     dash::dart_storage<value_t> ds(_size);
     dart_get_handle(
-      target, begin.dart_gptr(), ds.nelem, ds.dtype, ds.dtype, &_handle);
-    //dash::copy(begin, end, this->_local_ptr);
+      target, this->_gptr, ds.nelem, ds.dtype, ds.dtype, &_handle);
   }
 
 
@@ -163,36 +154,32 @@ public:
 
   void store() {
     if (!_is_local && this->_local_ptr != NULL) {
-      auto begin = this->_matrix->begin() + _glob_idx;
       dash::dart_storage<value_t> ds(_size);
-      dart_put_blocking(begin.dart_gptr(), _local_ptr, ds.nelem, ds.dtype, ds.dtype);
+      dart_put_blocking(this->_gptr, _local_ptr, ds.nelem, ds.dtype, ds.dtype);
     }
   }
 
   void store_async() {
     if (!_is_local && this->_local_ptr != NULL) {
-      auto begin = this->_matrix->begin() + _glob_idx;
       dash::dart_storage<value_t> ds(_size);
-      dart_put_handle(begin.dart_gptr(), _local_ptr, ds.nelem, ds.dtype, ds.dtype, &_handle);
+      dart_put_handle(this->_gptr, _local_ptr, ds.nelem, ds.dtype, ds.dtype, &_handle);
     }
   }
 
   void store(value_t *source) {
-    auto begin = this->_matrix->begin() + _glob_idx;
     dash::dart_storage<value_t> ds(_size);
-    dart_put_blocking(begin.dart_gptr(), source, ds.nelem, ds.dtype, ds.dtype);
+    dart_put_blocking(this->_gptr, source, ds.nelem, ds.dtype, ds.dtype);
   }
 
   void store_async(value_t *source) {
     if (!_is_local) {
-      auto begin = this->_matrix->begin() + _glob_idx;
       dash::dart_storage<value_t> ds(_size);
-      dart_put_handle(begin.dart_gptr(), source, ds.nelem, ds.dtype, ds.dtype, &_handle);
+      dart_put_handle(this->_gptr, source, ds.nelem, ds.dtype, ds.dtype, &_handle);
     }
   }
 
 
-  size_t unit() {
+  int unit() {
     return this->_matrix->pattern().unit_at(_glob_idx);
   }
 
@@ -207,24 +194,37 @@ private:
       if (this->_local_ptr == nullptr) {
         this->_local_ptr = static_cast<value_t*>(malloc(this->_size * sizeof(value_t)));
       }
-      auto begin = this->_matrix->begin() + _glob_idx;
 #ifdef DEBUG
       std::cout << "Fetching " << _size << " elements into "
                 << _local_ptr << std::endl;
 #endif
       dash::dart_storage<value_t> ds(_size);
       dart_get_blocking(
-        this->_local_ptr, begin.dart_gptr(), ds.nelem, ds.dtype, ds.dtype);
+        this->_local_ptr, this->_gptr, ds.nelem, ds.dtype, ds.dtype);
         //dash::copy(begin, end, this->_local_ptr);
     }
+  }
+
+  value_t *local_ptr()
+  {
+    if (_is_local && _local_ptr == nullptr) {
+      void *vptr;
+      dart_gptr_getaddr(this->dart_gptr(), &vptr);
+      _local_ptr = (value_t*)vptr;
+      if (_local_ptr == nullptr) {
+        std::cerr << "ERROR: failed to query local address for local block!" << std::endl;
+      }
+    }
+    return _local_ptr;
   }
 
 private:
   MatrixT* _matrix;
   value_t* _local_ptr = nullptr;
-  size_t   _size = 0;
-  size_t   _glob_idx;
+  int      _size = 0;
+  int      _glob_idx;
   dart_handle_t _handle = DART_HANDLE_NULL;
+  dart_gptr_t _gptr;
   bool     _is_local  = true;
 };
 

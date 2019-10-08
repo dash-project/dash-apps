@@ -7,7 +7,9 @@
 #include <math.h>
 #include <dash/util/Timer.h>
 
-#include <lapacke.h>
+//#include <lapacke.h>
+
+#include <mkl.h>
 
 #include "common.h"
 #include "MatrixBlock.h"
@@ -19,19 +21,26 @@
 
 using value_t = double;
 //using PatternT = typename dash::ShiftTilePattern<2>;
-using PatternT = typename dash::TilePattern<2>;
+using PatternT = typename dash::TilePattern<4>;
 //using PatternT = typename dash::TilePattern<2>;
-using TiledMatrix = dash::Matrix<value_t, 2, dash::default_index_t, PatternT>;
+using TiledMatrix = dash::Matrix<value_t, 4, dash::default_index_t, PatternT>;
 using Block = MatrixBlock<TiledMatrix>;
 
 //#define DEBUG
 //#define CHECK_RESULT
 #define FAST_INIT
+//#define CHECK_RESULT_GEQRT
 
 static
 void fill_random(TiledMatrix &matrix);
 static
 void print_matrix(Block &block, size_t nx, size_t ny);
+
+template<typename ValueT>
+static int check_orthogonality(ValueT *matrix, int num_elem);
+
+template<typename ValueT>
+static int check_factorization(ValueT *A0, ValueT *A, ValueT *Q, size_t N);
 
 int main(int argc, char **argv)
 {
@@ -49,19 +58,12 @@ int main(int argc, char **argv)
   bench_params.print_header();
   bench_params.print_pinning();
 
-
-#ifdef USE_EXTRAE
-  unsigned nvalues = 6;
-  Extrae_define_event_type(&et, "Operations", &nvalues, ev, extrae_names);
-#endif
-
-  //const size_t  N = 15 * dash::size();
-
   if (argc < 3) {
     if (dash::myid() == 0) {
-      std::cout << argv[0] << " <num_elems> <block_size>\n"
+      std::cout << argv[0] << " <num_elems> <block_size> [<super-block-size = 2>}\n"
                 << "  num_elems:  number of elements in each direction\n"
-                << "  block_size: size of block in each direction" << std::endl;
+                << "  block_size: size of block in each direction" 
+                << "  super-block-size: number of blocks clustered in super-block" << std::endl;
     }
     dash::finalize();
     exit(1);
@@ -69,21 +71,124 @@ int main(int argc, char **argv)
 
   size_t num_elem   = atoll(argv[1]); // number of elements in each dimension
   size_t block_size = atoll(argv[2]); // block-size in each dimension
+  size_t super_block_size = 2;
+  if (argc > 3) {
+    super_block_size = atoll(argv[3]);
+  }
 
 
   Timer::Calibrate();
 
   if (dash::myid() == 0) {
-    std::cout << "Allocating matrix: ";
+    std::cout << "Allocating matrix: \n";
   }
 
-  dash::TeamSpec<2> ts(dash::size(), 1);
+  dash::TeamSpec<4> ts(dash::size(), 1, 1, 1);
   ts.balance_extents();
-  TiledMatrix A(num_elem, num_elem,
-                     dash::TILE(block_size), dash::TILE(block_size), ts);
+  size_t num_blocks = num_elem / block_size;
+  std::cout << "num_blocks: " << num_blocks << ", super_block_size " << super_block_size << ", block_size " << block_size << std::endl;
+  TiledMatrix A(num_blocks, num_blocks,         // super-blocks
+                dash::TILE(super_block_size), dash::TILE(super_block_size),
+                block_size, block_size,
+                dash::TILE(block_size), dash::TILE(block_size), ts);
 
-  TiledMatrix T(num_elem, num_elem,
-                     dash::TILE(block_size), dash::TILE(block_size), ts);
+  TiledMatrix T(num_blocks, num_blocks,         // super-blocks
+                dash::TILE(super_block_size), dash::TILE(super_block_size),
+                block_size, block_size,
+                dash::TILE(block_size), dash::TILE(block_size), ts);
+
+  std::cout << dash::myid() << ": extents " << A.local_size() << std::endl;
+
+#if defined(CHECK_RESULT)
+#if 0
+  for (auto iter = A.lbegin(); iter != A.lend(); ++iter) {
+    *iter = dash::myid() + c++ / 1E4;
+  }
+#else
+  int block = 0;
+  for (size_t i = 0; i < num_blocks; ++i) {
+    for (size_t j = 0; j < num_blocks; ++j) {
+      if (A(i, j, 0, 0).is_local()) {
+        int elem = 0;
+        for (size_t k = 0; k < block_size; ++k) {
+          for (size_t l = 0; l < block_size; ++l) {
+            A(i, j, k, l) = dash::myid() + block / 1E2 + elem++ / 1E4;
+          }
+        }
+        ++block;
+      }
+    }
+  }
+  dash::barrier();
+  print_matrix(A);
+  dash::barrier();
+#endif
+
+  value_t *A0 = new value_t[num_elem*num_elem];
+  {
+  size_t c = 0;
+  for (size_t i = 0; i < num_blocks; ++i) {
+    for (size_t k = 0; k < block_size; ++k) {
+      for (size_t j = 0; j < num_blocks; ++j) {
+        for (size_t l = 0; l < block_size; ++l) {
+          A0[c++] = A(i, j, k, l);
+        }
+      }
+    }
+  }
+  }
+
+  print_matrix(A0, num_elem);
+  dash::barrier();
+#endif // defined(CHECK_RESULT)
+
+
+
+#ifdef CHECK_RESULT_GEQRT
+
+  if (dash::myid() == 0) {
+    value_t *A_local = new value_t[num_elem*num_elem];
+    value_t *T_local = new value_t[num_elem*num_elem];
+
+    value_t *work    = new double[block_size*block_size];
+    value_t *tau     = new double[block_size];
+
+    for (size_t i = 0; i < num_blocks; ++i) {
+      for (size_t j = 0; j < num_blocks; ++j) {
+        for (size_t k = 0; k < block_size; ++k) {
+          for (size_t l = 0; l < block_size; ++l) {
+            A_local[i*num_blocks*block_size*block_size + j*block_size*block_size + k*block_size + l] = A(i, j, k, l);
+          }
+        }
+      }
+    }
+    std::cout << "LOCAL VERIFICATION MATRIX A_LOCAL" << std::endl;
+    geqrt(A_local, T_local, tau, work, block_size);
+    std::cout << "LOCAL VERIFICATION MATRIX A_LOCAL AFTER GEQRT" << std::endl;
+    print_matrix(A_local, num_elem);
+    delete[] A_local;
+    delete[] T_local;
+    delete[] work;
+    delete[] tau;
+  }
+
+
+#endif // CHECK_RESULT_GEQRT  
+
+#if 0
+  dash::barrier();
+  print_matrix(A);
+  std::cout << std::endl;
+  for (size_t i = 0; i < num_blocks; ++i) {
+    for (size_t j = 0; j < num_blocks; ++j) {
+      std::cout << "Block " << i << ", " << j << ": " << std::endl;
+      if (A(i, j, 0, 0).is_local()) {
+        print_block(A(i, j, 0, 0).local_ptr(), block_size);
+      }
+    }
+  }
+  dash::barrier();
+#endif
 
   /*
   TiledMatrix matrix(num_elem, num_elem,
@@ -109,7 +214,7 @@ int main(int argc, char **argv)
 #else
   fill_random(A);
 #endif
-  dash::fill(T.begin(), T.end(), 0.0);
+  //dash::fill(T.begin(), T.end(), 0.0);
 
 #if 0
     using LocalBlockCache = MatrixBlock<TiledMatrix>;
@@ -131,78 +236,18 @@ int main(int argc, char **argv)
     std::cout << "Implementation: " << QRFACT_IMPL << std::endl;
     std::cout << "Matrix: " << num_elem << "x" << num_elem << std::endl;
     std::cout << "block sizes: "
-              << pattern.blocksize(0) << "x" << pattern.blocksize(1) << std::endl;
+              << block_size << "x" << block_size << std::endl;
     std::cout << "num blocks: "
-              << pattern.blockspec().extent(0) << "x"
-              << pattern.blockspec().extent(1) << std::endl;
+              << pattern.extent(0) << "x"
+              << pattern.extent(1) << std::endl;
   }
-
-#if defined(CHECK_RESULT)
-  decltype(A) A_single(num_elem, num_elem,
-                            dash::TILE(block_size), dash::TILE(block_size));
-  std::copy(A.lbegin(), A.lend(), A_single.lbegin());
-  decltype(T) T_single(num_elem, num_elem,
-                            dash::TILE(block_size), dash::TILE(block_size));
-  value_t *A_local_copy = new value_t[num_elem*num_elem];
-  value_t *A0 = new value_t[num_elem*num_elem];
-  // copy the matrix before compute
-
-  dash::barrier();
-  if (dash::myid() == 0) {
-    std::cout << "########## Initial Matrix ################\n";
-    print_matrix(A);
-    std::cout << "##########################################\n";
-    std::cout << "############ Local Copy ##################\n";
-    for (int i = 0; i < num_elem; ++i) {
-      for (int j = 0; j < num_elem; ++j) {
-        A_local_copy[i*num_elem + j] = A0[i*num_elem + j] = A_single(i, j);
-      }
-    }
-    print_matrix(A_local_copy, num_elem);
-
-    std::cout << "##########################################\n";
-    int num_elem_i = num_elem;
-    int lwork = num_elem*num_elem;
-    int info;
-    value_t *tau  = new value_t[lwork];
-    //LAPACK_dgeqrf(&num_elem_i, &num_elem_i, A_local_copy, &num_elem_i, tau, work, &lwork, &info);
-    int ret = LAPACKE_dgeqrt(LAPACK_ROW_MAJOR, num_elem_i, num_elem_i, block_size, A_local_copy, num_elem, tau, num_elem);
-    delete[] tau;
-    std::cout << "LAPACKE_dgeqrt returned " << ret << std::endl;
-    for (int i = 0; i < num_elem; ++i) {
-      for (int j = 0; j < num_elem; ++j) {
-        A_single(i, j) = A_local_copy[i*num_elem + j];
-      }
-    }
-  }
-  dash::barrier();
-#if 0
-  matrix.barrier();
-  if (dash::myid() == 0 && num_elem <=20) {
-    if (num_elem <=20) {
-      print_matrix(A_single);
-    }
-    std::cout << "Computing verification matrix" << std::endl;
-  }
-  // compute the correct answer on one unit
-  compute_single(A_single, T_single, block_size);
-#endif
-  if (dash::myid() == 0) {
-    std::cout << "Done computing verification matrix" << std::endl;
-    if (num_elem <=20) {
-      std::cout << "########## Expected Result ###############\n";
-      print_matrix(A_single);
-      std::cout << "##########################################\n";
-    }
-  }
-#endif
 
   Timer t;
   compute(A, T, block_size);
-  //compute_single(A, T, block_size);
   dash::barrier();
   auto elapsed = t.Elapsed(); // time in us
   double flops = (4.0 / 3.0) * num_elem * num_elem * num_elem;
+
 
   if (dash::myid() == 0) {
     std::cout << "QR factorization of " << num_elem << "x" << num_elem
@@ -214,56 +259,38 @@ int main(int argc, char **argv)
     print_matrix(A);
 
 #if defined(CHECK_RESULT)
-  verify_matrix(A, A_single);
+  value_t *A_local_copy = new value_t[num_elem*num_elem];
   value_t *T_local_copy = new value_t[num_elem*num_elem];
-  value_t *B  = new value_t[num_elem*num_elem];
-  value_t *X  = new value_t[num_elem*num_elem];
-  value_t *Id = new value_t[num_elem*num_elem];
-  value_t *work = new value_t[num_elem];
+  value_t *B            = new value_t[num_elem*num_elem];
+  value_t *X            = new value_t[num_elem*num_elem];
   double eps = LAPACKE_dlamch_work('e');
-  for (int i  = 0; i < num_elem; ++i) {
-    for (int j = 0; j < num_elem; ++j) {
-      A_local_copy[i*num_elem + j] = A(i, j);
-      T_local_copy[i*num_elem + j] = T(i, j);
+  size_t c = 0;
+  for (size_t i = 0; i < num_blocks; ++i) {
+    for (size_t k = 0; k < block_size; ++k) {
+      for (size_t j = 0; j < num_blocks; ++j) {
+        for (size_t l = 0; l < block_size; ++l) {
+          A_local_copy[c] =  A(i, j, k, l);
+          T_local_copy[c] =  T(i, j, k, l);
+          c++;
+        }
+      }
     }
   }
+  //geqrt(A_local, T_local, tau, work, block_size);
   int k = num_elem / block_size;
-  value_t *Q = new value_t[num_elem*num_elem];
-  CORE_dlacpy(PlasmaUpper,      num_elem, num_elem, A_local_copy, num_elem, Q, num_elem);
-  LAPACKE_dorgqr(LAPACK_ROW_MAJOR, num_elem, num_elem, k, Q, num_elem, T_local_copy);
-  CORE_dplrnt(num_elem, num_elem, X, num_elem, num_elem, 0, 0, 2354);
-  CORE_dlacpy(PlasmaUpperLower, num_elem, num_elem, X, num_elem, B, num_elem);
+  size_t N = num_elem;
+  value_t *Q = new value_t[N*N];
+  CORE_dlacpy(PlasmaUpperLower,    N, N, A_local_copy, N, Q, N);
+  LAPACKE_dorgqr(LAPACK_ROW_MAJOR, N, N, N, Q, N, T_local_copy);
+  CORE_dplrnt(N, N, X, N, N, 0, 0, 2354);
+  CORE_dlacpy(PlasmaUpperLower, N, N, X, N, B, N);
   // check diagonality
-  CORE_dlaset(PlasmaUpperLower, num_elem, num_elem, 0., 1., Id, num_elem);
-  CORE_dsyrk(PlasmaUpper, PlasmaTrans, num_elem, num_elem, 1.0, Q, num_elem, -1.0, Id, num_elem);
-  value_t norm;
-  CORE_dlansy(PlasmaInfNorm, PlasmaUpper, num_elem, Id, num_elem, work, &norm);
-  value_t result = norm / (num_elem / eps);
-  if (isnan(result) || isinf(result) || result > 60.0) {
-    std::cout << "Norm looks suspicious: " << result << std::endl;
-  } else {
-    std::cout << "Diagonality is correct!" << std::endl;
-  }
-
+  check_orthogonality(Q, N);
   // check factorization
-  value_t *Residual = new value_t[num_elem*num_elem];
-  value_t *R        = new value_t[num_elem*num_elem];
-  CORE_dlacpy(PlasmaUpperLower, num_elem, num_elem, A0, num_elem, Residual, num_elem);
-  CORE_dlaset(PlasmaUpperLower, num_elem, num_elem, 0., 0., R, num_elem);
-  CORE_dlacpy(PlasmaUpper,      num_elem, num_elem, A_local_copy, num_elem, R, num_elem);
-  /* Compute Residual = A0 - Q*R */
-  CORE_dgemm(PlasmaNoTrans, PlasmaNoTrans, num_elem, num_elem, num_elem, -1.0, Q, num_elem, R, num_elem, 1.0, Residual, num_elem);
-  value_t Anorm, Rnorm;
-  CORE_dlange(PlasmaInfNorm, num_elem, num_elem, Residual, num_elem, work, &Rnorm);
-  CORE_dlange(PlasmaInfNorm, num_elem, num_elem, A0, num_elem, work, &Anorm);
-  result = Rnorm / ( Anorm * num_elem * eps);
+  check_factorization(A0, A_local_copy, Q, N);
 
-  if (isnan(result) || isinf(result) || result > 60.0) {
-    std::cout << "Norm looks suspicious: " << result << std::endl;
-  } else {
-    std::cout << "Factorization is correct!" << std::endl;
-  }
-
+  // clean up
+  delete[] Q;
 #endif
 
   dash::finalize();
@@ -339,5 +366,83 @@ void fill_random(TiledMatrix &matrix)
   for (size_t i = 0; i < ext; ++i) {
     if (matrix(i, i).is_local()) matrix(i, i) = ext;
   }
+}
+
+template<typename ValueT>
+static int check_orthogonality(ValueT *A, int N)
+{
+  size_t NN = N*N;
+  double eps = LAPACKE_dlamch_work('e');
+
+  // create identity matrix
+  ValueT *Id = new ValueT[NN];
+  std::fill(Id, Id+NN, 0.0);
+  for (int i = 0; i < NN; ++i) {
+    for (int j = 0; j < NN; ++j) {
+      if (i == j) Id[i*N+j] = 1.0;
+    }
+  }
+
+  // compute I - Q'Q
+  cblas_dsyrk(CblasRowMajor, CblasUpper, CblasTrans, N, N, 1.0, A, N, -1.0, Id, N);
+
+  ValueT *work = new ValueT[N];
+  // compute infinity norm
+  ValueT normQ;
+  CORE_dlansy('i', 'u', N, Id, N, work, &normQ);
+  delete[] work;
+  delete[] Id;
+
+  ValueT result = normQ / (N * eps);
+
+  if ( isnan(result) || isinf(result) || (result > 60.0) ) {
+     std::cout << "-- Orthogonality is suspicious !" << std::endl;
+  }
+  else {
+    std::cout << "-- Orthogonality is CORRECT !" << std::endl;
+  }
+
+  return 0;
+}
+
+template<typename ValueT>
+static int check_factorization(ValueT *A0, ValueT *A, ValueT *Q, size_t N)
+{
+  size_t NN = N*N;
+  ValueT eps = LAPACKE_dlamch_work('e');
+  ValueT *R        = new ValueT[NN];
+  ValueT *Residual = new ValueT[NN];
+
+  // copy original A into residual
+  CORE_dlacpy(PlasmaUpperLower, N, N, A0, N, Residual, N);
+
+  // extract R
+  std::fill(R, R+NN, 0.0);
+  CORE_dlacpy(PlasmaUpper, N, N, A, N, R, N);
+  
+  // perform Residual = Aorig - Q*R
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, N, N, -1.0, Q, N, R, N, 1.0, Residual, N);
+
+  // compute Residual norm
+  ValueT normR;
+  ValueT *work = new ValueT[N];
+  CORE_dlange(PlasmaInfNorm, N, N, Residual, N, work, &normR);
+
+  // compute Aorig norm
+  ValueT normA;
+  CORE_dlange(PlasmaInfNorm, N, N, A0, N, work, &normA);
+
+  ValueT result = normR / ( normA * N * eps);
+
+  if ( isnan(result) || isinf(result) || (result > 60.0) ) {
+     std::cout << "-- Factorization is suspicious!" << std::endl;
+  } else { 
+     std::cout << "-- Factorization is CORRECT !" << std::endl;
+  }
+
+  delete[] work;
+  delete[] R;
+  delete[] Residual;
+  return 0;
 }
 
