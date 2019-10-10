@@ -63,7 +63,8 @@ private:
   dash::Array<Real_t> *m_commDataRecv;
 
 public:
-  typedef dash::Array<Real_t> array_type;
+  typedef dash::Array<Real_t>  array_type;
+  typedef array_type::iterator global_iterator;
 
 public:
   DASHComm(Domain& dom);
@@ -94,12 +95,12 @@ public:
 
   // determine global destination pointer for a target unit rank and
   // location descriptor
-  dash::GlobIter<Real_t, dash::Pattern<1>>
+  global_iterator
     dest( Int_t rank, Int_t desc );
 
   // 26 = 6 faces + 12 edges + 8 corners
-  dash::Future<array_type::iterator> recvRequest[26];
-  dash::Future<array_type::iterator> sendRequest[26];
+  dash::Future<global_iterator> recvRequest[26];
+  dash::Future<global_iterator> sendRequest[26];
 
   double wtime();
   template<typename T> T allreduce_min(T val);
