@@ -25,9 +25,9 @@
 #---------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------
-# This is the C compiler used for OpenMP programs
+# This is the C compiler used for DASH programs
 #---------------------------------------------------------------------------
-CC = mpicxx
+CC = dash-mpicxx
 #gcc #cc
 # This links C programs; usually the same as ${CC}
 CLINK	= $(CC)
@@ -61,7 +61,7 @@ CLINKFLAGS = -lm -ldash-mpi -ldart-mpi -ldart-base -lhwloc -lnuma -lpthread
 # this compiler go here also; typically there are few flags required; hence
 # there are no separate macros provided for such flags.
 #---------------------------------------------------------------------------
-UCC		= mpicxx
+UCC		= gcc
 #UCC	= cc
 
 
