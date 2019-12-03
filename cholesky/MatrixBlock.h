@@ -19,8 +19,8 @@ public:
     auto& pattern       = matrix.pattern();
     // figure out the block-size (one dimension might be 'NONE')
     auto blocksize = std::min(pattern.blocksize(0), pattern.blocksize(1));
-    auto  glob_index    = block_row_idx*blocksize*pattern.extent(1) + block_col_idx*blocksize;
-    this->_glob_idx     = glob_index;
+    auto glob_index = pattern.global_at({block_row_idx*blocksize, block_col_idx*blocksize});
+    this->_glob_idx = glob_index;
     this->_is_local = pattern.is_local(glob_index);
     if (_is_local) {
       _local_ptr = matrix.lbegin() +
