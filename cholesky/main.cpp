@@ -18,6 +18,9 @@
 #elif defined (DASH_TASKS_COPYIN)
 #include "CholeskyTasksCopyIn.h"
 #define USE_TASKS 1
+#elif defined (DASH_TASKS_COPYIN_INTERNAL)
+#include "CholeskyTasksCopyInInternal.h"
+#define USE_TASKS 1
 #elif defined (DASH_PREFETCH)
 #include "CholeskyPrefetch.h"
 #define USE_TASKS 0
@@ -61,6 +64,18 @@ int main(int argc, char **argv)
     dash::finalize();
     exit(1);
   }
+
+#ifdef USE_OPENMP
+#pragma omp parallel
+{
+#pragma omp master
+{
+#endif
+
+  dash::util::BenchmarkParams bench_params("Cholesky");
+  bench_params.print_header();
+  bench_params.print_pinning();
+
 
 #ifdef USE_EXTRAE
   unsigned nvalues = 6;
