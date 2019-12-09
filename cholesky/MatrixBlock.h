@@ -9,7 +9,7 @@ template<typename MatrixT>
 class MatrixBlock {
 public:
 
-  using value_t = typename MatrixT::value_type;
+  using value_type = typename MatrixT::value_type;
 
   MatrixBlock(
     MatrixT &matrix,
@@ -93,14 +93,14 @@ public:
     return this->begin().dart_gptr();
   }
 
-  value_t *lbegin() {
+  value_type *lbegin() {
     if (!this->_is_local) {
       fetch_data();
     }
     return this->_local_ptr;
   }
 
-  value_t *lend() {
+  value_type *lend() {
     if (!this->_is_local) {
       fetch_data();
     }
@@ -118,13 +118,13 @@ public:
   void
   fetch_async() {
     if (this->_local_ptr == nullptr) {
-      this->_local_ptr = static_cast<value_t*>(malloc(this->_size * sizeof(value_t)));
+      this->_local_ptr = static_cast<value_type*>(malloc(this->_size * sizeof(value_type)));
       auto begin = this->_matrix->begin() + _glob_idx;
 #ifdef DEBUG
       std::cout << "Fetching async " << _size << " elements into "
                 << _local_ptr << std::endl;
 #endif
-      dash::dart_storage<value_t> ds(_size);
+      dash::dart_storage<value_type> ds(_size);
       dart_get_handle(
         this->_local_ptr, begin.dart_gptr(), ds.nelem, ds.dtype, &_handle);
       //dash::copy(begin, end, this->_local_ptr);
@@ -132,13 +132,13 @@ public:
   }
 
   void
-  fetch_async(value_t *target) {
+  fetch_async(value_type *target) {
     auto begin = this->_matrix->begin() + _glob_idx;
 #ifdef DEBUG
     std::cout << "Fetching async " << _size << " elements into "
               << target << std::endl;
 #endif
-    dash::dart_storage<value_t> ds(_size);
+    dash::dart_storage<value_type> ds(_size);
     dart_get_handle(
       target, begin.dart_gptr(), ds.nelem, ds.dtype, ds.dtype, &_handle);
     //dash::copy(begin, end, this->_local_ptr);
@@ -166,7 +166,7 @@ public:
   void store() {
     if (!_is_local && this->_local_ptr != NULL) {
       auto begin = this->_matrix->begin() + _glob_idx;
-      dash::dart_storage<value_t> ds(_size);
+      dash::dart_storage<value_type> ds(_size);
       dart_put_blocking(begin.dart_gptr(), _local_ptr, ds.nelem, ds.dtype, ds.dtype);
     }
   }
@@ -179,13 +179,13 @@ private:
 
   void fetch_data() {
     if (this->_local_ptr == nullptr) {
-      this->_local_ptr = static_cast<value_t*>(malloc(this->_size * sizeof(value_t)));
+      this->_local_ptr = static_cast<value_type*>(malloc(this->_size * sizeof(value_type)));
       auto begin = this->_matrix->begin() + _glob_idx;
 #ifdef DEBUG
       std::cout << "Fetching " << _size << " elements into "
                 << _local_ptr << std::endl;
 #endif
-      dash::dart_storage<value_t> ds(_size);
+      dash::dart_storage<value_type> ds(_size);
       dart_get_blocking(
         this->_local_ptr, begin.dart_gptr(), ds.nelem, ds.dtype, ds.dtype);
       //dash::copy(begin, end, this->_local_ptr);
@@ -194,7 +194,7 @@ private:
 
 private:
   MatrixT* _matrix;
-  value_t* _local_ptr = nullptr;
+  value_type* _local_ptr = nullptr;
   size_t   _size = 0;
   size_t   _glob_idx;
   dart_handle_t _handle = DART_HANDLE_NULL;
