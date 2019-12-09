@@ -65,13 +65,6 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-#ifdef USE_OPENMP
-#pragma omp parallel
-{
-#pragma omp master
-{
-#endif
-
   dash::util::BenchmarkParams bench_params("Cholesky");
   bench_params.print_header();
   bench_params.print_pinning();
