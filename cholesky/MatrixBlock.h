@@ -3,7 +3,7 @@
 
 #include <libdash.h>
 
-//#define DEBUG
+//#define DEBUG_OUT
 
 template<typename MatrixT>
 class MatrixBlock {
@@ -32,7 +32,7 @@ public:
                     ).index;
     }
     this->_size = blocksize*blocksize;
-#ifdef DEBUG
+#ifdef DEBUG_OUT
     std::cout << "BlockCache: " << block_row_idx << "x" << block_col_idx << " "
               << blocksize << "x" << blocksize
               << " (size=" << _size << ", is_local=" << _is_local
@@ -44,7 +44,7 @@ public:
 
   ~MatrixBlock() {
     if (!this->_is_local && _local_ptr != nullptr) {
-#ifdef DEBUG
+#ifdef DEBUG_OUT
       std::cout << "Freeing pointer " << _local_ptr << std::endl;
 #endif
       free(_local_ptr);
@@ -120,7 +120,7 @@ public:
     if (this->_local_ptr == nullptr) {
       this->_local_ptr = static_cast<value_type*>(malloc(this->_size * sizeof(value_type)));
       auto begin = this->_matrix->begin() + _glob_idx;
-#ifdef DEBUG
+#ifdef DEBUG_OUT
       std::cout << "Fetching async " << _size << " elements into "
                 << _local_ptr << std::endl;
 #endif
@@ -134,7 +134,7 @@ public:
   void
   fetch_async(value_type *target) {
     auto begin = this->_matrix->begin() + _glob_idx;
-#ifdef DEBUG
+#ifdef DEBUG_OUT
     std::cout << "Fetching async " << _size << " elements into "
               << target << std::endl;
 #endif
@@ -181,7 +181,7 @@ private:
     if (this->_local_ptr == nullptr) {
       this->_local_ptr = static_cast<value_type*>(malloc(this->_size * sizeof(value_type)));
       auto begin = this->_matrix->begin() + _glob_idx;
-#ifdef DEBUG
+#ifdef DEBUG_OUT
       std::cout << "Fetching " << _size << " elements into "
                 << _local_ptr << std::endl;
 #endif
@@ -201,6 +201,6 @@ private:
   bool     _is_local  = true;
 };
 
-#undef DEBUG
+#undef DEBUG_OUT
 
 #endif // CHOLESKY_MATRIXBLOCK_H
