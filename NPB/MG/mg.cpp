@@ -794,7 +794,6 @@ static void rprj3(dash::NArray<double, 3> &r, int m1k, int m2k, int m3k, dash::N
     if ( r(i3,0,0).is_local() ) {
       r_local[r_idx] = r.lbegin()+r_psize*(i3-r_offset);
       is_local[r_idx] = true;
-      futs[r_idx] = dash::copy_async(r.begin()+r_psize*i3, r.begin()+r_psize*i3, r_local_v[r_idx].data());
     } else {
       futs[r_idx] = dash::copy_async(r.begin()+r_psize*i3, r.begin()+r_psize*(i3+1), r_local_v[r_idx].data());
       r_local[r_idx] = r_local_v[r_idx].data();
@@ -803,7 +802,6 @@ static void rprj3(dash::NArray<double, 3> &r, int m1k, int m2k, int m3k, dash::N
     if ( r(i3+1,0,0).is_local() ) {
       r_local[r_idx] = r.lbegin()+r_psize*(i3+1-r_offset);
       is_local[r_idx] = true;
-      futs[r_idx] = dash::copy_async(r.begin()+r_psize*(i3+1), r.begin()+r_psize*(i3+1), r_local_v[r_idx].data());
     } else {
       futs[r_idx] = dash::copy_async(r.begin()+r_psize*(i3+1), r.begin()+r_psize*(i3+2), r_local_v[r_idx].data());
       r_local[r_idx] = r_local_v[r_idx].data();
@@ -817,7 +815,6 @@ static void rprj3(dash::NArray<double, 3> &r, int m1k, int m2k, int m3k, dash::N
     if ( r(i3,0,0).is_local() ) {
       r_local[r_idx] = r.lbegin()+r_psize*(i3-r_offset);
       is_local[r_idx] = true;
-      futs[r_idx] = dash::copy_async(r.begin()+r_psize*i3, r.begin()+r_psize*i3, r_local_v[r_idx].data());
     } else {
       futs[r_idx] = dash::copy_async(r.begin()+r_psize*i3, r.begin()+r_psize*(i3+1), r_local_v[r_idx].data());
       r_local[r_idx] = r_local_v[r_idx].data();
@@ -869,9 +866,9 @@ static void rprj3(dash::NArray<double, 3> &r, int m1k, int m2k, int m3k, dash::N
       i3 = 2*j3-d3;
       //C  i3 = 2*j3-1
 
-      futs[r_idx+0].wait();
-      futs[r_idx+1].wait();
-      futs[r_idx+2].wait();
+      if(!is_local[r_idx+0]) futs[r_idx+0].wait();
+      if(!is_local[r_idx+1]) futs[r_idx+1].wait();
+      if(!is_local[r_idx+2]) futs[r_idx+2].wait();
 
       for (j2 = 1; j2 < m2j-1; j2++) {
         i2 = 2*j2-d2;
@@ -974,14 +971,12 @@ static void interp(dash::NArray<double, 3> &z, int mm1, int mm2, int mm3, dash::
         if ( z(i3,0,0).is_local() ) {
           z_local[j3-start] = z.lbegin()+z_size*(i3-z_offset);
           is_local[j3-start] = true;
-          futs[j3-start] = dash::copy_async(z.begin()+z_size*i3, z.begin()+z_size*i3, z_local_v[j3-start].data());
         } else {
           futs[j3-start] = dash::copy_async(z.begin()+z_size*i3, z.begin()+z_size*(i3+1), z_local_v[j3-start].data());
           z_local[j3-start] = z_local_v[j3-start].data();
         }
         if ( z(i3+1,0,0).is_local() ) {
           z_local[j3-start+1] = z.lbegin()+z_size*(i3+1-z_offset);
-          futs[j3-start+1] = dash::copy_async(z.begin()+z_size*(i3+1), z.begin()+z_size*(i3+1), z_local_v[j3-start+1].data());
           is_local[j3-start+1] = true;
         } else {
             futs[j3-start+1] = dash::copy_async(z.begin()+z_size*(i3+1), z.begin()+z_size*(i3+2), z_local_v[j3-start+1].data());
@@ -1024,8 +1019,8 @@ static void interp(dash::NArray<double, 3> &z, int mm1, int mm2, int mm3, dash::
       for (int j3 = start; j3 < u_planes; j3+=2) {
         if ( !(is_local[j3-start] && is_local[j3-start+1]) ) {
           // int i3 = (u_offset + j3)/2;
-          futs[j3-start].wait();
-          futs[j3-start+1].wait();
+          if(!is_local[j3-start+0]) futs[j3-start].wait();
+          if(!is_local[j3-start+1]) futs[j3-start+1].wait();
 
           for (int i2 = 0; i2 < mm2-1; i2++) {
             for (int i1 = 0; i1 < mm1; i1++) {
