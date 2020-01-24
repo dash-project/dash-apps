@@ -9,7 +9,7 @@ set(DASH_DART_IMPL "MPI")
 file(GLOB SOURCES *.cc)
 
 set(CXX_FLAGS "-O3 -Ofast -DUSE_DASH")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 ## Do not edit below this line unless you know what you are doing
 
