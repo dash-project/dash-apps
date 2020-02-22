@@ -94,7 +94,8 @@ public:
 
   // determine global destination pointer for a target unit rank and
   // location descriptor
-  dash::GlobIter<Real_t, dash::Pattern<1>>
+  using GlobMem_t = dash::GlobStaticMem<dash::HostSpace>;
+  dash::GlobIter<Real_t, dash::Pattern<1>, GlobMem_t>
     dest( Int_t rank, Int_t desc );
 
   // 26 = 6 faces + 12 edges + 8 corners
