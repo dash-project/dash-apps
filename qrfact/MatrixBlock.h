@@ -180,7 +180,8 @@ public:
 
 
   int unit() {
-    return this->_matrix->pattern().unit_at(_glob_idx);
+    return this->_gptr.unitid;
+    //return this->_matrix->pattern().unit_at(_glob_idx);
   }
 
   dart_handle_t dart_handle() {
