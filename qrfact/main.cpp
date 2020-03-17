@@ -54,16 +54,17 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  dash::util::BenchmarkParams bench_params("Cholesky");
+  dash::util::BenchmarkParams bench_params("QR Factorization");
   bench_params.print_header();
   bench_params.print_pinning();
 
   if (argc < 3) {
     if (dash::myid() == 0) {
-      std::cout << argv[0] << " <num_elems> <block_size> [<super-block-size = 2>}\n"
+      std::cout << argv[0] << " <num_elems> <block_size> [<sbm = 4> [<sbn=1>]]\n"
                 << "  num_elems:  number of elements in each direction\n"
                 << "  block_size: size of block in each direction" 
-                << "  super-block-size: number of blocks clustered in super-block" << std::endl;
+                << "  sbm: super-block size in M"
+                << "  sbn: super-block size in N" << std::endl;
     }
     dash::finalize();
     exit(1);
@@ -71,9 +72,13 @@ int main(int argc, char **argv)
 
   size_t num_elem   = atoll(argv[1]); // number of elements in each dimension
   size_t block_size = atoll(argv[2]); // block-size in each dimension
-  size_t super_block_size = 2;
+  size_t sb_size_m = 4;
+  size_t sb_size_n = 1;
   if (argc > 3) {
-    super_block_size = atoll(argv[3]);
+    sb_size_m = sb_size_n = atoll(argv[3]);
+  }
+  if (argc > 4) {
+    sb_size_n = atoll(argv[4]);
   }
 
 
@@ -83,17 +88,18 @@ int main(int argc, char **argv)
     std::cout << "Allocating matrix: \n";
   }
 
-  dash::TeamSpec<4> ts(dash::size(), 1, 1, 1);
-  ts.balance_extents();
+  dash::TeamSpec<2> ts2d(dash::size(), 1);
+  ts2d.balance_extents();
+  dash::TeamSpec<4> ts(ts2d.extent(0), ts2d.extent(1), 1, 1);
   size_t num_blocks = num_elem / block_size;
-  std::cout << "num_blocks: " << num_blocks << ", super_block_size " << super_block_size << ", block_size " << block_size << std::endl;
+  std::cout << "num_blocks: " << num_blocks << ", SB " << sb_size_m << "x" << sb_size_n << ", block_size " << block_size << std::endl;
   TiledMatrix A(num_blocks, num_blocks,         // super-blocks
-                dash::TILE(super_block_size), dash::TILE(super_block_size),
+                dash::TILE(sb_size_m), dash::TILE(sb_size_n),
                 block_size, block_size,
                 dash::TILE(block_size), dash::TILE(block_size), ts);
 
   TiledMatrix T(num_blocks, num_blocks,         // super-blocks
-                dash::TILE(super_block_size), dash::TILE(super_block_size),
+                dash::TILE(sb_size_m), dash::TILE(sb_size_n),
                 block_size, block_size,
                 dash::TILE(block_size), dash::TILE(block_size), ts);
 
@@ -212,7 +218,8 @@ int main(int argc, char **argv)
     }
   }
 #else
-  fill_random(A);
+  //fill_random(A);
+  dash::fill(A.begin(), A.end(), 0.0);
 #endif
   //dash::fill(T.begin(), T.end(), 0.0);
 
