@@ -15,7 +15,7 @@
  *  MPI version.
  */
 
-#include "heatMPI.h"
+#include "heatMPI_2d.h"
 #include "minimon.h"
 #include <string.h>
 
