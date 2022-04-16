@@ -2,14 +2,15 @@
 #include <libdash.h>
 #include "minimon.h"
 
-
 using namespace std;
 
-using PatternT    = dash::Pattern<2>;
-using MatrixT     = dash::Matrix<double, 2, typename PatternT::index_type, PatternT>;
-using StencilT     = dash::halo::StencilPoint<2>;
+constexpr dash::dim_t DIMENSION = 2;
+
+using PatternT    = dash::Pattern<DIMENSION>;
+using MatrixT     = dash::Matrix<double, DIMENSION, typename PatternT::index_type, PatternT>;
+using StencilT     = dash::halo::StencilPoint<DIMENSION>;
 using StencilSpecT = dash::halo::StencilSpec<StencilT,4>;
-using GlobBoundSpecT     = dash::halo::GlobalBoundarySpec<2>;
+using GlobBoundSpecT     = dash::halo::GlobalBoundarySpec<DIMENSION>;
 using HaloMatrixWrapperT = dash::halo::HaloMatrixWrapper<MatrixT>;
 
 using array_t      = dash::Array<double>;
@@ -52,10 +53,10 @@ int main(int argc, char *argv[])
   auto myid = dash::myid();
   auto ranks = dash::size();
 
-  dash::DistributionSpec<2> dist(dash::BLOCKED, dash::BLOCKED);
-  dash::TeamSpec<2> tspec;
+  dash::DistributionSpec<DIMENSION> dist(dash::BLOCKED, dash::BLOCKED);
+  dash::TeamSpec<DIMENSION> tspec;
   tspec.balance_extents();
-  PatternT pattern(dash::SizeSpec<2>(matrix_ext, matrix_ext),dist, tspec, dash::Team::All());
+  PatternT pattern(dash::SizeSpec<DIMENSION>(matrix_ext, matrix_ext),dist, tspec, dash::Team::All());
   auto src_matrix = MatrixT(pattern);
   auto dst_matrix = MatrixT(pattern);
 
@@ -149,6 +150,7 @@ int main(int argc, char *argv[])
   // final total energy
   double endEnergy = calcEnergy(src_halo_ptr->matrix(), energy);
 
+  // Output
   if (myid == 0) {
     cout << fixed;
     cout.precision(5);
@@ -162,6 +164,7 @@ int main(int argc, char *argv[])
 
   dash::Team::All().barrier();
   minimon.leave("total");
+
   if(myid == 0)
     std::cout << "# unit_id;function_name;num_calls;avg_runtime;min_runtime;max_runtime"
               << std::endl;

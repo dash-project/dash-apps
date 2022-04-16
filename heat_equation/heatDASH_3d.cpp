@@ -4,11 +4,13 @@
 
 using namespace std;
 
-using PatternT    = dash::Pattern<3>;
-using MatrixT     = dash::Matrix<double, 3, typename PatternT::index_type, PatternT>;
-using StencilT     = dash::halo::StencilPoint<3>;
+constexpr dash::dim_t DIMENSION = 3;
+
+using PatternT    = dash::Pattern<DIMENSION>;
+using MatrixT     = dash::Matrix<double, DIMENSION, typename PatternT::index_type, PatternT>;
+using StencilT     = dash::halo::StencilPoint<DIMENSION>;
 using StencilSpecT = dash::halo::StencilSpec<StencilT,6>;
-using GlobBoundSpecT     = dash::halo::GlobalBoundarySpec<3>;
+using GlobBoundSpecT     = dash::halo::GlobalBoundarySpec<DIMENSION>;
 using HaloMatrixWrapperT = dash::halo::HaloMatrixWrapper<MatrixT>;
 
 using array_t      = dash::Array<double>;
@@ -52,10 +54,10 @@ int main(int argc, char *argv[])
   auto myid = dash::myid();
   auto ranks = dash::size();
 
-  dash::DistributionSpec<3> dist(dash::BLOCKED, dash::BLOCKED, dash::BLOCKED);
-  dash::TeamSpec<3> tspec;
+  dash::DistributionSpec<DIMENSION> dist(dash::BLOCKED, dash::BLOCKED, dash::BLOCKED);
+  dash::TeamSpec<DIMENSION> tspec;
   tspec.balance_extents();
-  PatternT pattern(dash::SizeSpec<3>(matrix_ext, matrix_ext, matrix_ext),dist, tspec, dash::Team::All());
+  PatternT pattern(dash::SizeSpec<DIMENSION>(matrix_ext, matrix_ext, matrix_ext),dist, tspec, dash::Team::All());
   auto src_matrix = MatrixT(pattern);
   auto dst_matrix = MatrixT(pattern);
 
@@ -91,7 +93,7 @@ int main(int argc, char *argv[])
         }
       }
     }
-  } else  {
+  } else {
     std::fill(src_matrix.lbegin(), src_matrix.lend(),0);
     std::fill(dst_matrix.lbegin(), dst_matrix.lend(),0);
   }
@@ -171,11 +173,13 @@ int main(int argc, char *argv[])
   if(myid == 0)
     std::cout << "# unit_id;function_name;num_calls;avg_runtime;min_runtime;max_runtime"
               << std::endl;
+
   for(auto i = 0; i < dash::size(); ++i) {
     if(i == myid)
       minimon.print(myid);
     dash::Team::All().barrier();
   }
+
   dash::finalize();
 
   return 0;

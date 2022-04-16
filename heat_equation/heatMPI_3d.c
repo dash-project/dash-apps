@@ -222,7 +222,6 @@ void calc_tb(heatGrid* grid, dataMPI* mympi, double dt, int tb)
 
 void calc_lr(heatGrid* grid, dataMPI* mympi, double dt, int lr)
 {
-
     double dtheta;
 
     for(int x = 2; x < grid->local_size_x; ++x) {
@@ -308,9 +307,6 @@ int main (int argc, char** argv) {
     for(step=0 ; step<nsteps ; step++) {
         minimon.enter();
 
-        /* get Time */
-        //if (step==1) startTime = MPI_Wtime();
-
         //start communication
         minimon.enter();
         MPI_Request send_requests[6];
@@ -366,7 +362,6 @@ int main (int argc, char** argv) {
         minimon.enter();
         calcInnerGrid(&mygrid, &mympi, dt);
         minimon.leave("calc inner");
-
 
         minimon.enter();
         // wait for all Recv to complete and save switch-case statement

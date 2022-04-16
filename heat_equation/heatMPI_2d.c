@@ -243,6 +243,7 @@ int main (int argc, char** argv) {
     /*************/
     /* Main loop */
     /*************/
+
     minimon.enter();
     for(step=0 ; step<nsteps ; step++) {
         minimon.enter();
@@ -352,6 +353,7 @@ int main (int argc, char** argv) {
     MPI_Barrier(MPI_COMM_WORLD);
   }
     heatMPIFree (&mympi);
+
     MPI_Finalize();
 
     return 0;
