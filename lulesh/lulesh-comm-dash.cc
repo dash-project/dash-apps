@@ -30,6 +30,8 @@ DASHComm::DASHComm(Domain& dom) : m_dom(dom)
 
   memset( m_commDataSend->lbegin(), 0, comBufSize*sizeof(Real_t) );
   memset( m_commDataRecv->lbegin(), 0, comBufSize*sizeof(Real_t) );
+
+  m_commDataRecv->barrier();
 }
 
 DASHComm::~DASHComm()
@@ -59,6 +61,7 @@ void DASHComm::ExchangeNodalMass()
 
   dash::barrier();
   DASHCommSBN(dom, comm, 1, &fieldData);
+  dash::barrier();
 }
 
 void DASHComm::Recv_PosVel()
@@ -98,6 +101,7 @@ void DASHComm::Sync_PosVel()
 
   dash::barrier();
   DASHCommSyncPosVel(dom, comm);
+  dash::barrier();
 }
 
 
@@ -137,6 +141,7 @@ void DASHComm::Sync_Force()
 
   dash::barrier();
   DASHCommSBN(dom, comm, 3, fieldData);
+  dash::barrier();
 }
 
 void DASHComm::Recv_MonoQ()
@@ -174,6 +179,7 @@ void DASHComm::Sync_MonoQ()
 
   dash::barrier();
   DASHCommMonoQ(dom,comm);
+  dash::barrier();
 }
 
 Int_t DASHComm::offset(Int_t desc)
@@ -190,8 +196,8 @@ Int_t DASHComm::offset(Int_t desc)
   assert(0 <= cmsg && cmsg <= 8);
 
   auto offs =
-    pmsg * maxPlaneSize +
-    emsg * maxEdgeSize +
+    (pmsg * maxPlaneSize +
+     emsg * maxEdgeSize) * MAX_FIELDS_PER_COMM  +
     cmsg * CACHE_COHERENCE_PAD_REAL;
 
   return offs;

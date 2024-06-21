@@ -590,12 +590,14 @@ void Domain::SetupThreadSupportStructures()
     for (Index_t i=0; i < clSize; ++i) {
       Index_t clv = m_nodeElemCornerList[i] ;
       if ((clv < 0) || (clv > numElem()*8)) {
-	fprintf(stderr,
-		"AllocateNodeElemIndexes(): nodeElemCornerList entry out of range!\n");
+        fprintf(stderr,
+          "AllocateNodeElemIndexes(): nodeElemCornerList entry out of range!\n");
 #if USE_MPI
-	MPI_Abort(MPI_COMM_WORLD, -1);
+          MPI_Abort(MPI_COMM_WORLD, -1);
+#elif USE_DASH
+          dart_abort(-1);
 #else
-	exit(-1);
+          exit(-1);
 #endif
       }
     }
@@ -869,6 +871,8 @@ void Domain::CalcLagrangeElements(Real_t* vnew)
 	  {
 #if USE_MPI
 	    MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#elif USE_DASH
+      dart_abort(VolumeError);
 #else
 	    exit(VolumeError);
 #endif
@@ -919,9 +923,11 @@ void Domain::CalcQForElems(Real_t vnew[])
 
       if(idx >= 0) {
 #if USE_MPI
-	MPI_Abort(MPI_COMM_WORLD, QStopError) ;
+        MPI_Abort(MPI_COMM_WORLD, QStopError) ;
+#elif USE_DASH
+        dart_abort(QStopError);
 #else
-	exit(QStopError);
+        exit(QStopError);
 #endif
       }
   }
@@ -972,9 +978,11 @@ void Domain::ApplyMaterialPropertiesForElems(Real_t vnew[])
 	}
 	if (vc <= 0.) {
 #if USE_MPI
-	  MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+    MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+#elif USE_DASH
+    dart_abort(VolumeError);
 #else
-	  exit(VolumeError);
+    exit(VolumeError);
 #endif
 	}
       }
